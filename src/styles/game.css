@@ -1,0 +1,51 @@
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=Inter:wght@400;500&display=swap');
+
+.witcher-game * { box-sizing: border-box; margin: 0; padding: 0; }
+.witcher-game { font-family: 'Cormorant Garamond', Georgia, serif; }
+.witcher-game .ui-text { font-family: 'Inter', system-ui, sans-serif; }
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes sceneFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes medallionPulse {
+  0%, 100% { opacity: 0.5; filter: brightness(0.8); }
+  50% { opacity: 1; filter: brightness(1.4); }
+}
+@keyframes gentlePulse {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+@keyframes titleReveal {
+  from { opacity: 0; letter-spacing: 0.5em; }
+  to { opacity: 1; letter-spacing: 0.3em; }
+}
+@keyframes subtitleReveal {
+  from { opacity: 0; }
+  to { opacity: 0.7; }
+}
+@keyframes sensesPulse {
+  0%, 100% { box-shadow: 0 0 15px rgba(90,157,181,0.1); }
+  50% { box-shadow: 0 0 25px rgba(90,157,181,0.25); }
+}
+
+.paragraph-enter {
+  animation: fadeInUp 0.8s ease-out forwards;
+}
+.choice-enter {
+  animation: fadeInUp 0.5s ease-out forwards;
+}
+.senses-text {
+  animation: fadeIn 0.6s ease-out forwards;
+}
+.scene-container {
+  animation: sceneFadeIn 0.6s ease-out forwards;
+}

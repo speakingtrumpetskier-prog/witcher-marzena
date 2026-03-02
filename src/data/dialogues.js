@@ -1,0 +1,133 @@
+// Narrative data: dialogues, player choices, and story endings for Marzena
+
+export const DIALOGUES = {
+  elder_hall: [
+    { text: "The elder's hall is warm with hearthfire. Maps of the valley line the stone walls." },
+    { speaker: "Borislav", text: "Three children. Over the past season. Alina, Piotr, Dariusz. All orphans we took in from the road." },
+    { speaker: "Borislav", text: "One morning their beds are empty. Days later, they turn up at the forest edge. Walking. Breathing." },
+    { text: "He stares at the cup he poured for you." },
+    { speaker: "Borislav", text: "But not right. They don't speak. Barely eat. Just stare at the treeline like they're waiting to be called back." },
+    { speaker: "Borislav", text: "That's why I posted the contract. Whatever lives in that forest — I want it stopped." },
+  ],
+  children: [
+    { text: "Alina sits by the window. Seven years old. Eyes fixed on the northern treeline." },
+    { text: "You crouch to her level. Amber eyes meeting brown. She does not flinch. Children usually flinch." },
+    { text: "'Alina. Can you hear me?'" },
+    { text: "Her eyes slide to yours. Recognition, but distant. Like someone seen through deep water." },
+    { text: "A whisper so faint you'd miss it without mutations:" },
+    { speaker: "Alina", text: "Matka." },
+    { text: "Mother." },
+  ],
+  forest_edge: [
+    { text: "The forest begins without warning. One step is meadow. The next is absolute shade." },
+    { text: "Small circles of flattened grass mark where the children were found. Beyond them, a path too narrow for adults winds between ancient roots." },
+    { text: "Twenty paces in: an elven waystone. Symbols sharp as the day they were carved. Preservation magic." },
+    { text: "At its base, wildflowers bloom in late autumn. Warm to the touch." },
+    { text: "The inscription reads: 'For those who are not held, I will hold. For those who are not kept, I will keep.'" },
+  ],
+  families: [
+    { text: "The common house smells of wool and tallow. Women work a loom together. They don't stop when you enter." },
+    { speaker: "Marta", text: "We took them in. Fed them. Gave them beds. What else were we supposed to do?" },
+    { text: "None of these women adopted the children into their homes. The orphans were housed together, apart. Cared for and contained in the same gesture." },
+    { text: "The loom depicts trees with human faces. Children walking single-file into a forest. Old thread, nearly worn smooth." },
+    { text: "A younger woman catches your eye as you leave. Hanna. The briefest shake of her head. Not now." },
+  ],
+  night: [
+    { text: "Past midnight. A knock at your door." },
+    { text: "Hanna stands in the doorway, shawl pulled tight. She has been crying." },
+    { speaker: "Hanna", text: "I have to be quick. If Borislav finds out..." },
+    { speaker: "Hanna", text: "There was a fourth child. A boy called Renn. My nephew. My sister's boy." },
+    { speaker: "Hanna", text: "When the forest called, he went like the others. But Renn didn't come back." },
+    { text: "She grips your arm with surprising strength." },
+    { speaker: "Hanna", text: "They're not rescuing orphans, witcher. They're collecting them." },
+  ],
+  confrontation: [
+    { text: "Dawn. Borislav is at the well." },
+    { speaker: "Borislav", text: "So. Hanna talked." },
+    { text: "He tells you. Four hundred years. Refugees found this valley. The forest offered protection. In return, it asks for children." },
+    { speaker: "Borislav", text: "Not to kill. The spirit takes them in. Loves them. But the loving changes them." },
+    { speaker: "Borislav", text: "We stopped sending our own three generations ago. Started taking in orphans from the road." },
+    { speaker: "Borislav", text: "Every child gets months of food and safety. More than they'd have had. And two hundred souls stay protected." },
+    { text: "He meets your eyes." },
+    { speaker: "Borislav", text: "Would you trade that?" },
+    { text: "There is nothing left to learn here. The forest awaits to the north." },
+  ],
+  deep_forest: [
+    { text: "The path opens into a clearing that should not exist. Spring here. Wildflowers. Warm air." },
+    { text: "She stands at the center. Half woman, half forest. Bark and skin merge at her wrists. Roots trail from her feet into the earth." },
+    { text: "Her eyes are terribly human." },
+    { text: "Around her, children play. A boy who might be Renn weaves flower crowns with fingers that move too slowly. His edges are fading." },
+    { speaker: "Aisling", text: "Witcher. I wondered when they'd send someone to end it." },
+    { speaker: "Aisling", text: "I was Aisling once. I loved a man from this valley. When he died, I bound myself to protect his people." },
+    { speaker: "Aisling", text: "The binding needs life. They began sending the ones nobody would miss." },
+    { speaker: "Aisling", text: "I hold them. I give them what the village won't. But the binding takes. The more I love them, the faster they fade." },
+    { speaker: "Aisling", text: "I have become the thing I swore to prevent. And I cannot stop." },
+  ],
+};
+
+export const CHOICES = [
+  { text: "Draw your silver sword", desc: "End the binding by ending its anchor.", ending: "kill" },
+  { text: "Cast the Sign of Yrden", desc: "Unravel the binding without killing.", ending: "free" },
+  { text: "Turn your back. Walk away.", desc: "Take the children. Leave Marzena to its debt.", ending: "confront" },
+  { text: "Step into the circle", desc: "Offer yourself. A witcher's body resists the drain.", ending: "bind" },
+];
+
+export const ENDINGS = {
+  kill: {
+    title: "The Silver Price",
+    lines: [
+      "Silver finds its mark. Aisling doesn't fight.",
+      "She closes her eyes and breathes out four hundred autumns.",
+      "The clearing dies. Flowers wilt. The warmth drains away.",
+      "The three from Marzena collapse, convulse, then stir. Alive.",
+      "The others fade. Renn watches his hands turn translucent. Then wildflowers where a boy sat.",
+      "You carry three children out. Borislav pays you. Adds extra coins.",
+      "You leave before nightfall. For the first time in four centuries, the wind blows cold through Kestrel Valley.",
+      "The contract is complete. The monster is dead.",
+      "You tell yourself that on the ride back. Eventually, you might believe it.",
+    ],
+  },
+  free: {
+    title: "What Remains",
+    lines: [
+      "Yrden — cast not to bind, but to unbind.",
+      "Violet light cascades outward, severing threads of the spell.",
+      "Aisling screams. Not in pain. In loss.",
+      "A woman stands where the spirit was. Impossibly old. But her eyes are the same.",
+      "'Oh,' she says, looking at human hands. 'It's cold.'",
+      "The children wake. Even Renn. Without the binding, they are simply children again.",
+      "She dies before you reach the treeline. Four hundred years, less than an hour as mortal.",
+      "You leave with seven children and no payment.",
+      "On the road, Alina takes your hand. Small and warm and stubbornly alive.",
+    ],
+  },
+  confront: {
+    title: "The Debt",
+    lines: [
+      "'I'm not your solution,' you tell Aisling. 'And I'm not theirs.'",
+      "You walk back and tell them. All of them. What their prosperity costs.",
+      "Hanna weeps. Others don't. Some faces harden.",
+      "'What would you have us do?' Borislav says. 'There's no court here.'",
+      "'Then answer to me.'",
+      "You take the children. And Hanna.",
+      "A witcher and a handful of stolen lives on a road that leads everywhere and nowhere.",
+      "'Where are we going?' Alina asks.",
+      "You don't know. But it's honest. And that has to be enough.",
+    ],
+  },
+  bind: {
+    title: "The New Arrangement",
+    lines: [
+      "You step into the circle. Your medallion goes still.",
+      "The binding rushes in. Your mutations flare.",
+      "For an instant you ARE the forest — every root, every leaf, two hundred lives below.",
+      "When it passes, Aisling stands upright. Bark flaking away. Human again.",
+      "The children stir. Renn's eyes are clear.",
+      "You look down. Pale roots thread from your feet into the earth.",
+      "'Made a better deal,' you say.",
+      "Aisling takes the children home. All of them. Whole.",
+      "You sit at the base of the waystone. The binding pulses with your heartbeat.",
+      "Witchers have always been tools. At least this time, you chose.",
+    ],
+  },
+};
