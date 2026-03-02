@@ -949,9 +949,11 @@ export default function WitcherMarzena3D() {
       g.position.set(x, 0, z);
       return g;
     }
-    const borislav = makeFigure(13, -2, 0x6a5a3a, 0xdbb896, { hat: 0x3a2a1a });
+    // Borislav: outside Elder's Hall front door (building at x=15, z=-5, d=7 → front at z=-1.5)
+    const borislav = makeFigure(15, 2, 0x6a5a3a, 0xdbb896, { hat: 0x3a2a1a });
     scene.add(borislav);
-    const marta = makeFigure(-14, -1, 0x7a6a4a, 0xdbb896, { hair: 0x5a3a2a });
+    // Marta: outside Common House front door (building at x=-16, z=-3, d=5 → front at z=-0.5)
+    const marta = makeFigure(-16, 2, 0x7a6a4a, 0xdbb896, { hair: 0x5a3a2a });
     scene.add(marta);
 
     // Aisling (half-woman, half-forest spirit)
