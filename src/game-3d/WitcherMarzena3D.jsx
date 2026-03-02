@@ -823,54 +823,135 @@ export default function WitcherMarzena3D() {
     // ── NPCS ──
     function makeFigure(x, z, robeColor, headColor = 0xdbb896, opts = {}) {
       const g = new THREE.Group();
-      const robeMat = new THREE.MeshStandardMaterial({ color: robeColor, roughness: 0.88, metalness: 0 });
-      // Body (tapered cylinder, more natural than cone)
-      const body = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.4, 1.3, 8), robeMat);
-      body.position.y = 0.65;
-      g.add(body);
-      // Shoulders
-      const shoulders = new THREE.Mesh(new THREE.BoxGeometry(0.65, 0.12, 0.25), robeMat);
-      shoulders.position.y = 1.35;
-      g.add(shoulders);
-      // Arms (hanging)
+      const robeMat = new THREE.MeshStandardMaterial({
+        color: robeColor, roughness: 0.82, metalness: 0,
+        emissive: robeColor, emissiveIntensity: 0.08,
+      });
+      const skinMaterial = new THREE.MeshStandardMaterial({
+        color: headColor, roughness: 0.7, metalness: 0,
+        emissive: headColor, emissiveIntensity: 0.06,
+      });
+
+      // Legs (two separate cylinders for more realism)
       [-1, 1].forEach(s => {
-        const arm = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.05, 0.7, 5), robeMat);
-        arm.position.set(s * 0.38, 0.95, 0);
-        arm.rotation.z = s * 0.08;
-        g.add(arm);
-        // Hands
-        const hand = new THREE.Mesh(new THREE.SphereGeometry(0.05, 5, 4), new THREE.MeshStandardMaterial({ color: headColor, roughness: 0.85, metalness: 0 }));
-        hand.position.set(s * 0.4, 0.58, 0);
+        const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.1, 0.7, 6), robeMat);
+        leg.position.set(s * 0.12, 0.35, 0);
+        g.add(leg);
+        // Boots
+        const boot = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.12, 0.22),
+          new THREE.MeshStandardMaterial({ color: 0x2a1a0a, roughness: 0.9, metalness: 0 }));
+        boot.position.set(s * 0.12, 0.06, 0.03);
+        g.add(boot);
+      });
+
+      // Body / torso (tapered cylinder)
+      const body = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.32, 0.9, 8), robeMat);
+      body.position.y = 1.15;
+      g.add(body);
+
+      // Shoulders
+      const shoulders = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.14, 0.28), robeMat);
+      shoulders.position.y = 1.65;
+      g.add(shoulders);
+
+      // Arms (hanging, slightly bent)
+      [-1, 1].forEach(s => {
+        // Upper arm
+        const upperArm = new THREE.Mesh(new THREE.CylinderGeometry(0.065, 0.06, 0.5, 5), robeMat);
+        upperArm.position.set(s * 0.42, 1.38, 0);
+        upperArm.rotation.z = s * 0.12;
+        g.add(upperArm);
+        // Forearm
+        const forearm = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.05, 0.45, 5), robeMat);
+        forearm.position.set(s * 0.46, 1.0, 0.05);
+        forearm.rotation.z = s * 0.06;
+        forearm.rotation.x = -0.15;
+        g.add(forearm);
+        // Hand
+        const hand = new THREE.Mesh(new THREE.SphereGeometry(0.05, 5, 4), skinMaterial);
+        hand.position.set(s * 0.48, 0.78, 0.08);
         g.add(hand);
       });
+
+      // Neck
+      const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.1, 0.12, 6), skinMaterial);
+      neck.position.y = 1.76;
+      g.add(neck);
+
       // Head
-      const head = new THREE.Mesh(new THREE.SphereGeometry(0.18, 8, 6), new THREE.MeshStandardMaterial({ color: headColor, roughness: 0.85, metalness: 0 }));
-      head.position.y = 1.6;
+      const head = new THREE.Mesh(new THREE.SphereGeometry(0.2, 10, 8), skinMaterial);
+      head.position.y = 1.95;
       g.add(head);
+
+      // Eyes (two small dark spheres)
+      [-1, 1].forEach(s => {
+        const eye = new THREE.Mesh(new THREE.SphereGeometry(0.025, 6, 4),
+          new THREE.MeshStandardMaterial({ color: 0x222211, roughness: 0.5, metalness: 0.1 }));
+        eye.position.set(s * 0.07, 1.98, 0.17);
+        g.add(eye);
+      });
+
+      // Nose
+      const nose = new THREE.Mesh(new THREE.ConeGeometry(0.025, 0.06, 4),
+        skinMaterial);
+      nose.position.set(0, 1.93, 0.2);
+      nose.rotation.x = -Math.PI / 2;
+      g.add(nose);
+
       // Hair/hat
       if (opts.hat) {
-        const hat = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.22, 0.15, 8), new THREE.MeshStandardMaterial({ color: opts.hat, roughness: 0.9, metalness: 0 }));
-        hat.position.y = 1.77;
+        const hat = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.24, 0.18, 8),
+          new THREE.MeshStandardMaterial({ color: opts.hat, roughness: 0.85, metalness: 0 }));
+        hat.position.y = 2.12;
         g.add(hat);
+        // Hat brim
+        const brim = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.28, 0.03, 10),
+          new THREE.MeshStandardMaterial({ color: opts.hat, roughness: 0.85, metalness: 0 }));
+        brim.position.y = 2.04;
+        g.add(brim);
       }
       if (opts.hair) {
-        const hair = new THREE.Mesh(new THREE.SphereGeometry(0.19, 8, 5), new THREE.MeshStandardMaterial({ color: opts.hair, roughness: 0.9, metalness: 0 }));
-        hair.position.set(0, 1.65, -0.02);
-        hair.scale.set(1, 0.8, 1.1);
+        const hair = new THREE.Mesh(new THREE.SphereGeometry(0.22, 8, 6),
+          new THREE.MeshStandardMaterial({ color: opts.hair, roughness: 0.9, metalness: 0 }));
+        hair.position.set(0, 2.0, -0.04);
+        hair.scale.set(1, 0.85, 1.15);
         g.add(hair);
+        // Side strands
+        [-1, 1].forEach(s => {
+          const strand = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.02, 0.25, 4),
+            new THREE.MeshStandardMaterial({ color: opts.hair, roughness: 0.9, metalness: 0 }));
+          strand.position.set(s * 0.16, 1.82, -0.02);
+          strand.rotation.z = s * 0.15;
+          g.add(strand);
+        });
       }
-      // Belt
-      const belt = new THREE.Mesh(new THREE.TorusGeometry(0.22, 0.02, 4, 8), new THREE.MeshStandardMaterial({ color: 0x3a2a1a, roughness: 0.85, metalness: 0 }));
+
+      // Belt with buckle
+      const belt = new THREE.Mesh(new THREE.TorusGeometry(0.26, 0.025, 4, 10),
+        new THREE.MeshStandardMaterial({ color: 0x4a3520, roughness: 0.8, metalness: 0.1 }));
       belt.rotation.x = Math.PI / 2;
-      belt.position.y = 0.85;
+      belt.position.y = 1.0;
       g.add(belt);
+      // Belt buckle
+      const buckle = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.06, 0.03),
+        new THREE.MeshStandardMaterial({ color: 0x887755, roughness: 0.5, metalness: 0.3 }));
+      buckle.position.set(0, 1.0, 0.27);
+      g.add(buckle);
+
+      // Enable shadows on all parts
+      g.traverse(child => { if (child.isMesh) { child.castShadow = true; child.receiveShadow = true; } });
+
+      // Small warm point light near each NPC so they're always visible
+      const npcLight = new THREE.PointLight(0xffddaa, 0.8, 6, 2);
+      npcLight.position.set(0, 1.5, 0.5);
+      g.add(npcLight);
 
       g.position.set(x, 0, z);
       return g;
     }
-    const borislav = makeFigure(13, -2, 0x4a3a2a, 0xdbb896, { hat: 0x2a1a0a });
+    const borislav = makeFigure(13, -2, 0x6a5a3a, 0xdbb896, { hat: 0x3a2a1a });
     scene.add(borislav);
-    const marta = makeFigure(-14, -1, 0x5a4a3a, 0xdbb896, { hair: 0x3a2a1a });
+    const marta = makeFigure(-14, -1, 0x7a6a4a, 0xdbb896, { hair: 0x5a3a2a });
     scene.add(marta);
 
     // Aisling (half-woman, half-forest spirit)
@@ -1396,8 +1477,18 @@ export default function WitcherMarzena3D() {
       }
 
       // NPC idle
-      borislav.rotation.y = Math.sin(t * 0.5) * 0.04;
-      marta.rotation.y = Math.sin(t * 0.5 + 1) * 0.04;
+      // NPC idle: gentle body sway + weight shifting
+      borislav.rotation.y = Math.sin(t * 0.5) * 0.06;
+      borislav.position.y = Math.sin(t * 0.8) * 0.01; // subtle breathing
+      marta.rotation.y = Math.sin(t * 0.5 + 1) * 0.06;
+      marta.position.y = Math.sin(t * 0.7 + 2) * 0.01;
+      // Make NPCs face the player when nearby
+      const bDx = camera.position.x - borislav.position.x;
+      const bDz = camera.position.z - borislav.position.z;
+      if (bDx * bDx + bDz * bDz < 100) borislav.rotation.y = Math.atan2(bDx, bDz);
+      const mDx = camera.position.x - marta.position.x;
+      const mDz = camera.position.z - marta.position.z;
+      if (mDx * mDx + mDz * mDz < 100) marta.rotation.y = Math.atan2(mDx, mDz);
       aisGroup.rotation.y = Math.sin(t * 0.25) * 0.03;
       // Aisling's vein glow pulse
       if (aisGroup.visible) {
