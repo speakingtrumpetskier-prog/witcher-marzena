@@ -1,5 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import * as THREE from "three";
+import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
+import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
+import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js";
+import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
 import AudioEngine from "../audio/AudioEngine";
 import { DIALOGUES, CHOICES, ENDINGS } from "../data/dialogues";
 import { BUILDINGS, getInteractions } from "../data/world";
@@ -57,8 +61,8 @@ export default function WitcherMarzena3D() {
     const W = container.clientWidth;
     const H = container.clientHeight;
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x030308);
-    scene.fog = new THREE.FogExp2(0x060610, 0.018);
+    scene.background = new THREE.Color(0x060812);
+    scene.fog = new THREE.FogExp2(0x080a18, 0.015);
 
     const camera = new THREE.PerspectiveCamera(72, W / H, 0.1, 250);
     camera.position.set(0, 1.7, 55);
@@ -67,7 +71,21 @@ export default function WitcherMarzena3D() {
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(W, H);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.4;
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     container.appendChild(renderer.domElement);
+
+    // Postprocessing pipeline
+    const composer = new EffectComposer(renderer);
+    composer.addPass(new RenderPass(scene, camera));
+    const bloomPass = new UnrealBloomPass(
+      new THREE.Vector2(W, H), 0.35, 0.4, 0.88
+    );
+    composer.addPass(bloomPass);
+    composer.addPass(new OutputPass());
     // ── GROUND (vertex-colored with multi-octave noise) ──
     const noise2D = (x, y) => {
       // Simple value noise with smooth interpolation
@@ -157,14 +175,15 @@ export default function WitcherMarzena3D() {
     groundGeo.setAttribute("color", new THREE.BufferAttribute(gColors, 3));
     groundGeo.computeVertexNormals();
 
-    const ground = new THREE.Mesh(groundGeo, new THREE.MeshLambertMaterial({ vertexColors: true }));
+    const ground = new THREE.Mesh(groundGeo, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.92, metalness: 0 }));
+    ground.receiveShadow = true;
     ground.rotation.x = -Math.PI / 2;
     scene.add(ground);
 
     // Village ground overlay (subtle, slightly raised)
     const villageGround = new THREE.Mesh(
       new THREE.CircleGeometry(34, 48),
-      new THREE.MeshLambertMaterial({ color: 0x252e15, transparent: true, opacity: 0.35 })
+      new THREE.MeshStandardMaterial({ color: 0x252e15, transparent: true, opacity: 0.35, roughness: 0.95, metalness: 0 })
     );
     villageGround.rotation.x = -Math.PI / 2;
     villageGround.position.y = 0.02;
@@ -176,13 +195,13 @@ export default function WitcherMarzena3D() {
     for (let i = 0; i < pathPos.count; i++) {
       pathPos.setZ(i, (Math.random() - 0.5) * 0.05); // subtle roughness
     }
-    const pathMesh = new THREE.Mesh(pathGeo, new THREE.MeshLambertMaterial({ color: 0x1a1e0c }));
+    const pathMesh = new THREE.Mesh(pathGeo, new THREE.MeshStandardMaterial({ color: 0x1a1e0c, roughness: 0.95, metalness: 0 }));
     pathMesh.rotation.x = -Math.PI / 2;
     pathMesh.position.set(0, 0.03, -54);
     scene.add(pathMesh);
 
     // Clearing ground (emissive, warm)
-    const clearingMat = new THREE.MeshLambertMaterial({ color: 0x3a5a2a, emissive: 0x0a2a05, emissiveIntensity: 1.0 });
+    const clearingMat = new THREE.MeshStandardMaterial({ color: 0x3a5a2a, emissive: 0x0a2a05, emissiveIntensity: 1.0, roughness: 0.9, metalness: 0 });
     const clearingGround = new THREE.Mesh(new THREE.CircleGeometry(15, 48), clearingMat);
     clearingGround.rotation.x = -Math.PI / 2;
     clearingGround.position.set(0, 0.04, -80);
@@ -230,16 +249,16 @@ export default function WitcherMarzena3D() {
     }
 
     // ── BUILDINGS (detailed medieval construction) ──
-    const woodDark = new THREE.MeshLambertMaterial({ color: 0x3d2b1f });
-    const woodMed = new THREE.MeshLambertMaterial({ color: 0x4a3a2a });
-    const woodLight = new THREE.MeshLambertMaterial({ color: 0x5a4a3a });
-    const plaster = new THREE.MeshLambertMaterial({ color: 0x8a7d6a });
-    const stoneMat = new THREE.MeshLambertMaterial({ color: 0x555555 });
-    const stoneFoundation = new THREE.MeshLambertMaterial({ color: 0x4a4a4a });
-    const thatchMat = (c) => new THREE.MeshLambertMaterial({ color: c || 0x2a1a0a });
+    const woodDark = new THREE.MeshStandardMaterial({ color: 0x3d2b1f, roughness: 0.85, metalness: 0.0 });
+    const woodMed = new THREE.MeshStandardMaterial({ color: 0x4a3a2a, roughness: 0.82, metalness: 0.0 });
+    const woodLight = new THREE.MeshStandardMaterial({ color: 0x5a4a3a, roughness: 0.8, metalness: 0.0 });
+    const plaster = new THREE.MeshStandardMaterial({ color: 0x8a7d6a, roughness: 0.95, metalness: 0.0 });
+    const stoneMat = new THREE.MeshStandardMaterial({ color: 0x555555, roughness: 0.9, metalness: 0.05 });
+    const stoneFoundation = new THREE.MeshStandardMaterial({ color: 0x4a4a4a, roughness: 0.92, metalness: 0.05 });
+    const thatchMat = (c) => new THREE.MeshStandardMaterial({ color: c || 0x2a1a0a, roughness: 1.0, metalness: 0.0 });
     const winGlow = new THREE.MeshBasicMaterial({ color: 0xffaa44 });
-    const winFrame = new THREE.MeshLambertMaterial({ color: 0x2a1a0a });
-    const doorMat = new THREE.MeshLambertMaterial({ color: 0x33220f });
+    const winFrame = new THREE.MeshStandardMaterial({ color: 0x2a1a0a, roughness: 0.85, metalness: 0 });
+    const doorMat = new THREE.MeshStandardMaterial({ color: 0x33220f, roughness: 0.85, metalness: 0 });
 
     BUILDINGS.forEach((b, bi) => {
       const group = new THREE.Group();
@@ -400,15 +419,16 @@ export default function WitcherMarzena3D() {
       group.add(step);
 
       group.position.set(b.x, 0, b.z);
+      group.traverse(child => { if (child.isMesh) { child.castShadow = true; child.receiveShadow = true; } });
       scene.add(group);
     });
 
     // ── WELL (detailed stonework) ──
     const well = new THREE.Group();
-    const wellStone = new THREE.MeshLambertMaterial({ color: 0x606060 });
-    const wellStoneDark = new THREE.MeshLambertMaterial({ color: 0x484848 });
-    const wellMoss = new THREE.MeshLambertMaterial({ color: 0x2a4a20 });
-    const wellWood = new THREE.MeshLambertMaterial({ color: 0x3d2b1f });
+    const wellStone = new THREE.MeshStandardMaterial({ color: 0x606060, roughness: 0.88, metalness: 0.05 });
+    const wellStoneDark = new THREE.MeshStandardMaterial({ color: 0x484848, roughness: 0.9, metalness: 0.05 });
+    const wellMoss = new THREE.MeshStandardMaterial({ color: 0x2a4a20, roughness: 1.0, metalness: 0.0 });
+    const wellWood = new THREE.MeshStandardMaterial({ color: 0x3d2b1f, roughness: 0.85, metalness: 0.0 });
 
     // Stone wall: stacked rings with slight size variation
     for (let r = 0; r < 5; r++) {
@@ -423,14 +443,14 @@ export default function WitcherMarzena3D() {
     // Inner dark void
     const wellInner = new THREE.Mesh(
       new THREE.CylinderGeometry(0.85, 0.85, 1.0, 10),
-      new THREE.MeshLambertMaterial({ color: 0x080810 })
+      new THREE.MeshStandardMaterial({ color: 0x080810, roughness: 0.9, metalness: 0 })
     );
     wellInner.position.y = 0.5;
     well.add(wellInner);
     // Rim (capstone)
     const rim = new THREE.Mesh(
       new THREE.TorusGeometry(1.1, 0.1, 6, 12),
-      new THREE.MeshLambertMaterial({ color: 0x5a5a5a })
+      new THREE.MeshStandardMaterial({ color: 0x5a5a5a, roughness: 0.88, metalness: 0.05 })
     );
     rim.rotation.x = Math.PI / 2;
     rim.position.y = 1.0;
@@ -449,14 +469,14 @@ export default function WitcherMarzena3D() {
     crossbeam.position.y = 2.3;
     well.add(crossbeam);
     // Rope
-    const rope = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 1.6, 4), new THREE.MeshLambertMaterial({ color: 0x8a7a5a }));
+    const rope = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 1.6, 4), new THREE.MeshStandardMaterial({ color: 0x8a7a5a, roughness: 0.95, metalness: 0 }));
     rope.position.set(0, 1.5, 0);
     well.add(rope);
     // Bucket
     const bucket = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.1, 0.2, 6), wellWood);
     bucket.position.set(0, 0.75, 0);
     well.add(bucket);
-    const bucketRim = new THREE.Mesh(new THREE.TorusGeometry(0.12, 0.015, 4, 6), new THREE.MeshLambertMaterial({ color: 0x555555 }));
+    const bucketRim = new THREE.Mesh(new THREE.TorusGeometry(0.12, 0.015, 4, 6), new THREE.MeshStandardMaterial({ color: 0x555555, roughness: 0.9, metalness: 0.05 }));
     bucketRim.rotation.x = Math.PI / 2;
     bucketRim.position.set(0, 0.85, 0);
     well.add(bucketRim);
@@ -487,17 +507,18 @@ export default function WitcherMarzena3D() {
       const a = (s / 12) * Math.PI * 2;
       const stone = new THREE.Mesh(
         new THREE.BoxGeometry(0.3 + Math.random()*0.15, 0.06, 0.25 + Math.random()*0.1),
-        new THREE.MeshLambertMaterial({ color: 0x505050 + Math.floor(Math.random() * 0x151515) })
+        new THREE.MeshStandardMaterial({ color: 0x505050 + Math.floor(Math.random() * 0x151515), roughness: 0.9, metalness: 0.05 })
       );
       stone.position.set(Math.cos(a) * 1.7, 0.03, Math.sin(a) * 1.7);
       stone.rotation.y = a + Math.random() * 0.3;
       well.add(stone);
     }
+    well.traverse(child => { if (child.isMesh) { child.castShadow = true; child.receiveShadow = true; } });
     scene.add(well);
 
     // ── VILLAGE DETAILS ──
     // Hay bales (near buildings)
-    const hayMat = new THREE.MeshLambertMaterial({ color: 0x8a7a3a });
+    const hayMat = new THREE.MeshStandardMaterial({ color: 0x8a7a3a, roughness: 0.95, metalness: 0 });
     [[12, 6], [-10, 8], [6, -14], [-6, -18]].forEach(([hx, hz]) => {
       const bale = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, 0.8, 8), hayMat);
       bale.rotation.x = Math.PI / 2;
@@ -511,7 +532,7 @@ export default function WitcherMarzena3D() {
     bale2.rotation.x = Math.PI / 2; bale2.position.set(12.4, 1.2, 5.8); scene.add(bale2);
 
     // Wooden fences (village perimeter segments)
-    const fenceMat = new THREE.MeshLambertMaterial({ color: 0x4a3a20 });
+    const fenceMat = new THREE.MeshStandardMaterial({ color: 0x4a3a20, roughness: 0.85, metalness: 0 });
     const addFence = (x1, z1, x2, z2) => {
       const dx = x2 - x1, dz = z2 - z1;
       const len = Math.sqrt(dx*dx + dz*dz);
@@ -542,7 +563,7 @@ export default function WitcherMarzena3D() {
     const waystoneGroup = new THREE.Group();
     const wsStone = new THREE.Mesh(
       new THREE.BoxGeometry(0.6, 2.2, 0.3),
-      new THREE.MeshLambertMaterial({ color: 0x7a7a7a })
+      new THREE.MeshStandardMaterial({ color: 0x7a7a7a, roughness: 0.88, metalness: 0.05 })
     );
     wsStone.position.y = 1.1;
     // Slight lean
@@ -551,7 +572,7 @@ export default function WitcherMarzena3D() {
     // Carved face (rough circle indent)
     const wsFace = new THREE.Mesh(
       new THREE.CircleGeometry(0.15, 8),
-      new THREE.MeshLambertMaterial({ color: 0x606060 })
+      new THREE.MeshStandardMaterial({ color: 0x606060, roughness: 0.88, metalness: 0.05 })
     );
     wsFace.position.set(0, 1.5, 0.16);
     waystoneGroup.add(wsFace);
@@ -573,7 +594,7 @@ export default function WitcherMarzena3D() {
     scene.add(waystoneGroup);
 
     // Woodpile near elder's hall
-    const logMat = new THREE.MeshLambertMaterial({ color: 0x3a2510 });
+    const logMat = new THREE.MeshStandardMaterial({ color: 0x3a2510, roughness: 0.9, metalness: 0 });
     for (let ly = 0; ly < 3; ly++) {
       for (let lx = 0; lx < 4 - ly; lx++) {
         const log = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 1.2, 5), logMat);
@@ -585,7 +606,7 @@ export default function WitcherMarzena3D() {
 
     // Cart near common house
     const cartGroup = new THREE.Group();
-    const cartWood = new THREE.MeshLambertMaterial({ color: 0x4a3a22 });
+    const cartWood = new THREE.MeshStandardMaterial({ color: 0x4a3a22, roughness: 0.85, metalness: 0 });
     // Bed
     cartGroup.add(new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.08, 2.0), cartWood));
     cartGroup.children[0].position.y = 0.5;
@@ -597,7 +618,7 @@ export default function WitcherMarzena3D() {
     });
     // Wheels
     [-1,1].forEach(s => {
-      const wheel = new THREE.Mesh(new THREE.TorusGeometry(0.35, 0.04, 6, 8), new THREE.MeshLambertMaterial({ color: 0x3a3a3a }));
+      const wheel = new THREE.Mesh(new THREE.TorusGeometry(0.35, 0.04, 6, 8), new THREE.MeshStandardMaterial({ color: 0x3a3a3a, roughness: 0.9, metalness: 0.1 }));
       wheel.position.set(0.7 * (s > 0 ? 1 : -1), 0.35, s * 0.7);
       wheel.rotation.y = Math.PI / 2;
       cartGroup.add(wheel);
@@ -657,8 +678,8 @@ export default function WitcherMarzena3D() {
 
     // PINE: tapered trunk + 3 layered cones (dark green, classic conifer)
     const pines = treeData.filter(t => t.species === 0);
-    const pineTrunkMat = new THREE.MeshLambertMaterial({ color: 0x3a2510 });
-    const pineLeafMat = new THREE.MeshLambertMaterial({ color: 0x0f2810 });
+    const pineTrunkMat = new THREE.MeshStandardMaterial({ color: 0x3a2510, roughness: 0.9, metalness: 0 });
+    const pineLeafMat = new THREE.MeshStandardMaterial({ color: 0x0f2810, roughness: 0.95, metalness: 0 });
     const pineTrunkGeo = new THREE.CylinderGeometry(0.08, 0.18, 4, 5);
     const pineTrunkI = new THREE.InstancedMesh(pineTrunkGeo, pineTrunkMat, pines.length);
     // 3 foliage layers per pine
@@ -666,8 +687,8 @@ export default function WitcherMarzena3D() {
     const pineCone2 = new THREE.ConeGeometry(1.2, 2.4, 6);
     const pineCone3 = new THREE.ConeGeometry(0.8, 2.0, 6);
     const pineLeaf1 = new THREE.InstancedMesh(pineCone1, pineLeafMat, pines.length);
-    const pineLeaf2 = new THREE.InstancedMesh(pineCone2, new THREE.MeshLambertMaterial({ color: 0x122a12 }), pines.length);
-    const pineLeaf3 = new THREE.InstancedMesh(pineCone3, new THREE.MeshLambertMaterial({ color: 0x163016 }), pines.length);
+    const pineLeaf2 = new THREE.InstancedMesh(pineCone2, new THREE.MeshStandardMaterial({ color: 0x122a12, roughness: 0.95, metalness: 0 }), pines.length);
+    const pineLeaf3 = new THREE.InstancedMesh(pineCone3, new THREE.MeshStandardMaterial({ color: 0x163016, roughness: 0.95, metalness: 0 }), pines.length);
     pines.forEach((t, i) => {
       const s = t.s;
       dummy.position.set(t.x, 2.0 * s, t.z); dummy.scale.set(s, s, s); dummy.updateMatrix();
@@ -677,12 +698,13 @@ export default function WitcherMarzena3D() {
       dummy.position.y = 5.6 * s; dummy.updateMatrix(); pineLeaf3.setMatrixAt(i, dummy.matrix);
     });
     scene.add(pineTrunkI); scene.add(pineLeaf1); scene.add(pineLeaf2); scene.add(pineLeaf3);
+    [pineTrunkI, pineLeaf1, pineLeaf2, pineLeaf3].forEach(m => { m.castShadow = true; m.receiveShadow = true; });
 
     // OAK: thick trunk + 2 rounded canopy spheres (dark olive)
     const oaks = treeData.filter(t => t.species === 1);
-    const oakTrunkMat = new THREE.MeshLambertMaterial({ color: 0x33200e });
-    const oakLeafMat1 = new THREE.MeshLambertMaterial({ color: 0x1a3014 });
-    const oakLeafMat2 = new THREE.MeshLambertMaterial({ color: 0x1e3618 });
+    const oakTrunkMat = new THREE.MeshStandardMaterial({ color: 0x33200e, roughness: 0.9, metalness: 0 });
+    const oakLeafMat1 = new THREE.MeshStandardMaterial({ color: 0x1a3014, roughness: 0.95, metalness: 0 });
+    const oakLeafMat2 = new THREE.MeshStandardMaterial({ color: 0x1e3618, roughness: 0.95, metalness: 0 });
     const oakTrunkGeo = new THREE.CylinderGeometry(0.12, 0.22, 3.2, 6);
     const oakCanopyGeo1 = new THREE.SphereGeometry(1.8, 7, 5);
     const oakCanopyGeo2 = new THREE.SphereGeometry(1.3, 6, 5);
@@ -703,19 +725,20 @@ export default function WitcherMarzena3D() {
       dummy.updateMatrix(); oakCanopy2.setMatrixAt(i, dummy.matrix);
     });
     scene.add(oakTrunkI); scene.add(oakCanopy1); scene.add(oakCanopy2);
+    [oakTrunkI, oakCanopy1, oakCanopy2].forEach(m => { m.castShadow = true; m.receiveShadow = true; });
 
     // BIRCH: thin white trunk + smaller delicate foliage (lighter green)
     const birches = treeData.filter(t => t.species === 2);
-    const birchTrunkMat = new THREE.MeshLambertMaterial({ color: 0xccbbaa });
-    const birchLeafMat = new THREE.MeshLambertMaterial({ color: 0x2a4a1a, transparent: true, opacity: 0.85 });
+    const birchTrunkMat = new THREE.MeshStandardMaterial({ color: 0xccbbaa, roughness: 0.75, metalness: 0 });
+    const birchLeafMat = new THREE.MeshStandardMaterial({ color: 0x2a4a1a, transparent: true, opacity: 0.85, roughness: 0.95, metalness: 0 });
     const birchTrunkGeo = new THREE.CylinderGeometry(0.05, 0.09, 3.6, 5);
     const birchCanopyGeo = new THREE.SphereGeometry(1.0, 6, 5);
     const birchTrunkI = new THREE.InstancedMesh(birchTrunkGeo, birchTrunkMat, birches.length);
     const birchCanopy1 = new THREE.InstancedMesh(birchCanopyGeo, birchLeafMat, birches.length);
-    const birchCanopy2 = new THREE.InstancedMesh(new THREE.SphereGeometry(0.7, 5, 4), new THREE.MeshLambertMaterial({ color: 0x2e5220, transparent: true, opacity: 0.8 }), birches.length);
+    const birchCanopy2 = new THREE.InstancedMesh(new THREE.SphereGeometry(0.7, 5, 4), new THREE.MeshStandardMaterial({ color: 0x2e5220, transparent: true, opacity: 0.8, roughness: 0.95, metalness: 0 }), birches.length);
     // Birch bark rings (dark stripes) via a second thin cylinder mesh
     const birchBarkGeo = new THREE.CylinderGeometry(0.055, 0.094, 0.06, 5);
-    const birchBarkMat = new THREE.MeshLambertMaterial({ color: 0x443322 });
+    const birchBarkMat = new THREE.MeshStandardMaterial({ color: 0x443322, roughness: 0.85, metalness: 0 });
     const birchBarkI = new THREE.InstancedMesh(birchBarkGeo, birchBarkMat, birches.length * 4);
     birches.forEach((t, i) => {
       const s = t.s;
@@ -736,10 +759,11 @@ export default function WitcherMarzena3D() {
       }
     });
     scene.add(birchTrunkI); scene.add(birchCanopy1); scene.add(birchCanopy2); scene.add(birchBarkI);
+    [birchTrunkI, birchCanopy1, birchCanopy2, birchBarkI].forEach(m => { m.castShadow = true; m.receiveShadow = true; });
 
     // Exposed roots for large forest trees (scattered mesh objects for variety)
     const rootGeo = new THREE.CylinderGeometry(0.03, 0.01, 1.2, 4);
-    const rootMat = new THREE.MeshLambertMaterial({ color: 0x3a2a1a });
+    const rootMat = new THREE.MeshStandardMaterial({ color: 0x3a2a1a, roughness: 0.9, metalness: 0 });
     treeData.filter(t => t.s > 1.0 && t.z < -30).slice(0, 60).forEach(t => {
       for (let r = 0; r < 3; r++) {
         const a = rand() * Math.PI * 2;
@@ -799,7 +823,7 @@ export default function WitcherMarzena3D() {
     // ── NPCS ──
     function makeFigure(x, z, robeColor, headColor = 0xdbb896, opts = {}) {
       const g = new THREE.Group();
-      const robeMat = new THREE.MeshLambertMaterial({ color: robeColor });
+      const robeMat = new THREE.MeshStandardMaterial({ color: robeColor, roughness: 0.88, metalness: 0 });
       // Body (tapered cylinder, more natural than cone)
       const body = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.4, 1.3, 8), robeMat);
       body.position.y = 0.65;
@@ -815,28 +839,28 @@ export default function WitcherMarzena3D() {
         arm.rotation.z = s * 0.08;
         g.add(arm);
         // Hands
-        const hand = new THREE.Mesh(new THREE.SphereGeometry(0.05, 5, 4), new THREE.MeshLambertMaterial({ color: headColor }));
+        const hand = new THREE.Mesh(new THREE.SphereGeometry(0.05, 5, 4), new THREE.MeshStandardMaterial({ color: headColor, roughness: 0.85, metalness: 0 }));
         hand.position.set(s * 0.4, 0.58, 0);
         g.add(hand);
       });
       // Head
-      const head = new THREE.Mesh(new THREE.SphereGeometry(0.18, 8, 6), new THREE.MeshLambertMaterial({ color: headColor }));
+      const head = new THREE.Mesh(new THREE.SphereGeometry(0.18, 8, 6), new THREE.MeshStandardMaterial({ color: headColor, roughness: 0.85, metalness: 0 }));
       head.position.y = 1.6;
       g.add(head);
       // Hair/hat
       if (opts.hat) {
-        const hat = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.22, 0.15, 8), new THREE.MeshLambertMaterial({ color: opts.hat }));
+        const hat = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.22, 0.15, 8), new THREE.MeshStandardMaterial({ color: opts.hat, roughness: 0.9, metalness: 0 }));
         hat.position.y = 1.77;
         g.add(hat);
       }
       if (opts.hair) {
-        const hair = new THREE.Mesh(new THREE.SphereGeometry(0.19, 8, 5), new THREE.MeshLambertMaterial({ color: opts.hair }));
+        const hair = new THREE.Mesh(new THREE.SphereGeometry(0.19, 8, 5), new THREE.MeshStandardMaterial({ color: opts.hair, roughness: 0.9, metalness: 0 }));
         hair.position.set(0, 1.65, -0.02);
         hair.scale.set(1, 0.8, 1.1);
         g.add(hair);
       }
       // Belt
-      const belt = new THREE.Mesh(new THREE.TorusGeometry(0.22, 0.02, 4, 8), new THREE.MeshLambertMaterial({ color: 0x3a2a1a }));
+      const belt = new THREE.Mesh(new THREE.TorusGeometry(0.22, 0.02, 4, 8), new THREE.MeshStandardMaterial({ color: 0x3a2a1a, roughness: 0.85, metalness: 0 }));
       belt.rotation.x = Math.PI / 2;
       belt.position.y = 0.85;
       g.add(belt);
@@ -851,10 +875,10 @@ export default function WitcherMarzena3D() {
 
     // Aisling (half-woman, half-forest spirit)
     const aisGroup = new THREE.Group();
-    const barkMat = new THREE.MeshLambertMaterial({ color: 0x2a3a1a, emissive: 0x0a1a05, emissiveIntensity: 0.3 });
-    const skinMat = new THREE.MeshLambertMaterial({ color: 0x8a9a7a, emissive: 0x0a2a0a, emissiveIntensity: 0.2 });
+    const barkMat = new THREE.MeshStandardMaterial({ color: 0x2a3a1a, emissive: 0x0a1a05, emissiveIntensity: 0.5, roughness: 0.9, metalness: 0 });
+    const skinMat = new THREE.MeshStandardMaterial({ color: 0x8a9a7a, emissive: 0x0a2a0a, emissiveIntensity: 0.4, roughness: 0.85, metalness: 0 });
     const veinMat = new THREE.MeshBasicMaterial({ color: 0x44aa33, transparent: true, opacity: 0.6 });
-    const leafMat = new THREE.MeshLambertMaterial({ color: 0x2a5a1a, emissive: 0x0a3a05, emissiveIntensity: 0.4 });
+    const leafMat = new THREE.MeshStandardMaterial({ color: 0x2a5a1a, emissive: 0x0a3a05, emissiveIntensity: 0.6, roughness: 0.9, metalness: 0 });
 
     // Torso: slightly tapered, bark texture implied by two merged shapes
     const torso = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.4, 1.2, 8), barkMat);
@@ -940,7 +964,7 @@ export default function WitcherMarzena3D() {
       const len = 1.5 + Math.random() * 1.5;
       const root = new THREE.Mesh(
         new THREE.CylinderGeometry(0.06, 0.02, len, 4),
-        new THREE.MeshLambertMaterial({ color: 0x3a2a1a })
+        new THREE.MeshStandardMaterial({ color: 0x3a2a1a, roughness: 0.9, metalness: 0 })
       );
       root.position.set(Math.cos(a) * len * 0.35, 0.1, Math.sin(a) * len * 0.35);
       root.rotation.z = Math.cos(a) * 0.9;
@@ -953,7 +977,7 @@ export default function WitcherMarzena3D() {
       const len = 0.8 + Math.random() * 1.0;
       const root = new THREE.Mesh(
         new THREE.CylinderGeometry(0.025, 0.005, len, 3),
-        new THREE.MeshLambertMaterial({ color: 0x2a1a0a })
+        new THREE.MeshStandardMaterial({ color: 0x2a1a0a, roughness: 0.9, metalness: 0 })
       );
       root.position.set(Math.cos(a) * 0.6, 0.05 + Math.random() * 0.2, Math.sin(a) * 0.6);
       root.rotation.z = Math.cos(a) * 1.1;
@@ -1069,10 +1093,19 @@ export default function WitcherMarzena3D() {
     }
 
     // ── LIGHTING ──
-    const ambient = new THREE.AmbientLight(0x112233, 0.15);
+    const ambient = new THREE.AmbientLight(0x9db4ff, 0.45);
     scene.add(ambient);
-    const moonLight = new THREE.DirectionalLight(0x556688, 0.07);
-    moonLight.position.set(-30, 50, -20);
+    const moonLight = new THREE.DirectionalLight(0xbcd6ff, 0.7);
+    moonLight.position.set(-40, 60, -20);
+    moonLight.castShadow = true;
+    moonLight.shadow.mapSize.set(2048, 2048);
+    moonLight.shadow.camera.near = 1;
+    moonLight.shadow.camera.far = 180;
+    moonLight.shadow.camera.left = -70;
+    moonLight.shadow.camera.right = 70;
+    moonLight.shadow.camera.top = 70;
+    moonLight.shadow.camera.bottom = -70;
+    moonLight.shadow.bias = -0.0005;
     scene.add(moonLight);
 
     const torchPositions = [
@@ -1082,13 +1115,14 @@ export default function WitcherMarzena3D() {
     const torchLights = [];
     const torchFlames = [];
     torchPositions.forEach((p, i) => {
-      const l = new THREE.PointLight(0xff8844, 1.2, 20, 2);
+      const l = new THREE.PointLight(0xff8844, 3.5, 25, 2);
+      if (i < 2) { l.castShadow = true; l.shadow.mapSize.set(512, 512); }
       l.position.set(...p);
-      l.userData = { offset: i * 1.7, base: 1.2 };
+      l.userData = { offset: i * 1.7, base: 3.5 };
       scene.add(l);
       torchLights.push(l);
       // Pole
-      const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 2.8, 4), new THREE.MeshLambertMaterial({ color: 0x3d2b1f }));
+      const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 2.8, 4), new THREE.MeshStandardMaterial({ color: 0x3d2b1f, roughness: 0.85, metalness: 0 }));
       pole.position.set(p[0], 1.4, p[2]);
       scene.add(pole);
       // Flame (multi-layer for convincing fire)
@@ -1177,7 +1211,7 @@ export default function WitcherMarzena3D() {
 
     // ── STORE SCENE REFS ──
     sceneRef.current = {
-      scene, camera, renderer, clearingLight, clearingGlow, clearingGround: clearingMat,
+      scene, camera, renderer, composer, clearingLight, clearingGlow, clearingGround: clearingMat,
       aisGroup, cKids, yrdenRings, ambient, moonLight, fogPlanes, clueObjects, smoke: { pos: smokePos, vel: smokeVel, geo: smokeGeo },
       torchLights, torchFlames, markers, fireflies: { pos: ffPos, vel: ffVel, life: ffLife, geo: ffGeo, mesh: fireflies },
       clearingMotes: { pos: cmPos, vel: cmVel, geo: cmGeo, mesh: clearingMotes },
@@ -1376,10 +1410,11 @@ export default function WitcherMarzena3D() {
 
       // Lighting phases
       if (fl.night_done && !fl.confrontation_done) {
-        ambient.intensity = 0.06; scene.fog.density = 0.028;
-        torchLights.forEach(l => l.userData.base = 1.6);
+        ambient.intensity = 0.15; scene.fog.density = 0.025;
+        torchLights.forEach(l => l.userData.base = 4.5);
+        moonLight.intensity = 0.25;
       } else if (fl.confrontation_done && !cin.active) {
-        ambient.intensity = 0.2; scene.fog.density = 0.016; moonLight.intensity = 0.1;
+        ambient.intensity = 0.4; scene.fog.density = 0.014; moonLight.intensity = 0.6;
       }
 
       // ── PARTICLES ──
@@ -1478,14 +1513,14 @@ export default function WitcherMarzena3D() {
         if (mood !== prevMusicMood) { musicRef.current.setMood(mood); prevMusicMood = mood; }
       }
 
-      renderer.render(scene, camera);
+      composer.render();
     };
     animate();
 
     // Resize
     const onResize = () => {
       const w = container.clientWidth, h = container.clientHeight;
-      camera.aspect = w / h; camera.updateProjectionMatrix(); renderer.setSize(w, h);
+      camera.aspect = w / h; camera.updateProjectionMatrix(); renderer.setSize(w, h); composer.setSize(w, h);
     };
     window.addEventListener("resize", onResize);
 
@@ -1498,6 +1533,7 @@ export default function WitcherMarzena3D() {
       document.removeEventListener("keydown", onKD);
       document.removeEventListener("keyup", onKU);
       window.removeEventListener("resize", onResize);
+      composer.dispose();
       renderer.dispose();
       if (renderer.domElement.parentNode) renderer.domElement.parentNode.removeChild(renderer.domElement);
     };
