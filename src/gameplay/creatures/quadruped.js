@@ -47,7 +47,7 @@ export const SPECS = {
     ear: { x: 0.048, y: 0.07, z: -0.03, h: 0.12, w: 0.045 },
     tail: { len: [0.18, 0.18, 0.16], r: [0.045, 0.07, 0.065, 0.014], base: [0, 0.04, -0.3] },
     ruff: 0,
-    furBase: [0.5, 0.5, 0.52], bellyBase: [0.8, 0.78, 0.72], legBase: [0.56, 0.54, 0.5],
+    furBase: [0.45, 0.45, 0.47], bellyBase: [0.76, 0.74, 0.68], legBase: [0.5, 0.48, 0.45],
     texKey: 'wolf', texSeed: 11,
   },
   bear: {
@@ -297,7 +297,7 @@ export class Quadruped {
     }
 
     const tex = furTexture(S.texKey, [0.9, 0.9, 0.9], { seed: S.texSeed });
-    this.baseEmissive = new THREE.Color(...(o.emissive || [0.03, 0.036, 0.055]));
+    this.baseEmissive = new THREE.Color(...(o.emissive || [0.022, 0.027, 0.042]));
     this.material = new THREE.MeshStandardMaterial({ map: tex, vertexColors: true, roughness: 0.96, metalness: 0, emissive: this.baseEmissive.clone() });
     this.material.userData.noSnow = true;
     const { mesh, skeleton } = makeSkinned(bones, parts, this.material, this.root);
