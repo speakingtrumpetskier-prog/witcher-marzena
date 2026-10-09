@@ -5,9 +5,9 @@
 // stream in the wind, smoke leans, a few ravens cross against the light now and then, and every
 // minute or so the drowned bell sounds under the ice behind the camera.
 //
-// The camera never cuts. It opens a few meters back and low, settles in over the first seconds,
-// then drifts on slow, unrelated sines (truck, push, rise), so the near poles slide across the
-// frame against a sky that hardly moves.
+// The camera never cuts. It opens further back and low, settles in over the first seconds, then
+// arcs around the effigy on slow, unrelated sines, so she holds still in the frame while the near
+// pole and the far shore slide past at their own depths.
 //
 //   const scene = new TitleScene(G);   scene.start();   scene.update(dt) while the title owns the camera
 //   scene.stop()   removes the set dressing and gives the weather back
@@ -22,7 +22,8 @@ export const TITLE_SHOT = {
   fov: 40,
   cam: new THREE.Vector3(14.19, 1.25, -36.23),
   look: new THREE.Vector3(-57.7, 9.5, 33.3),
-  effigy: { x: LOC.ritual.x, z: LOC.ritual.z, yaw: Math.atan2(-0.83, 0.54), scale: 1.12 },
+  // She faces straight away from the camera, toward the light.
+  effigy: { x: LOC.ritual.x, z: LOC.ritual.z, yaw: Math.atan2(LOC.ritual.x - 14.19, LOC.ritual.z + 36.23), scale: 1.12 },
   // A ribbon pole of our own close on the right, cut by the frame edge: it carries the parallax.
   pole: { x: 9.92, z: -34.6 },
 };
@@ -166,18 +167,18 @@ export class TitleScene {
     this.t += dt;
     const t = this.t, S = TITLE_SHOT, f = this.fwd, r = this.right;
 
-    // Opening: start 4.5 m back and lower, settle over 16 s; then the slow drift.
+    // The camera arcs slowly around the effigy, so she holds her place on the left third while the
+    // near pole and the far shore slide past at their own depths. Opening: half again as far and a
+    // little lower, settling over 16 s.
     const open = 1 - ease(clamp(t / 16, 0, 1));
-    const truck = 3.2 * Math.sin(t * 0.043);
-    const push = -1.2 * Math.cos(t * 0.029) + 1.2 - open * 4.5;
-    const rise = 0.32 * Math.sin(t * 0.067 + 1.0) - open * 0.55;
-    cam.position.copy(S.cam).addScaledVector(r, truck).addScaledVector(f, push);
-    cam.position.y += rise;
+    const th = 0.06 * Math.sin(t * 0.041) + 0.025 * Math.sin(t * 0.017 + 1.0);
+    const k = 1 + 0.05 * Math.sin(t * 0.029) + open * 0.5;
+    const ex = S.effigy.x, ez = S.effigy.z, c = Math.cos(th), sn = Math.sin(th);
+    const ox = S.cam.x - ex, oz = S.cam.z - ez, lx = S.look.x - ex, lz = S.look.z - ez;
+    cam.position.set(ex + (ox * c + oz * sn) * k, S.cam.y + 0.22 * Math.sin(t * 0.067 + 1.0) - open * 0.3, ez + (-ox * sn + oz * c) * k);
     const gy = G.world?.heightAt?.(cam.position.x, cam.position.z);
     cam.position.y = Math.max(cam.position.y, (Number.isFinite(gy) ? Math.max(gy, 0) : 0) + 0.9);
-    // The look point follows a little of the truck so the frame holds while near things slide.
-    this.look.copy(S.look).addScaledVector(r, truck * 0.55 + 2.2 * Math.sin(t * 0.021 + 0.7));
-    this.look.y += 1.2 * Math.sin(t * 0.051) + open * 2.5;
+    this.look.set(ex + lx * c + lz * sn, S.look.y + 1.0 * Math.sin(t * 0.051) + open * 2.0, ez - lx * sn + lz * c);
     cam.lookAt(this.look);
 
     this.flock?.update(dt, cam.position, f, r);
