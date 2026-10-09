@@ -16,8 +16,10 @@ export default async function c7(d) {
     const R = anchors(G, 'ritual');
     const H = R?.hole ? { x: R.hole.x, z: R.hole.z } : (R?.oldHole ? { x: R.oldHole.x, z: R.oldHole.z } : { x: 11.2, z: -30.8 });
     const P = (dx, dz, h = 0) => ground(G, H.x + dx, H.z + dz, h);
-    d.setup({ time: 20.7, day: 2, weather: 'blizzard', music: 'silence' });
+    d.setup({ time: 20.7, day: 2, weather: 'snow', music: 'silence' });
     d.fade(1, 0);
+    d.atmosphere({ amount: 1, exposure: 1.5, ambientMul: 1.25 });
+    d.weather('blizzard', 30);
     G.audio?.duck?.(0, 0.1);
     const spots = riteSpots(H);
     const cast = await riteCast(d, K, { women: 8, men: 5, kids: 3 });
@@ -43,16 +45,16 @@ export default async function c7(d) {
     K.add(() => glow(8, 0));
 
     // 1. LOW ANGLE on the ice: a pale glow spreads beneath like a lantern rising through deep water.
-    const low = P(-1.5, 6.5, 0.28);
-    d.cut({ pos: low, look: P(0.2, 0, 0.4), fov: 46, shake: 0.18 });
+    const low = P(-1.2, 5.2, 0.26);
+    d.cut({ pos: low, look: P(0.2, 0, 0.5), fov: 48, shake: 0.18 });
     d.fade(0, 1.0);
     G.story.sched.tween({ dur: 5.0, ease: 'in', step: (u) => glow(2 + 7 * u, 1.6 * u) });
-    d.shot({ from: low, to: P(-1.2, 5.6, 0.3), look: P(0.2, 0, 0.4), fov: 46, dur: 4.6, ease: 'sine', shake: 0.2 });
+    d.shot({ from: low, to: P(-1.0, 4.4, 0.3), look: P(0.2, 0, 0.5), fov: 48, dur: 4.2, ease: 'sine', shake: 0.2 });
     d.sfx('ice_groan', P(0, 0, 0));
     await d.wait(3.6);
 
     // 2. Effigies burst up out of the snow drifts around the ring, ice cracking off them.
-    const ringAt = [[-9.5, 2], [9.8, 1], [-7, -8.5], [7.6, -8.2], [0.4, -11], [-10.8, -3.5]];
+    const ringAt = [[-7.2, -1.5], [-6, -5.3], [-2.5, -7.4], [2.5, -7.4], [6, -5.3], [7.2, -1.5]];
     const risers = ringAt.map(([dx, dz], i) => {
       const g = props.effigy({ variant: 'frozen', seed: 20 + i, fx: false });
       const y = G.world.heightAt(H.x + dx, H.z + dz);
@@ -61,21 +63,22 @@ export default async function c7(d) {
       g.scale.setScalar(1.22);
       G.scene.add(g);
       K.add(() => g.parent?.remove(g));
-      return { g, y };
+      return { g, y, dx, dz };
     });
-    let burst = d.cut({ pos: P(0.5, 7.5, 1.3), look: P(0, -7, 1.5), fov: 62, shake: 0.35 });
-    void burst;
+    const pan0 = P(0.3, 2.8, 1.15);
+    d.cut({ pos: pan0, look: P(-7.2, -1.5, 1.4), fov: 58, shake: 0.3 });
     jolt(d, 1.0, 2.0);
-    d.sfx('ice_crack', P(-8, -4, 0));
-    d.sfx('effigy_creak', P(8, -5, 0));
+    d.sfx('ice_crack', P(-6, -3, 0));
+    d.sfx('effigy_creak', P(6, -4, 0));
     risers.forEach((r, i) => {
-      d.wait(i * 0.28).then(() => {
-        d.tween(r.g.position, 'y', r.y, 1.1, 'out');
-        d.tween(r.g.rotation, 'z', (i % 2 ? 1 : -1) * 0.12, 1.1, 'out');
+      d.wait(i * 0.4).then(() => {
+        try { props.fx.burst('ice', [H.x + r.dx, r.y + 0.3, H.z + r.dz], { count: 26, speed: 2.4, up: 1.1, size: 0.2 }); } catch { /* optional */ }
+        d.tween(r.g.position, 'y', r.y, 1.0, 'out');
+        d.tween(r.g.rotation, 'z', (i % 2 ? 1 : -1) * 0.12, 1.0, 'out');
       });
     });
-    d.shot({ from: P(0.5, 7.5, 1.3), to: P(0.2, 6.6, 1.5), look: P(0, -7, 1.5), fov: 62, dur: 3.4, ease: 'linear', shake: 0.35 });
-    await d.wait(3.2);
+    d.shot({ from: pan0, to: P(0.2, 2.6, 1.2), look: P(-7.2, -1.5, 1.4), lookTo: P(7.2, -1.5, 1.4), fov: 58, dur: 3.6, ease: 'inOut', shake: 0.3 });
+    await d.wait(3.6);
 
     // 3. The hole erupts. The marzanna rises.
     G.postfx?.flash?.(0xcfeeff, 0.7);
@@ -97,11 +100,11 @@ export default async function c7(d) {
       if (boss?.root) return boss.root.getWorldPosition(V3(0, 0, 0)).add(V3(0, 3.3, 0));
       return fake ? fake.c.root.position.clone().add(V3(0, 3.1, 0)) : P(0, 3.5, 0);
     };
-    const eruptCam = P(-0.6, 8.5, 0.5);
-    d.cut({ pos: eruptCam, look: P(0, 0.4, 0), fov: 52, shake: 0.5 });
+    const eruptCam = P(-0.7, 6.6, 0.45);
+    d.cut({ pos: eruptCam, look: P(0, 0.5, 0), fov: 56, shake: 0.5 });
     glow(9, 2.2);
     jolt(d, 1.4, 3.0);
-    d.shot({ from: eruptCam, to: P(-0.2, 9.5, 1.3), look: P(0, 0.6, 0), lookTo: bossHead, fov: 52, fovTo: 56, dur: 5.4, ease: 'inOut', shake: 0.4 });
+    d.shot({ from: eruptCam, to: P(-0.3, 7.6, 1.2), look: P(0, 0.6, 0), lookTo: bossHead, fov: 56, fovTo: 60, dur: 5.4, ease: 'inOut', shake: 0.4 });
 
     // 4. The villagers scatter. Hanka does not move.
     await d.wait(1.0);
@@ -120,8 +123,9 @@ export default async function c7(d) {
 
     // 5. WIESIA, her voice layered with a howl: "Don't go. Don't go. Don't go."
     const vp = vesna.pos(V3(0, 0, 0));
+    d.lookAt(vesna, bossHead());
     const c5 = off(vp.x, vp.z, vesna.yaw, 0.7, 1.7);
-    d.cut({ pos: ground(G, c5[0], c5[1], 1.45), look: () => vesna.eye(V3(0, 0, 0)), fov: 28, frame: [0.1, 0.05], shake: 0.25 });
+    d.cut({ pos: ground(G, c5[0], c5[1], 1.5), look: () => vesna.eye(V3(0, 0, 0)), fov: 28, frame: [0.1, 0.05], shake: 0.25 });
     for (let i = 0; i < 3; i++) {
       d.sfx('boss_scream', P(0, 2, 0), { volume: 0.6 + i * 0.15 });
       await d.say('wiesia', "Don't go.", 1.3);
@@ -129,13 +133,16 @@ export default async function c7(d) {
     }
 
     // 6. Vesna draws her silver sword. The fight begins.
+    d.lookAt(vesna, null);
+    d.face(vesna, V3(H.x, 0, H.z), { instant: true });
+    const fw = V3(Math.sin(vesna.yaw), 0, Math.cos(vesna.yaw));
+    const c6 = V3(vp.x, 0, vp.z).addScaledVector(fw, -2.7).add(V3(-0.5 * Math.cos(vesna.yaw), 0, 0.5 * Math.sin(vesna.yaw)));
+    const c6p = ground(G, c6.x, c6.z, 1.3);
     const eye = () => vesna.eye(V3(0, 0, 0));
-    const c6 = off(vp.x, vp.z, vesna.yaw, -0.6, -2.4);
-    d.cut({ pos: ground(G, c6[0], c6[1], 1.25), look: () => eye().add(V3(0, 0.1, 3.0)), fov: 40, frame: [0.0, -0.05], shake: 0.2 });
-    d.face(vesna, V3(H.x, 0, H.z));
+    d.cut({ pos: c6p, look: () => eye().addScaledVector(fw, 3.0).add(V3(0, 0.3, 0)), fov: 42, frame: [-0.1, -0.02], shake: 0.2 });
     await d.wait(0.5);
     const draw = vesna.c.drawSword ? Promise.resolve(vesna.c.drawSword('silver')) : d.anim(vesna, 'draw_sword');
-    d.shot({ from: ground(G, c6[0], c6[1], 1.25), to: ground(G, c6[0] + Math.sin(vesna.yaw) * 1.0, c6[1] + Math.cos(vesna.yaw) * 1.0, 1.3), look: () => eye().add(V3(0, 0.2, 3.0)), lookTo: bossHead, fov: 40, dur: 3.6, ease: 'sine', shake: 0.2 });
+    d.shot({ from: c6p, to: c6p.clone().addScaledVector(fw, 0.9), look: () => eye().addScaledVector(fw, 3.0).add(V3(0, 0.3, 0)), lookTo: bossHead, fov: 42, fovTo: 50, frame: [-0.1, -0.02], dur: 3.6, ease: 'sine', shake: 0.2 });
     d.sfx('sword_draw');
     await d.wait(3.4);
     void draw;

@@ -73,6 +73,29 @@ export async function init(G) {
     return report(id, res, t0);
   };
 
+  // Logs where every actor on the stage and the camera are at the given scene times (no rendering).
+  api.probe = async (id, times = [10], { flags } = {}) => {
+    parseFlags(G, flags);
+    const origRender = G.renderer.render;
+    G.renderer.render = () => {};
+    const t0 = G.story.sched.time;
+    const done = new Set();
+    const dump = (t) => {
+      const out = { t, cam: G.camera.position.toArray().map((v) => +v.toFixed(1)), actors: {} };
+      for (const a of G.cutscenes.stage?.list?.() || []) {
+        const wp = a.c.root.getWorldPosition(new THREE.Vector3());
+        out.actors[a.id] = { p: wp.toArray().map((v) => +v.toFixed(1)), vis: a.c.root.visible, par: a.c.root.parent?.type };
+      }
+      log('probe', JSON.stringify(out));
+    };
+    const off = G.addSystem('cine-probe', () => {
+      for (const t of times) if (!done.has(t) && G.story.sched.time - t0 >= t) { done.add(t); dump(t); }
+    }, 0);
+    let res;
+    try { res = await G.cutscenes.play(id); } finally { off(); G.renderer.render = origRender; }
+    return report(id, res, t0);
+  };
+
   // Contact sheet: a tile at every camera setup (a moment after it settles) and every `every` seconds.
   api.sheet = async (id, { cols = 3, rows = 3, page = 0, every = 4, settle = 0.7, flags, show = true } = {}) => {
     parseFlags(G, flags);

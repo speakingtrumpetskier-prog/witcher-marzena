@@ -5,7 +5,7 @@
 // Trigger: the finale controller plays it when the player calls "Hanka." (also the default when the
 // 15 s timer runs out). Reads hanka_comforted, hanka_blamed, bird_given. Sets ending = 'looking_back'.
 // Standalone: it stages the finale itself. Ends at dawn, day 3, 07:36, spring in, the lake open.
-import { kit, finaleStage, ground, off, V3, jolt, yawTo, disposeProp } from './_cine.js';
+import { kit, finaleStage, ground, off, V3, jolt, yawTo, disposeProp, waterline } from './_cine.js';
 import { thaw } from '../thaw.js';
 
 export async function run(d, S, K) {
@@ -82,7 +82,7 @@ export async function run(d, S, K) {
     dur: 7.2, ease: 'inOut',
     step: (u) => {
       wiesia.c.root.position.y = G.world.heightAt(wx, wz) - 2.6 * u * u;
-      const k = u < 0.35 ? 0.4 + u * 2.2 : 1.2 * (1 - (u - 0.35) / 0.65) ** 1.4;
+      const k = u < 0.35 ? 0.32 + u * 1.75 : 0.95 * (1 - (u - 0.35) / 0.65) ** 1.4;
       G.water?.setUnderGlow?.(wx, wz, 6 * (1 - u * 0.78), k, 0x9ff5ff);
       if (!birdOnIce && u > 0.22 && S.bird) {
         birdOnIce = true;
@@ -105,7 +105,7 @@ export async function run(d, S, K) {
   await d.wait(1.4);
 
   // 6. The snow stops. The ice softens. A slow, quiet dawn; spring comes gently.
-  const lapse = thaw(G, d, { speed: 1.2, gentle: true, tower: false });
+  const lapse = thaw(G, d, { speed: 1.2, gentle: true, tower: false, startHour: 5.3, water: false });
   const lowSun = P(-4, 12, 1.5);
   d.cut({ pos: lowSun, look: P(0, 0, 1.2), fov: 38, shake: 0.05 });
   d.shot({ from: lowSun, to: P(-3.2, 10.5, 2.0), look: P(0, 0, 1.2), fov: 38, dur: 9, ease: 'sine', shake: 0.05 });
@@ -136,6 +136,11 @@ export async function run(d, S, K) {
     await d.wait(1.8);
     d.anim(ola, 'nod');
     await d.wait(2.6);
+    // The dawn takes the rest of the picture: the two of them small on the ice, the tower, the gold.
+    const mid = hanka.pos(V3(0, 0, 0));
+    const wideA = ground(G, mid.x - 9, mid.z + 10, 2.0), wideB = ground(G, mid.x - 10, mid.z + 14, 6.0);
+    d.cut({ pos: wideA, look: ground(G, mid.x + 10, mid.z - 12, 2.5), fov: 40 });
+    d.shot({ from: wideA, to: wideB, look: ground(G, mid.x + 10, mid.z - 12, 2.5), lookTo: ground(G, mid.x + 40, mid.z - 40, 4), fov: 40, dur: 16, ease: 'sine', shake: 0.03 });
   } else {
     d.anim(hanka, 'stand_up');
     await d.wait(1.5);
@@ -181,6 +186,13 @@ export async function run(d, S, K) {
   await lapse;
   await d.fade(1, 1.8);
   d.flag('ending', 'looking_back');
+  // The ice lets go once nobody stands on it: the lake opens and everyone is on the shore.
+  G.water?.setThaw?.(1);
+  const hx = 68, wz0 = waterline(G, hx);
+  d.place(vesna, hx - 5.5, wz0 + 4.0, Math.PI);
+  if (comforted) d.place(hanka, hx, wz0 + 1.8, Math.PI);
+  else hanka.hide();
+  d.place(ola, hx + 1.4, wz0 + 2.4, Math.PI);
 }
 
 export default async function ending(d) {

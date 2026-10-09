@@ -31,16 +31,21 @@ export default async function epilogue(d) {
     const out = [-110, 140];
     const yo = yawTo(gate.x, gate.z, out[0], out[1]);
     const at = (back, right = 0, h = 0, ref = gate) => { const [x, z] = off(ref.x, ref.z, yo, right, -back); return ground(G, x, z, h); };
-    const vPos = off(gate.x, gate.z, yo, 0, 4.2);
+    const vPos = off(gate.x, gate.z, yo, 0, 6.5);
     const kPos = off(vPos[0], vPos[1], yo, -1.35, 0.4);
     const vesna = d.player(), kasza = d.horse();
     d.place(kasza, kPos[0], kPos[1], yo - 0.15);
     const ms = (() => { const y = kasza.yaw; return [kPos[0] + Math.cos(y) * 0.8, kPos[1] - Math.sin(y) * 0.8]; })();
     d.place(vesna, ms[0], ms[1], yawTo(ms[0], ms[1], kPos[0], kPos[1]));
     vesna.play('idle_cold', { loop: true, fade: 0 });
-    const yard = Vv?.workshopYard ? { x: Vv.workshopYard.x, z: Vv.workshopYard.z } : { x: -76, z: 153 };
-    const dobra = await spawn(d, 'dobra', 'dobra', yard.x, yard.z, 0, {});
-    d.place(dobra, yard.x, yard.z, yawTo(yard.x, yard.z, gate.x, gate.z));
+    // Dobra comes down the street inside the gate, along the pass road, and out to the road where Vesna waits.
+    const inward = [(-55 - gate.x), (122 - gate.z)];
+    const il = Math.hypot(inward[0], inward[1]);
+    const start = [gate.x + (inward[0] / il) * 15, gate.z + (inward[1] / il) * 15];
+    const dobra = await spawn(d, 'dobra', 'dobra', start[0], start[1], 0, {});
+    d.place(dobra, start[0], start[1], yawTo(start[0], start[1], gate.x, gate.z));
+    dobra.play('idle_cold', { loop: true, fade: 0 });
+    const dStop = off(vPos[0], vPos[1], yo, 0, -1.25);
     const doll = strawDoll(K);
     dobra.c.attach('handR', doll);
     doll.position.set(0, 0.02, 0.03);
@@ -51,56 +56,55 @@ export default async function epilogue(d) {
     const est = at(-6.5, 5.5, 2.4);
     d.cut({ pos: est, look: () => vesna.at(0.7, V3(0, 0, 0)), fov: 40, shake: 0.05 });
     d.fade(0, 1.8);
-    d.shot({ from: est, to: at(-5.2, 4.4, 2.2), look: () => vesna.at(0.7, V3(0, 0, 0)), fov: 40, dur: 7.5, ease: 'sine', shake: 0.05 });
-    await d.wait(1.8);
+    d.shot({ from: est, to: at(-5.2, 4.4, 2.2), look: () => vesna.at(0.7, V3(0, 0, 0)), fov: 40, dur: 6.5, ease: 'sine', shake: 0.05 });
+    await d.wait(1.5);
     d.anim(vesna, 'crouch_examine', { loop: true });
     d.sfx('horse_snort', kasza);
     kasza.play('snort');
-    await d.wait(3.6);
+    await d.wait(3.0);
     vesna.play('idle_cold', { loop: true, fade: 0.4 });
 
     // 2. Dobra comes down the path with a tiny straw doll, a red knot at its neck.
-    const wp = [[yard.x, yard.z], [gate.x - 3.0, gate.z + 12], [gate.x + 0.4, gate.z + 5.6]];
-    const walk = d.walk(dobra, wp[2][0], wp[2][1], { speed: 1.05 });
-    d.walk(dobra, wp[1][0], wp[1][1], { speed: 1.05 });
-    const dobraCam = ground(G, gate.x + 5, gate.z + 15, 1.6);
-    d.cut({ pos: dobraCam, look: () => dobra.at(0.62, V3(0, 0, 0)), fov: 34 });
-    await d.wait(4.0);
-    d.follow(dobra, [-1.8, 1.4, 2.6], () => dobra.at(0.72, V3(0, 0, 0)), 0, { lag: 2.4, fov: 36, shake: 0.06 });
+    const walk = d.walk(dobra, dStop[0], dStop[1], { speed: 1.15, stopDist: 0.05 });
+    const camStart = ground(G, gate.x + 3.0, gate.z + 1.5, 1.5);
+    const gateAt = ground(G, gate.x, gate.z, 1.3);
+    d.cut({ pos: camStart, look: () => dobra.at(0.62, V3(0, 0, 0)), fov: 32 });
+    d.shot({ from: camStart, to: ground(G, gate.x + 2.2, gate.z + 1.0, 1.55), look: () => dobra.at(0.62, V3(0, 0, 0)), fov: 32, dur: 7, ease: 'linear', shake: 0.05 });
+    await d.wait(6.5);
+    d.follow(dobra, [-1.6, 1.4, 3.0], () => dobra.at(0.72, V3(0, 0, 0)), 0, { lag: 2.6, fov: 36, shake: 0.06 });
     await walk;
+    void gateAt;
     d.face(vesna, dobra);
     d.face(dobra, vesna);
     d.lookAt(vesna, dobra);
     d.lookAt(dobra, vesna);
     dobra.play('hands_hips', { loop: true, fade: 0.3 });
     d.cut(d.two(vesna, dobra));
-    await d.wait(1.2);
+    await d.wait(0.8);
 
     // 3. Dobra's story.
     d.cut(d.single(dobra, vesna));
-    await d.say(dobra, 'Wait. Wait, I\'m old.', 2.4);
-    await d.wait(1.4);
-    dobra.play('hands_hips', { loop: true, fade: 0.3 });
+    await d.say(dobra, 'Wait. Wait, I\'m old.', 2.0);
+    await d.wait(1.0);
     await d.say(dobra, "There was a winter, before you'd remember anything. We were boiling bark. The wolves came down and got into the graves.", 6.4);
-    await d.wait(0.8);
+    await d.wait(0.6);
     d.cut(d.ots(vesna, dobra));
-    await d.say(dobra, 'A hunter came through. One of yours. Lynx. We had nothing to give him.', 5.0);
-    await d.wait(0.9);
+    await d.say(dobra, 'A hunter came through. One of yours. Lynx. We had nothing to give him.', 4.8);
+    await d.wait(0.7);
     d.cut(d.close(dobra, vesna));
-    await d.say(dobra, "I had a baby I couldn't feed.", 3.2);
-    await d.wait(1.4);
+    await d.say(dobra, "I had a baby I couldn't feed.", 2.8);
+    await d.wait(1.0);
     // She reaches out and touches the knot on Vesna's chain without asking.
-    d.cut(d.two(vesna, dobra));
-    const reach = d.walk(dobra, vesna.pos(V3(0, 0, 0)).x + Math.sin(vesna.yaw + Math.PI) * 0.75, vesna.pos(V3(0, 0, 0)).z + Math.cos(vesna.yaw + Math.PI) * 0.75, { speed: 0.7 });
-    await reach;
     d.face(dobra, vesna);
     const chest = vesna.at(0.74, V3(0, 0, 0));
-    d.cut({ pos: V3(chest.x + 0.55, chest.y + 0.15, chest.z + 0.65), look: chest.clone().add(V3(0, 0.02, 0)), fov: 24, shake: 0.06 });
+    const fwdv = V3(Math.sin(vesna.yaw), 0, Math.cos(vesna.yaw));
+    const rgt = V3(-Math.cos(vesna.yaw), 0, Math.sin(vesna.yaw));
+    d.cut({ pos: chest.clone().addScaledVector(fwdv, 0.8).addScaledVector(rgt, 0.45).add(V3(0, 0.12, 0)), look: chest.clone().add(V3(0, 0.0, 0)), fov: 26, shake: 0.05 });
     d.anim(dobra, 'point');
-    await d.wait(2.2);
+    await d.wait(2.0);
     d.cut(d.close(dobra, vesna));
-    await d.say(dobra, 'I tie it the same way every time. I can\'t do it any other way.', 5.0);
-    await d.wait(1.6);
+    await d.say(dobra, 'I tie it the same way every time. I can\'t do it any other way.', 4.4);
+    await d.wait(1.2);
 
     // The sword with the silver: before the choice.
     if (witSword) {
@@ -151,8 +155,8 @@ export default async function epilogue(d) {
     d.face(vesna, kasza);
     await d.anim(vesna, 'mount', { fade: 0.1 });
     seat(d, vesna, kasza, 'ride_idle');
-    const road = [[kPos[0], kPos[1]], [out[0], out[1]], [-140, 165], [-185, 196], [-230, 230]];
-    const ride = moveAlong(d, kasza, road, { speed: 3.4, brake: 0.05, turn: 3 });
+    const road = [[kPos[0], kPos[1]], [out[0], out[1]], [-140, 165], [-165, 182]];
+    const ride = moveAlong(d, kasza, road, { speed: 3.0, brake: 0.05, turn: 3 });
     const gateHi = ground(G, gate.x + 6, gate.z + 9, 5.5);
     d.cut({ pos: gateHi, look: () => ground(G, kasza.c.root.position.x, kasza.c.root.position.z, 1.4), fov: 30 });
     await d.wait(6.5);

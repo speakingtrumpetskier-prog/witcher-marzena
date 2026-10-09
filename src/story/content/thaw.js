@@ -1,6 +1,6 @@
 // The thaw: a reusable world transformation for the endings (docs/STORY.md endings A and B).
 //
-//   await thaw(G, d, { speed = 1, gentle = false, tower = true, birds = true, hours = 7.6 })
+//   await thaw(G, d, { speed = 1, gentle = false, tower = true, birds = true, hours = 7.6, startHour, water = true })
 //   await shatterIce(G, d, { x, z, radius })       the ring of cracks racing out from a point (ending A)
 //   sinkTower(G, d, { dur })                       the drowned bell tower leans and goes under (ending A)
 //
@@ -15,7 +15,7 @@ import { LOC } from '../../world/layout.js';
 
 const rand = (a, b) => a + Math.random() * (b - a);
 
-export async function thaw(G, d, { speed = 1, gentle = false, tower = true, birds = true, hours = 7.6 } = {}) {
+export async function thaw(G, d, { speed = 1, gentle = false, tower = true, birds = true, hours = 7.6, startHour = null, water: openWater = true } = {}) {
   const S = G.story.sched;
   const k = gentle ? 1.7 : 1;
   const T = (secs) => (secs * k) / speed;
@@ -28,6 +28,11 @@ export async function thaw(G, d, { speed = 1, gentle = false, tower = true, bird
   if (gentle) G.audio?.duck?.(0.4, T(30));
 
   // The clock runs through the rest of the night to the morning after (the day rolls over once).
+  // The clock may jump to the small hours first, so the time-lapse spends its seconds on the dawn.
+  if (startHour != null) {
+    if (startHour < G.time.hours) G.time.day += 1;
+    G.time.hours = startHour;
+  }
   const h0 = G.time.hours, day0 = G.time.day;
   const target = hours < h0 ? hours + 24 : hours;
   const span = target - h0;
@@ -43,14 +48,15 @@ export async function thaw(G, d, { speed = 1, gentle = false, tower = true, bird
   // Snow slides off, then the green; the lake opens in between.
   const snow = d.uniform('uSnowCover', 0, T(14), 'inOut');
   const spring = d.wait(T(9)).then(() => d.uniform('uSpring', 1, T(14), 'inOut'));
-  const water = d.wait(T(5)).then(() => S.tween({ dur: T(16), ease: 'inOut', step: (u) => G.water?.setThaw?.(u) }));
+  // openWater false keeps the lake frozen (people still stand on it); the caller opens it later.
+  const water = openWater ? d.wait(T(5)).then(() => S.tween({ dur: T(16), ease: 'inOut', step: (u) => G.water?.setThaw?.(u) })) : Promise.resolve();
 
   // Birds come back with the light.
   const song = birds ? birdsong(G, d, T(34), gentle) : Promise.resolve();
   const sink = tower && !gentle ? sinkTower(G, d, { dur: T(10) }) : Promise.resolve();
 
   await Promise.all([clock, snow, spring, water, song, sink]);
-  G.water?.setThaw?.(1);
+  if (openWater) G.water?.setThaw?.(1);
   U.uSnowCover.value = 0;
   U.uSpring.value = 1;
 }

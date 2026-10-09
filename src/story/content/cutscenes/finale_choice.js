@@ -45,12 +45,14 @@ export default async function choice(d) {
     // 3. Wiesia kneels on the ice as a girl, ghost-pale, crying, holding herself.
     wiesia.show();
     wiesia.c.expression?.('browSad', 0.8, 0.3);
+    wiesia.c.stopUpper?.(0.01);
     const med = P(-3.0, 5.0, 1.15);
     d.cut({ pos: med, look: () => wiesia.at(0.6, V3(0, 0, 0)), fov: 34, frame: [0.0, 0.04], shake: 0.1 });
     d.shot({ from: med, to: P(-2.5, 4.4, 1.1), look: () => wiesia.at(0.6, V3(0, 0, 0)), fov: 34, frame: [0.0, 0.04], dur: 5, ease: 'sine', shake: 0.1 });
     await d.wait(2.0);
     d.face(wiesia, V3(wx, 0, wz + 30));
-    wiesia.c.lookAt?.(V3(wx + 1, 1.2, wz + 24));
+    wiesia.c.stopUpper?.(0.5);
+    wiesia.c.lookAt?.(V3(wx + 1, 1.5, wz + 24));
     await d.say('wiesia', "I don't want to go down there. It's dark down there.", 4.6);
     d.cut(d.close(wiesia, vesna));
     await d.wait(1.0);

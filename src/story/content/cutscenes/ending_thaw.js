@@ -55,6 +55,7 @@ export async function run(d, S, K) {
   await d.say('wiesia', 'Oh.', 1.8);
   void eyeV;
   G.weather?.gustNow?.(1.2);
+  G.weather?.set?.('clear', 7);
   dissolve(d, wiesia, { secs: 2.6, drift: V3(1.6, 1.8, -1.2) });
   d.shot({ from: ground(G, wz.x - 1.7, wz.z + 0.5, 1.0), to: ground(G, wz.x - 2.2, wz.z + 1.3, 1.5), look: () => P(0.6, 2.0, 1.3), fov: 30, dur: 3.6, ease: 'sine', shake: 0.15 });
   await d.wait(3.4);
@@ -85,7 +86,8 @@ export async function run(d, S, K) {
 
   // 4. Dawn time-lapse: the snow slides off, the lake opens on a gold sky, leaves, green, birds.
   const L = thawShots(d, S, K);
-  const lapse = thaw(G, d, { speed: 1, gentle: false, tower: false });
+  await d.fade(1, 0.9);
+  const lapse = thaw(G, d, { speed: 1, gentle: false, tower: false, startHour: 4.7 });
   L.placeShore();
   await L.run();
   await lapse;
@@ -123,9 +125,9 @@ function thawShots(d, S, K) {
       d.shot({ from: hill, to: hill.clone().add(V3(7, 3.0, 4)), look: ground(G, 0, 90, 4), lookTo: ground(G, 20, 80, 5), fov: 42, dur: 7, ease: 'linear', shake: 0.05 });
       await d.wait(7);
       // b) the lake opens: low over the water at the shore, a gold sky in it
-      const lake = ground(G, 38, 41, 1.8);
-      d.cut({ pos: lake, look: ground(G, 30, -40, 3.5), fov: 46 });
-      d.shot({ from: lake, to: ground(G, 36, 36, 2.1), look: ground(G, 30, -40, 3.5), fov: 46, dur: 7, ease: 'linear', shake: 0.05 });
+      const lake = ground(G, 8, 34, 1.7);
+      d.cut({ pos: lake, look: ground(G, 90, -30, 3.0), fov: 46 });
+      d.shot({ from: lake, to: ground(G, 12, 31, 2.0), look: ground(G, 90, -30, 3.0), lookTo: ground(G, 96, -22, 3.5), fov: 46, dur: 7, ease: 'linear', shake: 0.05 });
       await d.wait(7);
       // c) birches and grass on the slope above the shore, birds
       const slope = ground(G, 56, 76, 1.6);
@@ -152,8 +154,8 @@ function thawShots(d, S, K) {
       d.cut({ pos: c2, look: () => vesna.at(0.78, V3(0, 0, 0)), fov: 32, frame: [-0.12, 0.02], shake: 0.1 });
       d.shot({ from: c2, to: ground(G, v.x + 3.4, v.z + 3.8, 1.6), look: () => vesna.at(0.78, V3(0, 0, 0)), fov: 32, frame: [-0.12, 0.02], dur: 5, ease: 'sine', shake: 0.1 });
       await d.wait(4.2);
-      const far = ground(G, v.x - 10, v.z + 3, 2.2);
-      d.cut({ pos: far, look: ground(G, (v.x + crowdAt.x) / 2, v.z, 1.3), fov: 36 });
+      const far = ground(G, (v.x + crowdAt.x) / 2, v.z - 17, 2.0);
+      d.cut({ pos: far, look: ground(G, (v.x + crowdAt.x) / 2, v.z + 0.5, 1.3), fov: 42 });
       await d.wait(2.6);
       // Hanka kneels at the waterline, alone, her hand in the water.
       const hk = ground(G, hankaAt[0] - 5.5, hankaAt[1] + 4.2, 1.5);
