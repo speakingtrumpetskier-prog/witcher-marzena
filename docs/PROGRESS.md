@@ -27,12 +27,14 @@ catches issues, and fixes them or sends a targeted fix back to the builder. No c
 
 Model policy (user request): Part Two and later run on Sonnet 5.5, except a single long-running builder may stay on Opus (the story systems builder).
 
+## Title (lead)
+src/ui/titleScene.js: the ritual ring at 15:8 against the low sun over the south-west ranges, the village and smoke on the quiet left third, a straw Marzanna (standing, arms out, larger than life) on the right half with the sun just past her shoulder, a title-only ribbon pole cut by the right edge. The camera arcs about 5 degrees around the effigy on slow sines, so she holds still while the far shore and the near pole slide; the sun passes behind her and out again. Wind and ground drift raised, auto weather held, ravens cross every 25 to 55 s, the drowned bell sounds every 48 to 78 s. Flow: the picture fades up alone (4.8 s), then the name and the red thread; "Press any key" unlocks sound, starts the main theme ('reveal') and brings in the menu. Name and menu only (no tagline, no footer), in a left column with a light left-side shade. Needs a human look at it moving, with sound.
+
 ## Polish list (lead, integration pass)
 - Creatures: Marzanny still glow pale at night (white dresses, partly intended); wolves fixed (darker coat, night glow cut to a third).
 - Combat: Player has no grabbed or stunned state (grab overrides position, now with a break-free prompt); Weather has no gust() hook (the boss gust has its own sound and push).
 - Wilderness: pass drifts show polygon edges; ice cave reads bright and its crystals look like plain shards; belfry table slab reads oversized; bear nest and hunter skeleton simple.
 - Wilderness: G.water has one under-glow slot (boss glow, grab telegraph and the bell tower glow share it).
-- UI: retune the title camera path once the village and locations exist.
 - Props: 128 px textures tile at close range; effigies read a little doll-like (bigger straw silhouette, rougher hem).
 - Audio: needs a human listen (voice synthesis is the risk).
 - Architecture: idol faces too blocky (tiki read); sculpt deeper relief, weather it, keep the silhouette.
