@@ -9,11 +9,11 @@
 // G.state.data.mapTrail so they ride along with the save).
 //
 // Controls: drag or WASD to pan, wheel or Q/E to zoom, Space to centre on the player, M/Esc to close.
-import { h, svg, clear, store } from './dom.js';
+import { h, svg } from './dom.js';
 import { ICON } from './icons.js';
 import { paperCanvas, grainURL, tornClip } from './paper.js';
 import { createNoise } from '../core/Noise.js';
-import { hashString, rng, smoothstep } from '../core/util.js';
+import { rng } from '../core/util.js';
 import { LOC, ROADS, LAKE, RIVER } from '../world/layout.js';
 import { lakeSDF } from '../world/heightfield.js';
 
@@ -201,7 +201,7 @@ export class MapView {
         const shade = (-dhx * L[0] + L[1] - dhz * L[2]) * inv;
         const slope = Math.sqrt(dhx * dhx + dhz * dhz);
         slopeAt[j * N + i] = slope;
-        let k = (shade - L[1]) * 1.35 - slope * 0.1;
+        let k = Math.max(-0.3, Math.min(0.18, (shade - L[1]) * 1.05 - slope * 0.05));
         // contour hints
         if (hc > 0.6) {
           const a = Math.floor(hc / 20);
@@ -226,14 +226,14 @@ export class MapView {
         const jx = x + (r() - 0.5) * 5, jy = y + (r() - 0.5) * 5;
         const ix = Math.max(0, Math.min(N - 1, jx | 0)), iy = Math.max(0, Math.min(N - 1, jy | 0));
         const sl = slopeAt[iy * N + ix];
-        if (sl < 0.42 || r() > Math.min(0.85, (sl - 0.3) * 1.1)) continue;
+        if (sl < 0.4 || r() > Math.min(0.95, (sl - 0.25) * 1.3)) continue;
         const o = (iy + 1) * S + ix + 1;
         let gx = hts[o + 1] - hts[o - 1], gz = hts[o + S] - hts[o - S];
         const gl = Math.hypot(gx, gz) || 1;
         gx /= gl; gz /= gl;
         const len = 2.5 + Math.min(5, sl * 3);
-        ctx.strokeStyle = `rgba(${INK_RGB},${0.16 + Math.min(0.3, sl * 0.12)})`;
-        ctx.lineWidth = 0.8;
+        ctx.strokeStyle = `rgba(${INK_RGB},${0.3 + Math.min(0.35, sl * 0.14)})`;
+        ctx.lineWidth = 1;
         ctx.beginPath();
         ctx.moveTo(jx - gx * len * 0.5, jy - gz * len * 0.5);
         ctx.lineTo(jx + gx * len * 0.5, jy + gz * len * 0.5);
@@ -273,7 +273,9 @@ export class MapView {
           tree = n > -0.12 + (hc / 150) * 0.4 - 0.1 && noise.noise2(wx * 0.05, wz * 0.05) > -0.5;
         }
         if (!tree || roadNear(wx, wz) || locNear(wx, wz)) continue;
-        ctx.strokeStyle = `rgba(${INK_RGB},0.5)`;
+        ctx.fillStyle = 'rgba(104,116,78,0.09)';
+        ctx.beginPath(); ctx.arc(jx, jy, 6.5, 0, 7); ctx.fill();
+        ctx.strokeStyle = `rgba(${INK_RGB},0.55)`;
         ctx.beginPath();
         ctx.moveTo(jx - 2.3, jy + 1.6); ctx.lineTo(jx, jy - 3); ctx.lineTo(jx + 2.3, jy + 1.6);
         ctx.moveTo(jx, jy - 0.4); ctx.lineTo(jx, jy + 3);
@@ -431,10 +433,10 @@ export class MapView {
       lg(svg('<svg viewBox="0 0 24 24"><path d="M12 2.6 20.6 12 12 21.4 3.4 12z" fill="#9a2e22" stroke="#2a1e14" stroke-width="1.2"/></svg>'), 'Objective'),
       lg(svg('<svg viewBox="0 0 24 24" fill="none" stroke="#2a1e14" stroke-width="1.4" stroke-linecap="round"><path d="M3 18C8 18 8 8 13 8s5 10 8 10" stroke-dasharray="1 3.4"/></svg>'), 'Road'));
     this.hintEl = h('div', { class: 'mz-map-hint' }, h('span', { class: 'k' }, 'Drag'), ' Move', h('i'), h('span', { class: 'k' }, 'Wheel'), ' Zoom', h('i'), h('span', { class: 'k' }, 'Space'), ' Centre', h('i'), h('span', { class: 'k' }, 'M'), ' Close');
-    const sheet = h('div', { class: 'mz-map-sheet' }, paper, h('div', { class: 'grain', style: { backgroundImage: `url(${grainURL()})` } }), this.canvas, this.cartouche, this.legend, this.hintEl, this.status);
+    const sheet = h('div', { class: 'mz-map-sheet' }, paper, h('div', { class: 'grain', style: { backgroundImage: `url(${grainURL()})` } }), this.canvas, this.cartouche, this.legend, this.status);
     sheet.style.clipPath = tornClip(11, 34, 0.7);
     this.sheet = sheet;
-    this.el = h('div', { class: 'mz-mapmodal' }, h('div', { class: 'mz-map-wrap' }, sheet));
+    this.el = h('div', { class: 'mz-mapmodal' }, h('div', { class: 'mz-map-wrap' }, sheet, this.hintEl));
     this._pointer();
     this._ro = new ResizeObserver(() => { this._size(); });
     this._ro.observe(this.sheet);
@@ -452,24 +454,28 @@ export class MapView {
     this.dpr = dpr;
     this.margin = Math.round(Math.min(this.cw, this.ch) * 0.045) + 6;
     this.fit = Math.min(this.cw - this.margin * 2, this.ch - this.margin * 2) / SPAN;
+    // Never show blank paper beyond the chart: the smallest zoom covers the whole frame.
+    this.cover = Math.max(this.cw - this.margin * 2, this.ch - this.margin * 2) / SPAN;
+    this.minScale = this.cover;
+    this.maxScale = this.cover * 6;
+    if (this.scale) this._clampView();
     this.dirty = true;
   }
 
   _resetView(opts) {
     const pp = this.G.player?.position;
-    this.minScale = this.fit * 0.95;
-    this.maxScale = this.fit * 7;
-    if (opts.center) { this.cx = opts.center[0]; this.cz = opts.center[1]; this.scale = this.fit * (opts.zoom ?? 2); } else if (pp) { this.cx = pp.x; this.cz = pp.z; this.scale = this.fit * (opts.zoom ?? 1.9); } else { this.cx = 0; this.cz = 0; this.scale = this.fit; }
-    if (opts.zoom && !opts.center && pp) this.scale = this.fit * opts.zoom;
+    const z = opts.zoom ?? 1.35;
+    if (opts.center) { this.cx = opts.center[0]; this.cz = opts.center[1]; } else if (pp) { this.cx = pp.x; this.cz = pp.z; } else { this.cx = 0; this.cz = 0; }
+    this.scale = this.cover * z;
     this._clampView();
   }
 
   _clampView() {
     this.scale = Math.max(this.minScale, Math.min(this.maxScale, this.scale));
     const vw = (this.cw - this.margin * 2) / this.scale, vh = (this.ch - this.margin * 2) / this.scale;
-    const lim = (v, view) => (view >= SPAN ? 0 : (SPAN - view) / 2);
-    this.cx = Math.max(-lim(0, vw), Math.min(lim(0, vw), this.cx));
-    this.cz = Math.max(-lim(0, vh), Math.min(lim(0, vh), this.cz));
+    const lx = Math.max(0, (SPAN - vw) / 2), lz = Math.max(0, (SPAN - vh) / 2);
+    this.cx = Math.max(-lx, Math.min(lx, this.cx));
+    this.cz = Math.max(-lz, Math.min(lz, this.cz));
   }
 
   _pointer() {
@@ -555,7 +561,6 @@ export class MapView {
   sy(z) { return (z - this.cz) * this.scale + this.ch / 2; }
 
   draw() {
-    const G = this.G;
     const ctx = this.canvas.getContext('2d');
     const dpr = this.dpr, cw = this.cw, ch = this.ch, m = this.margin;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -616,7 +621,7 @@ export class MapView {
     ctx.strokeStyle = `rgba(${INK_RGB},0.18)`;
     ctx.beginPath(); pathSmooth(ctx, deep); ctx.stroke();
     // fine horizontal ripples
-    const step = Math.max(9, 13 * this.scale / this.fit * 0.7);
+    const step = Math.max(9, 13 * this.scale / this.cover * 0.7);
     ctx.strokeStyle = `rgba(${INK_RGB},0.09)`;
     ctx.lineWidth = 0.7;
     ctx.beginPath();
@@ -641,7 +646,7 @@ export class MapView {
     ctx.strokeStyle = `rgba(${INK_RGB},0.55)`; ctx.lineWidth = 1; ctx.stroke();
 
     // big letterspaced name on the ice
-    const fs = Math.max(13, Math.min(30, 20 * this.scale / this.fit * 0.8));
+    const fs = Math.max(13, Math.min(30, 20 * this.scale / this.cover * 0.8));
     ctx.save();
     ctx.font = `600 ${fs}px "Cormorant Garamond", Georgia, serif`;
     ctx.fillStyle = `rgba(${INK_RGB},0.38)`;
@@ -657,7 +662,7 @@ export class MapView {
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
     ctx.strokeStyle = `rgba(${INK_RGB},0.85)`;
-    ctx.lineWidth = Math.max(1.3, Math.min(2.6, 1.5 * this.scale / this.fit));
+    ctx.lineWidth = Math.max(1.4, Math.min(2.8, 1.6 * this.scale / this.cover));
     const dot = ctx.lineWidth;
     ctx.setLineDash([0.1, dot * 2.6 + 2]);
     for (const rd of ROADS) {
@@ -674,7 +679,7 @@ export class MapView {
 
   _drawPlaces(ctx) {
     const disc = this._discovered();
-    const zoom = this.scale / this.fit;
+    const zoom = this.scale / this.cover;
     const s = Math.max(8, Math.min(15, 8 + zoom * 2.4));
     const placed = [];
     const fs = Math.max(13, Math.min(20, 12.5 + zoom * 1.8));
@@ -724,7 +729,7 @@ export class MapView {
   }
 
   _drawObjectives(ctx) {
-    const zoom = this.scale / this.fit;
+    const zoom = this.scale / this.cover;
     for (const o of this._objs) {
       const mk = o.marker;
       const x = Array.isArray(mk) ? mk[0] : mk?.x, z = Array.isArray(mk) ? mk[1] : mk?.z;
@@ -749,11 +754,10 @@ export class MapView {
   }
 
   _drawPlayer(ctx) {
-    const G = this.G;
-    const pp = G.player?.position;
+    const pp = this.G.player?.position;
     if (!pp) return;
     const X = this.sx(pp.x), Y = this.sy(pp.z);
-    let yaw = G.player.yaw;
+    let yaw = this.G.player.yaw;
     if (!Number.isFinite(yaw)) yaw = 0;
     const ang = Math.atan2(Math.sin(yaw), -Math.cos(yaw)); // world forward (sin, cos) to screen rotation
     const pulse = (Math.sin((this._pulse ?? 0) * 3) + 1) / 2;
@@ -809,6 +813,3 @@ export class MapView {
     ctx.restore();
   }
 }
-
-// keep the linter honest about helpers used only in some builds
-void hashString; void smoothstep; void clear; void store;
