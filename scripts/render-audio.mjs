@@ -10,7 +10,7 @@
 //
 //   node scripts/render-audio.mjs                       everything (several minutes)
 //   node scripts/render-audio.mjs --only moods --mood village,combat --seconds 60
-//   groups: moods, transitions, stingers, sfx, ambience, inst, repeat
+//   groups: moods, transitions, stingers, sfx, ambience, inst, repeat (sfx takes --group beasts,ui)
 /* global window */
 import { createServer } from 'vite';
 import path from 'node:path';
@@ -24,6 +24,7 @@ const OUT = path.join(ROOT, 'shots/audio');
 const args = Object.fromEntries(process.argv.slice(2).reduce((a, x, i, arr) => (x.startsWith('--') ? [...a, [x.slice(2), arr[i + 1] && !arr[i + 1].startsWith('--') ? arr[i + 1] : true]] : a), []));
 const only = args.only ? String(args.only).split(',') : null;
 const want = (g) => !only || only.includes(g);
+const onlyGroup = args.group ? String(args.group).split(',') : null;
 const SR = +(args.sr || 44100);
 
 // Loudness targets (integrated LUFS at default volumes). Quiet moods are quiet by design.
@@ -42,8 +43,9 @@ const SFX_GROUPS = {
   world: ['ice_crack', 'ice_groan', 'ice_ping', 'ice_spike', 'bell_under_ice', 'effigy_creak', 'effigy_burn', 'effigy_collapse', 'splash', 'heartbeat', 'ignite'],
   props: ['door', 'door_close', 'page_turn', 'coin', 'item_pickup', 'potion_drink', 'forge_hammer', 'axe_chop', 'snowball_hit'],
   ui: ['ui_hover', 'ui_select', 'ui_open', 'ui_close'],
+  beasts: ['bear_roar', 'bear_huff', 'paw_snow', 'gust'],
 };
-const LONG = { bell_under_ice: 8, boss_scream: 3.2, wolf_howl: 4, ice_groan: 4.5, effigy_burn: 4, ice_ping: 2.4, owl: 2.8, potion_drink: 2.3, effigy_collapse: 2.2, horse_whinny: 2, ice_crack: 2 };
+const LONG = { bear_roar: 3, gust: 4, bell_under_ice: 8, boss_scream: 3.2, wolf_howl: 4, ice_groan: 4.5, effigy_burn: 4, ice_ping: 2.4, owl: 2.8, potion_drink: 2.3, effigy_collapse: 2.2, horse_whinny: 2, ice_crack: 2 };
 
 const jobs = [];
 if (want('moods')) {
@@ -60,6 +62,7 @@ if (want('stingers')) {
 }
 if (want('sfx')) {
   for (const [g, names] of Object.entries(SFX_GROUPS)) {
+    if (onlyGroup && !onlyGroup.includes(g)) continue;
     jobs.push({ out: `sfx_${g}`, cat: 'sfx', job: { kind: 'sfx', names, variants: 3, gap: 1.0, seconds: names.length * 3.6 + 2, sr: SR } });
     for (const n of names) {
       const gap = LONG[n] || 1.0;

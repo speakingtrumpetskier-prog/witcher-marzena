@@ -553,6 +553,7 @@ export class Boss extends Creature {
     }
     const P = G.player;
     const push = this.stateT > T.wind && this.stateT < T.wind + T.dur;
+    if (push && !f.gusted) { f.gusted = true; this.sfx('gust', { volume: 1.3 }); }
     // Snow streaming off her toward Vesna while she gathers, then the full blast.
     f.mist = (f.mist || 0) - dt;
     if (f.mist <= 0) {

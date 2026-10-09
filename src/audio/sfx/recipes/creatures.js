@@ -1,7 +1,7 @@
 // Creature and people recipes: wolves, the horse and Vesna's whistle, dogs, crows and ravens,
 // chickens, goats, a child's laugh, the owl, and small winter birds. All vocalizations are a
 // glottal source through moving formants (kit.vocal) with animal-shaped pitch contours.
-import { burst, thump, ring, chirp, vocal, mix, fade, len, hp1, Biquad, shape, osc, curve, clamp, white, lp1 } from '../kit.js';
+import { burst, grains, thump, ring, chirp, vocal, mix, fade, len, hp1, Biquad, shape, osc, curve, clamp, white, lp1 } from '../kit.js';
 
 const done = (b, sr, lp = 9000) => { new Biquad(sr, 'lowpass', lp, 0.7).run(b); hp1(b, sr, 50); return fade(b, sr, 0.001, 0.03); };
 const F = (...fs) => fs.map(([f, bw, db]) => [f, bw, Math.pow(10, db / 20)]);
@@ -74,6 +74,45 @@ export const CREATURES = {
         env: (t) => clamp(t / 0.01, 0, 1) * Math.exp(-t / (dur * 0.5)),
       });
       return done(b, sr, 7000);
+    },
+  },
+  // Bear: a deep, rough open-mouthed roar and a short chest huff.
+  bear_roar: {
+    variants: 2, heavy: true, gain: 0.7, ref: 8, max: 160, pitchVar: 0.04, verb: 0.3, poly: 1,
+    bake: (sr, r) => {
+      const dur = 1.9 + r() * 0.5;
+      const fc = curve([[0, 70], [0.25, 125 + r() * 20], [dur * 0.6, 110], [dur, 62]]);
+      const b = vocal(sr, r, dur, {
+        f0: (t) => fc(t) * (1 + 0.06 * Math.sin(t * 6.283 * 9)), vowel: (t) => lerpF(MUZZLE.o, MUZZLE.a, clamp(t / 0.5, 0, 1)),
+        breath: 0.5, jitter: 0.12, shimmer: 0.5, rough: 0.9, open: 0.85,
+        env: (t) => clamp(t / 0.12, 0, 1) * clamp((dur - t) / 0.45, 0, 1),
+      });
+      mix(b, burst(sr, r, dur, { color: 'pink', lp: 900, env: { a: 0.08, d: dur * 0.5 } }), 0.25);
+      return done(b, sr, 4200);
+    },
+  },
+  bear_huff: {
+    variants: 3, gain: 0.55, ref: 4, max: 60, pitchVar: 0.06, verb: 0.12, poly: 2,
+    bake: (sr, r) => {
+      const dur = 0.7, b = new Float32Array(len(sr, dur));
+      for (let k = 0; k < 2; k++) {
+        const h = vocal(sr, r, 0.28, {
+          f0: (t) => 85 - t * 60, vowel: () => MUZZLE.o, breath: 0.85, jitter: 0.1, rough: 0.5,
+          env: (t) => clamp(t / 0.015, 0, 1) * Math.exp(-t / 0.09),
+        });
+        mix(b, h, 0.9 - k * 0.3, Math.floor((k * 0.26 + r() * 0.04) * sr));
+      }
+      return done(b, sr, 3000);
+    },
+  },
+  // Paws on snow: softer and quicker than a boot, no heel and toe.
+  paw_snow: {
+    variants: 6, gain: 0.32, ref: 2, max: 30, pitchVar: 0.08, verb: 0.03, poly: 8,
+    bake: (sr, r) => {
+      const dur = 0.16, b = new Float32Array(len(sr, dur));
+      mix(b, grains(sr, r, dur, { count: 18 + Math.floor(r() * 14), bands: [[1500 + r() * 400, 2.2], [2700, 2.6]], decay: 0.0007, spread: 0.8 }), 0.45);
+      mix(b, thump(sr, r, dur, { f: 120 + r() * 30, fEnd: 70, decay: 0.02, click: 0.02, noise: 0.6, lp: 380 }), 0.5);
+      return done(b, sr, 6500);
     },
   },
   horse_whinny: {

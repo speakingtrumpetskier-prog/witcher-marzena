@@ -399,6 +399,9 @@ export class Quadruped {
       let pawA = 0;
       if (G_) {
         const p = (this.phase + G_.off[i]) % 1;
+        const planted = p < G_.duty;
+        if (planted && L.swinging) this._paw();
+        L.swinging = !planted;
         const stride = G_.ls * sk;
         const reach = G_.reach * (L.front ? 1 : -0.4);
         if (p < G_.duty) {
@@ -515,6 +518,16 @@ export class Quadruped {
     this.b.head.rotation.x += (0.2 - this.b.head.rotation.x) * d;
     this.b.jaw.rotation.x += (0.35 - this.b.jaw.rotation.x) * d;
     for (const e of this.eyes) e.visible = d < 0.5;
+  }
+
+  // A paw lands: soft snow under wolves, heavier and lower under the bear. Only near the camera.
+  _paw() {
+    const cam = G.camera, p = this.root.position;
+    if (!cam || !G.audio?.sfx) return;
+    const dx = cam.position.x - p.x, dz = cam.position.z - p.z;
+    if (dx * dx + dz * dz > 24 * 24) return;
+    const bear = this.spec.name === 'bear';
+    G.audio.sfx('paw_snow', { pos: p, volume: bear ? 0.9 : 0.5, pitch: bear ? 0.6 : 1 });
   }
 
   dispose() {

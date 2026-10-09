@@ -69,7 +69,7 @@ export class Bear extends Creature {
       this.stateT = Math.max(this.stateT, 1.4);
     }
     if (killed) { this.kill(dir); } else {
-      this.sfx('wolf_growl', { volume: 0.7, pitch: 0.5 });
+      this.sfx('bear_huff', { volume: 0.8 });
       if ((hit.heavy || hit.stagger) && (this.state === 'stalk' || this.state === 'recover' || this.state === 'rear') && Math.random() < 0.6) {
         this.go('stagger', { dur: 0.7 });
       }
@@ -82,7 +82,7 @@ export class Bear extends Creature {
   }
 
   onParried() {
-    this.sfx('wolf_growl', { volume: 0.8, pitch: 0.45 });
+    this.sfx('bear_huff', { volume: 0.9, pitch: 0.9 });
     this.go('stagger', { dur: 1.4 });
     this.rig.flash(0.5);
   }
@@ -93,7 +93,7 @@ export class Bear extends Creature {
       this.health -= 7 * info.dt;
       this.engaged = true;
       if (this.state === 'sleep') this.wake(true);
-      if (!this._scared || this.t - this._scared > 2.5) { this._scared = this.t; this.go('stagger', { dur: 0.9 }); this.sfx('wolf_growl', { volume: 0.9, pitch: 0.5 }); }
+      if (!this._scared || this.t - this._scared > 2.5) { this._scared = this.t; this.go('stagger', { dur: 0.9 }); this.sfx('bear_huff', { volume: 1.0 }); }
       if (this.health <= 0) this.kill(info.dir);
       return true;
     }
@@ -111,13 +111,13 @@ export class Bear extends Creature {
     if (this.state !== 'sleep') return;
     this.engaged = true;
     this.go('waking', { angry });
-    this.sfx('wolf_growl', { volume: 1.1, pitch: 0.45 });
+    this.sfx('bear_roar', { volume: 0.9 });
   }
 
   kill(dir) {
     this.go('dead');
     this.rig.dead(Math.random() < 0.5 ? -1 : 1);
-    this.sfx('wolf_howl', { volume: 1.0, pitch: 0.4 });
+    this.sfx('bear_roar', { volume: 0.7, pitch: 0.8 });
     this.sfx('body_fall', { volume: 0.9, pitch: 0.7 });
     if (dir) { this.vel.x += dir.x * 1.2; this.vel.z += dir.z * 1.2; }
     this.die();
@@ -213,7 +213,7 @@ export class Bear extends Creature {
     pose.lookYaw = 0.25;
     pose.neck += Math.sin(this.t * 1.1) * 0.015;
     this.snoreT -= dt;
-    if (this.snoreT <= 0) { this.snoreT = rr(4, 8); this.sfx('wolf_growl', { volume: 0.18, pitch: 0.35 }); }
+    if (this.snoreT <= 0) { this.snoreT = rr(4, 8); this.sfx('bear_huff', { volume: 0.22, pitch: 0.75 }); }
     this.speed = 0;
     if (!pAlive) { this.wakeMeter = Math.max(0, this.wakeMeter - dt); return; }
     const P = G.player;
@@ -251,7 +251,7 @@ export class Bear extends Creature {
     pose.ears = 0.8; pose.hackles = 1;
     this.brake(dt, 14);
     this.turnToward(tp.yaw, 1.5, dt);
-    if (this.stateT < 0.1 && !this._roared) { this._roared = true; this.sfx('wolf_howl', { volume: 1.2, pitch: 0.38 }); G.cameraRig?.shake?.(0.16, 0.7); }
+    if (this.stateT < 0.1 && !this._roared) { this._roared = true; this.sfx('bear_roar', { volume: 1.2 }); G.cameraRig?.shake?.(0.16, 0.7); }
     if (u >= 1) { this._roared = false; this.engaged = true; this.go('stalk'); }
   }
 
@@ -280,7 +280,7 @@ export class Bear extends Creature {
       else if (tp.d < TUNE.slamReach + 0.8) {
         const r = Math.random();
         this.go(r < 0.55 ? 'rear' : 'maul');
-        this.sfx('wolf_growl', { volume: 1.0, pitch: 0.42 });
+        this.sfx('bear_huff', { volume: 1.0, pitch: 0.85 });
       }
     }
     if (tp.d > 70) { this.engaged = false; }

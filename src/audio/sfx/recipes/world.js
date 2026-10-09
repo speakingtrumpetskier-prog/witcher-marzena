@@ -54,6 +54,16 @@ function babble(sr, r, dur, { voices = 7, lp = 1600, rate = 4 } = {}) {
 }
 
 export const WORLD = {
+  // A gust: wind rising and falling over a couple of seconds (boss phase 2, weather gusts).
+  gust: {
+    variants: 3, heavy: true, gain: 0.5, ref: 30, max: 400, pitchVar: 0.08, verb: 0.2, poly: 2,
+    bake: (sr, r) => {
+      const dur = 2.2 + r() * 1.2;
+      const b = whoosh(sr, r, dur, { f0: 160 + r() * 60, f1: 650 + r() * 250, q: 0.7, peak: 0.4 + r() * 0.15, color: 'pink' });
+      mix(b, whoosh(sr, r, dur, { f0: 900, f1: 2600 + r() * 600, q: 1.6, peak: 0.45, color: 'white' }), 0.18);
+      return fade(b, sr, 0.2, 0.5);
+    },
+  },
   ice_crack: {
     variants: 5, gain: 0.7, ref: 12, max: 500, pitchVar: 0.08, verb: 0.35, poly: 3,
     bake: (sr, r) => {
