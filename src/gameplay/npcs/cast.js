@@ -198,9 +198,7 @@ export function buildAmbient(G, opts = {}) {
         for (let i = 0; i < tags.length && !work; i++) {
           if (R.role === 'child') { work = claimShared(byTag, tags[(k + i) % tags.length], k + made); } else work = claimWork(tags[i]);
         }
-        if (!work) { // no station for this role in this village: they walk around instead
-          if (!wanders.length && !opts.allowWanderless) { /* still fine: inline wander at the village center */ }
-        }
+        // no station for this role in this village: work stays null and they wander the square instead
       }
       const id = preset;
       const home = work ? nearestBed(work.x, work.z) : nearestBed(LOC.square.x, LOC.square.z);
