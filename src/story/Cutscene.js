@@ -80,7 +80,11 @@ export class Cutscenes {
     ui.clearSubtitle();
     ui.hideTitleCard?.();
     sched.instant = true;
-    for (const w of this._d._walks) { w.actor.setPosition(w.x, w.z); w.done(); }
+    for (const w of this._d._walks) {
+      try { w.actor.c.stop?.(0.1); } catch { /* optional */ }
+      w.actor.setPosition(w.x, w.z);
+      w.done();
+    }
     this._d._walks.length = 0;
     this._d._skipSignal.resolve();
     cam.finish();

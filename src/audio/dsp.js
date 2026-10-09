@@ -408,3 +408,12 @@ export function widen(mono, sr, ms = 9, amount = 0.6) {
   for (let i = 0; i < mono.length; i++) R[i] = mono[i] * (1 - amount) + (i >= d ? mono[i - d] : 0) * amount;
   return [L, R];
 }
+
+// Drop the silent tail of a one-shot (below about -66 dBFS after normalization), with a short
+// fade, so baked SFX cost only the memory they sound for. Never use on loops.
+export function trimTail(chs, sr, floor = 5e-4) {
+  let last = 0;
+  for (const c of chs) for (let i = c.length - 1; i > last; i--) if (Math.abs(c[i]) > floor) { last = i; break; }
+  const n = Math.min(chs[0].length, last + Math.floor(0.03 * sr));
+  return chs.map((c) => fade(c.slice(0, n), sr, 0, Math.min(0.03, n / sr / 4)));
+}

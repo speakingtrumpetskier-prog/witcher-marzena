@@ -26,8 +26,8 @@ export function torsoShape(M) {
     { y: M.spineY + 0.07 * k, w: lerp(M.waistW, M.chestW, 0.6), d: lerp(M.waistD, M.chestD, 0.6), z: 0.004 * k, n: 2.3 },
     { y: M.chestY, w: M.chestW, d: M.chestD, z: 0.008 * k, n: 2.5 },
     { y: yS - 0.1 * k, w: M.chestW * 1.02, d: M.chestD * 0.97, z: 0.004 * k, n: 2.6 },
-    { y: yS - 0.035 * k, w: M.shoulderX + M.armR * 0.7, d: M.chestD * 0.85, z: -0.006 * k, n: 2.7 },
-    { y: yS + (yN - yS) * 0.3, w: M.shoulderX * 0.9, d: M.chestD * 0.74, z: -0.013 * k, n: 2.6 },
+    { y: yS - 0.035 * k, w: M.shoulderX + M.armR * 0.62, d: M.chestD * 0.86, z: -0.006 * k, n: 2.35 },
+    { y: yS + (yN - yS) * 0.3, w: M.shoulderX * 0.86, d: M.chestD * 0.74, z: -0.013 * k, n: 2.3 },
     { y: yS + (yN - yS) * 0.7, w: M.shoulderX * 0.6, d: M.chestD * 0.62, z: -0.017 * k, n: 2.6 },
     { y: yN, w: M.neckR * 1.18, d: M.neckR * 1.12, z: -0.018 * k, n: 2.0 },
   ];
@@ -51,7 +51,8 @@ export function buildBody(mb, rig, look, extra) {
   const O = look.outfit || {};
   const R = rng((look.seed || 1) * 7 + 3);
   const shape = torsoShape(M);
-  const ctx = { mb, rig, M, W, k, O, R, look, shape, extra };
+  const det = look.detail ?? 1;
+  const ctx = { mb, rig, M, W, k, O, R, look, shape, extra, det, seg: (n) => Math.max(6, Math.round(n * det / 2) * 2) };
   ctx.waistY = M.pelvisY + 0.07 * k;
   // Which garment is outermost on the torso.
   const coat = O.coat, vest = O.vest, dress = O.dress, shirt = O.shirt || { color: '#cfc6b4', tile: 'linen' };
@@ -138,7 +139,7 @@ function buildTorso(ctx) {
   const rings = ys.map((y) => ringFor(y, t0, gap(y)));
   const isOpen = rings.some((r) => r.th0 > 0.01);
   tube(mb, {
-    rings, seg: 20, mat: gm, open: isOpen, th0: 0, th1: TAU,
+    rings, seg: ctx.seg(20), mat: gm, open: isOpen, th0: 0, th1: TAU,
     matAt: (ri) => (!ctx.hasSkirt && ys[ri] < M.hipJY - 0.02 * k ? lowerMat : null),
     color: (ri, th, p) => {
       let c = (!ctx.hasSkirt && ys[ri] < M.hipJY - 0.02 * k ? lowerMat : gm).color.clone();
@@ -200,12 +201,13 @@ function buildSleeves(ctx) {
       const nxt = pts[Math.min(i + 1, pts.length - 1)].c, prv = pts[Math.max(i - 1, 0)].c;
       const t = nxt.clone().sub(prv).normalize();
       const f = frame(t, V(0, 0, 1));
-      const ell = i <= 1 ? 1.08 : 1;
-      return { c: P.c, a: f.a, b: f.b, ra: P.r, rb: P.r * ell, wts: P.w, sv: sOf(P.c),
+      const ell = i === 0 ? 0.74 : i === 1 ? 0.84 : 1;
+      const c = i <= 1 ? P.c.clone().addScaledVector(f.b, P.r * (1 - ell) * 0.9) : P.c;
+      return { c, a: f.a, b: f.b, ra: P.r, rb: P.r * ell, wts: P.w, sv: sOf(P.c),
         r: (th) => 1 + 0.05 * noise1(th * 2.7 + i * 1.3, s * 3 + 1) + (i === 4 ? 0.06 * Math.max(0, -Math.cos(th)) : 0) };
     });
     tube(mb, {
-      rings, seg: 12, mat: gm,
+      rings, seg: ctx.seg(12), mat: gm,
       color: (ri, th) => {
         const c = gm.color.clone();
         if (ri === 4 && Math.cos(th) > 0.3) c.multiplyScalar(0.8);
@@ -213,7 +215,7 @@ function buildSleeves(ctx) {
         return c;
       },
       weights: (ri) => rings[ri].wts || chainWeights(joints, rings[ri].sv, 0.045 * k),
-      inner: { inset: 0.003, color: gm.color.clone().multiplyScalar(0.35), hem: true },
+      inner: { inset: 0.003, color: gm.color.clone().multiplyScalar(0.35), hem: true, from: rings.length - 2 },
     });
     // Cuffs: turned-back band (sheepskin or contrasting) or embroidered band.
     const cuff = g.cuff;
@@ -229,7 +231,7 @@ function buildSleeves(ctx) {
         cr.push({ c, a: f.a, b: f.b, ra: rr, rb: rr });
       }
       const cmat = cuff.emb !== undefined ? { ...cm, tile: TILE_EMB(cuff.emb), tileU: 3 } : cm;
-      tube(mb, { rings: cr, seg: 12, mat: cmat, v0: 0,
+      tube(mb, { rings: cr, seg: ctx.seg(12), mat: cmat, v0: 0,
         weights: () => chainWeights(joints, M.upperArm + M.forearm * 0.95, 0.04 * k), inner: { inset: 0.003, hem: true } });
     }
   }
@@ -242,11 +244,12 @@ function buildHands(ctx) {
   const { mb, M, k, O, look } = ctx;
   const h = O.hands || {};
   const glove = h.glove || null;
-  const mitten = h.mitten || null;
+  // villagers (lower detail) get fused fingers: same silhouette, a third of the triangles
+  const mitten = h.mitten || (ctx.det < 1 && !glove ? { fused: true } : null);
   const skinC = col(look.skin);
   if (h.raw) skinC.lerp(col('#c86a5a'), 0.28);
   const handMat = glove ? garmentMat({ ...glove, tile: glove.tile || 'leather', tileU: 2, tileV: 6 }) :
-    mitten ? garmentMat({ ...mitten, tile: mitten.tile || 'knit', tileU: 2, tileV: 6 }) :
+    mitten && !mitten.fused ? garmentMat({ ...mitten, tile: mitten.tile || 'knit', tileU: 2, tileV: 6 }) :
       mat(skinC, { tile: 'skin', skin: 1, rough: 0.6, fuzz: 0.08, tileU: 1, tileV: 3 });
   const hk = M.handLen / 0.19;
   for (const [s, S] of [[1, 'L'], [-1, 'R']]) {
@@ -261,7 +264,7 @@ function buildHands(ctx) {
     // palm tube: wrist -> knuckles
     const palmRings = [];
     const pr = [[-0.012, 0.024, 0.017], [0.015, 0.031, 0.016], [0.055, 0.04, 0.014], [0.088, 0.041, 0.012]];
-    const thickMul = glove || mitten ? 1.12 : 1;
+    const thickMul = glove || (mitten && !mitten.fused) ? 1.12 : 1;
     for (const [u, wv, tv] of pr) {
       const c = at(u, wv * 0.02, 0);
       palmRings.push({ c, a: side.clone(), b: palmN.clone().multiplyScalar(-1), ra: wv * hk * thickMul, rb: tv * hk * thickMul, n: 2.6 });
@@ -353,7 +356,7 @@ function buildLegs(ctx) {
       });
       const joints = [{ name: 'thigh' + S, s: L.knee.y + 0.0 }, { name: 'shin' + S, s: L.knee.y }];
       tube(mb, {
-        rings, seg: 10, mat: tm,
+        rings, seg: ctx.seg(10), mat: tm,
         color: (ri, th) => {
           const c = tm.color.clone();
           if (tr.wrapped) c.multiplyScalar(0.85 + 0.15 * Math.sin(ri * 3.1 + th * 2));
@@ -396,7 +399,7 @@ function buildBoot(ctx, s, S, L, boots, bootTop) {
       r: (th) => 1 + (boots.wrapped ? 0.04 * Math.sin(th * 2 + i * 2.2) : 0.015 * noise1(th * 4 + i, s)) });
   }
   tube(mb, {
-    rings, seg: 12, mat: bm,
+    rings, seg: ctx.seg(12), mat: bm,
     color: (ri, th) => {
       const c = bm.color.clone();
       if (ri === 0) c.multiplyScalar(0.8);
@@ -408,7 +411,6 @@ function buildBoot(ctx, s, S, L, boots, bootTop) {
       const t = smoothstep(M.ankleY + 0.07 * k, M.ankleY + 0.01 * k, y);
       return [['shin' + S, 1 - t], ['foot' + S, t]];
     },
-    inner: { inset: 0.004, color: bm.color.clone().multiplyScalar(0.3), hem: false },
   });
   // foot: heel to toe along +Z, sole flat on the ground
   const fx = L.ankle.x;
@@ -431,7 +433,7 @@ function buildBoot(ctx, s, S, L, boots, bootTop) {
   });
   // right-handed: a x b should be +Z (forward); (0,1,0) x (-1,0,0) = (0,0,1)
   tube(mb, {
-    rings: frings, seg: 12, mat: bm, capStart: true, capEnd: true,
+    rings: frings, seg: ctx.seg(10), mat: bm, capStart: true, capEnd: true,
     color: (ri, th) => (Math.cos(th) < -0.82 ? sole : bm.color.clone().multiplyScalar(0.85 + 0.15 * Math.max(0, Math.cos(th)))),
     weights: (ri) => {
       const z = prof[ri][0];
@@ -516,7 +518,7 @@ function buildSkirts(ctx) {
       });
       const hemBand = g.emb !== undefined ? g.emb : null;
       tube(mb, {
-        rings, seg: pan.closed ? 24 : P.apron ? 10 : 12, mat: gm, open: !pan.closed,
+        rings, seg: ctx.seg(pan.closed ? 22 : P.apron ? 10 : 12), mat: gm, open: !pan.closed,
         color: (ri, th) => {
           const c = gm.color.clone();
           const t = ri / nr;
@@ -539,7 +541,7 @@ function buildSkirts(ctx) {
           return r;
         });
         const emat = { ...gm, tile: TILE.emb(hemBand), tileU: Math.round((g.embRepeat ?? 14) * k), tileV: 1 / bh, fuzz: 0.1 };
-        tube(mb, { rings: brings, seg: pan.closed ? 24 : 12, mat: emat, open: true, th0: 0, th1: 1,
+        tube(mb, { rings: brings, seg: ctx.seg(pan.closed ? 22 : 12), mat: emat, open: true, th0: 0, th1: 1,
           weights: (ri, th, p) => wts(p, th, brings[ri].y) });
       }
     }

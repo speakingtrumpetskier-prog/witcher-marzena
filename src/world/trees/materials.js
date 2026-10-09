@@ -94,13 +94,19 @@ function bodyF(mode, fade) {
   if (mode === 'foliage') {
     s += `
   {
+    // needle comb: fine teeth along the frond edge (u across, v along), deeper toward the tip
     float mzE = abs(vVegUv.x);
-    float mzTooth = vegHash(vec2(floor(vVegUv.y * 22.0), vVegSeed * 7.13));
-    if (mzE > 0.9 + 0.3 * mzTooth - 0.1 * vVegUv.y) discard;
+    float mzTooth = vegHash(vec2(floor(vVegUv.y * 38.0), vVegSeed * 7.13));
+    float mzTooth2 = vegHash(vec2(floor(vVegUv.y * 17.0 + 0.5), vVegSeed * 3.7));
+    if (mzE > 0.86 + 0.26 * mzTooth + 0.1 * mzTooth2 - 0.2 * vVegUv.y * vVegUv.y) discard;
   }
   {
+    float mzNear = 1.0 - smoothstep(8.0, 38.0, vVegLodD);
     float mzN = vegNoise(vVegWPos.xz * 3.1 + vVegWPos.y * 1.3);
-    diffuseColor.rgb *= 0.78 + 0.44 * mzN;
+    // herringbone needle striations radiating from the twig
+    float mzStripe = sin((vVegUv.y * 95.0 - abs(vVegUv.x) * 22.0 + vVegSeed * 4.0) * 3.14159);
+    float mzFine = 1.0 - mzNear * 0.24 * (0.5 + 0.5 * mzStripe) * step(0.04, abs(vVegUv.x));
+    diffuseColor.rgb *= (0.78 + 0.44 * mzN) * mzFine;
     float mzSn = vVegSnow * uSnowCover * (gl_FrontFacing ? 1.0 : 0.0);
     float mzCl = vegNoise(vVegWPos.xz * 1.7 + vVegWPos.y * 0.6) * 0.65 + vegNoise(vVegWPos.xz * 6.0) * 0.35;
     mzSn = smoothstep(0.30, 0.58, mzSn + (mzCl - 0.5) * 0.55);

@@ -62,8 +62,9 @@ const SHADE = /* glsl */ `
   // Wind frame: streaks run along the prevailing wind.
   vec2 wd = vec2(0.94, 0.34), wn = vec2(-wd.y, wd.x);
   vec2 q = vec2(dot(xz, wd), dot(xz, wn));
-  vec4 sA = mzNoiseK(vec2(q.x * 0.16, q.y), 0.05);
-  vec4 sB = mzNoiseK(vec2(q.x * 0.22, q.y) + 31.0, 0.45);
+  vec4 sA = mzNoiseK(vec2(q.x * 0.12, q.y), 0.035);
+  vec4 sM = mzNoiseK(vec2(q.x * 0.1, q.y) - 13.0, 0.22);
+  vec4 sB = mzNoiseK(vec2(q.x * 0.14, q.y) + 31.0, 0.9);
   vec4 big = mzNoiseK(xz + 7.0, 0.006);
   float nearShore = 1.0 - smoothstep(3.0, 45.0, -sd);
   float edge = 1.0 - smoothstep(0.05, 0.5, depth);
@@ -72,8 +73,13 @@ const SHADE = /* glsl */ `
   #else
     float snowBias = 0.0;
   #endif
-  float snowIce = smoothstep(0.5, 0.63, sA.r * 0.6 + sB.r * 0.2 + big.r * 0.32 + nearShore * 0.3 + snowBias - 0.14);
-  float dust = smoothstep(0.4, 0.75, sB.g) * 0.45 * (1.0 - snowIce);
+  // Drifts: broad wind-packed fields plus long narrow streaks with crisp edges and feathered
+  // tails downwind (the streak noise is stretched along the wind).
+  float field = sA.r * 0.55 + big.r * 0.35 + nearShore * 0.3 + snowBias;
+  float streak = sM.r * 0.7 + sB.r * 0.3;
+  float tail = smoothstep(0.0, 1.0, fract(q.x * 0.02 + sA.g * 3.0));
+  float snowIce = max(smoothstep(0.57, 0.6, field), smoothstep(0.6 - tail * 0.05, 0.625, streak + field * 0.3 - 0.08));
+  float dust = smoothstep(0.45, 0.8, sB.g * 0.6 + sM.g * 0.4) * 0.4 * (1.0 - snowIce);
 
   // Black ice with depth: bubbles and fracture planes at two depths (refraction parallax).
   vec2 rv = -V.xz / max(V.y, 0.12) * 0.76;
@@ -81,16 +87,18 @@ const SHADE = /* glsl */ `
   float b1 = smoothstep(0.73, 0.81, mzNoiseK(xz + rv * 0.08, 7.0).g);
   float b2 = smoothstep(0.75, 0.83, mzNoiseK(xz + rv * 0.24 + 13.0, 4.5).r);
   float bubbles = (b1 * 0.8 + b2 * 0.55) * bubbleCl;
-  float c1n = mzNoiseK(xz + rv * 0.05 + 50.0, 0.11).r;
-  float c2n = mzNoiseK(xz + rv * 0.32 - 20.0, 0.06).g;
-  float aw = clamp(dist * 0.0004, 0.0, 0.03);
-  float cr1 = 1.0 - smoothstep(0.004 + aw, 0.016 + aw * 2.0, abs(c1n - 0.5));
-  float cr2 = (1.0 - smoothstep(0.006 + aw, 0.028 + aw * 2.0, abs(c2n - 0.5))) * 0.55;
-  float inner = max(cr1, cr2);
-  vec3 deep = vec3(0.005, 0.014, 0.02);
+  // Fracture planes: straight, branching crack networks (cell edges) at two depths.
+  float c1n = mzNoiseK(xz + 50.0, 0.11).r;
+  float aw = clamp(dist * 0.0006, 0.0, 0.05);
+  vec2 v1 = mzVoronoi((xz + rv * 0.06) / 11.0 + vec2(c1n * 0.25, 0.0));
+  vec2 v2 = mzVoronoi((xz + rv * 0.3) / 4.5 + 17.0);
+  float cr1 = (1.0 - smoothstep(0.004 + aw, 0.014 + aw * 1.5, v1.y - v1.x)) * smoothstep(0.35, 0.6, mzNoiseK(xz - 3.0, 0.04).g);
+  float cr2 = (1.0 - smoothstep(0.008 + aw, 0.03 + aw * 1.5, v2.y - v2.x)) * 0.45 * smoothstep(0.5, 0.75, mzNoiseK(xz + 9.0, 0.08).r);
+  float inner = max(cr1, cr2) * (1.0 - smoothstep(150.0, 400.0, dist));
+  vec3 deep = vec3(0.003, 0.01, 0.016);
   vec3 bedC = vec3(0.05, 0.062, 0.055);
   vec3 under = mix(bedC, deep, 1.0 - exp(-depth * 0.8));
-  vec3 clearIce = under + vec3(0.42, 0.52, 0.58) * bubbles * 0.45 + vec3(0.5, 0.6, 0.66) * inner * 0.55;
+  vec3 clearIce = under + vec3(0.42, 0.52, 0.58) * bubbles * 0.45 + vec3(0.5, 0.6, 0.66) * inner * 0.32;
   float clearRough = mix(0.035, 0.12, big.g) + 0.08 * smoothstep(0.5, 0.8, sB.r);
 
   vec3 snowC = mix(vec3(0.72, 0.75, 0.8), vec3(0.83, 0.85, 0.89), sB.g);
@@ -106,7 +114,7 @@ const SHADE = /* glsl */ `
 
   // Gentle frozen ripples on clear ice, drifts on snow.
   vec4 rp = mzNoiseK(xz - 4.0, 0.08);
-  vec2 g = rp.zw * 0.05 * (1.0 - cover) + (sA.zw * vec2(0.16, 1.0) * 0.4 + sB.zw * 0.06) * cover;
+  vec2 g = rp.zw * 0.05 * (1.0 - cover) + (sM.z * 0.1 * wd + sM.w * wn) * 0.25 * cover + sB.zw * 0.04 * cover;
   float glintMask = snowIce * 0.6 + frost + dust * 0.5;
 
   // Holes: open water with a slush ring.

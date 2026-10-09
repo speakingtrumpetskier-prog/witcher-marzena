@@ -125,6 +125,7 @@ export function plankGable(kit, f, o) {
     const h = top - yBase;
     if (h > 0.05) {
       const col = mixC(base, PAL.plankDark, kit.rand() * 0.55).multiplyScalar(GAIN * kit.r(0.85, 1.12));
+      if (kit.chance(0.07)) col.lerp(C(PAL.logNew).clone().multiplyScalar(GAIN * 1.1), 0.55); // a patched board
       mb.at(f.x, 0, f.z, f.yaw, (m) => {
         m.box(sc, yBase + h / 2, z + kit.rs() * 0.012, w - 0.014, h, 0.06, col, { grain: 'y', skip: '-y', rz: kit.rs() * 0.01, uv: [1, 3] });
       });

@@ -88,7 +88,7 @@ export function laundryLine(o = {}) {
   const pts = [];
   for (let i = 0; i <= 10; i++) { const x = -L / 2 + (i / 10) * L; pts.push([x, yAt(x), 0]); }
   k.tube('rope', pts, 0.008, { radial: 4, tint: 0xb8a078 });
-  const warp = (x, y, z) => [0, 0, z * 0 + Math.sin(y * 3.2 + k.seed) * 0.02 + x * x * 0.12];
+  const warp = (x, y, z) => [0, 0, z * 0 + Math.sin(y * 3.2 + x * 2.1 + k.seed) * 0.03 + x * x * 0.22 - y * 0.04];
   const peg = (x, y) => k.box('wood', 0.025, 0.07, 0.03, { pos: [x, y - 0.01, 0], tint: 0xb8a690, grime: 0 });
   const garments = ['shirt', 'trousers', 'dress', 'sheet', 'apron', 'socks', 'shirt', 'towel'];
   let x = -L / 2 + 0.35;
@@ -130,7 +130,7 @@ export function laundryLine(o = {}) {
     const cx = x + w / 2;
     const cy = yAt(cx) - 0.015;
     k.with({ pos: [cx, cy, k.rs(0.02)], yaw: k.rs(0.18), rot: [k.rs(0.05), 0, k.rs(0.05)] }, () => {
-      k.extrude(mat, sh, 0.012, { tint: mat === 'dress' ? 0xffffff : tint, bevel: 0.004, warp, grime: 0.05, var: 0.06, ...(fit ? { uvFit: fit } : { tile: 0.7 }) });
+      k.extrude(mat, sh, 0.02, { tint: mat === 'dress' ? 0xffffff : tint, bevel: 0.007, warp, grime: 0.05, var: 0.06, ...(fit ? { uvFit: fit } : { tile: 0.9 }) });
       if (g !== 'socks') { peg(-w * 0.32, 0); peg(w * 0.32, 0); }
       // Frozen: icicles along the lowest hem, snow caps on the shoulders, white rime on the top edge.
       for (let i = 0; i < 4; i++) k.cone('ice', 0.012, k.r(0.04, 0.14), { pos: [(i - 1.5) * (w * 0.2), -hgt, 0.0], rot: [Math.PI, 0, 0], radial: 4, tint: 0xd8ecf8, grime: 0 });

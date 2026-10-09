@@ -181,9 +181,10 @@ export async function init(G) {
     const box = new THREE.Box3().setFromObject(placed[0].b.group);
     const size = box.getSize(new THREE.Vector3());
     const ctr = box.getCenter(new THREE.Vector3());
-    const R = (Math.max(size.x, size.z) * 0.85 + size.y * 0.7) * dist + 2;
-    cam.position.set(ctr.x + Math.sin(ang) * R, box.min.y + (2.0 + size.y * 0.1) * hs, ctr.z + Math.cos(ang) * R);
-    cam.lookAt(ctr.x, box.min.y + size.y * 0.42, ctr.z);
+    const R = (Math.max(size.x, size.z) * 0.85 + (box.max.y - Math.max(0, box.min.y)) * 0.7) * dist + 2;
+    const base = Math.max(0, box.min.y); // cellars and stilts reach below the ground; the camera does not
+    cam.position.set(ctr.x + Math.sin(ang) * R, base + (2.0 + size.y * 0.1) * hs, ctr.z + Math.cos(ang) * R);
+    cam.lookAt(ctr.x, base + (box.max.y - base) * 0.42, ctr.z);
     cam.fov = 45; cam.updateProjectionMatrix();
   } else if (placed.length > 1) {
     const box = new THREE.Box3();
@@ -191,8 +192,8 @@ export async function init(G) {
     const size = box.getSize(new THREE.Vector3());
     const ctr = box.getCenter(new THREE.Vector3());
     const R = (size.x * 0.52 + size.z * 0.55) * dist + 6;
-    cam.position.set(ctr.x + Math.sin(ang * 0.3) * R * 0.3, box.min.y + 3 + R * 0.3 * hs, ctr.z + R);
-    cam.lookAt(ctr.x, box.min.y + Math.min(size.y * 0.35, 4), ctr.z);
+    cam.position.set(ctr.x + Math.sin(ang * 0.3) * R * 0.3, 3 + R * 0.3 * hs, ctr.z + R);
+    cam.lookAt(ctr.x, Math.min(size.y * 0.35, 4), ctr.z);
     cam.fov = 50; cam.updateProjectionMatrix();
   }
 }

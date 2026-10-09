@@ -2,7 +2,7 @@
 // shot / reverse shot, a close-up, a title card, a fade). Not part of the story.
 // Run: ?scene=story&play=cutscene   or   await G.cutscenes.play('_sample')
 const HANKA = [62, 62];
-const START = [47, 77];
+const START = [53.5, 71];
 const STOP = [61.1, 63.2];
 
 export default async function sample(d) {
@@ -23,9 +23,9 @@ export default async function sample(d) {
     fov: 42, fovTo: 48, dur: 6.5, ease: 'inOut',
   });
 
-  // 2. The walk, tracked from her right side.
+  // 2. The walk, tracked from her right side for as long as she walks.
   const walking = d.walk(vesna, STOP[0], STOP[1]);
-  await d.follow(vesna, [1.5, 1.45, 1.6], d.head(vesna), 4.2, { lag: 2.5, fov: 40, frame: [0.12, 0.2] });
+  d.follow(vesna, [1.5, 1.45, 1.6], d.head(vesna), 0, { lag: 2.5, fov: 40, frame: [0.12, 0.2] });
   await walking;
   // Hanka turns from the ice to face her.
   d.face(vesna, hanka);

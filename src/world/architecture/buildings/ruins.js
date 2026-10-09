@@ -119,7 +119,7 @@ export function watchtowerRuin(opts = {}) {
   // A section of the fallen shingle roof lying on the rubble on the east side, with its own snow.
   {
     const sl = slab(kit, V3(3.0, 0.6, 1.2), V3(3.0, 0.8, 4.2), V3(5.6, 1.9, 1.2), V3(5.6, 2.1, 4.2), { th: 0.1, nu: 4, pitch: 0.5, step: 0.25, jag: 0.25, wave: 0.05 });
-    const P = sl.P, T = P.map((row, i) => row.map((p, j) => Math.max(0.02, 0.2 * (0.6 + 0.5 * kit.n2(p.x * 0.7, p.z * 0.7)) * (j > 0 && j < row.length - 1 ? 1 : 0.5))));
+    const P = sl.P, T = P.map((row, i) => row.map((p, j) => Math.max(0.035, 0.2 * (0.6 + 0.5 * kit.n2(p.x * 0.7, p.z * 0.7)) * (j > 0 && j < row.length - 1 ? 1 : 0.5))));
     snowLayer(kit, { P, T, lip: [1, 0, 1, 1], lipOut: 0.15, under: 0.14 });
     kit.wood.tube([3.3, 0.3, 1.0], [5.4, 1.2, 4.6], 0.1, 0.09, beamC, { seg: 6, lenSeg: 2, ao: 0.25 });
     kit.wood.tube([4.0, 0.6, 1.0], [5.9, 1.7, 4.8], 0.1, 0.09, beamC, { seg: 6, lenSeg: 2, ao: 0.25 });
@@ -275,7 +275,7 @@ export function ruinedBathhouse(opts = {}) {
   kit.wood.tube([0.2, 2.7, -d / 2 + 0.2], [2.4, 0.9, 1.2], 0.12, 0.11, beam, { seg: 7, lenSeg: 3, ao: 0.28 });
   {
     const sl = slab(kit, V3(1.5, 0.5, 0.6), V3(1.5, 0.7, 3.4), V3(3.8, 1.6, 0.6), V3(3.8, 1.8, 3.4), { th: 0.09, nu: 4, pitch: 0.5, step: 0.25, jag: 0.3, wave: 0.05 });
-    const T = sl.P.map((row) => row.map((p) => Math.max(0.02, 0.14 * (0.6 + 0.6 * kit.n2(p.x * 0.8, p.z * 0.8)))));
+    const T = sl.P.map((row) => row.map((p) => Math.max(0.035, 0.14 * (0.6 + 0.6 * kit.n2(p.x * 0.8, p.z * 0.8)))));
     snowLayer(kit, { P: sl.P, T, lip: [1, 0, 1, 1], lipOut: 0.12, under: 0.12 });
   }
   // Initials J + W carved in a standing beam above the door.

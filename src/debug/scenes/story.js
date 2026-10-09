@@ -58,7 +58,7 @@ export async function init(G) {
       ensureCast();
       return G.cutscenes.play(id, { actors: { vesna: cast.vesna, hanka: cast.hanka } });
     },
-    senses() { return setupSenses(G); },
+    senses() { return setupSenses(G, ensureCast()); },
     sheet: (kind, o) => sheet(G, api, kind, o),
   };
   window.__story = api;
@@ -117,9 +117,17 @@ function liteStage(G) {
 }
 
 // Trails, clues and an echo spot around the ice-fishing camp, senses forced on.
-function setupSenses(G) {
+function setupSenses(G, cast) {
   const S = G.senses;
   if (!S) return null;
+  // Vesna reading the camp, Hanka out of the way.
+  if (cast?.hanka?.root) cast.hanka.root.visible = false;
+  const v = cast?.vesna;
+  if (v) {
+    v.setPosition?.(-62.6, 10.2);
+    v.yaw = Math.atan2(-67.5 + 62.6, 3 - 10.2);
+    v.play?.('senses', { loop: true });
+  }
   S.addTrail({ id: 'demo_steps', kind: 'footprints', points: [[-57, 17], [-61, 12.5], [-64.5, 9], [-67.5, 6], [-69.5, 4]] });
   S.addTrail({ id: 'demo_drag', kind: 'drag', points: [[-69.5, 3.5], [-67.5, -1], [-63, -6.5], [-56, -12], [-44, -19], [-26, -25], [-4, -29], [8, -30]] });
   S.addTrail({ id: 'demo_scent', kind: 'scent', points: [[-71, 5], [-75, 1], [-77.5, -4], [-78, -10]] });
@@ -144,8 +152,11 @@ function setupSenses(G) {
   S.addClue({ id: 'demo_echo', pos: [-61.5, -3.5], kind: 'echo', label: 'Echo', cutscene: '_sample' });
   S.force(true);
   if (G.cameraOwner !== 'cutscene') {
-    G.camera.position.set(-58.8, G.world.heightAt(-58.8, 13.4) + 2.35, 13.4);
-    G.camera.lookAt(-67, G.world.heightAt(-67, 2) + 0.2, 0.5);
+    // Over her right shoulder, down the trail toward the camp.
+    G.camera.position.set(-60.9, G.world.heightAt(-60.9, 12.6) + 2.05, 12.6);
+    G.camera.lookAt(-67.2, G.world.heightAt(-67.2, 2.6) + 0.35, 2.6);
+    G.camera.fov = 50;
+    G.camera.updateProjectionMatrix();
   }
   return S;
 }
@@ -163,12 +174,12 @@ async function sheet(G, api, kind = 'dialogue', { cols = 4, rows = 4, settle = 0
   const origClear = ui.clearSubtitle;
   ui.clearSubtitle = () => { sub = ''; origClear(); };
   let pending = null, lastInfo = null, lastT = 0;
-  G.story.cam.onShot = (info) => { pending = { info, t: G.clock.elapsed }; lastInfo = info; };
+  G.story.cam.onShot = (info) => { pending = { info, t: G.story.sched.time }; lastInfo = info; };
   const off = G.addSystem('story-sheet', () => {
     // Long moves (cranes, follows) also get a tile every `every` seconds.
-    if (!pending && every > 0 && lastInfo && G.clock.elapsed - lastT > every) pending = { info: { label: `${lastInfo.label} +` }, t: -1e9 };
-    if (!pending || G.clock.elapsed - pending.t < settle) return;
-    lastT = G.clock.elapsed;
+    if (!pending && every > 0 && lastInfo && G.story.sched.time - lastT > every) pending = { info: { label: `${lastInfo.label} +` }, t: -1e9 };
+    if (!pending || G.story.sched.time - pending.t < settle) return;
+    lastT = G.story.sched.time;
     const c = document.createElement('canvas');
     c.width = TW; c.height = TH;
     const g = c.getContext('2d');

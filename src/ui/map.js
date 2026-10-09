@@ -612,7 +612,7 @@ export class MapView {
 
     // veil
     this._buildVeil();
-    if (this.veil) { ctx.globalAlpha = 0.97; ctx.drawImage(this.veil, x0, y0, size, size); ctx.globalAlpha = 1; }
+    if (this.veil) { ctx.globalAlpha = 0.93; ctx.drawImage(this.veil, x0, y0, size, size); ctx.globalAlpha = 1; }
 
     this._drawPlaces(ctx);
     this._drawObjectives(ctx);
@@ -737,7 +737,14 @@ export class MapView {
     const disc = this._discovered();
     const zoom = this.scale / this.cover;
     const s = Math.max(8, Math.min(15, 8 + zoom * 2.4));
-    const placed = [];
+    // Labels keep clear of the rose, the cartouche and the scale bar.
+    const r0 = Math.min(46, Math.min(this.cw, this.ch) * 0.075);
+    const roseX = this.cw - this.margin - r0 - 22, roseY = this.ch - this.margin - r0 - 26;
+    const placed = [
+      [roseX - r0 - 8, roseY - r0 - 24, roseX + r0 + 8, roseY + r0 + 8],
+      [this.cw * 0.06, this.ch * 0.09, this.cw * 0.5, this.ch * 0.27],
+      [this.margin, this.ch - this.margin - 44, this.margin + 160, this.ch - this.margin],
+    ];
     const fs = Math.max(13, Math.min(20, 12.5 + zoom * 1.8));
     const order = ['village', 'bellTower', 'watchtower', 'idol', 'island', 'passStart', 'mill', 'waterfall', 'graveyard', 'marsh', 'crossroads'];
     const ids = Object.keys(LOC).filter((id) => LOC[id].map && disc.has(id));

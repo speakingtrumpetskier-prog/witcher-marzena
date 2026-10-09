@@ -81,3 +81,50 @@ export function fitShadow(light, focus, d, R, height, back) {
     sc.updateProjectionMatrix();
   }
 }
+
+// Coarse terrain stand-in that only draws into the far cascade's shadow map (gated by draw
+// range in onBeforeShadow / onBeforeRender, since three tests shadow casters against the view
+// camera's layers), so ridges, hills and the mountain ring throw long shadows across the valley
+// without asking the terrain renderer to submit its distant patches to shadow passes. Built
+// from G.world.far (6.25 m grid) at 25 m spacing, sunk a little so it never shadows the real
+// surface it stands in for.
+export function buildFarTerrainProxy(far, farShadowCamera, { half = 3200, step = 25, sink = 3 } = {}) {
+  const n = Math.floor((half * 2) / step) + 1;
+  const pos = new Float32Array(n * n * 3);
+  const g = far.grid, r = far.res, fh = far.half, fc = far.cell;
+  const at = (x, z) => {
+    const fx = Math.min(r - 1, Math.max(0, (x + fh) / fc)), fz = Math.min(r - 1, Math.max(0, (z + fh) / fc));
+    const v = g[(Math.round(fz) * r + Math.round(fx))];
+    return Number.isFinite(v) ? v : 0;
+  };
+  for (let j = 0; j < n; j++) {
+    const z = -half + j * step;
+    for (let i = 0; i < n; i++) {
+      const x = -half + i * step;
+      const o = (j * n + i) * 3;
+      pos[o] = x; pos[o + 1] = Math.max(at(x, z), -2) - sink; pos[o + 2] = z;
+    }
+  }
+  const idx = new Uint32Array((n - 1) * (n - 1) * 6);
+  let k = 0;
+  for (let j = 0; j < n - 1; j++) for (let i = 0; i < n - 1; i++) {
+    const a = j * n + i, b = a + 1, c = a + n, d = c + 1;
+    idx[k++] = a; idx[k++] = c; idx[k++] = b; idx[k++] = b; idx[k++] = c; idx[k++] = d;
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  geo.setIndex(new THREE.BufferAttribute(idx, 1));
+  geo.computeBoundingSphere();
+  const mesh = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ colorWrite: false }));
+  mesh.name = 'farShadowProxy';
+  mesh.castShadow = true;
+  mesh.receiveShadow = false;
+  mesh.frustumCulled = false;
+  mesh.matrixAutoUpdate = false;
+  const count = idx.length;
+  geo.setDrawRange(0, 0);
+  mesh.onBeforeShadow = (_r, _o, _c, shadowCamera) => geo.setDrawRange(0, shadowCamera === farShadowCamera ? count : 0);
+  mesh.onAfterShadow = () => geo.setDrawRange(0, 0);
+  mesh.onBeforeRender = () => geo.setDrawRange(0, 0);
+  return mesh;
+}

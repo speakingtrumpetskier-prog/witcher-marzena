@@ -16,8 +16,8 @@
 // Triangulation (shared by terrainAt, the terrain mesh and the shader sampler): each cell is
 // split along the (i+1, j) to (i, j+1) diagonal.
 import * as THREE from 'three';
-import { computeHeight, lakeSDF } from './heightfield.js';
-import { WORLD, nearestRoad } from './layout.js';
+import { computeHeight, lakeSDF, riverInfo } from './heightfield.js';
+import { WORLD, RIVER, nearestRoad } from './layout.js';
 import { startGridJobs, mainThreadJobs, FAR } from './terrain/gridBuilder.js';
 
 const DEFAULT_RES = 1025;
@@ -109,7 +109,13 @@ export class World {
   heightAt(x, z) {
     const h = this.terrainAt(x, z);
     if (this.thawed) return h;
-    return h < WORLD.iceLevel ? WORLD.iceLevel : h;
+    if (h < WORLD.iceLevel) return WORLD.iceLevel;
+    // Frozen river: walk on the ice ribbon (Water.js puts it 0.3 m under the bed line).
+    if (x > 280 && x < 700 && z > -110 && z < -40) {
+      const r = riverInfo(x, z);
+      if (r && r.d < RIVER.width * 0.5 + 1 && (r.seg !== 2 || r.t > 0.25)) return Math.max(h, r.bed - 0.3);
+    }
+    return h;
   }
 
   normalAt(x, z, out = new THREE.Vector3()) {

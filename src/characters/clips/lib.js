@@ -28,6 +28,62 @@ export function armFK(pose, S) {
   return { shoulder: out['arm' + S], elbow: out['forearm' + S], wrist: out['hand' + S], knuckle: out['fingers' + S] };
 }
 
+// Socket frame inside the hand bone (matches Character._makeSockets): +Y along the grip
+// (thumb side, forward in bind), +Z out of the back of the hand.
+const ARM_ANG = REF.armAngle;
+export function socketBasis(S) {
+  const s = S === 'L' ? 1 : -1;
+  const down = new THREE.Vector3(s * Math.sin(ARM_ANG), -Math.cos(ARM_ANG), 0);
+  const palmN = new THREE.Vector3().crossVectors(down, new THREE.Vector3(0, 0, 1)).normalize().multiplyScalar(s);
+  const y = new THREE.Vector3(0, 0, 1);
+  const z = palmN.clone().negate();
+  const x = new THREE.Vector3().crossVectors(y, z);
+  return new THREE.Matrix4().makeBasis(x, y, z);
+}
+const SOCK = { L: socketBasis('L'), R: socketBasis('R') };
+
+// Grip axis (socket +Y) direction in root space for a pose.
+export function gripDir(pose, S) {
+  const chain = ['hips', 'spine', 'chest', 'shoulder' + S, 'arm' + S, 'forearm' + S, 'hand' + S];
+  _m.identity();
+  for (const b of chain) {
+    const p = LOCAL[b].clone();
+    if (b === 'hips' && pose.$hips) p.add(new THREE.Vector3(...pose.$hips));
+    semToQuat(b, pose[b] || [0, 0, 0], _q);
+    _l.compose(p, _q, _one);
+    _m.multiply(_l);
+  }
+  _m.multiply(SOCK[S]);
+  return new THREE.Vector3(_m.elements[4], _m.elements[5], _m.elements[6]).normalize();
+}
+
+// Rotate the hand (and forearm twist) so the grip axis points along dir (root space).
+export function aimHand(pose, S, dir, opts = {}) {
+  const want = (dir.isVector3 ? dir : new THREE.Vector3(...dir)).clone().normalize();
+  const h0 = pose['hand' + S] || [0, 0, 0];
+  const f0 = pose['forearm' + S] || [10, 0, 0];
+  let x = [h0[0], h0[1], h0[2], f0[1]];
+  const lim = [70, 80, 40, 90];
+  const cost = (v) => {
+    const P = { ...pose, ['hand' + S]: [v[0], v[1], v[2]], ['forearm' + S]: [f0[0], v[3], f0[2]] };
+    let c = (1 - gripDir(P, S).dot(want)) * 100;
+    for (let i = 0; i < 4; i++) if (Math.abs(v[i]) > lim[i]) c += (Math.abs(v[i]) - lim[i]) * 0.2;
+    if (opts.rollUp) c += 0;
+    return c;
+  };
+  let best = cost(x), step = 30;
+  for (let it = 0; it < 40 && step > 0.3; it++) {
+    let improved = false;
+    for (let d = 0; d < 4; d++) for (const sg of [1, -1]) {
+      const y = x.slice(); y[d] += sg * step;
+      const c = cost(y);
+      if (c < best) { best = c; x = y; improved = true; }
+    }
+    if (!improved) step *= 0.5;
+  }
+  return { ...pose, ['hand' + S]: [x[0], x[1], x[2]], ['forearm' + S]: [f0[0], x[3], f0[2]] };
+}
+
 // Solve arm + forearm so the wrist reaches target (root space, reference body).
 // opts: { elbow: Vector3 hint for the elbow direction, twist (fixed), grip: use knuckles }
 export function reachArm(pose, S, target, opts = {}) {

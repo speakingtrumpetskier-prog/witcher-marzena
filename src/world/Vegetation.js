@@ -18,6 +18,7 @@ import { VegLayer } from './trees/layer.js';
 import { bakeImpostors, ImpostorLayer } from './trees/impostor.js';
 import { placeVegetation, placeFarRing, GroundGenerator } from './trees/placement.js';
 import { lodUniform, setLod } from './trees/materials.js';
+import { ShadowProxyLayer } from './trees/shadowProxy.js';
 
 const GROUND_CELL = 16;
 
@@ -65,7 +66,7 @@ export async function init(G) {
   placed.far = [];
   let impCount = 0;
   trees.forEachAlive((k) => { if (k.impostor) impCount++; });
-  const imp = new ImpostorLayer(atlas, impU, [impIn[0] - 6, 6000], impCount + 70000);
+  const imp = new ImpostorLayer(atlas, impU, [impIn[0] - 6, 6000], impCount + 80000);
   let impDirty = true;
   const rebuildImpostors = () => {
     imp.begin();
@@ -79,6 +80,10 @@ export async function init(G) {
   rebuildImpostors();
 
   G.scene.add(trees.group, ground.group, imp.mesh);
+  // far shadow cascade casters (cones standing in for the forests that have no real mesh at range)
+  const proxies = q === 'low' ? null : new ShadowProxyLayer(G, trees);
+  if (proxies) G.scene.add(proxies.mesh);
+  let proxyForce = true;
 
   // ---- ground cover streaming -------------------------------------------------------------
   const gen = new GroundGenerator(G, groundKinds, { low: 0.6, medium: 0.85, high: 1 }[q] ?? 1);
@@ -122,6 +127,7 @@ export async function init(G) {
     for (const f of placed.far) if (!f.dead && Math.hypot(f.x - x, f.z - z) < r + 2) { f.dead = true; n++; }
     impDirty = true;
     trees.dirty = true;
+    proxyForce = true;
     return n;
   };
   const clearShape = (e) => {
@@ -136,6 +142,7 @@ export async function init(G) {
     gen.cleared.push({ x: e.x, z: e.z, r: Math.hypot(e.hw, e.hd) });
     for (const f of placed.far) if (!f.dead && exclusionDistance(e, f.x, f.z) < 2) { f.dead = true; n++; }
     impDirty = true;
+    proxyForce = true;
     return n;
   };
   let appliedExclusions = EXCLUSIONS.length;
@@ -203,6 +210,7 @@ export async function init(G) {
     trees.update(G.camera, t, firstUpdate);
     ground.update(G.camera, t, firstUpdate);
     if (impDirty) rebuildImpostors();
+    if (proxies) { proxies.update(G.camera, proxyForce); proxyForce = false; }
     trees.syncLeaves();
     firstUpdate = false;
   }, ORDER.atmosphere + 5);

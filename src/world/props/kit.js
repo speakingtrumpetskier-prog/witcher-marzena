@@ -183,6 +183,21 @@ function sstep(a, b, x) {
   return t * t * (3 - 2 * t);
 }
 
+// Welded, indexed unit icosphere (cached per detail level).
+const _ico = new Map();
+function icoUnit(detail) {
+  let c = _ico.get(detail);
+  if (c) return c;
+  let g = new THREE.IcosahedronGeometry(1, detail);
+  g.deleteAttribute('normal');
+  g.deleteAttribute('uv');
+  g = mergeVertices(g, 1e-4);
+  c = { pos: g.attributes.position.array.slice(), index: g.index.array.slice() };
+  g.dispose();
+  _ico.set(detail, c);
+  return c;
+}
+
 export class Kit {
   constructor(name, opts = {}) {
     this.name = name;
@@ -376,7 +391,7 @@ export class Kit {
   }
 
   sph(mat, r, o = {}) {
-    const g = new THREE.SphereGeometry(r, o.ws || 10, o.hs || 8, o.p0 || 0, o.p1 == null ? TAU : o.p1, o.t0 || 0, o.t1 == null ? Math.PI : o.t1);
+    const g = new THREE.SphereGeometry(r, o.ws || 9, o.hs || 6, o.p0 || 0, o.p1 == null ? TAU : o.p1, o.t0 || 0, o.t1 == null ? Math.PI : o.t1);
     const tile = o.tile || MAT_INFO[mat].tile;
     uvScale(g, Math.max(1, Math.round(TAU * r / tile)), Math.max(1, Math.PI * r / tile));
     return this.emit(g, mat, { uv: 'none', ...o });
@@ -384,15 +399,16 @@ export class Kit {
 
   cone(mat, r, h, o = {}) { return this.cyl(mat, 0.001, r, h, o); }
 
-  // Irregular blob (rocks, hay heaps, snow lumps). detail 1..3.
+  // Irregular blob (rocks, hay heaps, snow lumps). detail 0..3. Welded unit icospheres are cached.
   blob(mat, r, o = {}) {
-    let g = new THREE.IcosahedronGeometry(r, o.detail || 2);
-    if (!o.flat) {
-      g.deleteAttribute('normal');
-      g.deleteAttribute('uv');
-      g = mergeVertices(g, 1e-4);
-      g.computeVertexNormals();
-    }
+    const detail = o.detail == null ? 1 : o.detail;
+    const base = icoUnit(detail);
+    const g = new THREE.BufferGeometry();
+    const pos = new Float32Array(base.pos.length);
+    for (let i = 0; i < pos.length; i++) pos[i] = base.pos[i] * r;
+    g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    g.setIndex(new THREE.BufferAttribute(base.index.slice(), 1));
+    g.computeVertexNormals();
     return this.emit(g, mat, { uv: 'box', grain: 'y', jitter: o.jitter == null ? r * 0.28 : o.jitter, jfreq: o.jfreq || 2.2 / r, ...o });
   }
 
@@ -423,9 +439,9 @@ export class Kit {
 
   // Tube along a path with optional radius profile fn(t). Rope, handles, branches, wire.
   tube(mat, pts, r, o = {}) {
-    const radial = o.radial || 6;
+    const radial = o.radial || 5;
     const curve = new THREE.CatmullRomCurve3(pts.map((p) => new THREE.Vector3(p[0], p[1], p[2])), !!o.closed, 'centripetal');
-    const segs = o.segs || Math.max(4, Math.min(48, Math.round(curve.getLength() / 0.06)));
+    const segs = o.segs || Math.max(3, Math.min(28, Math.round(curve.getLength() / 0.14)));
     const rf = typeof r === 'function' ? r : () => r;
     const frames = curve.computeFrenetFrames(segs, !!o.closed);
     const pos = [], nor = [], uv = [], idx = [];
@@ -501,16 +517,49 @@ export class Kit {
     return this.emit(g, mat, { uv: 'none', ...o });
   }
 
+  // Flat outline (fish, leaves, cutouts). warp(x, y) -> [dx, dy, dz] bends it; use with double-sided materials.
+  shape(mat, shape, o = {}) {
+    const g = new THREE.ShapeGeometry(shape, o.curve || 3);
+    if (o.warp) {
+      const p = g.attributes.position;
+      for (let i = 0; i < p.count; i++) {
+        const d = o.warp(p.getX(i), p.getY(i));
+        if (d) p.setXYZ(i, p.getX(i) + d[0], p.getY(i) + d[1], p.getZ(i) + d[2]);
+      }
+      g.computeVertexNormals();
+    }
+    if (o.uvFit) {
+      const [x0, y0, fw, fh] = o.uvFit;
+      const uv = g.attributes.uv;
+      for (let i = 0; i < uv.count; i++) uv.setXY(i, (uv.getX(i) - x0) / fw, (uv.getY(i) - y0) / fh);
+    }
+    return this.emit(g, mat, { uv: 'none', ...o });
+  }
+
   torus(mat, R, r, o = {}) {
-    const g = new THREE.TorusGeometry(R, r, o.rseg || 5, o.seg || 14);
+    const g = new THREE.TorusGeometry(R, r, o.rseg || 4, o.seg || 12);
     const tile = o.tile || MAT_INFO[mat].tile;
     uvScale(g, Math.max(1, Math.round(TAU * R / tile)), Math.max(1, Math.round(TAU * r / tile)));
     return this.emit(g, mat, { uv: 'none', ...o });
   }
 
+  // Single double-sided quad (straw stalks, hair, grass blades): 2 triangles instead of a box's 12.
+  // pivot 'top' hangs it from y = 0 downward, 'center' (default) centers it. Use with double-sided materials.
+  blade(mat, w, len, o = {}) {
+    const g = new THREE.PlaneGeometry(w, len, 1, 1);
+    if (o.pivot === 'top') g.translate(0, -len / 2, 0);
+    if (o.taper != null) {
+      const p = g.attributes.position;
+      for (let i = 0; i < p.count; i++) { if (p.getY(i) < (o.pivot === 'top' ? -len / 2 : 0)) p.setX(i, p.getX(i) * o.taper); }
+    }
+    const tile = o.tile || MAT_INFO[mat].tile;
+    uvScale(g, w / tile, len / tile, this.rnd(), this.rnd());
+    return this.emit(g, mat, { uv: 'none', ...o });
+  }
+
   // Lumpy geometric snow. Sits with its base at y = 0 of the part transform.
   mound(w, h, d, o = {}) {
-    const g = new THREE.SphereGeometry(0.5, o.ws || 12, o.hs || 6, 0, TAU, 0, Math.PI / 2);
+    const g = new THREE.SphereGeometry(0.5, o.ws || 10, o.hs || 4, 0, TAU, 0, Math.PI / 2);
     const p = g.attributes.position;
     const off = this.seed * 3.7 + (o.jseed || 0);
     for (let i = 0; i < p.count; i++) {

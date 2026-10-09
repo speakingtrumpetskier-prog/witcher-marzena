@@ -87,7 +87,7 @@ float tapSky(vec2 o) {
   if (d < 0.99999) return 0.0;
   vec3 c = texture2D(tColor, uv).rgb * uExposure;
   float l = dot(c, vec3(0.3, 0.59, 0.11));
-  return smoothstep(0.5, 4.0, l);
+  return smoothstep(0.25, 2.2, l);
 }
 void main() {
   float m = (tapSky(vec2(-1.0, -1.0)) + tapSky(vec2(1.0, -1.0)) + tapSky(vec2(-1.0, 1.0)) + tapSky(vec2(1.0, 1.0))) * 0.25;

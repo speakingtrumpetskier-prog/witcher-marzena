@@ -20,8 +20,8 @@ export default {
       const S = new Score(3, 63);
       let t = 0;
       S.mark(0, { section: 'drone' });
-      S.ctl('gurdy', 0, { type: 'drone', p: [50, 57], v: 0.35, fade: 3 });
-      t = 6;
+      S.ctl('gurdy', 0, { type: 'drone', p: r.pick([[50, 57], [50, 62], [45, 50]]), v: 0.3 + r() * 0.1, fade: 2 + r() * 2 });
+      t = 3 * r.int(1, 3);
       // A phrase of the song, ornamented like a shepherd would.
       S.mark(2, { section: 'flute song' });
       const ph = r.pick([[0, 4], [4, 8], [8, 12]]);

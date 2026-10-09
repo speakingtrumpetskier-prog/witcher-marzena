@@ -232,7 +232,8 @@ function analyze(file, meta) {
   if (dc.some((d) => Math.abs(d) > 0.002)) flags.push('DC');
   const harsh = meta.cat === 'sfx' || meta.cat === 'sfx1' ? 0.12 : 0.06;
   if (bands.air > harsh) flags.push('HARSH');
-  if (bands.mud > (meta.cat === 'mood' || meta.cat === 'inst' ? 0.3 : 0.4)) flags.push('MUD');
+  // Voices and animals have their fundamentals in 200 to 400 Hz, so mud is judged on music only.
+  if ((meta.cat === 'mood' || meta.cat === 'amb') && bands.mud > 0.3) flags.push('MUD');
   if (meta.target != null && L.integrated < meta.target - 3) flags.push(`QUIET(${(L.integrated - meta.target).toFixed(1)})`);
   if (meta.target != null && L.integrated > meta.target + 3) flags.push(`LOUD(+${(L.integrated - meta.target).toFixed(1)})`);
   if (L.integrated < -60) flags.push('SILENT');

@@ -12,6 +12,7 @@ import * as THREE from 'three';
 import { Kit, PAL, GAIN } from '../kit.js';
 import { C, mixC, scaleC } from '../mb.js';
 import { stoneRing } from '../masonry.js';
+import { wallFrame } from '../walls.js';
 import { slab, snowLayer, icicles, smooth } from '../roofs.js';
 import { stairs, snowPillow, icePatch } from '../details.js';
 import { table, bench } from '../furnish.js';
@@ -24,16 +25,16 @@ export function bellTower(opts = {}) {
   kit.mergeMetal = false;
   kit.noFoundation = true;
   kit.skirt = false;
-  const HO = 2.9, HI = 2.0, TOP = 4.4, FLOOR = 4.8, ICEY = 0.3;
-  const BH = 2.95; // belfry post line half-width
-  kit.footprint = { hw: 3.5, hd: 3.5 };
+  const HO = 3.0, HI = 2.15, TOP = 5.1, FLOOR = 5.4, ICEY = 0.3;
+  const BH = 3.0; // belfry post line half-width
+  kit.footprint = { hw: 3.6, hd: 3.6 };
 
   // ---------------- stone shaft ----------------
   const holes = [
     { wall: 'front', s0: -0.95, s1: 0.95, y0: -0.5, y1: 1.85 }, // the broken window at ice level
-    { wall: 'right', s0: -0.4, s1: 0.4, y0: 2.5, y1: 3.7 },
-    { wall: 'left', s0: -0.4, s1: 0.4, y0: 2.5, y1: 3.7 },
-    { wall: 'back', s0: -0.4, s1: 0.4, y0: 2.5, y1: 3.7 },
+    { wall: 'right', s0: -0.4, s1: 0.4, y0: 3.0, y1: 4.3 },
+    { wall: 'left', s0: -0.4, s1: 0.4, y0: 3.0, y1: 4.3 },
+    { wall: 'back', s0: -0.4, s1: 0.4, y0: 3.0, y1: 4.3 },
     { wall: 'back', s0: 1.1, s1: 1.3, y0: 1.2, y1: 2.2 },
     { wall: 'left', s0: -1.2, s1: -1.0, y0: 1.2, y1: 2.2 },
     { wall: 'right', s0: 0.8, s1: 1.0, y0: 1.2, y1: 2.2 },
@@ -42,6 +43,28 @@ export function bellTower(opts = {}) {
     hw: HO, hd: HO, inner: HI, y0: -1.2, batter: 0.03, bh: 0.42, holes, jag: 0.45, lichen: 0.08,
     top: (wall, s) => TOP + 0.1 * Math.sin(s * 1.7 + (wall === 'front' ? 1 : wall === 'back' ? 3 : 2)),
   });
+  // Old plaster clinging to the stone in ragged patches (breaks up the block grid, reads as a church tower).
+  for (const wallN of ['front', 'right', 'back', 'left']) {
+    for (let i = 0; i < 6; i++) {
+      const w = kit.r(0.9, 2.0), h = kit.r(0.8, 1.7);
+      const sc = kit.rs() * (HO - w / 2 - 0.4), yc = kit.r(0.6, TOP - 0.9);
+      if (wallN === 'front' && Math.abs(sc) < 1.3 + w / 2 && yc - h / 2 < 2.1) continue;
+      if (holes.some((ho) => ho.wall === wallN && sc + w / 2 > ho.s0 - 0.2 && sc - w / 2 < ho.s1 + 0.2 && yc + h / 2 > ho.y0 - 0.2 && yc - h / 2 < ho.y1 + 0.2)) continue;
+      const hwo = HO - 0.03 * 1.2; // outer face at y = 0; the tilt below follows the batter
+      const fr = wallFrame(wallN, hwo, hwo);
+      const pts = [];
+      const nv = 9, ph = kit.rand() * 6;
+      for (let k = 0; k < nv; k++) {
+        const a = (k / nv) * Math.PI * 2;
+        const rr = 0.72 + 0.28 * kit.n2(Math.cos(a) * 2 + ph, Math.sin(a) * 2) + 0.12 * Math.sin(a * 3 + ph);
+        pts.push([Math.cos(a) * w * 0.5 * rr, Math.sin(a) * h * 0.5 * rr]);
+      }
+      const col = mixC(0xb4ab98, 0x8f8878, kit.rand() * 0.6).multiplyScalar(GAIN * 0.85);
+      kit.rock.at(fr.x, 0, fr.z, fr.yaw, (m) => {
+        m.at(sc, yc, 0.12, 0, (mm) => mm.extrude(pts, 0.03, col, { uv: [1.4, 1.4] }));
+      }, -0.03, 0);
+    }
+  }
   const wc = (k = 1) => scaleC(PAL.logDark, GAIN * 1.3 * k);
   // Dressed stones jutting around the broken window.
   for (let i = 0; i < 5; i++) {
@@ -55,7 +78,7 @@ export function bellTower(opts = {}) {
   kit.wood.tube([0.35, 0.35, HO - 0.25], [0.3, 0.95, HO - 0.25], 0.045, 0.035, wc(), { seg: 5, lenSeg: 1, ao: 0.2 });
   // Timber lintels over the high windows.
   for (const ry of [Math.PI / 2, -Math.PI / 2, Math.PI]) {
-    kit.wood.at(0, 0, 0, ry, () => { kit.wood.box(0, 3.85, HO - 0.5, 1.2, 0.22, 0.9, wc(), { grain: 'x' }); });
+    kit.wood.at(0, 0, 0, ry, () => { kit.wood.box(0, 4.4, HO - 0.5, 1.2, 0.22, 0.9, wc(), { grain: 'x' }); });
   }
 
   // ---------------- ice: floor inside, collar and plates outside ----------------
@@ -94,12 +117,12 @@ export function bellTower(opts = {}) {
     });
   }
   // Heaved plates: faceted shards leaning against the tower.
-  for (let i = 0; i < 20; i++) {
-    const a = (i / 20) * Math.PI * 2 + kit.rs() * 0.15;
-    const r = kit.r(3.3, 4.9);
-    const h = kit.r(0.45, 1.5), w = kit.r(0.35, 0.9);
+  for (let i = 0; i < 14; i++) {
+    const a = (i / 14) * Math.PI * 2 + kit.rs() * 0.2;
+    const r = kit.r(3.5, 5.0);
+    const h = kit.r(0.35, 1.2), w = kit.r(0.3, 0.75);
     ice.at(Math.cos(a) * r, 0.0, Math.sin(a) * r, -a + Math.PI / 2, (m) => {
-      m.extrude([[-w / 2, 0], [w / 2, 0], [w * 0.15, h], [-w * 0.3, h * 0.82]], kit.r(0.1, 0.2), mixC(PAL.ice, PAL.iceDeep, kit.rand() * 0.55).multiplyScalar(1.0), { uv: [1, 1] });
+      m.extrude([[-w / 2, 0], [w / 2, 0], [w * 0.15, h], [-w * 0.3, h * 0.82]], kit.r(0.1, 0.2), mixC(PAL.ice, PAL.iceDeep, 0.25 + kit.rand() * 0.55).multiplyScalar(0.95), { uv: [1, 1] });
     }, -kit.r(0.15, 0.5), kit.rs() * 0.25);
   }
   // A ramp of snow-ice up to the entrance, so you can walk in.
@@ -123,18 +146,20 @@ export function bellTower(opts = {}) {
 
   // ---------------- stairs inside the shaft ----------------
   kit.indoor(true);
-  const rise = (FLOOR - ICEY) / 21;
-  const yL1 = ICEY + 7 * rise, yL2 = ICEY + 14 * rise;
-  stairs(kit, -1.5, ICEY, 1.5, Math.PI, { width: 1.0, steps: 7, rise, run: 0.3, rails: true }); // west wall, climbing north
-  stairs(kit, -1.0, yL1, -1.5, Math.PI / 2, { width: 1.0, steps: 7, rise, run: 0.3, rails: true }); // north wall, climbing east
-  stairs(kit, 1.5, yL2, -1.0, 0, { width: 1.0, steps: 7, rise, run: 0.3, rails: true }); // east wall, climbing south
+  const NS = 9;
+  const rise = (FLOOR - ICEY) / (NS * 3);
+  const yL1 = ICEY + NS * rise, yL2 = ICEY + 2 * NS * rise;
+  const run = 0.28, fw = 1.0, cx = HI - fw / 2;
+  stairs(kit, -cx, ICEY, 1.7, Math.PI, { width: fw, steps: NS, rise, run, rails: true }); // west wall, climbing north
+  stairs(kit, -HI + fw, yL1, -cx, Math.PI / 2, { width: fw, steps: NS, rise, run, rails: true }); // north wall, climbing east
+  stairs(kit, cx, yL2, -HI + fw, 0, { width: fw, steps: NS, rise, run, rails: true }); // east wall, climbing south
   const landing = (x0, z0, x1, z1, y, tag) => {
     kit.wood.box((x0 + x1) / 2, y - 0.05, (z0 + z1) / 2, x1 - x0, 0.1, z1 - z0, scaleC(PAL.plank, GAIN), { grain: 'x', top: scaleC(PAL.plank, GAIN * 1.1) });
     kit.walk.floors.push({ y, polygon: [[x0, z0], [x1, z0], [x1, z1], [x0, z1]], tag });
   };
-  landing(-2.0, -2.0, -1.0, -0.6, yL1, 'landing1');
-  landing(1.0, -2.0, 2.0, -1.0, yL2, 'landing2');
-  for (const [px, pz, py] of [[-1.1, -1.9, yL1], [-1.9, -0.7, yL1], [1.1, -1.9, yL2], [1.9, -1.1, yL2]]) {
+  landing(-HI, -HI, -HI + fw, 1.7 - NS * run, yL1, 'landing1');
+  landing(HI - fw, -HI, HI, -HI + fw, yL2, 'landing2');
+  for (const [px, pz, py] of [[-HI + fw - 0.1, -HI + 0.1, yL1], [-HI + 0.1, 1.7 - NS * run + 0.1, yL1], [HI - fw + 0.1, -HI + 0.1, yL2], [HI - 0.1, -HI + fw - 0.1, yL2]]) {
     kit.wood.tube([px, ICEY - 0.1, pz], [px, py - 0.1, pz], 0.1, 0.1, wc(1.1), { seg: 6, lenSeg: 2, ao: 0.2 });
   }
   kit.indoor(false);
@@ -147,7 +172,8 @@ export function bellTower(opts = {}) {
       kit.wood.tube([sg * (HO - 0.15), TOP - 0.85, i * 0.85], [sg * 3.2, FLOOR - 0.26, i * 0.85], 0.1, 0.1, wc(), { seg: 6, lenSeg: 1, ao: 0.2 });
     }
   }
-  const hatch = { x0: 1.0, x1: 2.0, z0: -1.0, z1: 1.5 };
+  const Y0A = 3.8;
+  const hatch = { x0: 1.1, x1: 2.2, z0: -1.2, z1: 1.6 };
   {
     const bw = 0.27;
     const FW = 6.4;
@@ -180,7 +206,7 @@ export function bellTower(opts = {}) {
     for (const sx of [-1, 0, 1]) for (const sz of [-1, 0, 1]) {
       if (sx === 0 && sz === 0) continue;
       const corner = sx !== 0 && sz !== 0;
-      post(sx * BH, sz * BH, -0.1, 4.25, corner ? 0.23 : 0.16);
+      post(sx * BH, sz * BH, -0.1, 3.95, corner ? 0.23 : 0.16);
     }
     const bays = [-BH / 2, BH / 2];
     for (const wall of [0, 1, 2, 3]) {
@@ -191,7 +217,7 @@ export function bellTower(opts = {}) {
         }
         kit.wood.box(0, 1.24, BH + 0.05, BH * 2 + 0.3, 0.1, 0.18, scaleC(PAL.logWeathered, GAIN * 1.1), { grain: 'x', top: scaleC(PAL.logWeathered, GAIN * 1.2) });
         for (const bx of bays) {
-          const bw = BH - 0.1, ySpr = 2.55, yTop = 3.95;
+          const bw = BH - 0.1, ySpr = 2.3, yTop = 3.65;
           const sh = new THREE.Shape();
           sh.moveTo(-bw / 2, ySpr);
           sh.absarc(0, ySpr, bw / 2, Math.PI, 0, true);
@@ -204,18 +230,18 @@ export function bellTower(opts = {}) {
     }
     // Plate ring beam under the roof.
     for (const sg of [-1, 1]) {
-      kit.wood.tube([-3.2, 4.2, sg * BH], [3.2, 4.2, sg * BH], 0.2, 0.2, wc(), { seg: 8, lenSeg: 4, ao: 0.3, bow: [0, -0.02, 0] });
-      kit.wood.tube([sg * BH, 4.2, -3.2], [sg * BH, 4.2, 3.2], 0.2, 0.2, wc(), { seg: 8, lenSeg: 4, ao: 0.3, bow: [0, -0.02, 0] });
+      kit.wood.tube([-3.3, 3.9, sg * BH], [3.3, 3.9, sg * BH], 0.2, 0.2, wc(), { seg: 8, lenSeg: 4, ao: 0.3, bow: [0, -0.02, 0] });
+      kit.wood.tube([sg * BH, 3.9, -3.3], [sg * BH, 3.9, 3.3], 0.2, 0.2, wc(), { seg: 8, lenSeg: 4, ao: 0.3, bow: [0, -0.02, 0] });
     }
     // Bell yoke and the bell.
-    kit.wood.tube([-BH, 4.0, 0], [BH, 4.0, 0], 0.2, 0.2, wc(), { seg: 8, lenSeg: 4, ao: 0.3 });
+    kit.wood.tube([-BH, 3.7, 0], [BH, 3.7, 0], 0.2, 0.2, wc(), { seg: 8, lenSeg: 4, ao: 0.3 });
     const bronze = mixC(0x6a4e2c, 0x3f6a54, 0.45).multiplyScalar(GAIN * 0.8);
-    kit.metal.lathe([[0.82, 2.35], [0.78, 2.6], [0.66, 2.85], [0.54, 3.2], [0.43, 3.5], [0.28, 3.68], [0.18, 3.78], [0.001, 3.8]], bronze, { seg: 16, closeBottom: false, uv: [1, 1], wobble: 0.01 });
-    kit.metal.lathe([[0.82, 2.35], [0.85, 2.39], [0.84, 2.47], [0.78, 2.5]], scaleC(bronze, 0.7), { seg: 16, uv: [1, 1] });
-    kit.metal.tube([0, 2.75, 0], [0, 2.35, 0], 0.06, 0.14, scaleC(PAL.iron, GAIN * 0.7), { seg: 8, lenSeg: 1, ao: 0, capA: false });
-    kit.metal.box(0, 3.88, 0, 0.5, 0.12, 0.34, scaleC(PAL.iron, GAIN * 0.7), {});
+    kit.metal.lathe([[0.82, 2.1], [0.78, 2.35], [0.66, 2.6], [0.54, 2.95], [0.43, 3.25], [0.28, 3.43], [0.18, 3.53], [0.001, 3.55]], bronze, { seg: 16, closeBottom: false, uv: [1, 1], wobble: 0.01 });
+    kit.metal.lathe([[0.82, 2.1], [0.85, 2.14], [0.84, 2.22], [0.78, 2.25]], scaleC(bronze, 0.7), { seg: 16, uv: [1, 1] });
+    kit.metal.tube([0, 2.5, 0], [0, 2.1, 0], 0.06, 0.14, scaleC(PAL.iron, GAIN * 0.7), { seg: 8, lenSeg: 1, ao: 0, capA: false });
+    kit.metal.box(0, 3.63, 0, 0.5, 0.12, 0.34, scaleC(PAL.iron, GAIN * 0.7), {});
     // Tent roof: four concave shingled faces, flared eaves.
-    const Wb = 3.75, Y0 = 4.1, H = 4.9;
+    const Wb = 3.85, Y0 = 3.8, H = 5.3;
     const surface = (x, z) => {
       const d = Math.max(Math.abs(x), Math.abs(z)) / Wb;
       const u = Math.max(0, 1 - d);
@@ -239,7 +265,7 @@ export function bellTower(opts = {}) {
           const lump = 0.7 + 0.6 * kit.n2(p.x * 0.5 + 3, p.z * 0.5 + p.y * 0.2);
           const edge = 0.5 + 0.5 * smooth(0, 0.3, Math.min(j, P[i].length - 1 - j) * 0.24);
           const slide = smooth(0.7, 0.84, kit.n2(p.x * 0.4 + 40, p.z * 0.4 + p.y * 0.3)) * (1 - tt);
-          row.push(Math.max(0.012, 0.3 * (0.6 + 0.5 * tt) * lump * edge * (1 - 0.9 * slide)));
+          row.push(Math.max(0.035, 0.3 * (0.6 + 0.5 * tt) * lump * edge * (1 - 0.9 * slide)));
         }
         T.push(row);
       }
@@ -285,7 +311,7 @@ export function bellTower(opts = {}) {
   table(kit, 0, ty, 0, 0, 4.8, 1.0, 0.8);
   kit.ice.box(0, ty + 0.805, 0, 4.7, 0.015, 0.95, mixC(PAL.ice, 0xffffff, 0.6), { uv: [1, 1] });
   for (const sz of [-1, 1]) bench(kit, 0, ty, sz * 0.98, 0, 5.0);
-  kit.wood.box(-2.78, ty + 0.25, 0, 0.45, 0.5, 0.5, scaleC(PAL.plank, GAIN), { grain: 'y' });
+  kit.wood.box(-2.62, ty + 0.25, 0, 0.42, 0.5, 0.5, scaleC(PAL.plank, GAIN), { grain: 'y' });
   for (let i = 0; i < 9; i++) {
     const x = -2.0 + i * 0.5 + kit.rs() * 0.1, z = kit.rs() * 0.28;
     ice.ellipsoid(x, ty + 0.83, z, kit.r(0.1, 0.16), kit.r(0.05, 0.08), kit.r(0.07, 0.1), mixC(0xd8c090, 0xeef4f8, 0.35), { seg: 8, rings: 4 });
@@ -298,16 +324,16 @@ export function bellTower(opts = {}) {
     seats.push({ x, y: ty + 0.45, z: -0.98, yaw: 0, side: 'north' });
     seats.push({ x, y: ty + 0.45, z: 0.98, yaw: Math.PI, side: 'south' });
   }
-  seats.push({ x: -2.78, y: ty + 0.5, z: 0, yaw: Math.PI / 2, side: 'head' });
+  seats.push({ x: -2.65, y: ty + 0.5, z: 0, yaw: Math.PI / 2, side: 'head' });
   kit.objects.seats = seats;
   seats.forEach((s, i) => kit.anchor(`seat${i + 1}`, s.x, s.y, s.z));
   kit.anchor('table', 0, ty + 0.8, 0);
   kit.anchor('musicbox', 2.05, ty + 0.83, 0);
   kit.anchor('ribbon', -2.4, ty + 0.83, 0.3);
   kit.anchor('hatch', (hatch.x0 + hatch.x1) / 2, ty, (hatch.z0 + hatch.z1) / 2);
-  kit.anchor('bell', 0.12, FLOOR + 3.0, 0);
+  kit.anchor('bell', 0.12, FLOOR + 2.8, 0);
   kit.anchor('vista', 0, ty, 2.5);
-  kit.anchor('top', 0.75, 16.2, 0.3);
+  kit.anchor('top', 0.8, FLOOR + Y0A + 5.3 + 0.45 + 3.9, 0.3);
   kit.light(0, ty + 1.8, 0, { color: 0x9ff5ff, intensity: 1.4, radius: 11, kind: 'ghost' });
   kit.light(0, ICEY + 1.6, 0, { color: 0x9ff5ff, intensity: 0.5, radius: 6, kind: 'ghost' });
   kit.door({ x: 0, z: HO + 0.1, y: ICEY, yaw: 0, w: 1.9, h: 1.7, kind: 'open', id: 'window' });
@@ -316,7 +342,7 @@ export function bellTower(opts = {}) {
 
   // ---------------- colliders and walk surfaces ----------------
   const wt = HO - HI;
-  const wall = (x, z, hw, hd) => kit.box(x, z, hw, hd, 0, { y0: -2, y1: TOP + 0.3 });
+  const wall = (x, z, hw, hd) => kit.box(x, z, hw, hd, 0, { y0: -2, y1: TOP + 0.2 });
   wall(0, -(HO - wt / 2), HO, wt / 2);
   wall(-(HO - wt / 2), 0, wt / 2, HO);
   wall(HO - wt / 2, 0, wt / 2, HO);
@@ -330,6 +356,7 @@ export function bellTower(opts = {}) {
   bf.holes = [[[hatch.x0, hatch.z0], [hatch.x1, hatch.z0], [hatch.x1, hatch.z1], [hatch.x0, hatch.z1]]];
   kit.walk.floors.push(bf);
   kit.walk.ramps.push({ a: [0, 0, HO + 3.0], b: [0, ICEY, HO - 0.2], width: 2.2, tag: 'ice ramp' });
+  void yL1; void yL2;
   kit.interior = true;
   return kit.finish({});
 }

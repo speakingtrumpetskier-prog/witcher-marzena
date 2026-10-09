@@ -134,9 +134,9 @@ function genWood(seed, planks) {
     const crack = sstep(0.035, 0.0, Math.abs(crackN - 0.5)) * sstep(0.45, 0.62, vn(u * 4, vv * 2, 4, 2, seed + 17));
     const grain = ring * 0.55 + fibre * 0.3 + fibre2 * 0.15;
     // Warm brown with silvered weathering.
-    let r = lerp(0.40, 0.23, grain) + boardTint * 0.34;
+    let r = lerp(0.38, 0.22, grain) + boardTint * 0.32;
     let g = lerp(0.32, 0.18, grain) + boardTint * 0.28;
-    let b = lerp(0.25, 0.145, grain) + boardTint * 0.22;
+    let b = lerp(0.26, 0.15, grain) + boardTint * 0.23;
     const silver = sstep(0.42, 0.72, wear) * 0.55;
     r = lerp(r, 0.40, silver); g = lerp(g, 0.39, silver); b = lerp(b, 0.37, silver);
     const dark = Math.max(crack * 0.85, knotDark * 0.5, seam * 0.8);
@@ -148,7 +148,7 @@ function genWood(seed, planks) {
 
 // Bark: vertical furrows (V), dark grey brown. Used for log sides.
 function genBark(seed) {
-  const S = 256;
+  const S = 128;
   return bake(S, S, (u, v, o) => {
     const f = fbm(u * 10 + fbm(u * 3, v * 2, 3, 2, seed) * 2, v * 2.2, 10, 2, seed + 1, 4);
     const ridge = 1 - Math.abs(f - 0.5) * 2;
@@ -165,7 +165,7 @@ function genBark(seed) {
 
 // End grain: circular UV on cylinder caps (center 0.5,0.5). Rings, radial checks.
 function genLogEnd(seed) {
-  const S = 256;
+  const S = 128;
   return bake(S, S, (u, v, o) => {
     const dx = u - 0.5, dy = v - 0.5;
     const d = Math.hypot(dx, dy) * 2;
@@ -187,7 +187,7 @@ function genLogEnd(seed) {
 
 // Birch bark: white with black horizontal lenticel dashes and peeling curls.
 function genBirch(seed) {
-  const S = 256;
+  const S = 128;
   return bake(S, S, (u, v, o) => {
     const n = fbm(u * 6, v * 3, 6, 3, seed, 4);
     const dash = vn(u * 7, v * 38, 7, 38, seed + 3);
@@ -203,7 +203,7 @@ function genBirch(seed) {
 
 // Straw: dense fine strands along V, pale gold to brown.
 function genStraw(seed) {
-  const S = 256;
+  const S = 128;
   return bake(S, S, (u, v, o) => {
     const strand = vn(u * 64, v * 3, 64, 3, seed);
     const strand2 = vn(u * 150, v * 7, 150, 7, seed + 2);
@@ -211,9 +211,9 @@ function genStraw(seed) {
     const gap = sstep(0.5, 0.05, strand2) * 0.5;
     const joint = sstep(0.93, 1.0, vn(u * 48, v * 9, 48, 9, seed + 6)) * 0.4;
     const tone = strand * 0.5 + strand2 * 0.2 + clump * 0.3;
-    o.r = lerp(0.46, 0.86, tone) * (1 - gap * 0.6) * (1 - joint);
-    o.g = lerp(0.36, 0.73, tone) * (1 - gap * 0.6) * (1 - joint);
-    o.b = lerp(0.20, 0.46, tone) * (1 - gap * 0.6) * (1 - joint);
+    o.r = lerp(0.42, 0.78, tone) * (1 - gap * 0.6) * (1 - joint);
+    o.g = lerp(0.35, 0.68, tone) * (1 - gap * 0.6) * (1 - joint);
+    o.b = lerp(0.22, 0.46, tone) * (1 - gap * 0.6) * (1 - joint);
     o.h = strand * 0.5 + strand2 * 0.4 - gap * 0.6;
   });
 }
@@ -226,9 +226,9 @@ function genRope(seed) {
     const strand = 0.5 + 0.5 * Math.sin(t * TAU);
     const fuzz = vn(u * 80, v * 80, 80, 80, seed);
     const k = 0.45 + strand * 0.55;
-    o.r = lerp(0.50, 0.80, k) * (0.85 + fuzz * 0.25);
-    o.g = lerp(0.40, 0.68, k) * (0.85 + fuzz * 0.25);
-    o.b = lerp(0.26, 0.46, k) * (0.85 + fuzz * 0.25);
+    o.r = lerp(0.40, 0.70, k) * (0.85 + fuzz * 0.25);
+    o.g = lerp(0.35, 0.62, k) * (0.85 + fuzz * 0.25);
+    o.b = lerp(0.26, 0.48, k) * (0.85 + fuzz * 0.25);
     o.h = k;
   });
 }
@@ -251,17 +251,17 @@ function genLinen(seed, coarse = 1) {
 
 // Burlap / sacking: coarse tan weave with dark flecks.
 function genBurlap(seed) {
-  const S = 256;
+  const S = 128;
   return bake(S, S, (u, v, o) => {
-    const f = 22;
+    const f = 28;
     const wu = Math.abs(Math.sin(u * f * Math.PI)), wv = Math.abs(Math.sin(v * f * Math.PI));
     const hole = (1 - wu) * (1 - wv);
     const slub = vn(u * 10, v * 80, 10, 80, seed) * 0.5 + vn(u * 80, v * 10, 80, 10, seed + 2) * 0.5;
     const fleck = sstep(0.9, 1.0, vn(u * 60, v * 60, 60, 60, seed + 5));
     const stain = fbm(u * 3, v * 3, 3, 3, seed + 7, 4);
-    const k = (0.62 + wu * 0.06 + wv * 0.06 + slub * 0.18) * (1 - hole * 0.28) * (1 - fleck * 0.45) * (0.8 + stain * 0.32);
-    o.r = k * 0.92; o.g = k * 0.82; o.b = k * 0.64;
-    o.h = 0.35 + (wu + wv) * 0.25 + slub * 0.15 - hole * 0.3;
+    const k = (0.64 + wu * 0.04 + wv * 0.04 + slub * 0.2) * (1 - hole * 0.16) * (1 - fleck * 0.4) * (0.78 + stain * 0.34);
+    o.r = k * 0.80; o.g = k * 0.74; o.b = k * 0.63;
+    o.h = 0.4 + (wu + wv) * 0.15 + slub * 0.2 - hole * 0.15;
   });
 }
 
@@ -314,7 +314,7 @@ function genDress(seed) {
 
 // Weathered iron: dark blue-grey, rust blooms, scratches. Used with some metalness.
 function genIron(seed) {
-  const S = 256;
+  const S = 128;
   return bake(S, S, (u, v, o) => {
     const n = fbm(u * 6, v * 6, 6, 6, seed, 5);
     const rustMask = sstep(0.5, 0.72, fbm(u * 3, v * 3, 3, 3, seed + 4, 4));
@@ -330,7 +330,7 @@ function genIron(seed) {
 
 // Stone: speckled grey with moss-free chips.
 function genStone(seed) {
-  const S = 256;
+  const S = 128;
   return bake(S, S, (u, v, o) => {
     const n = fbm(u * 5, v * 5, 5, 5, seed, 5);
     const sp = vn(u * 90, v * 90, 90, 90, seed + 3);
@@ -343,7 +343,7 @@ function genStone(seed) {
 
 // Fur / hide: streaky tan-grey with lighter tips.
 function genFur(seed) {
-  const S = 256;
+  const S = 128;
   return bake(S, S, (u, v, o) => {
     const a = vn(u * 120, v * 12, 120, 12, seed);
     const b = vn(u * 40, v * 5, 40, 5, seed + 2);
@@ -356,7 +356,7 @@ function genFur(seed) {
 
 // Ice: pale blue with white internal cracks and bubbles. For crusts and frozen things.
 function genIce(seed) {
-  const S = 256;
+  const S = 128;
   return bake(S, S, (u, v, o) => {
     const n = fbm(u * 4, v * 4, 4, 4, seed, 4);
     const cr = sstep(0.045, 0.0, Math.abs(fbm(u * 5, v * 5, 5, 5, seed + 3, 3) - 0.5));
@@ -370,7 +370,7 @@ function genIce(seed) {
 
 // Snow: soft blue-white with fine sparkle grain.
 function genSnow(seed) {
-  const S = 256;
+  const S = 128;
   return bake(S, S, (u, v, o) => {
     const n = fbm(u * 6, v * 6, 6, 6, seed, 4);
     const sp = vn(u * 120, v * 120, 120, 120, seed + 3);
@@ -403,14 +403,14 @@ function genNet() {
 
 // Flaking paint: pale base with wear showing wood. Tint with vertex color to get any paint.
 function genPaint(seed) {
-  const S = 256;
+  const S = 128;
   return bake(S, S, (u, v, o) => {
     const n = fbm(u * 6, v * 6, 6, 6, seed, 4);
     const wearN = fbm(u * 4 + n, v * 4, 4, 4, seed + 5, 4);
     const chip = sstep(0.62, 0.72, wearN) * sstep(0.35, 0.65, vn(u * 24, v * 24, 24, 24, seed + 7));
     const brush = vn(u * 6, v * 90, 6, 90, seed + 9);
-    const k = 0.80 + brush * 0.12 + (n - 0.5) * 0.14;
-    const wood = 0.38 + vn(u * 70, v * 8, 70, 8, seed + 11) * 0.2;
+    const k = 0.56 + brush * 0.1 + (n - 0.5) * 0.14;
+    const wood = 0.3 + vn(u * 70, v * 8, 70, 8, seed + 11) * 0.16;
     o.r = lerp(k, wood * 1.15, chip);
     o.g = lerp(k, wood * 0.85, chip);
     o.b = lerp(k, wood * 0.62, chip);
@@ -430,7 +430,10 @@ function genFish(seed) {
     const r = lerp(lerp(sheen * 0.78, 0.18, back), 0.9, belly) * (1 - lat * 0.4);
     const g = lerp(lerp(sheen * 0.85, 0.24, back), 0.9, belly) * (1 - lat * 0.3);
     const b = lerp(lerp(sheen * 0.95, 0.30, back), 0.88, belly) * (1 - lat * 0.2);
-    o.r = r; o.g = g; o.b = b;
+    // Eye near the head (u ~ 0.07), mid-height.
+    const ed = Math.hypot((u - 0.075) * 2.2, (v - 0.6) * 1.0);
+    const eye = 1 - sstep(0.03, 0.05, ed);
+    o.r = r * (1 - eye * 0.92); o.g = g * (1 - eye * 0.92); o.b = b * (1 - eye * 0.92);
     o.h = 0.5 + scale * 0.3;
   }, { repeat: false });
 }
@@ -464,7 +467,7 @@ function genCoal(seed) {
 
 // Ground patch with soft noisy edge: melted ring around fires, dirt, ash, trampled mud.
 function genPatch(seed) {
-  const S = 256;
+  const S = 128;
   return bake(S, S, (u, v, o) => {
     const dx = u - 0.5, dy = v - 0.5;
     const r = Math.hypot(dx, dy) * 2;
@@ -482,7 +485,7 @@ function genPatch(seed) {
 
 // Wicker / wattle: woven strips, tan to grey-brown.
 function genWicker(seed) {
-  const S = 256;
+  const S = 128;
   return bake(S, S, (u, v, o) => {
     const f = 14;
     const cu = Math.floor(u * f), cv = Math.floor(v * f);
@@ -494,7 +497,7 @@ function genWicker(seed) {
     const n = vn(u * 40, v * 40, 40, 40, seed);
     const tone = hash(cu + (over ? 7 : 0), cv, seed) * 0.35 + n * 0.15;
     const k = (0.42 + tone) * (0.55 + 0.45 * rod * gap);
-    o.r = k * 1.0; o.g = k * 0.84; o.b = k * 0.6;
+    o.r = k * 0.9; o.g = k * 0.78; o.b = k * 0.62;
     o.h = rod * gap;
   });
 }
@@ -592,7 +595,7 @@ function genFolk(seed) {
   const id = g.getImageData(0, 0, W, H);
   for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
     const i = (y * W + x) * 4;
-    const f = 0.9 + vn(x * 0.5, y * 0.5, 512, 256, seed + 40) * 0.2;
+    const f = 0.9 + hash(x, y, seed + 40) * 0.2;
     id.data[i] *= f; id.data[i + 1] *= f; id.data[i + 2] *= f;
   }
   g.putImageData(id, 0, 0);

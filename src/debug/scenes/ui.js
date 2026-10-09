@@ -278,14 +278,16 @@ export async function init(G) {
     // face north-north-east so the compass shows the ritual site and the bell tower
     G.camera.lookAt(18, 5, -40);
     G.cameraOwner = 'shot';
-    // The backdrop is static: stop drawing it after a few frames so software rendering does not
-    // starve the page (the canvas keeps its last image, shots stay fast and stable).
-    if (!P.has('nofreeze')) {
-      let frames = 0;
-      G.addSystem('ui-gallery-freeze', () => {
-        if (++frames === 8) G.renderer.render = () => {};
-      }, 200);
-    }
+  }
+  // The backdrop is static: stop drawing it after a few frames so software rendering does not
+  // starve the page (the canvas keeps its last image, shots stay fast and stable). Real worlds
+  // freeze only when asked (&freeze=12 draws 12 frames first).
+  const freezeAt = P.has('freeze') ? parseInt(P.get('freeze') || '10', 10) : (REAL || P.has('nofreeze') ? 0 : 8);
+  if (freezeAt > 0) {
+    let frames = 0;
+    G.addSystem('ui-gallery-freeze', () => {
+      if (++frames === freezeAt) { const r = G.renderer; r.render = () => {}; }
+    }, 200);
   }
   const ui = G.uiImpl;
   if (SHOW === 'map' && ui) G.readyGates.push(ui.mapView.prepare());

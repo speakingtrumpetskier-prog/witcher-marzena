@@ -103,7 +103,7 @@ export function buildSpruce(v, lod = 0) {
     for (let j = 0; j < sectors; j++) b.triFacing(apex, ids[j], ids[(j + 1) % sectors], 0, 1, 0);
   };
 
-  if (lod < 2) {
+  if (lod === 0) {
     for (let t = 0; t < tiers; t++) {
       const f = tiers > 1 ? t / (tiers - 1) : 0;
       const y = tierY(f) + (r() - 0.5) * 0.015 * H;
@@ -158,28 +158,46 @@ export function buildSpruce(v, lod = 0) {
     }
     tube(b, [[topPos[0], topPos[1] - 0.9, topPos[2]], [topPos[0], H * 1.03, topPos[2]]], (k, t) => 0.035 * (1 - t) + 0.005, () => PAL.dark, { sides: 3, rng: r, flex: (t) => t });
   } else {
-    // ---------- lod 2: scalloped cones ----------
-    const nCone = 9;
-    for (let t = 0; t < nCone; t++) {
-      const f = t / (nCone - 1);
-      const y = tierY(f * 0.93);
-      const R = crownR(f) * 1.05;
-      const rim = 9;
+    // ---------- lods 1 and 2: scalloped cone tiers (continuous skirts with a ragged rim) ----------
+    const nT = lod === 1 ? Math.max(8, Math.round(v.tiers * 0.72)) : 7;
+    const rim = lod === 1 ? 12 : 8;
+    for (let t = 0; t < nT; t++) {
+      const f = t / (nT - 1);
+      const y = tierY(f * 0.94);
+      const R = crownR(f) * 1.04;
       const rot = r() * 6.28;
-      const apexY = y + R * (0.5 + 0.2 * f) + (topY - baseY) / nCone * 0.5;
+      const apexY = y + R * (0.45 + 0.2 * f) + (topY - baseY) / nT * 0.55;
       const dark = PAL.dark, light = mixRGB(PAL.light, PAL.warm, 0.3 + f * 0.3);
-      const shade = 0.72 + 0.2 * f;
-      const apex = b.v(tx(apexY), apexY, tz(apexY), 0, 1, 0, [dark[0] * shade, dark[1] * shade, dark[2] * shade], 0, 0.1, v.snow * 0.8, 0.2, 0);
+      const shade = 0.78 + 0.22 * f;
+      const apex = b.v(tx(apexY), apexY, tz(apexY), 0, 1, 0, [dark[0] * shade, dark[1] * shade, dark[2] * shade], 0, 0.1, v.snow * 0.9, 0.2, 0);
+      const ring1 = [];
+      if (lod === 1) {
+        for (let j = 0; j < rim; j++) {
+          const a2 = rot + (j / rim) * Math.PI * 2;
+          const rr = R * 0.58 * (0.85 + r() * 0.3);
+          const mid = mixRGB(dark, light, 0.45);
+          ring1.push(b.v(tx(y) + Math.cos(a2) * rr, y - R * 0.12, tz(y) + Math.sin(a2) * rr, Math.cos(a2), 0.5, Math.sin(a2), [mid[0] * shade, mid[1] * shade, mid[2] * shade], 0.5, j / rim, v.snow * 0.85, 0.5, r() * 6.28));
+        }
+      }
       const ids = [];
       for (let j = 0; j < rim; j++) {
-        const a = rot + (j / rim) * Math.PI * 2;
+        const a2 = rot + (j / rim) * Math.PI * 2;
         const odd = j % 2;
-        const rr = R * (odd ? 0.78 : 1.0) * (0.92 + r() * 0.16);
-        const yy = y - R * 0.36 * (odd ? 1.25 : 0.9);
+        const rr = R * (odd ? 0.8 : 1.02) * (0.9 + r() * 0.2);
+        const yy = y - R * 0.36 * (odd ? 1.3 : 0.95);
         const cc = [light[0] * shade * 1.05, light[1] * shade * 1.05, light[2] * shade];
-        ids.push(b.v(tx(y) + Math.cos(a) * rr, yy, tz(y) + Math.sin(a) * rr, Math.cos(a), 0.3, Math.sin(a), cc, 0, 0.9, v.snow * (odd ? 0.0 : 0.12), 0.9, r() * 6.28));
+        ids.push(b.v(tx(y) + Math.cos(a2) * rr, yy, tz(y) + Math.sin(a2) * rr, Math.cos(a2), 0.3, Math.sin(a2), cc, lod === 1 ? 1 : 0, j / rim, v.snow * (odd ? 0.0 : 0.1), 0.9, r() * 6.28));
       }
-      for (let j = 0; j < rim; j++) b.triFacing(apex, ids[j], ids[(j + 1) % rim], 0, 1, 0);
+      for (let j = 0; j < rim; j++) {
+        const k = (j + 1) % rim;
+        if (lod === 1) {
+          b.triFacing(apex, ring1[j], ring1[k], 0, 1, 0);
+          b.triFacing(ring1[j], ids[j], ids[k], 0, 1, 0);
+          b.triFacing(ring1[j], ids[k], ring1[k], 0, 1, 0);
+        } else {
+          b.triFacing(apex, ids[j], ids[k], 0, 1, 0);
+        }
+      }
     }
   }
   b.smooth(foliageV0, foliageT0, softBall(0, H * 0.42, 0, 0.5, 0.3));

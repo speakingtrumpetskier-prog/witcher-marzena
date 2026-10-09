@@ -54,7 +54,7 @@ export async function init(G) {
   const uv = gg.attributes.uv;
   for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) * 60, uv.getY(i) * 60);
   const snowTex = tex.snow();
-  const gm = new THREE.MeshStandardMaterial({ color: 0xf4f2ee, roughness: 0.9, map: snowTex.map, bumpMap: snowTex.bump, bumpScale: 0.6 });
+  const gm = new THREE.MeshStandardMaterial({ color: 0xc6cad4, roughness: 0.9, map: snowTex.map, bumpMap: snowTex.bump, bumpScale: 0.6 });
   const ground = new THREE.Mesh(gg, gm);
   ground.receiveShadow = true;
   ground.name = 'gallery-ground';

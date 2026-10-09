@@ -49,7 +49,8 @@ export const VOWELS = {
 // individual overtones whistle (a hint of overtone singing).
 VOWELS.throat = Object.fromEntries(Object.entries(VOWELS.bass).map(([k, v]) =>
   [k, v.map(([f, bw, g], i) => (i === 1 ? [f, bw * 0.45, g + 6] : [f, bw, g]))]));
-VOWELS.hum = VOWELS.alto;
+// A closed-lips hum keeps a nasal ring around 2 to 3 kHz, so it is not just a fundamental.
+VOWELS.hum = { ...VOWELS.alto, m: [[270, 70, 0], [1050, 160, -17], [2300, 220, -21], [3300, 220, -29], [4200, 240, -40]] };
 
 // Formant set for a vowel, adjusted for pitch: when the fundamental rises above F1 the singer
 // raises F1 to follow it (formant tuning), which keeps high notes full instead of thin.

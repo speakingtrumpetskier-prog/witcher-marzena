@@ -29,7 +29,7 @@ import { sunDirection, moonDirection, MOON_PHASE } from './sky/astro.js';
 import { createLook, samplePalette, applyWeather } from './sky/palette.js';
 import { WEATHER_STATES } from './sky/weatherStates.js';
 import { LAKE } from './layout.js';
-import { patchShadowCascade, fitShadow, FAR_MARKER_RADIUS } from './sky/shadowCascade.js';
+import { patchShadowCascade, fitShadow, FAR_MARKER_RADIUS, buildFarTerrainProxy } from './sky/shadowCascade.js';
 import { clamp, smoothstep, lerp } from '../core/util.js';
 
 // Near and far shadow cascades blended in the light loop (see sky/shadowCascade.js).
@@ -60,6 +60,17 @@ export async function init(G) {
   far.shadow.normalBias = 0.8;
   far.shadow.radius = FAR_MARKER_RADIUS;
   far.shadow.autoUpdate = false;
+  // Once the far height grid lands, give the far cascade a coarse terrain to cast from.
+  if (far.castShadow && G.world?.farReady) {
+    const gate = G.world.farReady.then((f) => {
+      if (!f) return;
+      const proxy = buildFarTerrainProxy(f, far.shadow.camera);
+      scene.add(proxy);
+      A.farProxy = proxy;
+      far.shadow.needsUpdate = true;
+    }).catch((e) => console.warn('[atmosphere] far shadow proxy', e));
+    G.readyGates?.push(gate);
+  }
   const hemi = new THREE.HemisphereLight(0x8fb0ff, 0xd8ccc0, 0.3);
   hemi.name = 'hemi';
   scene.add(key, key.target, far, far.target, hemi);
@@ -205,10 +216,20 @@ export async function init(G) {
     U.uFogColor.value.copy(look.fog);
     if (aur > 0) U.uFogColor.value.add(tmp.copy(AURORA_TINT).multiplyScalar(aur * 0.004));
     U.uFogSunColor.value.copy(look.fogSun);
+    // Falling snow scatters every bit of light: storms are never pitch black, even at night.
+    if (W.snowfall > 0) {
+      const f = U.uFogColor.value, k = W.snowfall;
+      f.setRGB(Math.max(f.r, 0.03 * k), Math.max(f.g, 0.035 * k), Math.max(f.b, 0.046 * k));
+      const fs = U.uFogSunColor.value;
+      fs.setRGB(Math.max(fs.r, f.r), Math.max(fs.g, f.g), Math.max(fs.b, f.b));
+    }
     if (o && o.fogColor) {
       U.uFogColor.value.lerp(o.fogColor, ok);
       U.uFogSunColor.value.lerp(o.fogColor, ok);
     }
+    // The lake fog blanket is lit like a cloud top: sun from above plus the sky.
+    U.uFogLayerColor.value.copy(look.key).multiplyScalar(keyI * Math.max(A.keyDir.y, 0.06) / Math.PI)
+      .add(tmp.copy(look.hor).multiplyScalar(0.6)).add(tmp.copy(look.zen).multiplyScalar(0.45)).multiplyScalar(0.8);
     U.uFogDensity.value = W.fogDensity * fogMul;
     U.uFogHeightFalloff.value = W.fogFalloff;
     U.uFogBaseHeight.value = 0;

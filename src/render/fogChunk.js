@@ -20,6 +20,7 @@
 //   uFogLayer      vec4  (density per meter, top height, top softness, top noise amplitude)
 //   uFogLayerArea  vec4  (center x, center z, radius x, radius z) where the lake fog lives
 //   uFogSunWide    float weight of the wide warm lobe on the sun side
+//   uFogLayerColor vec3  in-scatter color of the lake fog (a brighter, sunlit blanket)
 //   uFogTime       float (alias of uTime, kept separate to avoid name clashes in custom shaders)
 import * as THREE from 'three';
 import { U } from './Uniforms.js';
@@ -28,6 +29,7 @@ U.uFogHaze ||= { value: new THREE.Vector2(0.00018, 1 / 1100) };
 U.uFogLayer ||= { value: new THREE.Vector4(0, 6, 3, 2) };
 U.uFogLayerArea ||= { value: new THREE.Vector4(40, -120, 300, 200) };
 U.uFogSunWide ||= { value: 0.35 };
+U.uFogLayerColor ||= { value: new THREE.Color(0.8, 0.82, 0.86) };
 U.uFogTime ||= U.uTime;
 
 // Pure GLSL helpers (no varyings, no USE_FOG guard). Requires the uniforms below to be declared.
@@ -43,6 +45,7 @@ export const FOG_UNIFORMS_GLSL = /* glsl */ `
   uniform vec4 uFogLayer;
   uniform vec4 uFogLayerArea;
   uniform float uFogSunWide;
+  uniform vec3 uFogLayerColor;
   uniform float uFogTime;
 `;
 
@@ -116,8 +119,14 @@ export const FOG_FUNCS_GLSL = /* glsl */ `
     vec3 ray = worldPos - cameraPosition;
     float dist = length(ray);
     vec3 rd = ray / max(dist, 1e-4);
-    float t = exp(-max(mzFogOD(cameraPosition, rd, dist), 0.0));
-    return col * t + mzFogInscatter(rd) * (1.0 - t);
+    float odA = mzExpOD(uFogDensity, uFogHeightFalloff, uFogBaseHeight, cameraPosition.y, rd.y, dist)
+              + mzExpOD(uFogHaze.x, uFogHaze.y, 0.0, cameraPosition.y, rd.y, dist);
+    float odL = mzLayerOD(cameraPosition, rd, dist);
+    float od = max(odA + odL, 0.0);
+    float t = exp(-od);
+    vec3 L = mzFogInscatter(rd);
+    if (odL > 0.0) L = mix(L, uFogLayerColor * (0.85 + 0.3 * pow(max(dot(rd, uSunDir), 0.0), 4.0)), odL / max(od, 1e-4));
+    return col * t + L * (1.0 - t);
   }
 `;
 
@@ -150,7 +159,7 @@ export const FOG_FRAGMENT = /* glsl */ `
 
 export const FOG_UNIFORM_NAMES = [
   'uFogColor', 'uFogSunColor', 'uSunDir', 'uFogDensity', 'uFogHeightFalloff', 'uFogBaseHeight', 'uFogSunPower',
-  'uFogHaze', 'uFogLayer', 'uFogLayerArea', 'uFogSunWide', 'uFogTime',
+  'uFogHaze', 'uFogLayer', 'uFogLayerArea', 'uFogSunWide', 'uFogTime', 'uFogLayerColor',
 ];
 
 // Uniforms for a custom fogged ShaderMaterial: { ...fogUniforms(), ...yours }.

@@ -251,7 +251,7 @@ export function gableRoof(kit, o) {
         const lump = 0.75 + 0.55 * kit.n2(x * 0.55 + 11, z * 0.55);
         const slide = smooth(0.74, 0.86, kit.n2(x * 0.35 + 40, z * 0.3 + 7)) * smooth(0.35, 0.75, ax);
         const ends = 0.45 + 0.55 * smooth(0, 0.5, Z - Math.abs(z));
-        rowT.push(Math.max(0.012, snowAmt * profile * lump * (1 - 0.92 * slide) * ends));
+        rowT.push(Math.max(0.035, snowAmt * profile * lump * (1 - 0.92 * slide) * ends));
       }
       P.push(rowP); T.push(rowT);
     }
@@ -290,15 +290,16 @@ export function gableRoof(kit, o) {
   if (o.ornament !== false) {
     const paint = o.paint ?? kit.pick([PAL.red, PAL.blueFaded, PAL.ochre]);
     const gz = o.gz ?? hd + 0.07;
-    kit.wood.at(0, 0, 0, 0, () => gableOrnament(kit, { X, Z, gz, topY, th, cos, sin, pitch, paint, sun: o.sun }));
-    kit.wood.at(0, 0, 0, Math.PI, () => gableOrnament(kit, { X, Z, gz, topY, th, cos, sin, pitch, paint, sun: o.sun }));
+    const heads = o.heads ?? kit.chance(0.8);
+    kit.wood.at(0, 0, 0, 0, () => gableOrnament(kit, { X, Z, gz, topY, th, cos, sin, pitch, paint, sun: o.sun, heads }));
+    kit.wood.at(0, 0, 0, Math.PI, () => gableOrnament(kit, { X, Z, gz, topY, th, cos, sin, pitch, paint, sun: o.sun, heads }));
   }
   return { topY, X, Z, pitch, ridgeY: topY(0, 0), cos, sin, tan, th };
 }
 
 // Crossed bargeboards at the peak ending in horse heads, a pierced roundel under the peak.
 // Built for the +z gable; callers rotate it by pi for the -z gable.
-function gableOrnament(kit, { X, Z, gz, topY, th, cos, sin, pitch, paint, sun }) {
+function gableOrnament(kit, { X, Z, gz, topY, th, cos, sin, pitch, paint, sun, heads = true }) {
   const paintCol = paint ?? kit.pick([PAL.red, PAL.blueFaded, PAL.ochre]);
   const boardCol = scaleC(PAL.plank, GAIN * 0.95);
   const depth = 0.05;
@@ -318,6 +319,7 @@ function gableOrnament(kit, { X, Z, gz, topY, th, cos, sin, pitch, paint, sun })
       m.box((L + ext) * 0.5, 0.268, sgn < 0 ? depth + 0.002 : -0.002, L + ext, 0.028, 0.004, scaleC(paintCol, GAIN * 0.9), { grain: 'x', uv: [1, 3] });
     }, 0, pitch);
     // Horse head at the tip, overlapping the board end.
+    if (!heads) continue;
     const dx = -sgn * cos, dy = sin;
     const tipX = sgn * X + dx * (L + ext - 0.18), tipY = lowY + dy * (L + ext - 0.18) + 0.02;
     kit.wood.at(tipX, tipY, oz, yaw, (m) => {
@@ -350,7 +352,7 @@ export function shedRoof(kit, high0, high1, low0, low1, o = {}) {
         const prof = 0.7 + 0.3 * (i / (P.length - 1));
         const lump = 0.75 + 0.55 * kit.n2(p.x * 0.6 + 5, p.z * 0.6);
         const edgeJ = 0.5 + 0.5 * smooth(0, 0.4, Math.min(j, P[i].length - 1 - j) * 0.22);
-        row.push(Math.max(0.012, snowAmt * prof * lump * edgeJ));
+        row.push(Math.max(0.035, snowAmt * prof * lump * edgeJ));
       }
       T.push(row);
     }

@@ -4,7 +4,7 @@ import * as THREE from 'three';
 import { Kit, TAU } from './kit.js';
 
 const STRAW = [0xe8d9a6, 0xdcc98c, 0xd0bd7c, 0xe2d29a];
-const RED = [0x9a2e22, 0xa83426, 0x862a20];
+const RED = [0x8a281e, 0x962e22, 0x7a2219];
 
 // ---- the carved pale face and straw hair, shared by effigy and effigyHead ----------------------
 function addHead(k, o = {}) {
@@ -34,7 +34,7 @@ function addHead(k, o = {}) {
     k.box('paint', 0.04, 0.007, 0.012, { pos: [0, -0.078, 0.09], tint: burn ? 0x2a1a14 : 0x7a1f18, grime: 0, var: 0, rot: [0.1, 0, 0] });
   });
   // Straw hair: strands hanging from the crown, longer at the back; a fringe at the sides only.
-  const n = o.hairCount || 80;
+  const n = o.hairCount || 56;
   for (let i = 0; i < n; i++) {
     const a = (i / n) * TAU + k.rs(0.07);
     const front = 0.5 + 0.5 * Math.cos(a); // 1 at the face, 0 behind
@@ -45,9 +45,9 @@ function addHead(k, o = {}) {
     const topY = y + 0.075 - 0.025 * (1 - front) * 0 + (1 - front) * 0.015;
     const burnt = burn > 0.5 && k.chance(0.7);
     if (burnt) continue;
-    k.box('straw', 0.026 * s, len, 0.016, {
+    k.blade('straw', 0.034 * s, len, {
       pos: [Math.sin(a) * r0 * s, topY - len / 2 - 0.02 * front, Math.cos(a) * r0 * s - 0.005], yaw: a, rot: [-0.1 - k.r(0, 0.18) - (1 - front) * 0.05, 0, k.rs(0.06)],
-      taper: [0.35, 0.6], tint: o.frozen ? k.pick([0xe0ecf4, 0xd0dfe8, 0xc4d6e2]) : k.pick(STRAW), var: 0.12, grime: 0.05, jitter: 0.002, tile: 0.4, seg: [1, 2, 1],
+      taper: 0.35, tint: o.frozen ? k.pick([0xe0ecf4, 0xd0dfe8, 0xc4d6e2]) : k.pick(STRAW), var: 0.12, grime: 0.05, tile: 0.4,
     });
   }
   // Wreath of twisted straw with a few red bits.
@@ -139,10 +139,10 @@ function addBody(k, p) {
   }
   // Straw showing under the hem: the figure is a bundle of stalks in a dress.
   if (!p.seated && !p.bare && !burntSkirt) {
-    for (let i = 0; i < 34; i++) {
-      const a = (i / 34) * TAU + k.rs(0.1);
+    for (let i = 0; i < 30; i++) {
+      const a = (i / 30) * TAU + k.rs(0.1);
       const L = 0.1 + k.r(0, 0.1);
-      k.box('straw', 0.02, L, 0.012, { pos: [Math.sin(a) * 0.42, hem + 0.02 - L / 2 + 0.03, Math.cos(a) * 0.42], yaw: a, rot: [-0.12 - k.r(0, 0.15), 0, 0], tint: frozen ? 0xdbe8f0 : k.pick(STRAW), var: 0.12, grime: 0.1, taper: [0.5, 0.7] });
+      k.blade('straw', 0.045, L, { pos: [Math.sin(a) * 0.46, hem + 0.02 - L / 2 + 0.03, Math.cos(a) * 0.46], yaw: a, rot: [-0.12 - k.r(0, 0.15), 0, 0], tint: frozen ? 0xdbe8f0 : k.pick(STRAW), var: 0.12, grime: 0.1, taper: 0.5 });
     }
   }
   // Bodice
@@ -272,9 +272,9 @@ export function effigy(o = {}) {
     });
     k.cyl('wood', 0.03, 0.03, 0.1, { pos: [-0.55, 0.05, 0.4], radial: 8, tint: 0xa89684 });
     k.cyl('ribbon', 0.036, 0.036, 0.08, { pos: [-0.55, 0.05, 0.4], radial: 8, tint: RED[0], grime: 0 });
-    for (let i = 0; i < 24; i++) {
+    for (let i = 0; i < 20; i++) {
       const a = k.r(0, TAU), d = k.r(0.2, 0.9);
-      k.box('straw', 0.012, 0.012, k.r(0.25, 0.55), { pos: [Math.cos(a) * d, k.r(0.015, 0.08), Math.sin(a) * d], rot: [k.rs(0.2), k.r(0, TAU), k.rs(0.2)], tint: k.pick(STRAW), var: 0.12, grime: 0.2 });
+      k.blade('straw', 0.025, k.r(0.25, 0.55), { pos: [Math.cos(a) * d, k.r(0.015, 0.08), Math.sin(a) * d], rot: [Math.PI / 2 + k.rs(0.2), k.r(0, TAU), 0], tint: k.pick(STRAW), var: 0.12, grime: 0.2 });
     }
     // The face, resting on a small block.
     k.cyl('bark', 0.1, 0.12, 0.2, { pos: [0.75, 0.1, 0.55], radial: 8, cap: 'logEnd', noBottom: true, tint: 0xd8cdc0 });
@@ -328,7 +328,7 @@ export function ribbonPole(o = {}) {
     const a = (i / nr) * TAU * 2.3 + k.rs(0.3);
     const len = k.r(0.9, 1.9);
     twine(k, y, 0.058, RED[i % 3], 0.014);
-    k.hang('ribbon', k.r(0.05, 0.1), len, { pos: [Math.sin(a) * 0.06, y, Math.cos(a) * 0.06], yaw: a, tint: RED[i % 3], sway: 1.0, wave: 0.02, sy: 8, grime: 0, var: 0.03 });
+    k.hang('ribbon', k.r(0.05, 0.1), len, { pos: [Math.sin(a) * 0.06, y, Math.cos(a) * 0.06], yaw: a, tint: RED[i % 3], sway: 1.0, wave: 0.02, sy: 5, grime: 0, var: 0.03 });
   }
   // Cairn
   for (let i = 0; i < 9; i++) {
@@ -553,9 +553,6 @@ export function dogKennel(o = {}) {
   k.box('planks', w, 0.28, 0.04, { pos: [0, h - 0.14, d / 2 - 0.02], tint: wood });
   k.box('matte', w - 0.1, 0.02, d - 0.1, { pos: [0, 0.02, 0], tint: 0x1a1612, grime: 0, uv: 'none' });
   k.blob('straw', 0.3, { pos: [0, 0.08, 0.25], scale: [1.4, 0.3, 1.2], detail: 1, tint: 0xd8c78a });
-  for (const sx of [-1, 1]) {
-    k.box('planks', 0.04, 0.5, d + 0.1, { pos: [sx * 0.2, h + 0.13, 0], rot: [0, 0, sx * -0.9], tint: 0x8a7a68, jitter: 0.004, grain: 'z' });
-  }
   // Roof boards
   for (const sx of [-1, 1]) k.box('planks', 0.62, 0.035, d + 0.14, { pos: [sx * 0.31, h + 0.17, 0], rot: [0, 0, sx * -0.5], tint: 0x7a6a5a, jitter: 0.004, grain: 'z' });
   if (!o.indoor) { k.mound(0.5, 0.1, d + 0.1, { pos: [-0.28, h + 0.22, 0], rot: [0, 0, 0.5], jseed: 2 }); k.mound(0.5, 0.1, d + 0.1, { pos: [0.28, h + 0.22, 0], rot: [0, 0, -0.5], jseed: 3 }); }

@@ -60,8 +60,10 @@ export class Ambience {
     const bq = (type, f, q = 0.7) => { const b = ctx.createBiquadFilter(); b.type = type; b.frequency.value = f; b.Q.value = q; return b; };
     // Wind: two decorrelated sides.
     this.windOut = g(1);
+    this.windHp = bq('highpass', 35, 0.6);
     this.windLp = bq('lowpass', 12000, 0.5);
-    this.windOut.connect(this.windLp);
+    this.windOut.connect(this.windHp);
+    this.windHp.connect(this.windLp);
     this.windLp.connect(mx.ambIn);
     this.windVerb = g(0.25);
     this.windLp.connect(this.windVerb);
@@ -169,6 +171,7 @@ export class Ambience {
     if (v < 0.004) { if (h.live) h.kill(1.5); return; }
     if (!h.live) { h.volume = v; h.start(); }
     else h.setVolume(v);
+    // start() may defer while the worker bakes the bed; it is retried on the next update.
   }
 
   spots(dt, e, z) {

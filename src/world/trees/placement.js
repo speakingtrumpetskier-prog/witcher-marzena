@@ -11,7 +11,7 @@
 import { createNoise } from '../../core/Noise.js';
 import { rng, smoothstep, clamp, lerp, nearestOnPolyline } from '../../core/util.js';
 import { LOC, ROADS, LAKE, RIVER, nearestRoad } from '../layout.js';
-import { lakeSDF } from '../heightfield.js';
+import { lakeSDF, computeHeight } from '../heightfield.js';
 import { exclusionFactor, EXCLUSIONS } from '../exclusions.js';
 
 export const INNER = 660; // full detail area half size (playable is 620)
@@ -475,22 +475,42 @@ export async function placeFarRing(G, kinds, opts = {}) {
     return list[list.length - 1];
   };
   const R = INNER;
-  const ready = W.farReady ? await Promise.race([W.farReady, new Promise((r) => setTimeout(() => r(null), opts.waitMs ?? 20000))]) : null;
-  void ready;
-  const FS = 12;
+  // Heights: the terrain builder's far grid when it has landed (it is exactly what the far terrain
+  // mesh uses). Otherwise a coarse grid of our own, so slow machines never stall on it.
+  if (!W.far && W.farReady) await Promise.race([W.farReady, new Promise((r) => setTimeout(r, opts.waitMs ?? 6000))]);
+  let hAt = (x, z) => W.terrainAt(x, z);
+  if (!W.far) {
+    const GS = 64, gn = Math.ceil((FAR * 2) / GS) + 1;
+    const grid = new Float32Array(gn * gn);
+    for (let j = 0; j < gn; j++) {
+      await maybeYield();
+      for (let i = 0; i < gn; i++) {
+        const x = -FAR + i * GS, z = -FAR + j * GS;
+        grid[j * gn + i] = Math.abs(x) < 780 && Math.abs(z) < 780 ? W.terrainAt(x, z) : computeHeight(x, z);
+      }
+    }
+    hAt = (x, z) => {
+      const fx = (x + FAR) / GS, fz = (z + FAR) / GS;
+      const ix = clamp(Math.floor(fx), 0, gn - 2), iz = clamp(Math.floor(fz), 0, gn - 2);
+      const tx = fx - ix, tz = fz - iz;
+      const a = grid[iz * gn + ix], b = grid[iz * gn + ix + 1], c = grid[(iz + 1) * gn + ix], d = grid[(iz + 1) * gn + ix + 1];
+      return lerp(lerp(a, b, tx), lerp(c, d, tx), tz);
+    };
+  }
+  const FS = 9;
   for (let gz = -FAR; gz < FAR; gz += FS) {
     await maybeYield();
     for (let gx = -FAR; gx < FAR; gx += FS) {
       const x = gx + rn() * FS, z = gz + rn() * FS;
       if (Math.abs(x) < R && Math.abs(z) < R) continue;
-      const h = W.terrainAt(x, z);
+      const h = hAt(x, z);
       if (h > 405 || h < 1) continue;
-      const sl = Math.sqrt((W.terrainAt(x + 18, z) - W.terrainAt(x - 18, z)) ** 2 + (W.terrainAt(x, z + 18) - W.terrainAt(x, z - 18)) ** 2) / 36;
+      const sl = Math.sqrt((hAt(x + 18, z) - hAt(x - 18, z)) ** 2 + (hAt(x, z + 18) - hAt(x, z - 18)) ** 2) / 36;
       if (sl > 1.05) continue;
       const F = macroForest(x, z) * 0.9 + 0.12;
       let D = smoothstep(0.24, 0.72, F) * (1 - smoothstep(260, 395, h)) * (1 - smoothstep(0.55, 1.0, sl));
       D *= 1 - 0.9 * smoothstep(0.3, 0.52, N.fbm2(x / 90 + 5, z / 90 + 9, 2));
-      D *= 1.3 * dens;
+      D *= dens;
       if (rn() >= D) continue;
       const B = macroBirch(x, z, h);
       const u = rn();
@@ -499,9 +519,10 @@ export async function placeFarRing(G, kinds, opts = {}) {
       else if (u < 0.1 + B * 0.5 && B > 0.35 && h < 130) ki = pickVar(birchIdx, birchIdx.map(() => 1));
       else ki = pickVar(spruceIdx, [1, 0.9, 0.5, 0.2, 0.7, 0.8]);
       const stunt = lerp(1, 0.4, smoothstep(160, 335, h));
-      const s = lerp(0.7, 1.15, rn()) * stunt * 1.12;
-      tint(rn, 1, 0.3, col);
-      far.push({ k: ki, x, y: h - 1.0 - sl * 3, z, sx: s * (0.95 + rn() * 0.2), sy: s, r: col[0], g: col[1], b: col[2], view: rn() < 0.5 ? 0 : 1 });
+      // one billboard stands for a clump of trees: wider and slightly taller than a single tree
+      const s = lerp(0.8, 1.15, rn()) * stunt * 1.1;
+      tint(rn, 0.9, 0.3, col);
+      far.push({ k: ki, x, y: h - 1.0 - sl * 3, z, sx: s * (1.35 + rn() * 0.3), sy: s, r: col[0], g: col[1], b: col[2], view: rn() < 0.5 ? 0 : 1 });
     }
   }
   return far;

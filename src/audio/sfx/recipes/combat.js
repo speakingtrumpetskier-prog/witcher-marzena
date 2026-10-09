@@ -7,7 +7,7 @@ const done = (b, sr, lp = 9000) => { new Biquad(sr, 'lowpass', lp, 0.7).run(b); 
 
 export const COMBAT = {
   sword_whoosh: {
-    variants: 6, gain: 0.5, ref: 2, max: 30, pitchVar: 0.07, verb: 0.05, poly: 4,
+    variants: 6, rate: 32000, gain: 0.5, ref: 2, max: 30, pitchVar: 0.07, verb: 0.05, poly: 4,
     bake: (sr, r) => {
       const dur = 0.26 + r() * 0.06;
       const b = whoosh(sr, r, dur, { f0: 350 + r() * 150, f1: 1700 + r() * 600, q: 1.5, peak: 0.45 + r() * 0.1, tone: 0.03, toneF: 2400 + r() * 400 });
@@ -44,7 +44,7 @@ export const COMBAT = {
     },
   },
   hit_ice: {
-    variants: 5, gain: 0.6, ref: 2.5, max: 40, pitchVar: 0.06, verb: 0.15, poly: 4,
+    variants: 5, rate: 32000, gain: 0.6, ref: 2.5, max: 40, pitchVar: 0.06, verb: 0.15, poly: 4,
     bake: (sr, r) => {
       const dur = 0.7, b = new Float32Array(len(sr, dur));
       mix(b, burst(sr, r, 0.012, { hp: 700, env: { a: 0.0002, d: 0.002 } }), 0.6);
@@ -55,7 +55,7 @@ export const COMBAT = {
     },
   },
   parry: {
-    variants: 4, gain: 0.55, ref: 3, max: 50, pitchVar: 0.04, verb: 0.15, poly: 3,
+    variants: 4, rate: 32000, gain: 0.55, ref: 3, max: 50, pitchVar: 0.04, verb: 0.15, poly: 3,
     bake: (sr, r) => {
       const dur = 1.3, b = new Float32Array(len(sr, dur));
       mix(b, ring(sr, r, dur, 820 + r() * 160, [1, 2.76, 5.4, 8.93, 1.51, 3.6], { decay: 0.9, amps: [1, 0.7, 0.4, 0.15, 0.45, 0.3], spread: 0.004 }), 0.45);
@@ -65,7 +65,7 @@ export const COMBAT = {
     },
   },
   block: {
-    variants: 4, gain: 0.55, ref: 3, max: 45, pitchVar: 0.05, verb: 0.1, poly: 3,
+    variants: 4, rate: 32000, gain: 0.55, ref: 3, max: 45, pitchVar: 0.05, verb: 0.1, poly: 3,
     bake: (sr, r) => {
       const dur = 0.6, b = new Float32Array(len(sr, dur));
       mix(b, ring(sr, r, dur, 560 + r() * 120, [1, 2.4, 4.1, 5.9], { decay: 0.22, amps: [1, 0.5, 0.3, 0.15] }), 0.45);
@@ -74,7 +74,7 @@ export const COMBAT = {
     },
   },
   sword_draw: {
-    variants: 3, gain: 0.5, ref: 2, max: 20, pitchVar: 0.03, verb: 0.08, poly: 2,
+    variants: 3, rate: 32000, gain: 0.3, ref: 2, max: 20, pitchVar: 0.03, verb: 0.08, poly: 2,
     bake: (sr, r) => {
       const dur = 1.2, b = new Float32Array(len(sr, dur));
       mix(b, burst(sr, r, 0.55, { q: 4, sweep: (t) => 2400 + 3000 * (t / 0.55), env: [[0, 0], [0.04, 0.6], [0.38, 1], [0.5, 0.25], [0.55, 0]] }), 0.5);
@@ -134,7 +134,7 @@ export const COMBAT = {
     },
   },
   sign_gale: {
-    variants: 3, gain: 0.7, ref: 3, max: 45, pitchVar: 0.04, verb: 0.15, poly: 2,
+    variants: 3, gain: 0.45, ref: 3, max: 45, pitchVar: 0.04, verb: 0.15, poly: 2,
     bake: (sr, r) => {
       const dur = 1.2, b = new Float32Array(len(sr, dur));
       const w = whoosh(sr, r, 1.0, { f0: 300, f1: 2400, q: 0.6, peak: 0.18, color: 'white' });
@@ -146,7 +146,7 @@ export const COMBAT = {
     },
   },
   sign_ward: {
-    variants: 2, gain: 0.5, ref: 3, max: 30, pitchVar: 0.01, verb: 0.3, poly: 2,
+    variants: 2, rate: 32000, gain: 0.5, ref: 3, max: 30, pitchVar: 0.01, verb: 0.3, poly: 2,
     bake: (sr, r) => {
       const dur = 1.8, n = len(sr, dur), b = new Float32Array(n);
       [74, 81, 86, 89, 93].forEach((m, k) => {
@@ -161,7 +161,7 @@ export const COMBAT = {
     },
   },
   ward_hit: {
-    variants: 3, gain: 0.55, ref: 3, max: 35, pitchVar: 0.04, verb: 0.25, poly: 2,
+    variants: 3, rate: 32000, gain: 0.55, ref: 3, max: 35, pitchVar: 0.04, verb: 0.25, poly: 2,
     bake: (sr, r) => {
       const dur = 1.0, b = new Float32Array(len(sr, dur));
       mix(b, ring(sr, r, dur, 1250 + r() * 200, [1, 1.6, 2.41, 3.2], { decay: 0.45, amps: [1, 0.6, 0.4, 0.2] }), 0.35);
@@ -218,7 +218,7 @@ export const COMBAT = {
     },
   },
   vesna_death: {
-    variants: 2, gain: 0.55, ref: 2, max: 25, pitchVar: 0.02, verb: 0.1, poly: 1,
+    variants: 2, heavy: true, gain: 0.4, ref: 2, max: 25, pitchVar: 0.02, verb: 0.1, poly: 1,
     bake: (sr, r) => {
       const dur = 1.3;
       const fc = curve([[0, 250], [0.15, 235], [0.9, 150], [1.3, 120]]);

@@ -7,13 +7,16 @@
 //   const batch = new PropBatch(G, 'village');    merged static placement, ~1500 props in < 150 draw calls
 //   batch.add('barrel', x, z, { yaw, scale, y, seed, snap: true, collide: true });  batch.build();
 //   props.fx.fire / smoke / steam / sparks / torch / candle / glow / wisp / breath / burst
-//   props.make(name, opts)    props.list()    props.catalog (names)
+//   props.make(name, opts)    props.list()    props.catalog (names)    props.categories (suggested groups)
+//   await props.preload(onProgress)   optional: texture generation up front, with yields
+//   await batch.buildAsync({ budgetMs: 10, onProgress })   time-sliced build for loading screens
 //
 // Common builder options: seed (variant), indoor (no snow patch on upward faces), variant (named
 // variant where a prop has them), fx (default true: spawn live fx emitters; PropBatch passes false
 // and spawns them itself).
 import { PropBatch } from './batch.js';
 import { fx } from './fx.js';
+import { getMat, MAT_INFO } from './mats.js';
 import * as basic from './p_basic.js';
 import * as work from './p_work.js';
 import * as household from './p_household.js';
@@ -79,6 +82,20 @@ props.categories = {
   farm: ['hayBale', 'haystack', 'woodpile', 'cart', 'cartWheel', 'sled', 'strawPile', 'dogKennel', 'chickenCoop', 'beehive', 'skinFrame'],
   wilderness: ['rockSmall', 'logs', 'stump', 'bones', 'skull', 'campfire', 'tent', 'signpost', 'torch', 'cart'],
   fire: ['campfire', 'brazier', 'torch', 'lantern', 'cauldron', 'offering'],
+};
+
+// Optional: generate every canvas texture and the fx atlas up front, yielding to the event loop between
+// textures so a loading screen keeps moving (about 0.5 to 1 s of work in total). Otherwise textures are
+// generated lazily the first time a prop that needs them is built.
+props.preload = async (onProgress) => {
+  const names = Object.keys(MAT_INFO);
+  for (let i = 0; i < names.length; i++) {
+    getMat(names[i]);
+    if (onProgress) onProgress((i + 1) / (names.length + 1), names[i]);
+    await new Promise((r) => setTimeout(r, 0));
+  }
+  fx.install();
+  if (onProgress) onProgress(1, 'fx');
 };
 
 PropBatch.make = props.make;

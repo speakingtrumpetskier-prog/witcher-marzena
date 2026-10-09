@@ -15,7 +15,7 @@ export default {
   name: 'reveal',
   tempo: 66,
   beats: 3,
-  level: 0.8,
+  level: 0.95,
   parts: {
     voice: P.voice({ level: 0.46 }),
     gurdy: P.gurdy(),
@@ -34,10 +34,10 @@ export default {
       // Intro: drones wake, a zither chord falls open, a hum and a drum roll swell.
       S.ctl('gurdy', 0, { type: 'drone', p: [50, 57], v: 0.5, fade: 1.6 });
       S.ctl('gurdy', 0, { type: 'crank', rate: 1.1, depth: 0.05 });
-      S.add('zither', 0, 3, [50, 57, 62, 65, 69], { v: 0.5, strum: 0.09 });
-      S.add('zither', 4.5, 3, [62, 69], { v: 0.35, strum: 0.12 });
-      S.add('choirF', 6, 6, [62, 69], { vowel: 'u', v: 0.55, soft: true, tie: false });
-      roll(S, 'frame', 6, 6, r, { v0: 0.05, v1: 0.7, rate: 0.25 });
+      S.add('zither', 0, 3, r.pick([[50, 57, 62, 65, 69], [38, 50, 57, 62, 65], [50, 57, 62, 69, 74]]), { v: 0.45 + r() * 0.1, strum: 0.07 + r() * 0.04 });
+      S.add('zither', 4.5, 3, r.pick([[62, 69], [57, 65], [62, 65, 69]]), { v: 0.3 + r() * 0.1, strum: 0.12 });
+      S.add('choirF', 6, 6, [62, 69], { vowel: r.pick(['u', 'o', 'm']), v: 0.5 + r() * 0.1, soft: true, tie: false });
+      roll(S, 'frame', 6, 6, r, { v0: 0.05, v1: 0.6 + r() * 0.2, rate: r.pick([0.25, 0.25, 1 / 3]) });
       buzz(S, 9, 1, r, [[0, 0.3], [1, 0.35], [2, 0.5]]);
       // A and A': the voice alone over drones, frame drum and buzzing gurdy.
       let t = 12;
@@ -91,8 +91,8 @@ export default {
       // Coda: the music box remembers, over the drone, and the drone lets go.
       t = 117;
       S.mark(39, { section: 'coda' });
-      S.add('choirF', t, 9, [62, 69], { vowel: 'u', v: 0.35, soft: true });
-      motif(S, 'box', t + 3, r, { octave: 1, v: 0.55 });
+      S.add('choirF', t, 9, r.pick([[62, 69], [57, 62], [62, 65, 69]]), { vowel: r.pick(['u', 'm', 'o']), v: 0.3 + r() * 0.1, soft: true });
+      motif(S, 'box', t + 3, r, { octave: 1, v: 0.55, slow: r.pick([1, 1.15, 1.3]) });
       S.ctl('gurdy', t + 9, { type: 'drone', on: false, fade: 2.5 });
       S.bars(46);
       yield* S.play();

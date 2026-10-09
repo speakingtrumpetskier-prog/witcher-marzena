@@ -121,6 +121,7 @@ function makeSculpt(FP) {
     d = smin(d, sdCone(ax, y, z, gonL, chinPL, 0.011 + FP.jawSq * 0.002, 0.012), 0.018);
     d = smin(d, sdCone(ax, y, z, V(0.047 * jw, 0.036, -0.008), gonL, 0.01, 0.011), 0.018);
     d = smin(d, sdEll(x, y, z, 0, chinY, 0.085 + FP.chin * 0.004, 0.015 * FP.chinW, 0.013, 0.011), 0.01);
+    if (z < 0.028 && y > -0.03) return d; // face features live in front; skip them back here
     // cheekbones and cheek fat
     d = smin(d, sdEll(ax, y, z, 0.043, 0.053, 0.07, 0.016 * cheekS, 0.0095 * cheekS, 0.014), 0.012);
     if (full > 0) d = smin(d, sdEll(ax, y, z, 0.036, 0.044, 0.079, 0.02, 0.017, 0.012 + full * 0.002), 0.012 + full * 0.006);
@@ -198,15 +199,34 @@ function makeWarp(density, x0, x1, n = 2048) {
 }
 
 // ---------------------------------------------------------------- build
+const SCULPT_KEYS = ['jawW', 'jawSq', 'chin', 'chinW', 'cheek', 'gaunt', 'brow', 'noseLen', 'noseW', 'noseBridge', 'noseTip', 'noseSize',
+  'lipFull', 'lipW', 'eyeSize', 'eyeSpace', 'eyeTilt', 'lidHeavy', 'faceLen', 'craniumW', 'fullCheek', 'child', 'fem', 'wrinkles'];
+const sculptCache = new Map();
+function getSculpt(FP, nAz, nPol) {
+  const key = SCULPT_KEYS.map((k) => (typeof FP[k] === 'number' ? FP[k].toFixed(3) : String(FP[k]))).join('|') + `|${nAz}x${nPol}`;
+  let e = sculptCache.get(key);
+  if (!e) {
+    e = { S: makeSculpt(FP), grid: null, casts: new Map() };
+    sculptCache.set(key, e);
+    if (sculptCache.size > 64) sculptCache.delete(sculptCache.keys().next().value);
+  }
+  return e;
+}
+
 export function buildHead(mb, rig, FP, look) {
   const Mb = rig.M;
   const hk = Mb.headK;
-  const S = makeSculpt(FP);
+  const hi0 = look.headRes || 'high';
+  const nAz0 = hi0 === 'high' ? 44 : hi0 === 'mid' ? 32 : 24;
+  const nPol0 = hi0 === 'high' ? 44 : hi0 === 'mid' ? 31 : 23;
+  const SC = getSculpt(FP, nAz0, nPol0);
+  const S = SC.S;
   const pivot = rig.world.head;
   const O = V(0, 0.045, 0.012);
   const hi = look.headRes || 'high';
-  const nAz = hi === 'high' ? 52 : hi === 'mid' ? 40 : 30;
-  const nPol = hi === 'high' ? 50 : hi === 'mid' ? 38 : 28;
+  const nAz = nAz0, nPol = nPol0;
+  look.eyeSeg = hi === 'high' ? [13, 9] : [10, 7];
+  look.lidSeg = hi === 'high' ? [11, 4] : [8, 3];
   const dirOf = (az, pol) => V(Math.sin(pol) * Math.sin(az), Math.cos(pol), Math.sin(pol) * Math.cos(az));
   const polOf = (p) => {
     const d = p.clone().sub(O);
@@ -214,8 +234,8 @@ export function buildHead(mb, rig, FP, look) {
   };
   const stom = polOf(V(0, S.stomY, 0.104));
   const eyeP = polOf(S.eyeL);
-  const azW = makeWarp((a) => 1 + 2.3 * Math.exp(-((a / 0.78) ** 2)) + 1.3 * Math.exp(-((a / 0.3) ** 2)), -Math.PI, Math.PI);
-  const polW = makeWarp((b) => 0.9 + 1.8 * Math.exp(-(((b - 1.55) / 0.62) ** 2)) + 3.2 * Math.exp(-(((b - stom.pol) / 0.12) ** 2)) +
+  const azW = makeWarp((a) => 0.75 + 2.6 * Math.exp(-((a / 0.78) ** 2)) + 1.6 * Math.exp(-((a / 0.3) ** 2)), -Math.PI, Math.PI);
+  const polW = makeWarp((b) => 0.7 + 1.9 * Math.exp(-(((b - 1.55) / 0.62) ** 2)) + 3.2 * Math.exp(-(((b - stom.pol) / 0.12) ** 2)) +
     0.9 * Math.exp(-(((b - eyeP.pol) / 0.12) ** 2)), 0, 2.78);
   // Snap one row onto the stomion so the mouth slit is a clean row.
   let polTs = [];
@@ -235,11 +255,11 @@ export function buildHead(mb, rig, FP, look) {
       S.sdf(p.x, p.y, p.z + e) - S.sdf(p.x, p.y, p.z - e),
     ).normalize();
   };
-  const cast = (dir) => {
+  const castRaw = (dir) => {
     // sphere trace from outside inward
-    let t = 0.26;
+    let t = 0.2;
     const p = new THREE.Vector3();
-    for (let i = 0; i < 64; i++) {
+    for (let i = 0; i < 48; i++) {
       p.copy(O).addScaledVector(dir, t);
       const d = sdf(p);
       if (d < 0.00015) break;
@@ -254,6 +274,12 @@ export function buildHead(mb, rig, FP, look) {
       if (sdf(p) > 0) b = m; else a = m;
     }
     return O.clone().addScaledVector(dir, (a + b) * 0.5);
+  };
+  const cast = (dir) => {
+    const k = `${dir.x.toFixed(4)},${dir.y.toFixed(4)},${dir.z.toFixed(4)}`;
+    let r = SC.casts.get(k);
+    if (!r) { r = castRaw(dir); SC.casts.set(k, r); }
+    return r.clone();
   };
 
   // Hair on the scalp (part of the head grid): mask and thickness.
@@ -329,14 +355,22 @@ export function buildHead(mb, rig, FP, look) {
     const row = [], rowLo = [];
     for (let j = 0; j <= nAz; j++) {
       const az = azW.fwd(j / nAz);
-      const dir = dirOf(az, pol);
-      let p = cast(dir);
-      grad(p, n);
-      // SDF ambient occlusion
-      let occ = 0;
-      for (const [h, w] of [[0.003, 0.5], [0.007, 0.3], [0.013, 0.2]]) occ += w * Math.max(0, h - sdf(p.clone().addScaledVector(n, h))) / h;
-      let ao = clamp(1 - occ * 1.25, 0.35, 1);
-      carveEyes(p);
+      const gk = i * (nAz + 1) + j;
+      let p, ao;
+      if (SC.grid && SC.grid[gk]) {
+        const g = SC.grid[gk];
+        p = g.p.clone(); n.copy(g.n); ao = g.ao;
+      } else {
+        const dir = dirOf(az, pol);
+        p = cast(dir);
+        grad(p, n);
+        // SDF ambient occlusion
+        let occ = 0;
+        for (const [h, w] of [[0.003, 0.5], [0.007, 0.3], [0.013, 0.2]]) occ += w * Math.max(0, h - sdf(p.clone().addScaledVector(n, h))) / h;
+        ao = clamp(1 - occ * 1.25, 0.35, 1);
+        carveEyes(p);
+        (SC.grid ||= [])[gk] = { p: p.clone(), n: n.clone(), ao };
+      }
       const hm = scalp(p);
       const isHair = hm.mask > 0.02;
       if (isHair) p.addScaledVector(n, hm.thick * hm.mask);
@@ -378,7 +412,7 @@ export function buildHead(mb, rig, FP, look) {
   info.sdf = sdf;
   info.skinWeights = (pl) => weightsAt(pl, pl.y < S.stomY ? kStom + 1 : kStom - 1, 0);
 
-  buildEyes(mb, rig, FP, S, scale, pivot, info.uvOf);
+  buildEyes(mb, rig, FP, S, scale, pivot, info.uvOf, look);
   buildMouthInside(mb, FP, S, scale, pivot);
   buildEars(mb, FP, S, scale, pivot, look);
   return info;
@@ -411,7 +445,7 @@ export function hairMask(p, h) {
   return { mask: m, thick };
 }
 
-function buildEyes(mb, rig, FP, S, sc, pivot, uvOf) {
+function buildEyes(mb, rig, FP, S, sc, pivot, uvOf, look) {
   const re = S.re;
   for (const [side, s] of [['L', 1], ['R', -1]]) {
     const E = (s > 0 ? S.eyeL : S.eyeR);
@@ -419,7 +453,7 @@ function buildEyes(mb, rig, FP, S, sc, pivot, uvOf) {
     // Eyeball: sphere with a corneal bulge; UV maps the front onto the iris strip.
     const sclera = col(FP.ghost ? '#cfe9ee' : '#e8e0d6');
     const eyeMat = mat(sclera, { face: true, skin: 0, rough: 0.12, fuzz: 0, special: SPECIAL.eye });
-    const segA = 16, segB = 12;
+    const [segA, segB] = look.eyeSeg || [13, 9];
     const rows = [];
     for (let i = 0; i <= segB; i++) {
       const th = (i / segB) * Math.PI; // 0 = front pole
@@ -448,11 +482,11 @@ function buildEyes(mb, rig, FP, S, sc, pivot, uvOf) {
       return E.clone().addScaledVector(V(Math.sin(a) * Math.cos(ps), Math.sin(ps), Math.cos(a) * Math.cos(ps)), r);
     };
     const toWorld = (p) => p.clone().multiplyScalar(sc).add(pivot);
-    const nC = 14;
+    const [nC, nRL] = look.lidSeg || [11, 4];
     const lid = (upper) => {
       const bone = (upper ? 'lidU' : 'lidL') + side;
       const rowsL = [];
-      const nR = 5;
+      const nR = nRL;
       const marginOf = (u) => (upper ? LS.upper(u) : LS.lower(u));
       for (let r = 0; r <= nR + 1; r++) {
         const row = [];
@@ -552,7 +586,7 @@ function buildEars(mb, FP, S, sc, pivot, look) {
   for (const s of [1, -1]) {
     // ear: a flattened shell with a rolled rim (helix) and a hollow (concha)
     const C = V(s * 0.0705, 0.058, -0.008);
-    const nR = 5, nT = 14;
+    const nR = 4, nT = 10;
     const rows = [];
     for (let r = 0; r <= nR; r++) {
       const row = [];
@@ -584,7 +618,7 @@ function buildEars(mb, FP, S, sc, pivot, look) {
     }
     // back of the ear: a cap behind so it is not paper thin
     const backC = V(s * 0.068, 0.058, -0.012).multiplyScalar(sc).add(pivot);
-    blob(mb, backC, { x: 0.004 * sc, y: 0.024 * sc * es, z: 0.012 * sc * es }, earMat, [['head', 1]], 8, 4, new THREE.Color(0.8, 0.8, 0.8));
+    blob(mb, backC, { x: 0.004 * sc, y: 0.024 * sc * es, z: 0.012 * sc * es }, earMat, [['head', 1]], 6, 3, new THREE.Color(0.8, 0.8, 0.8));
   }
   void look;
 }

@@ -63,7 +63,7 @@ export function birchAtlas() {
   // --- twig spray (left half): stems fan out from bottom center
   ctx.save();
   ctx.beginPath(); ctx.rect(0, 0, 256, 256); ctx.clip();
-  const tones = ['#51453f', '#62524a', '#41363a', '#7a6860'];
+  const tones = ['#4a4044', '#585050', '#3a3238', '#6e6662'];
   for (let i = 0; i < 5; i++) {
     ctx.strokeStyle = tones[i % tones.length];
     const a = (i - 2) * 0.3 + (r() - 0.5) * 0.15;

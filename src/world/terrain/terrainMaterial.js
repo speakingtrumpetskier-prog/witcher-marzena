@@ -76,8 +76,11 @@ const FRAG_SHADE = /* glsl */ `
 
   // ---- snow amount: holds below ~50 degrees, scoured off convex crests up high, thin on
   // sun-facing banks and wind-blown knolls in the valley (grass tufts poke through)
-  float holdTh = 0.64 + 0.14 * (nMid - 0.5) - 0.05 * clamp(conc, -1.0, 1.0) - 0.05 * clamp(large * 0.2, -1.0, 1.0);
-  float snow = smoothstep(holdTh - 0.05, holdTh + 0.06, up + (nSm - 0.5) * 0.08);
+  // Couloirs and hollows hold snow on steeper ground than ridges and buttresses do.
+  float couloir = clamp(large * 0.18, -1.0, 1.0);
+  float holdTh = 0.64 + 0.14 * (nMid - 0.5) - 0.05 * clamp(conc, -1.0, 1.0) - 0.09 * couloir;
+  float sharp = mix(0.05, 0.022, smoothstep(80.0, 400.0, wp.y));
+  float snow = smoothstep(holdTh - sharp, holdTh + sharp, up + (nSm - 0.5) * 0.08);
   float scour = smoothstep(-0.4, -2.5, large) * smoothstep(140.0, 450.0, wp.y);
   snow *= 1.0 - 0.8 * scour * smoothstep(0.35, 0.65, qMid.g);
   float lowAlt = 1.0 - smoothstep(40.0, 200.0, wp.y);
@@ -92,13 +95,17 @@ const FRAG_SHADE = /* glsl */ `
   // ---- ground and rock
   float rockiness = 1.0 - smoothstep(0.6, 0.8, up + (nMid - 0.5) * 0.12);
   float steepR = 1.0 - smoothstep(0.35, 0.7, up);
-  float sy = wp.y / 3.1 + (nMid - 0.5) * 3.0 + (qBig.g - 0.5) * 6.0;
+  float sy = wp.y / 3.1 + (nMid - 0.5) * 3.0 + (qBig.g - 0.5) * 6.0 + (qSm.r - 0.5) * 0.6;
   float strata = fract(sy);
-  float band = smoothstep(0.1, 0.25, strata) * (1.0 - smoothstep(0.55, 0.85, strata)) * steepR * (1.0 - smoothstep(150.0, 450.0, dist));
+  float joint = smoothstep(0.35, 0.65, mzNoiseK(vec2((wp.x + wp.z) * 0.6, wp.y * 0.08), 0.5).r);
+  float band = smoothstep(0.1, 0.25, strata) * (1.0 - smoothstep(0.55, 0.85, strata)) * steepR * (1.0 - smoothstep(150.0, 450.0, dist)) * joint;
   float rq = nSm;
   if (rockiness > 0.02 && dist < 600.0) rq = mzNoiseK(vec2(wp.x + wp.z, wp.y), 0.9).r;
-  vec3 rock = mix(vec3(0.05, 0.048, 0.047), vec3(0.12, 0.115, 0.108), qBig.g * 0.6 + rq * 0.4);
-  rock = mix(rock, vec3(0.15, 0.142, 0.13), band * 0.45);
+  vec3 rock = mix(vec3(0.045, 0.043, 0.042), vec3(0.11, 0.105, 0.098), qBig.g * 0.6 + rq * 0.4);
+  rock = mix(rock, vec3(0.14, 0.132, 0.12), band * 0.15);
+  // Vertical weathering streaks on steep faces (water and frost staining).
+  float vst = mzNoiseK(vec2((wp.x + wp.z) * 1.4, wp.y * 0.06), 0.6).r;
+  rock *= mix(1.0, 0.82 + 0.28 * vst, steepR);
   rock = mix(rock, vec3(0.12, 0.085, 0.06), smoothstep(0.62, 0.8, qMid.g) * 0.4);
   float grass = smoothstep(0.3, 0.7, nMid + (qSm.g - 0.5) * 0.5);
   vec3 dirt = mix(vec3(0.1, 0.078, 0.06), vec3(0.3, 0.25, 0.15), grass);
@@ -112,6 +119,8 @@ const FRAG_SHADE = /* glsl */ `
   // ---- snow surface (same palette as mzSnowAlbedo in snowChunk.js)
   vec3 snowCol = mix(vec3(0.72, 0.75, 0.8), vec3(0.83, 0.85, 0.89), smoothstep(0.3, 0.7, qMid.g) * 0.75 + qSm.g * 0.25);
   snowCol *= 1.0 + 0.04 * clamp(conc, 0.0, 1.0);
+  vec4 qDr = mzNoiseK(vec2(dot(xz, vec2(0.94, 0.34)) * 0.35, dot(xz, vec2(-0.34, 0.94))) + 19.0, 0.16);
+  snowCol *= 0.93 + 0.1 * smoothstep(0.25, 0.75, qDr.r);
   float snowRough = 0.78;
 
   // ---- village trampling
@@ -167,7 +176,8 @@ const FRAG_SHADE = /* glsl */ `
     vec4 r2 = mzNoiseK(xz + 71.0, 0.3);
     vec4 r3 = mzNoiseK(xz - 29.0, 4.0);
     float flat_ = (1.0 - trample) * (1.0 - onRoad);
-    vec2 sg = gq * 0.022 * flat_ + r2.zw * 0.22 + r3.zw * mix(0.004, 0.014, clamp(trample + onRoad * 0.5, 0.0, 1.0));
+    vec2 dg = qDr.z * 0.35 * vec2(0.94, 0.34) + qDr.w * vec2(-0.34, 0.94);
+    vec2 sg = gq * 0.022 * flat_ + r2.zw * 0.22 + dg * 0.9 * flat_ + r3.zw * mix(0.004, 0.014, clamp(trample + onRoad * 0.5, 0.0, 1.0));
     vec2 rg = r3.zw * 0.014 + r2.zw * 0.45;
     vec2 grad = mix(rg * rockiness, sg, snow) * detail;
     Np = normalize(N - vec3(grad.x, 0.0, grad.y));
@@ -176,7 +186,7 @@ const FRAG_SHADE = /* glsl */ `
     if (lu > 0.05) {
       float sp = sy * 6.2832;
       float ledge = cos(sp) * 0.5 + 0.3 * cos(sp * 2.3 + 1.7);
-      Np = normalize(Np + (upT / lu) * ledge * 0.5 * steepR * (1.0 - snow) * detail);
+      Np = normalize(Np + (upT / lu) * ledge * 0.18 * steepR * joint * (1.0 - snow) * detail);
     }
   }
   normal = normalize((viewMatrix * vec4(Np, 0.0)).xyz);

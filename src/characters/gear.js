@@ -37,41 +37,60 @@ function surf(ctx, y, th, off) {
 }
 
 // Shawl collar of fleece or fur: stands up around the back of the neck and lies as lapels down
-// the front in a V. Built as a flat band (wide across, thin through) following the neckline.
+// the front in a V. A flat band between an inner edge (on the neck at the back, the V at the
+// front) and an outer edge (on the shoulders and chest).
 function buildCollar(ctx, c) {
   const { mb, M, k } = ctx;
   const gm = garmentMat({ color: c.color || '#d9ccb0', tile: c.tile || 'fleece', tileU: 8, tileV: 10, fuzz: 0.8 });
-  const nP = 26;
+  const nP = 22;
   const vDepth = (c.v ?? 0.12) * k;
-  const half = (c.size ?? 0.034) * k * 1.25;
-  const thk = (c.size ?? 0.034) * k * 0.45;
-  const pts = [];
+  const thk = (c.size ?? 0.034) * k * 0.42;
+  const yN = ctx.shape.yN;
+  const neckR = M.neckR * 1.12 + 0.012 * k;
+  const rings = [];
   for (let i = 0; i <= nP; i++) {
     const th = (i / nP) * TAU;
-    const front = Math.max(0, Math.cos(th));
-    const y = lerp(ctx.shape.yN + 0.004 * k, ctx.shape.yN - vDepth, Math.pow(front, 3));
-    pts.push({ p: surf(ctx, y, th * (1 - 0.18 * front), 0.004), th, front });
+    const cth = Math.cos(th), sth = Math.sin(th);
+    const front = Math.max(0, cth);
+    const f15 = Math.pow(front, 1.5);
+    // inner edge: up the neck at the back, down the V at the front
+    const yI = lerp(yN + 0.05 * k, yN - vDepth, f15);
+    const neckP = V(sth * neckR, yI, ctx.shape.at(yN).z + cth * neckR * 0.95);
+    const surfP = surf(ctx, yI, th * 0.3, 0.006);
+    const I = neckP.clone().lerp(surfP, smoothstep(0.2, 0.75, front));
+    // outer edge: on the shoulder tops and upper back, out across the chest at the front
+    const yO = lerp(yN - 0.05 * k, yN - vDepth * 0.82, Math.pow(front, 1.2));
+    const O = surf(ctx, yO, th + Math.sign(sth) * 0.38 * front, 0.006);
+    const mid = I.clone().add(O).multiplyScalar(0.5);
+    const across = O.clone().sub(I);
+    const half = across.length() * 0.5 + 0.004;
+    across.normalize();
+    rings.push({ mid, across, half, th });
   }
-  const rings = pts.map(({ p, th, front }, i) => {
-    const prev = pts[(i - 1 + nP) % nP].p, next = pts[(i + 1) % nP].p;
+  const out = [];
+  for (let i = 0; i <= nP; i++) {
+    const R = rings[i];
+    const prev = rings[(i - 1 + nP) % nP].mid, next = rings[(i + 1) % nP].mid;
     const t = next.clone().sub(prev).normalize();
-    const out = V(p.x, 0, p.z - ctx.shape.at(p.y).z).normalize();
-    // band direction: up the neck at the back, down-and-out over the chest at the front
-    const back = smoothstep(0.2, -0.6, Math.cos(th));
-    const across = V(0, 1, 0).multiplyScalar(back).add(out.clone().multiplyScalar(0.55).add(V(0, -0.8, 0)).multiplyScalar(1 - back)).normalize();
-    const nrm = new THREE.Vector3().crossVectors(t, across).normalize();
-    if (nrm.dot(out) < 0) nrm.multiplyScalar(-1);
-    const f = frame(t, nrm);
-    const center = p.clone().addScaledVector(across, half * (back > 0.5 ? 0.85 : 0.75)).addScaledVector(nrm, thk * 0.9 + 0.004);
-    return { c: center, a: f.a, b: f.b, ra: thk * (1 + 0.3 * back), rb: half * (1 - front * 0.25), n: 2.6, th };
-  });
-  rings[rings.length - 1] = { ...rings[0] };
+    let nrm = new THREE.Vector3().crossVectors(t, R.across).normalize();
+    const radial = V(R.mid.x, 0, R.mid.z - ctx.shape.at(R.mid.y).z).normalize();
+    if (nrm.dot(radial) + nrm.y * 0.5 < 0) nrm.multiplyScalar(-1);
+    const a = R.across.clone();
+    const b = nrm.clone();
+    if (new THREE.Vector3().crossVectors(a, b).dot(t) < 0) b.multiplyScalar(-1);
+    out.push({ c: R.mid.clone().addScaledVector(nrm, thk * 0.8), a, b, ra: R.half, rb: thk, n: 2.4, th: R.th });
+  }
+  out[nP] = { ...out[0] };
   tube(mb, {
-    rings, seg: 10, mat: gm,
+    rings: out, seg: 8, mat: gm,
     color: (ri, th) => gm.color.clone().multiplyScalar(0.8 + 0.2 * Math.max(0, Math.cos(th)) + 0.05 * noise1(ri * 1.7, 2)),
     weights: (ri, th, p) => {
-      const back = Math.max(0, -Math.cos(rings[ri].th));
-      return [['chest', 0.75 - back * 0.35], ['neck', 0.25 + back * 0.35]].concat(p.x > 0.07 * k ? [['shoulderL', 0.12]] : p.x < -0.07 * k ? [['shoulderR', 0.12]] : []);
+      const back = Math.max(0, -Math.cos(out[ri].th));
+      const up = smoothstep(yN - 0.01 * k, yN + 0.05 * k, p.y);
+      const sh = p.x > 0.08 * k ? 'shoulderL' : p.x < -0.08 * k ? 'shoulderR' : null;
+      const res = [['chest', 1 - up * 0.6 - (sh ? 0.15 : 0)], ['neck', up * 0.6 * (0.5 + back * 0.5)]];
+      if (sh) res.push([sh, 0.15]);
+      return res;
     },
   });
   void M;
@@ -148,8 +167,8 @@ function buildCape(ctx, cp) {
     const t = i / nr;
     const y = yTop - len * t;
     const s = ctx.shape.at(Math.max(y, M.hipJY - 0.08 * k));
-    const shoulderPad = smoothstep(0.0, 0.25, t);
-    const w = Math.max(s.w * 1.05, (M.shoulderX + M.armR * 1.3) * shoulderPad) + 0.035 * k + t * 0.06 * k;
+    const shoulderPad = smoothstep(0.0, 0.3, t) * (1 - 0.15 * smoothstep(0.3, 0.8, t));
+    const w = Math.max(s.w * 1.02, (M.shoulderX + M.armR * 0.9) * shoulderPad) + 0.03 * k + t * 0.05 * k;
     const d = Math.max(s.d, M.chestD) + 0.035 * k + t * 0.03 * k;
     rings.push({ c: V(0, y, s.z - 0.01 * k), a: V(0, 0, 1), b: V(1, 0, 0), ra: d, rb: w, n: 2.3, y, t,
       th0: lerp(0.35, 1.25, smoothstep(0.05, 0.5, t)), th1: TAU - lerp(0.35, 1.25, smoothstep(0.05, 0.5, t)) });

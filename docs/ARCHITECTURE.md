@@ -205,9 +205,17 @@ G.audio.setMood(name, { fade: 3 })     // DESIGN 6.2 moods; 'silence' stops musi
 G.audio.stinger(name)                  // 'discover' | 'quest' | 'echo' | 'danger' | 'choice' | 'death' | 'reveal'
 G.audio.sfx(name, { pos, volume, pitch })        // one-shot, positional if pos given
 const h = G.audio.loop(name, { pos, volume })    // looping source; h.setPos(v), h.setVolume(v), h.stop()
-G.audio.duck(amount, seconds)          // lower music under dialogue
-G.audio.volumes = { master, music, sfx, ambience }
+G.audio.duck(amount, seconds)          // lower music under dialogue (no seconds: hold until duck(0)); automatic on dialogue:start/end
+G.audio.volumes = { master, music, sfx, ambience }   // persisted
+G.audio.setEnvironment('hall' | 'room' | 'cave')     // reverb: call 'room' in interiors, 'cave' in the ice cave, 'hall' outdoors
+G.audio.loop(name, { pos, volume, follow })          // follow: an Object3D the source tracks
+G.audio.mood, G.audio.ready, G.audio.info()
+// Events: 'music:mood' { mood }, 'music:lyric' { mood, line, text } (subtitle lyrics during 'procession')
 ```
+Name lists live in `src/audio/sfxNames.js` (`MOODS`, `STINGERS`, `SFX_NAMES`, `SFX_GROUPS`, `LOOP_NAMES`).
+Audition page: `?scene=audio`. Offline renders: `node scripts/render-audio.mjs [--only moods,sfx] [--mood x]`.
+Gameplay plays footsteps per footfall (by `G.world.surfaceAt`) and hooves per strike; locations create
+`loop('fire_crackle', { pos })` per hearth or brazier.
 Ambience is automatic from `G.time`, `G.weather`, the camera position, and location (near the
 village: murmur, dogs, forge; on the ice: groans; forest: wind in pines). SFX names: see the
 list in `src/audio/sfxNames.js` (audio builder creates it; others use those names).

@@ -72,14 +72,18 @@ export async function renderJob(job) {
   }
   if (job.moves) for (const [t, patch] of job.moves) at(t, () => Object.assign(env, patch));
   actions.sort((a, b) => a[0] - b[0]);
+  // The listener stands at env.pos looking north (-Z), like the game camera would.
+  const listen = () => eng.sfx.setListener(env.pos.x, env.pos.y, env.pos.z, 0, 0, -1);
   // Run t=0 actions before rendering starts.
   while (actions.length && actions[0][0] <= 0) actions.shift()[1]();
+  listen();
   eng.tick(STEP);
   const marks = [];
   for (let t = STEP; t < seconds - STEP; t += STEP) {
     const tt = Math.round(t / STEP) * STEP;
     ctx.suspend(tt).then(() => {
       while (actions.length && actions[0][0] <= ctx.currentTime + 1e-6) actions.shift()[1]();
+      listen();
       eng.tick(STEP);
       const sec = eng.director.active?.section;
       if (sec && (!marks.length || marks[marks.length - 1][1] !== sec)) marks.push([+ctx.currentTime.toFixed(2), sec]);

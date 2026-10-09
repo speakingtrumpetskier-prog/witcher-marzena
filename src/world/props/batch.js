@@ -10,11 +10,14 @@
 //   scale    number or [x, y, z]
 //   snap     true (default): y = ground height at the footprint + `y` offset; false: `y` is absolute
 //   y        offset (snap) or absolute height (no snap)
-//   seed     variant seed; omitted: derived from the position (8 variants per prop type)
+//   seed     variant seed; omitted: derived from the position (4 variants per prop type; PropBatch option `variants`)
 //   collide  true (default): register the prop's colliders with G.physics
 //   align    0..1 how much to tilt to the terrain normal (default: per prop, small items tilt)
 //   opts     extra options forwarded to the prop builder (variant, indoor, ...)
 //
+// Draw calls: merged per (spatial chunk, material). Default chunking is 'auto': 1 cell when the batch spans
+// under ~90 m, 2 x 2 up to ~330 m (new PropBatch(G, name, { chunk: meters | 0 | 'auto' })). Use one batch per
+// location (village, mill, camp) so a whole village costs about 4 x (materials used) draw calls.
 // Fx markers on props (campfire, brazier, lantern, chimney...) become real emitters at build.
 // Static: batched props cannot be moved or removed individually (dispose() removes the batch).
 import * as THREE from 'three';
@@ -43,8 +46,10 @@ export class PropBatch {
   constructor(G, name = 'props', opts = {}) {
     this.G = G;
     this.name = name;
-    this.chunk = opts.chunk == null ? 96 : opts.chunk;
-    this.variants = opts.variants || 8;
+    // chunk: 'auto' (default) splits the batch into at most 2 x 2 (or 3 x 3 when huge) spatial cells so
+    // frustum culling still works but draw calls stay near (materials x 4). A number is a fixed cell size in meters.
+    this.chunk = opts.chunk == null ? 'auto' : opts.chunk;
+    this.variants = opts.variants || 4;
     this.items = [];
     this.templates = new Map();
     this.root = null;
@@ -76,15 +81,48 @@ export class PropBatch {
     return t;
   }
 
-  // `make` is props.make, injected by index.js to avoid an import cycle.
+  // Synchronous build. `make` is props.make, injected by index.js to avoid an import cycle.
   build(make = PropBatch.make) {
     if (this.built) return this.root;
+    for (const _ of this._steps(make)) void _;
+    return this.root;
+  }
+
+  // Time-sliced build for loading screens: yields to the event loop whenever `budgetMs` of work has
+  // elapsed. onProgress(0..1). Resolves to the root Group.
+  async buildAsync({ budgetMs = 10, onProgress } = {}, make = PropBatch.make) {
+    if (this.built) return this.root;
+    let t = performance.now(), done = 0;
+    const total = this.items.length + 8;
+    for (const _ of this._steps(make)) {
+      void _;
+      done++;
+      if (performance.now() - t > budgetMs) {
+        if (onProgress) onProgress(Math.min(1, done / total));
+        await new Promise((r) => setTimeout(r, 0));
+        t = performance.now();
+      }
+    }
+    if (onProgress) onProgress(1);
+    return this.root;
+  }
+
+  *_steps(make) {
     const G = this.G;
     const world = G.world;
     const root = new THREE.Group();
     root.name = `props:${this.name}`;
     const buckets = new Map(); // cellKey -> Map(material -> { items, cast, receive })
-    const chunk = this.chunk;
+    let chunk = this.chunk;
+    let ox = 0, oz = 0;
+    if (chunk === 'auto') {
+      let minX = Infinity, maxX = -Infinity, minZ = Infinity, maxZ = -Infinity;
+      for (const h of this.items) { minX = Math.min(minX, h.x); maxX = Math.max(maxX, h.x); minZ = Math.min(minZ, h.z); maxZ = Math.max(maxZ, h.z); }
+      const ext = Math.max(maxX - minX, maxZ - minZ, 1);
+      const n = ext < 90 ? 1 : ext < 330 ? 2 : 3;
+      chunk = n === 1 ? 0 : ext / n + 0.01;
+      ox = minX; oz = minZ;
+    }
 
     for (const h of this.items) {
       const t = this._template(h, make);
@@ -120,7 +158,7 @@ export class PropBatch {
       h.matrix = placement;
 
       // Merge buckets
-      const cx = chunk > 0 ? Math.floor(h.x / chunk) : 0, cz = chunk > 0 ? Math.floor(h.z / chunk) : 0;
+      const cx = chunk > 0 ? Math.floor((h.x - ox) / chunk) : 0, cz = chunk > 0 ? Math.floor((h.z - oz) / chunk) : 0;
       const ck = cx * 100003 + cz;
       let cell = buckets.get(ck);
       if (!cell) buckets.set(ck, (cell = new Map()));
@@ -158,6 +196,7 @@ export class PropBatch {
         if (em) { h.emitters.push(em); this.emitters.push(em); }
       });
       h.built = true;
+      yield;
     }
 
     let tris = 0;
@@ -170,6 +209,7 @@ export class PropBatch {
         mesh.matrixAutoUpdate = false;
         root.add(mesh);
         tris += geo.index.count / 3;
+        yield;
       }
     }
     this.stats = {
@@ -179,7 +219,6 @@ export class PropBatch {
     this.G.scene.add(root);
     this.root = root;
     this.built = true;
-    return root;
   }
 
   dispose() {

@@ -19,7 +19,7 @@ export default {
       const S = new Score(3, 40);
       let t = 0;
       S.mark(0, { section: 'hum' });
-      S.add('zither', 0, 6, N('D3'), { v: 0.4 });
+      S.add('zither', 0, 6, r.pick([N('D3'), N('D2'), N('A2')]), { v: 0.35 + r() * 0.1 });
       t = theme(S, 'voice', t, r, { from: 0, to: 8, vowel: 'm', v: 0.7, falls: 0.4, scoop: 0.3, orn: 0.1 });
       t += 3;
       S.mark(t / 3, { section: 'music box' });

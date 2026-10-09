@@ -60,7 +60,6 @@ function houseShell() {
   // Chimney stack with a snow cap
   k.box('stone', 0.7, 1.6, 0.7, { pos: [2.6, 3.9, -0.3], tint: 0xb0aaa4, jitter: 0.01, seg: [2, 3, 2] });
   k.mound(0.9, 0.2, 0.9, { pos: [2.6, 4.7, -0.3], jseed: 8 });
-  k.fx('smoke', [2.6, 4.75, -0.3], { height: 38, rate: 1.4 });
   // Banked snow along the foot of the walls
   k.mound(8.0, 0.55, 0.8, { pos: [0, 0.0, -1.5], jseed: 9 });
   k.mound(1.0, 0.5, 4.0, { pos: [-4.7, 0.0, 1.0], jseed: 10 });
@@ -71,6 +70,8 @@ export async function build(G, ctx) {
   const { PropBatch } = ctx;
   const house = houseShell();
   G.scene.add(house);
+  // Chimney column (the shell is a plain Kit build, so the emitter is created here).
+  ctx.props.fx.smoke({ position: [2.6, 4.75, -0.3], parent: G.scene, height: 40 });
   const b = new PropBatch(G, 'porch');
   const A = (name, x, z, o = {}) => b.add(name, x, z, o);
   // Porch dressing (floor is at y = 0.35)
@@ -99,9 +100,9 @@ export async function build(G, ctx) {
   A('barrelStack', -6.7, -0.2, { seed: 1, variant: 'standing', yaw: 0.2, opts: { variant: 'standing' } });
   A('woodpile', 6.3, -0.6, { seed: 1, yaw: 0.1 });
   A('cart', 6.8, 3.5, { seed: 2, yaw: 2.4, opts: { variant: 'sacks' } });
-  A('campfire', -2.4, 6.4, { seed: 1, yaw: 0, opts: { smoke: true } });
-  A('bench', -4.1, 6.4, { seed: 3, yaw: 1.5, opts: { variant: 'log' } });
-  A('bench', -0.8, 6.8, { seed: 2, yaw: -1.6, opts: { variant: 'log' } });
+  A('campfire', 3.6, 6.0, { seed: 1, yaw: 0, opts: { smoke: true } });
+  A('bench', 1.9, 6.4, { seed: 3, yaw: 1.5, opts: { variant: 'log' } });
+  A('bench', 5.3, 6.6, { seed: 2, yaw: -1.6, opts: { variant: 'log' } });
   A('fishString', -2.8, -0.95, { y: 0.35, snap: false, seed: 1, yaw: 0 });
   A('ladder', 4.6, -0.95, { seed: 1, yaw: 0 });
   A('icicles', 0, 2.62, { snap: false, y: 2.57, seed: 1, yaw: 0, opts: { width: 8.6, maxLen: 0.6 } });

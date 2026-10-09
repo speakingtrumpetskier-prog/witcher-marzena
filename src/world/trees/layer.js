@@ -20,7 +20,7 @@ const _e = new THREE.Euler();
 // i + 1 (centre of the fade band), bands[i] its half width. The last LOD of a kind without an
 // impostor fades out over `fadeOut` meters ending at ends[last].
 const GROUPS = {
-  tree: { ends: [34, 110, 330], bands: [8, 20, 40] },
+  tree: { ends: [32, 105, 300], bands: [7, 18, 36] },
   bush: { ends: [30, 120], bands: [8, 0], fadeOut: 30 },
   deadwood: { ends: [38, 115], bands: [8, 0], fadeOut: 28 },
   ground: { ends: [20, 58], bands: [5, 0], fadeOut: 16 },

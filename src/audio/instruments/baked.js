@@ -2,13 +2,13 @@
 // cheap Sampler (one buffer source and one gain per note). Plucked zither (Karplus-Strong with a
 // double course), Wiesia's music box, church bells (open and drowned under the ice), the frame
 // drum, the deep war drum and a soft low pulse.
-import { mtof, pluck, modal, filt, white, lp1, hp1, normalize, fade, envAD, mix, clamp, Biquad } from '../dsp.js';
+import { mtof, pluck, modal, filt, white, lp1, hp1, normalize, fade, envAD, mix, clamp, Biquad, trimTail } from '../dsp.js';
 
 // --- Renderers: (sr, r, ...args) => Float32Array -------------------------------------------
 
 export function renderZither(sr, r, midi, hard) {
   const f = mtof(midi);
-  const dur = clamp(5.4 - (midi - 45) * 0.07, 2.2, 5.2);
+  const dur = clamp(4.4 - (midi - 45) * 0.06, 2, 4.2);
   const opts = { t60: dur * 0.75, bright: hard ? 0.6 : 0.38, pick: 0.12 + r() * 0.04, hardness: hard ? 0.85 : 0.4 };
   const b = pluck(sr, f, dur, r, opts);
   // Second string of the course, a hair sharp: the shimmer of a gusli.
@@ -137,16 +137,38 @@ export function renderPulse(sr, r) {
 
 // --- Sampler ---------------------------------------------------------------------------
 
+// Keys are self-describing ('zither:62:h', 'bell:50:m', 'frame:tek:1'), so the bake worker can
+// rebuild any sample from its key alone (bakeByKey).
+export function bakeByKey(key, sr, r) {
+  const [kind, a, b] = key.split(':');
+  let d;
+  if (kind === 'zither') d = renderZither(sr, r, +a, b === 'h');
+  else if (kind === 'box') d = renderBox(sr, r, +a);
+  else if (kind === 'bell') d = renderBell(sr, r, +a, b === 'm');
+  else if (kind === 'frame') d = renderFrame(sr, r, a);
+  else if (kind === 'war') d = renderWar(sr, r, a === 'm');
+  else d = renderPulse(sr, r);
+  return trimTail([d], sr);
+}
+const keyed = (key) => [key, (sr, r) => bakeByKey(key, sr, r)];
 const KINDS = {
-  zither: {
-    key: (ev) => { const hard = (ev.v ?? 0.6) > 0.62; return [`zither:${ev._p}:${hard ? 'h' : 's'}`, (sr, r) => renderZither(sr, r, ev._p, hard)]; },
-  },
-  box: { key: (ev) => [`box:${ev._p}`, (sr, r) => renderBox(sr, r, ev._p)] },
-  bell: { key: (ev) => [`bell:${ev._p}:${ev.muffled ? 'm' : 'o'}`, (sr, r) => renderBell(sr, r, ev._p, !!ev.muffled)] },
-  frame: { key: (ev, n) => { const k = ev.kind || 'dum'; return [`frame:${k}:${n % 3}`, (sr, r) => renderFrame(sr, r, k)]; } },
-  war: { key: (ev, n) => { const m = !!ev.muffled; return [`war:${m ? 'm' : 'o'}:${n % 2}`, (sr, r) => renderWar(sr, r, m)]; } },
-  pulse: { key: () => ['pulse', renderPulse] },
+  zither: { key: (ev) => keyed(`zither:${ev._p}:${(ev.v ?? 0.6) > 0.62 ? 'h' : 's'}`) },
+  box: { key: (ev) => keyed(`box:${ev._p}`) },
+  bell: { key: (ev) => keyed(`bell:${ev._p}:${ev.muffled ? 'm' : 'o'}`) },
+  frame: { key: (ev, n) => keyed(`frame:${ev.kind || 'dum'}:${n % 3}`) },
+  war: { key: (ev, n) => keyed(`war:${ev.muffled ? 'm' : 'o'}:${n % 2}`) },
+  pulse: { key: () => keyed('pulse') },
 };
+
+// Every bank key (with its bake function) a sampler event can need, across its variants.
+export function sampleKeys(kind, ev) {
+  const def = KINDS[kind];
+  if (!def) return [];
+  const ps = Array.isArray(ev.p) ? ev.p : [ev.p ?? 62];
+  const out = [];
+  for (const p of ps) for (let n = 0; n < 3; n++) out.push(def.key({ ...ev, _p: Math.round(p) }, n));
+  return out;
+}
 
 // Loudness calibration per kind (measured with scripts/render-audio.mjs --only inst) so that a
 // part level means roughly the same loudness on every instrument.

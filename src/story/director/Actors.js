@@ -38,8 +38,9 @@ export function displayName(G, id) {
   return id.replace(/_\d+$/, '').replace(/_/g, ' ').replace(/^\w/, (c) => c.toUpperCase());
 }
 
+// Real characters need both the factory and the running characters system (module loaded).
 export function charactersAvailable(G) {
-  return typeof Chars.createCharacter === 'function' && !G.characters?.stub;
+  return typeof Chars.createCharacter === 'function' && !!G.characters && !G.characters.stub;
 }
 
 // Spawn a raw character (not wrapped). Returns null if nothing can be made.
@@ -48,7 +49,7 @@ export function spawnCharacter(G, preset, opts) {
     if (typeof Chars.createHorse === 'function') {
       try { return Chars.createHorse('kasza', opts); } catch (e) { console.error('[story] createHorse', e); }
     }
-  } else if (typeof Chars.createCharacter === 'function' && !G.characters?.stub) {
+  } else if (charactersAvailable(G)) {
     try { return Chars.createCharacter(preset, opts); } catch (e) { console.error(`[story] createCharacter(${preset})`, e); }
   }
   if (typeof G.story?.placeholderFactory === 'function') return G.story.placeholderFactory(preset, opts);
@@ -119,8 +120,16 @@ export class Actor {
     return out.copy(this.c.root.position);
   }
 
-  // World-space eye point. Uses the head joint when the rig has one.
+  // World-space eye point: between the eye joints, else from the head joint, else from height.
   eye(out = new THREE.Vector3()) {
+    const eL = this.c.bones?.eyeL, eR = this.c.bones?.eyeR;
+    if (eL && eR) {
+      eL.updateWorldMatrix(true, false);
+      eR.updateWorldMatrix(true, false);
+      eL.getWorldPosition(out);
+      eR.getWorldPosition(_v);
+      return out.add(_v).multiplyScalar(0.5);
+    }
     const h = this.head;
     if (h) {
       h.updateWorldMatrix(true, false);
@@ -197,7 +206,12 @@ export class Actor {
       if (typeof c.play !== 'function') return Promise.resolve();
       const loop = opts.loop ?? LOOP_POSES.has(clip);
       this.loopPose = loop && clip !== 'idle' && clip !== 'idle_cold' ? clip : null;
-      return Promise.resolve(c.play(clip, { fade: 0.35, ...opts, loop }));
+      // Real characters know which clips loop; only pass `loop` when the caller asked.
+      const o = { fade: 0.35, ...opts };
+      if (opts.loop === undefined && !c.anim) o.loop = loop;
+      // A full-body clip cancels a walk on the real Character; settle the walk promise too.
+      if (this._walkDone && clip !== 'idle') { const d = this._walkDone; this._walkDone = null; d(); }
+      return Promise.resolve(c.play(clip, o));
     } catch (e) {
       console.error(`[story] play ${clip}`, e);
       return Promise.resolve();
@@ -220,7 +234,8 @@ export class Actor {
   relax() {
     if (!this.loopPose) return;
     this.loopPose = null;
-    try { this.c.play?.(this.G.time?.isNight || this.G.weather?.state === 'blizzard' ? 'idle_cold' : 'idle', { loop: true, fade: 0.5 }); } catch { /* ignore */ }
+    // Real characters pick their cold idle from c.cold; 'idle' returns to the locomotion tree.
+    try { this.c.play?.('idle', { loop: true, fade: 0.5 }); } catch { /* ignore */ }
   }
 
   // walkTo(x, z, opts) or walkTo([{ x, z }, ...], opts).
@@ -228,7 +243,14 @@ export class Actor {
     const path = Array.isArray(x);
     if (path) opts = z || {};
     if (typeof this.c.walkTo === 'function') {
-      try { return Promise.resolve(path ? this.c.walkTo(x, opts) : this.c.walkTo(x, z, opts)); } catch (e) { console.error('[story] walkTo', e); }
+      try {
+        const p = Promise.resolve(path ? this.c.walkTo(x, opts) : this.c.walkTo(x, z, opts));
+        // Resolves when the walk ends, or when play() interrupts it.
+        return new Promise((resolve) => {
+          this._walkDone = resolve;
+          p.then(() => { if (this._walkDone === resolve) this._walkDone = null; resolve(); });
+        });
+      } catch (e) { console.error('[story] walkTo', e); }
     }
     // No locomotion available: glide along the points.
     const pts = path ? x : [{ x, z }];

@@ -3,7 +3,7 @@
 // heartbeat) and ambience-only sounds (names starting with '_', not part of the public list).
 import { burst, grains, thump, resonate, whoosh, ring, chirp, creak, fire, vocal, mix, fade, len, hp1, lp1, Biquad, envAD, shape, osc, curve, clamp, white, pink, brown } from '../kit.js';
 import { renderBell } from '../../instruments/baked.js';
-import { makeLoop, widen, wander, normalize } from '../../dsp.js';
+import { makeLoop, wander, normalize } from '../../dsp.js';
 
 const done = (b, sr, lp = 9000) => { new Biquad(sr, 'lowpass', lp, 0.7).run(b); hp1(b, sr, 30); return fade(b, sr, 0.001, 0.05); };
 
@@ -32,18 +32,21 @@ function babble(sr, r, dur, { voices = 7, lp = 1600, rate = 4 } = {}) {
   const n = len(sr, dur), b = new Float32Array(n);
   for (let v = 0; v < voices; v++) {
     const male = r() < 0.55;
+    const base = male ? 105 + r() * 30 : 185 + r() * 45;
     let t = r() * 1.5;
     while (t < dur - 0.3) {
+      // A sentence: its own pitch, falling gently (declination), words varying a little.
       const words = r.int(3, 9);
-      const f0 = male ? 105 + r() * 35 : 190 + r() * 50;
+      const f0s = base * (1 + r.bi() * 0.08);
       for (let w = 0; w < words && t < dur - 0.3; w++) {
         const d = 0.08 + r() * 0.16;
         const v1 = r.pick(['a', 'e', 'o', 'u', 'i']);
-        const s = vocal(sr, r, d, { f0: (x) => f0 * (1 + 0.15 * Math.sin(x * 9 + w)), vowel: () => v1, type: male ? 'tenor' : 'alto', breath: 0.15, jitter: 0.02, env: (x) => Math.sin(Math.PI * clamp(x / d, 0, 1)) });
+        const fw = f0s * (1 - (0.14 * w) / words) * (1 + r.bi() * 0.05);
+        const s = vocal(sr, r, d, { f0: (x) => fw * (1 + 0.04 * (1 - (2 * x) / d)), vowel: () => v1, type: male ? 'tenor' : 'alto', breath: 0.15, jitter: 0.02, env: (x) => Math.sin(Math.PI * clamp(x / d, 0, 1)) });
         mix(b, s, 0.5 + r() * 0.5, Math.floor(t * sr));
         t += d + 0.02 + r() * 0.06;
       }
-      t += 0.4 + r() * rate;
+      t += 0.3 + r() * rate;
     }
   }
   new Biquad(sr, 'lowpass', lp, 0.7).run(b);
@@ -67,7 +70,7 @@ export const WORLD = {
     },
   },
   ice_groan: {
-    variants: 5, gain: 0.75, ref: 25, max: 900, pitchVar: 0.1, verb: 0.45, poly: 3,
+    variants: 3, rate: 16000, heavy: true, gain: 0.6, ref: 25, max: 900, pitchVar: 0.1, verb: 0.45, poly: 3,
     bake: (sr, r) => {
       const dur = 2.8 + r() * 1.4, b = new Float32Array(len(sr, dur));
       const rc = curve([[0, 22], [dur * 0.3, 55 + r() * 25], [dur * 0.65, 30], [dur, 14]]);
@@ -79,11 +82,11 @@ export const WORLD = {
     },
   },
   ice_ping: {
-    variants: 6, gain: 0.45, ref: 25, max: 900, pitchVar: 0.1, verb: 0.55, poly: 4,
+    variants: 6, gain: 0.2, ref: 25, max: 900, pitchVar: 0.1, verb: 0.55, poly: 4,
     bake: (sr, r) => done(iceSing(sr, r, 2.2, { f0: 2400 + r() * 1800, f1: 150 + r() * 120, tau: 0.35 + r() * 0.3, echoes: r.int(1, 3) }), sr, 7000),
   },
   ice_spike: {
-    variants: 4, gain: 0.6, ref: 5, max: 80, pitchVar: 0.08, verb: 0.25, poly: 4,
+    variants: 4, rate: 32000, heavy: true, gain: 0.6, ref: 5, max: 80, pitchVar: 0.08, verb: 0.25, poly: 4,
     bake: (sr, r) => {
       const dur = 1.0, b = new Float32Array(len(sr, dur));
       mix(b, burst(sr, r, 0.012, { hp: 600, env: { a: 0.0002, d: 0.002 } }), 0.7);
@@ -95,11 +98,11 @@ export const WORLD = {
     },
   },
   bell_under_ice: {
-    variants: 2, gain: 0.85, ref: 40, max: 1200, pitchVar: 0, verb: 0.5, poly: 2,
+    variants: 2, rate: 16000, heavy: true, gain: 0.6, ref: 40, max: 1200, pitchVar: 0, verb: 0.5, poly: 2,
     bake: (sr, r, i) => renderBell(sr, r, i ? 45 : 50, true),
   },
   boss_scream: {
-    variants: 3, gain: 0.75, ref: 15, max: 600, pitchVar: 0.04, verb: 0.4, poly: 1,
+    variants: 3, heavy: true, gain: 0.6, ref: 15, max: 600, pitchVar: 0.04, verb: 0.4, poly: 1,
     bake: (sr, r) => {
       const dur = 2.6, b = new Float32Array(len(sr, dur));
       const fc = curve([[0, 480], [0.35, 880 + r() * 100], [1.4, 760], [2.1, 520], [2.6, 300]]);
@@ -123,7 +126,7 @@ export const WORLD = {
     },
   },
   effigy_burn: {
-    variants: 2, gain: 0.65, ref: 5, max: 90, pitchVar: 0.04, verb: 0.2, poly: 2,
+    variants: 2, heavy: true, gain: 0.65, ref: 5, max: 90, pitchVar: 0.04, verb: 0.2, poly: 2,
     bake: (sr, r) => {
       const dur = 3.6, b = new Float32Array(len(sr, dur));
       mix(b, whoosh(sr, r, 1.0, { f0: 140, f1: 1200, q: 0.7, peak: 0.3 }), 0.9);
@@ -134,7 +137,7 @@ export const WORLD = {
     },
   },
   effigy_collapse: {
-    variants: 3, gain: 0.7, ref: 5, max: 90, pitchVar: 0.05, verb: 0.2, poly: 2,
+    variants: 3, heavy: true, gain: 0.7, ref: 5, max: 90, pitchVar: 0.05, verb: 0.2, poly: 2,
     bake: (sr, r) => {
       const dur = 2.0, b = new Float32Array(len(sr, dur));
       mix(b, grains(sr, r, 1.5, { count: 420, bands: [[1500, 1], [3000, 1.2], [800, 1]], decay: 0.0011, spread: 0.45 }), 0.55);
@@ -166,7 +169,7 @@ export const WORLD = {
 // Loop recipes: bake(sr, r) returns a seamless buffer (mono or [L, R]).
 const loopOf = (b, sr, x = 0.4) => (Array.isArray(b) ? b.map((c) => makeLoop(c, sr, x)) : makeLoop(b, sr, x));
 export const LOOPS = {
-  fire_crackle: { gain: 0.5, ref: 2.5, max: 30, verb: 0.08, spawn: { name: '_fire_pop', rate: 1.2, volume: 0.5 }, bake: (sr, r) => loopOf(normalize(fire(sr, r, 9, { roar: 0.6, crackles: 22, pops: 2 }), 0.8), sr) },
+  fire_crackle: { gain: 0.5, rate: 24000, ref: 2.5, max: 30, verb: 0.08, spawn: { name: '_fire_pop', rate: 1.2, volume: 0.5 }, bake: (sr, r) => loopOf(normalize(fire(sr, r, 9, { roar: 0.6, crackles: 22, pops: 2 }), 0.8), sr) },
   torch: {
     gain: 0.45, ref: 2, max: 25, verb: 0.08, bake: (sr, r) => {
       const f = fire(sr, r, 7, { roar: 0.8, crackles: 10, pops: 1, hiss: 0.1 });
@@ -175,9 +178,9 @@ export const LOOPS = {
       return loopOf(normalize(f, 0.8), sr);
     },
   },
-  effigy_fire: { gain: 0.7, ref: 4, max: 70, verb: 0.15, spawn: { name: '_fire_pop', rate: 3, volume: 0.8 }, bake: (sr, r) => loopOf(widen(normalize(fire(sr, r, 10, { roar: 1, crackles: 40, pops: 5, hiss: 0.3 }), 0.8), sr, 11, 0.5), sr) },
+  effigy_fire: { gain: 0.7, ref: 4, max: 70, verb: 0.15, spawn: { name: '_fire_pop', rate: 3, volume: 0.8 }, bake: (sr, r) => loopOf(normalize(fire(sr, r, 10, { roar: 1, crackles: 40, pops: 5, hiss: 0.3 }), 0.8), sr) },
   senses_hum: {
-    gain: 0.35, ui: true, verb: 0.2, bake: (sr, r) => {
+    gain: 0.35, rate: 16000, ui: true, verb: 0.2, bake: (sr, r) => {
       const dur = 8, n = len(sr, dur);
       const L = new Float32Array(n), R = new Float32Array(n);
       // Partials chosen to complete whole cycles in 8 s so the loop is seamless.
@@ -193,7 +196,7 @@ export const LOOPS = {
     },
   },
   heartbeat: {
-    gain: 0.75, ui: true, verb: 0, bake: (sr, r) => {
+    gain: 0.75, rate: 16000, ui: true, verb: 0, bake: (sr, r) => {
       const period = 60 / 66, n = len(sr, period * 4), b = new Float32Array(n);
       for (let k = 0; k < 4; k++) {
         mix(b, thump(sr, r, 0.4, { f: 58, fEnd: 40, decay: 0.07, click: 0, noise: 0.15, lp: 200 }), 1, Math.floor(k * period * sr));
@@ -204,9 +207,9 @@ export const LOOPS = {
     },
   },
   water_flow: {
-    gain: 0.45, ref: 6, max: 90, verb: 0.15, bake: (sr, r) => {
+    gain: 0.45, ref: 6, max: 90, verb: 0.15, rate: 16000, bake: (sr, r) => {
       const dur = 10, ch = [];
-      for (let c = 0; c < 2; c++) {
+      for (let c = 0; c < 1; c++) {
         const b = pink(len(sr, dur + 0.5), r);
         new Biquad(sr, 'bandpass', 900, 0.5).run(b);
         const w = wander(b.length, sr, 2, r);
@@ -221,14 +224,11 @@ export const LOOPS = {
     },
   },
   crowd_murmur: {
-    gain: 0.45, ref: 5, max: 60, verb: 0.2, bake: (sr, r) => {
-      const L = babble(sr, r, 12.5, { voices: 7, lp: 2600, rate: 2 }), R = babble(sr, r, 12.5, { voices: 7, lp: 2600, rate: 2 });
-      return loopOf([normalize(L, 0.7), normalize(R, 0.7)], sr, 0.5);
-    },
+    gain: 0.45, ref: 5, max: 60, verb: 0.2, rate: 16000, bake: (sr, r) => loopOf(normalize(babble(sr, r, 10.5, { voices: 8, lp: 2600, rate: 2 }), 0.7), sr, 0.5),
   },
   // Ambience beds (internal).
   _forest_bed: {
-    gain: 0.5, ui: true, verb: 0, bake: (sr, r) => {
+    gain: 0.5, ui: true, verb: 0.15, rate: 16000, bake: (sr, r) => {
       const dur = 14.5, ch = [];
       for (let c = 0; c < 2; c++) {
         const b = pink(len(sr, dur), r);
@@ -242,13 +242,15 @@ export const LOOPS = {
     },
   },
   _village_bed: {
-    gain: 0.4, ui: true, verb: 0, bake: (sr, r) => {
-      const L = babble(sr, r, 12.5, { voices: 5, lp: 1200, rate: 5 }), R = babble(sr, r, 12.5, { voices: 5, lp: 1200, rate: 5 });
+    gain: 0.35, ui: true, verb: 0.45, rate: 16000, bake: (sr, r) => {
+      const L = babble(sr, r, 10.8, { voices: 5, lp: 1100, rate: 3 }), R = babble(sr, r, 10.8, { voices: 5, lp: 1100, rate: 3 });
+      // Thin the chest tones so the murmur sits behind the scene instead of muddying it.
+      for (const c of [L, R]) new Biquad(sr, 'highpass', 230, 0.6).run(c);
       return loopOf([normalize(L, 0.6), normalize(R, 0.6)], sr, 0.8);
     },
   },
   _lake_bed: {
-    gain: 0.4, ui: true, verb: 0, bake: (sr, r) => {
+    gain: 0.4, ui: true, verb: 0.2, rate: 16000, bake: (sr, r) => {
       const dur = 12.5, ch = [];
       for (let c = 0; c < 2; c++) {
         const b = brown(len(sr, dur), r);

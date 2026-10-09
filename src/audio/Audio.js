@@ -95,8 +95,9 @@ class AudioFacade {
     this.eng.mixer.setEnvironment(this._space, 0.01);
     if (this._want) this.eng.director.setMood(this._want.name, { fade: this._want.fade });
     for (const h of this._loops) h.attach(this.eng);
-    // Bake every SFX variant in idle slices so first plays never stall.
-    setTimeout(() => this.eng?.sfx.prebake(), 1500);
+    // Bake every SFX variant (worker) and every sampled music note (idle slices) so first plays
+    // never stall.
+    setTimeout(() => { this.eng?.sfx.prebake(); this.eng?.director.prebake(); }, 1200);
     return Promise.resolve(true);
   }
 

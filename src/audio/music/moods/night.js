@@ -8,10 +8,10 @@ export default {
   name: 'night',
   tempo: 50,
   beats: 3,
-  level: 0.5,
+  level: 0.6,
   parts: {
     throat: P.throat({ level: 0.42 }),
-    voice: P.voiceFar({ level: 0.28, lp: 2200, verb: 0.85 }),
+    voice: P.voiceFar({ level: 0.36, lp: 2200, verb: 0.85 }),
     box: P.box({ level: 0.26, verb: 0.75, pan: 0.25 }),
     fiddle: P.fiddle({ level: 0.12, verb: 0.7, pan: -0.4, lp: 4000 }),
   },
@@ -19,7 +19,7 @@ export default {
     for (let cycle = 0; ; cycle++) {
       const S = new Score(3, 50);
       S.mark(0, { section: 'drone' });
-      S.add('throat', 0, 24, 38, { v: 0.55, vowel: 'u', morph: ['u', 'o', 'u', 'o'], soft: true, vib: 0.2 });
+      S.add('throat', 3 * r.int(0, 2), 24, r.pick([38, 38, 45]), { v: 0.5 + r() * 0.1, vowel: 'u', morph: r.pick([['u', 'o', 'u', 'o'], ['o', 'u', 'a', 'u'], ['m', 'u', 'o', 'u']]), soft: true, vib: 0.2 });
       // Far voice: the B phrase, slow.
       S.mark(4, { section: 'far voice' });
       const ph = r.pick([[8, 12], [0, 4], [12, 16]]);

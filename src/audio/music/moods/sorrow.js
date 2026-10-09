@@ -8,7 +8,7 @@ export default {
   name: 'sorrow',
   tempo: 46,
   beats: 3,
-  level: 0.76,
+  level: 0.95,
   parts: {
     voice: P.voice({ level: 0.4, verb: 0.48, vibDepth: 48 }),
     throat: P.throat({ level: 0.32 }),

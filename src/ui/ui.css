@@ -181,7 +181,7 @@
 }
 .mz-card-line { position: relative; width: min(54%, 560px); height: 14px; margin: 18px auto 0; min-width: 220px; }
 .mz-card-thread { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
-.mz-card-thread path { fill: none; stroke: #b0382a; stroke-width: 2.4; stroke-linecap: round; stroke-dasharray: 1; stroke-dashoffset: 1; vector-effect: non-scaling-stroke; filter: drop-shadow(0 0 4px rgba(4, 6, 10, 0.9)); }
+.mz-card-thread path { fill: none; stroke: #b0382a; stroke-width: 2.4; stroke-linecap: round; stroke-dasharray: 1; stroke-dashoffset: 1; filter: drop-shadow(0 0 4px rgba(4, 6, 10, 0.9)); }
 .mz-card.draw .mz-card-thread path { stroke-dashoffset: 0; transition: stroke-dashoffset 1.7s cubic-bezier(0.5, 0, 0.2, 1); }
 .mz-card-knot { position: absolute; right: -18px; top: -5px; width: 24px; height: 24px; color: #c4402f; opacity: 0; transform: scale(0.6); transition: opacity 0.6s ease 1.5s, transform 0.6s var(--mz-ease) 1.5s; }
 .mz-card.draw .mz-card-knot { opacity: 1; transform: none; }
@@ -204,7 +204,7 @@
   text-shadow: var(--mz-halo); border-left: 2px solid rgba(236, 230, 218, 0.14); transition: color 0.18s, border-color 0.18s, background 0.25s;
 }
 .mz-ch .num { flex: none; width: 1.1em; font-family: var(--mz-serif); font-weight: 600; font-size: 0.8em; font-variant-numeric: lining-nums; color: rgba(236, 230, 218, 0.55); text-align: right; }
-.mz-ch .knot { flex: none; align-self: center; width: 20px; height: 20px; margin: 0 -3px 0 -2px; color: var(--mz-red-text); filter: drop-shadow(0 0 4px rgba(4, 6, 10, 0.9)); }
+.mz-ch .knot { flex: none; align-self: center; width: 23px; height: 23px; margin: 0 -3px 0 -2px; color: var(--mz-red-text); filter: drop-shadow(0 0 4px rgba(4, 6, 10, 0.9)); }
 .mz-ch.sel { color: #fff9ee; border-left-color: var(--mz-red-text); background: linear-gradient(90deg, rgba(154, 46, 34, 0.34), rgba(154, 46, 34, 0.08) 70%, transparent); }
 .mz-ch.sel .num { color: var(--mz-red-text); }
 .mz-ch.dis { opacity: 0.4; cursor: default; }
@@ -265,7 +265,7 @@
 .mz-banner .name { display: inline-block; font-family: var(--mz-serif); font-weight: 600; font-size: clamp(32px, 4.2vw, 62px); line-height: 1; letter-spacing: 0.36em; text-transform: uppercase; color: var(--mz-bone-hi); text-shadow: 0 2px 26px rgba(4, 6, 10, 0.75), 0 0 3px rgba(4, 6, 10, 0.8); }
 .mz-banner .line { height: 12px; margin: 12px 0 0; }
 .mz-banner .line .thread { width: 100%; height: 100%; overflow: visible; }
-.mz-banner .line path { fill: none; stroke: #c2402f; stroke-width: 2.2; stroke-linecap: round; stroke-dasharray: 1; stroke-dashoffset: 1; vector-effect: non-scaling-stroke; filter: drop-shadow(0 0 4px rgba(4, 6, 10, 0.9)); }
+.mz-banner .line path { fill: none; stroke: #c2402f; stroke-width: 2.2; stroke-linecap: round; stroke-dasharray: 1; stroke-dashoffset: 1; filter: drop-shadow(0 0 4px rgba(4, 6, 10, 0.9)); }
 .mz-banner.draw .line path { stroke-dashoffset: 0; transition: stroke-dashoffset 1.5s cubic-bezier(0.5, 0, 0.2, 1); }
 .mz-banner .sub { margin-top: 10px; font-family: var(--mz-serif); font-style: italic; font-size: clamp(17px, 1.5vw, 24px); letter-spacing: 0.18em; color: rgba(240, 232, 218, 0.88); text-shadow: var(--mz-halo); }
 

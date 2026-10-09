@@ -68,13 +68,17 @@ export async function init(G) {
 
   // Debug knobs from the URL: ?dspeed=2 plays dialogue lines twice as fast, ?autopick=0,1,2
   // answers choices without input (also on in shot mode so scenes never hang).
+  // ?sspeed=3 runs the story clock (scheduler, cinematic camera, actor turns) 3x: captures only.
+  const ss = parseFloat(G.params.get('sspeed'));
+  story.timeScale = Number.isFinite(ss) && ss > 0 ? ss : 1;
   const ds = parseFloat(G.params.get('dspeed'));
   if (Number.isFinite(ds) && ds > 0) G.dialogue.speed = ds;
   const ap = G.params.get('autopick');
   if (ap != null) G.dialogue.autopick = ap === '' ? 'first' : ap.split(',').map((n) => parseInt(n, 10) || 0);
   else if (G.shot) G.dialogue.autopick = 'first';
 
-  G.addSystem('story', (dt) => {
+  G.addSystem('story', (rdt) => {
+    const dt = rdt * story.timeScale;
     story.sched.update(dt);
     G.dialogue.update(dt);
     G.cutscenes.update(dt);
@@ -92,7 +96,7 @@ export async function init(G) {
     if ('yaw' in P) P.yaw = c.yaw ?? c.root.rotation.y;
   }, ORDER.characters + 1);
 
-  G.addSystem('story-camera', (dt) => story.cam.update(dt), ORDER.camera + 1);
+  G.addSystem('story-camera', (dt) => story.cam.update(dt * story.timeScale), ORDER.camera + 1);
 
   G.events.once('game:ready', () => {
     flow.boot().catch((e) => {

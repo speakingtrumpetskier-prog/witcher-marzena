@@ -53,7 +53,7 @@ export function fishingHut(opts = {}) {
     kit.wood.tube([sx, -2.4, sz], [sx + kit.rs() * 0.03, lift - 0.2, sz], 0.15, 0.13, wood(1.0), { seg: 8, lenSeg: 4, ao: 0.3, wobble: 0.03, ph: kit.rand() * 5, uo: kit.rand() });
     kit.circle(sx, sz, 0.18, { y1: lift + 1.4 });
     // A ring of frozen spray at the waterline.
-    kit.ice.tube([sx, 0.0, sz], [sx, 0.55, sz], 0.28, 0.16, mixC(PAL.ice, 0xffffff, 0.4), { seg: 8, lenSeg: 1, ao: 0, capA: false });
+    kit.ice.tube([sx, 0.0, sz], [sx, 0.38 + kit.rand() * 0.2, sz], 0.22 + kit.rand() * 0.06, 0.14, mixC(PAL.ice, PAL.iceDeep, 0.25 + kit.rand() * 0.3), { seg: 7, lenSeg: 1, ao: 0, capA: false, wobble: 0.15, ph: kit.rand() * 5 });
   }
   for (const [ax, az, bx, bz] of [[dx0 + 0.3, dz0 + 0.3, dx1 - 0.3, dz0 + 0.3], [dx0 + 0.3, dz1 - 0.3, dx1 - 0.3, dz1 - 0.3], [dx0 + 0.3, dz0 + 0.3, dx0 + 0.3, dz1 - 0.3], [dx1 - 0.3, dz0 + 0.3, dx1 - 0.3, dz1 - 0.3]]) {
     kit.wood.tube([ax, 0.2, az], [bx, lift - 0.5, bz], 0.06, 0.06, wood(1.0), { seg: 5, lenSeg: 2, ao: 0.2 });

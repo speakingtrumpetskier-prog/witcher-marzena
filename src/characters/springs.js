@@ -23,7 +23,7 @@ export class Springs {
     const float = !!ch.look.ghost;
     for (const chain of rig.chains) {
       const P = { ...PRESET[chain.kind] || PRESET.tail };
-      if (float && chain.kind === 'skirt') { P.grav = -0.15; P.stiff = 1.2; P.drag = 0.12; }
+      if (float && chain.kind === 'skirt') { P.grav = 0.12; P.stiff = 2.6; P.drag = 0.18; P.current = 0.5; }
       for (let i = 0; i < chain.joints.length; i++) {
         const bone = rig.byName[chain.joints[i]];
         const next = chain.joints[i + 1] ? rig.byName[chain.joints[i + 1]] : null;
@@ -56,11 +56,27 @@ export class Springs {
 
   reset() {
     for (const j of this.joints) j.init = false;
+    this.lastRoot = null;
   }
 
+  // Sub-steps keep long frames stable; the root motion is interpolated across them.
   update(dt, wind) {
     if (!this.joints.length) return;
-    dt = Math.min(dt, 1 / 20);
+    dt = Math.min(dt, 0.25);
+    const root = this.ch.root;
+    const n = Math.min(6, Math.max(1, Math.ceil(dt / (1 / 50))));
+    if (n > 1 && this.lastRoot) {
+      const cur = root.position.clone();
+      for (let i = 1; i <= n; i++) {
+        root.position.lerpVectors(this.lastRoot, cur, i / n);
+        this._step(dt / n, wind);
+      }
+      root.position.copy(cur);
+    } else this._step(dt, wind);
+    (this.lastRoot ||= new THREE.Vector3()).copy(root.position);
+  }
+
+  _step(dt, wind) {
     const root = this.ch.root;
     root.updateMatrixWorld(true);
     // world-space collider shapes
@@ -73,7 +89,6 @@ export class Springs {
     for (const j of this.joints) {
       const bone = j.bone;
       const parent = bone.parent;
-      parent.updateMatrixWorld(false);
       // animated rest: the bone's local rotation from the clip (springs replace it)
       bone.quaternion.copy(j.rest);
       bone.updateMatrixWorld(false);
@@ -91,6 +106,13 @@ export class Springs {
       next.addScaledVector(restDir, P.stiff * dt * j.len * 2.2);
       next.addScaledVector(this.gravity, P.grav * dt * dt * 9.8 * 0.5 * 4);
       if (wind) next.addScaledVector(wind, dt * dt * (1 + 0.5 * Math.sin(t * 2.1 + j.len * 9)));
+      if (P.current) {
+        // slow underwater current for ghosts: drifting sideways and up
+        const ph = t * 0.7 + (j.ang || 0) * 2;
+        next.x += Math.sin(ph) * P.current * dt * 0.05;
+        next.z += Math.cos(ph * 0.8) * P.current * dt * 0.05;
+        next.y += Math.sin(ph * 1.3) * P.current * dt * 0.01;
+      }
       // length constraint
       next.sub(head).normalize().multiplyScalar(j.len).add(head);
       // colliders

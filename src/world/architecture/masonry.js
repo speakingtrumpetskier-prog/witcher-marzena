@@ -33,7 +33,7 @@ export function stoneRing(kit, o) {
   let course = 0;
   const maxTop = (() => { let m = 0; for (const w of ['front', 'right', 'back', 'left']) for (let s = -hw; s <= hw; s += 0.5) m = Math.max(m, topFn(w, s)); return m; })();
   while (y < maxTop - 0.05) {
-    const h = bh * kit.r(0.85, 1.2);
+    const h = bh * kit.r(0.7, 1.25);
     const hwo = hw - batter * (y - y0), hdo = hd - batter * (y - y0);
     const t = o.inner != null ? Math.max(0.3, hwo - o.inner) : (o.t ?? 0.9);
     const even = course % 2 === 0;
@@ -44,7 +44,7 @@ export function stoneRing(kit, o) {
       const a0 = full ? -L / 2 : -L / 2 + t, a1 = full ? L / 2 : L / 2 - t;
       let s = a0;
       while (s < a1 - 0.05) {
-        const len = Math.min(a1 - s, kit.r(0.5, 1.15));
+        const len = Math.min(a1 - s, kit.r(0.35, 1.0));
         const sm = s + len / 2;
         const maxY = topFn(wall, sm);
         let bhh = h;
@@ -60,12 +60,10 @@ export function stoneRing(kit, o) {
         }
         if (!skip) {
           const col = stoneTone(kit, { k: 1 - Math.max(0, 1 - (y - y0) / 1.2) * 0.35, lichen: o.lichen });
-          const out = kit.r(-0.03, 0.05);
+          const out = kit.r(-0.05, 0.07);
           const tt = t * kit.r(0.92, 1.0);
           mb.at(cx + f.x, 0, cz + f.z, f.yaw, (m) => {
-            m.box(sm, y + bhh / 2, -tt / 2 + out, len * 1.0, bhh * 1.002, tt, col, {
-              ry: kit.rs() * 0.025, rz: kit.rs() * 0.012, uv: [2, 2], top: scaleC(col, 1.12), skip: '-y',
-            });
+            rubble(m, kit, sm, y + bhh / 2, out, len, bhh, tt, col);
           });
         }
         s += len;
@@ -75,6 +73,38 @@ export function stoneRing(kit, o) {
     course++;
   }
   return { top: y };
+}
+
+// A rock-faced masonry block in the current frame. The outer face is at z = oz (outward +z), the block
+// extends d inward. Corners are jittered and the outer face is a shallow pyramid, so every block catches
+// light differently. 12 triangles.
+export function rubble(mb, kit, cx, cy, oz, w, h, d, col, o = {}) {
+  const hx = w / 2, hy = h / 2;
+  const jt = o.jitter ?? 0.014;
+  const J = () => (kit.rand() - 0.5) * 2 * jt;
+  const f = [[-hx, -hy], [hx, -hy], [hx, hy], [-hx, hy]].map(([x, y]) => [cx + x + J(), cy + y + J(), oz + J()]);
+  const b = [[-hx, -hy], [hx, -hy], [hx, hy], [-hx, hy]].map(([x, y]) => [cx + x + J(), cy + y + J(), oz - d]);
+  const c = [cx + J() * 2, cy + J() * 2, oz + (o.bulge ?? 0.035) * (0.3 + 0.7 * kit.rand())];
+  const uo = kit.rand() * 5, vo = kit.rand() * 5;
+  const us = 1.4;
+  const tri = (p0, p1, p2, cc) => {
+    const ax = p1[0] - p0[0], ay = p1[1] - p0[1], az = p1[2] - p0[2];
+    const bx = p2[0] - p0[0], by = p2[1] - p0[1], bz = p2[2] - p0[2];
+    let nx = ay * bz - az * by, ny = az * bx - ax * bz, nz = ax * by - ay * bx;
+    const l = Math.hypot(nx, ny, nz) || 1; nx /= l; ny /= l; nz /= l;
+    const dom = Math.abs(nx) > Math.abs(ny) && Math.abs(nx) > Math.abs(nz) ? 0 : Math.abs(ny) > Math.abs(nz) ? 1 : 2;
+    const uv = (p) => (dom === 0 ? [p[2] / us + uo, p[1] / us + vo] : dom === 1 ? [p[0] / us + uo, p[2] / us + vo] : [p[0] / us + uo, p[1] / us + vo]);
+    const idx = [p0, p1, p2].map((p) => { const t = uv(p); return mb.v(p[0], p[1], p[2], nx, ny, nz, t[0], t[1], cc); });
+    mb.tri(idx[0], idx[1], idx[2]);
+  };
+  const quad = (p0, p1, p2, p3, cc) => { tri(p0, p1, p2, cc); tri(p0, p2, p3, cc); };
+  const base = C(col);
+  const lit = scaleC(base, 1.08);
+  tri(f[0], f[1], c, base); tri(f[1], f[2], c, scaleC(base, 0.96)); tri(f[2], f[3], c, lit); tri(f[3], f[0], c, scaleC(base, 0.92));
+  quad(f[3], f[2], b[2], b[3], lit); // top
+  quad(f[1], b[1], b[2], f[2], base); // +x end
+  quad(f[0], f[3], b[3], b[0], base); // -x end
+  quad(b[0], b[3], b[2], b[1], scaleC(base, 0.8)); // inner face
 }
 
 // A rough boulder: noisy ellipsoid, flattened base. Drawn into kit.stone (or stoneIn).

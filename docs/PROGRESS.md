@@ -10,7 +10,7 @@ catches issues, and fixes them or sends a targeted fix back to the builder. No c
 | 1 | Terrain, ice, water, rocks | opus | building | 0 | |
 | 1 | Atmosphere, sky, weather, post | opus | building | 0 | |
 | 1 | Characters, animation, horse | opus | building | 0 | |
-| 1 | Audio and music | opus | building | 0 | |
+| 1 | Audio and music | opus | done, reviewed | 1 | 12 moods, 7 stingers, 68 SFX, auto ambience; no clipping, loudness on target; needs human ears |
 | 1 | Vegetation | sonnet | building | 0 | |
 | 1 | Architecture kit | sonnet | building | 0 | |
 | 1 | Props kit and FX | sonnet | building | 0 | |

@@ -4,8 +4,8 @@
 import { GeoBuilder, rng, rgb, mixRGB, tube, frond, softBall } from './geo.js';
 
 export const JUNIPER_VARIANTS = [
-  { id: 'juniper_a', seed: 4101, n: 20, L: 1.5, rise: 0.35, W: 0.3, H: 1.2, upright: false },
-  { id: 'juniper_b', seed: 4202, n: 16, L: 1.5, rise: 1.5, W: 0.26, H: 2.0, upright: true },
+  { id: 'juniper_a', seed: 4101, n: 30, L: 1.25, rise: 0.4, W: 0.17, H: 0.9, upright: false },
+  { id: 'juniper_b', seed: 4202, n: 28, L: 1.2, rise: 1.2, W: 0.15, H: 1.5, upright: true },
 ];
 export const SNOWBUSH_VARIANTS = [
   { id: 'snowbush_a', seed: 5101, R: 1.25, h: 0.7, twigs: 22 },

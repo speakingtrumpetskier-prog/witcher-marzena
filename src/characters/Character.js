@@ -140,6 +140,7 @@ export class Character {
     const bone = this.swordKind === 'silver' ? by.sheathB : by.sheathA;
     if (drawn && !this.swordObj) {
       this.swordObj = makeSword(this.swordKind || 'steel');
+      this.swordObj.position.y = 0.035;
       this.sockets.handR.add(this.swordObj);
     }
     if (this.swordObj) this.swordObj.visible = drawn;
@@ -174,13 +175,14 @@ export class Character {
       const A = armJoints(M, s);
       const down = A.dir.clone();
       const palmN = new THREE.Vector3().crossVectors(down, new THREE.Vector3(0, 0, 1)).normalize().multiplyScalar(s);
-      const side = new THREE.Vector3().crossVectors(palmN, down).normalize();
+      const side = new THREE.Vector3(0, 0, 1); // grip axis: thumb side, forward in bind
       const o = new THREE.Object3D();
       o.name = 'socket_hand' + S;
       const hk = M.handLen / 0.19;
       o.position.copy(down).multiplyScalar(0.07 * hk).addScaledVector(palmN, 0.022 * hk);
       // +Y along the grip (out past the thumb), +Z away from the palm
-      const basis = new THREE.Matrix4().makeBasis(new THREE.Vector3().crossVectors(side, palmN.clone().negate()), side, palmN.clone().negate());
+      const zA = palmN.clone().negate();
+      const basis = new THREE.Matrix4().makeBasis(new THREE.Vector3().crossVectors(side, zA), side, zA);
       o.quaternion.setFromRotationMatrix(basis);
       by['hand' + S].add(o);
       this.sockets['hand' + S] = o;

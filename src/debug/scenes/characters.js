@@ -33,6 +33,7 @@ export async function init(G) {
   const preset = P.get('preset');
   const clip = P.get('clip');
   const tStart = parseFloat(P.get('t') || '0');
+  const stepDt = parseFloat(P.get('animStep'));
   const face = (P.get('face') || '').split(',').filter(Boolean).map((s) => s.split(':'));
   const apply = (c) => {
     for (const [k, v] of face) c.expression(k, parseFloat(v || '1'), 0);
@@ -62,7 +63,7 @@ export async function init(G) {
     const n = parseInt(P.get('strip'), 10) || 8;
     const id = preset || 'vesna';
     const name = clip || 'attack_1';
-    const sp = 1.15;
+    const sp = parseFloat(P.get('spacing') || '1.15');
     for (let i = 0; i < n; i++) {
       const c = C.create(id);
       c.setPosition((i - (n - 1) / 2) * sp, 0);
@@ -72,6 +73,7 @@ export async function init(G) {
       c.play(clipObj, { loop: true, fade: 0, speed: 0.0001, start: 0 });
       // freeze at i/n of the clip
       c._stripT = (i / n);
+      if (P.has('sword')) c._setSword(true);
       c._stripClip = clipObj;
       G.gallery.chars.push(c);
     }
@@ -81,7 +83,8 @@ export async function init(G) {
         if (st && st.clip) { st.t = c._stripT * st.clip.dur; st.speed = 0; }
       }
     }, 49);
-    G.camera.position.set(0, 1.1, 3.2 + n * 0.62);
+    const close = P.has('near') ? 0.62 : 1;
+    G.camera.position.set(0, 1.1, (3.2 + n * 0.62) * close);
     G.camera.lookAt(0, 0.95, 0);
     G.camera.fov = 34;
   } else if (preset) {
@@ -106,6 +109,7 @@ export async function init(G) {
       camRig.target = c;
       if (P.has('still')) camRig.mode = 'fixed';
       else G.addSystem('gallery-move', (dt) => {
+        if (stepDt > 0) dt = stepDt;
         c.root.position.x += Math.sin(c.yaw) * c.speed * dt;
         c.root.position.z += Math.cos(c.yaw) * c.speed * dt;
         if (c.root.position.x > 30) c.root.position.x = -30;

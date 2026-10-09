@@ -76,9 +76,9 @@ export class NoteView {
     }
     if (kind === 'ledger') {
       lines.forEach((l, i) => {
-        const m = /^([^:]{2,40}):\s*(.+)$/.exec(l);
+        const m = /^([^:,]{2,26}):\s*(.+)$/.exec(l);
         const p = m
-          ? h('p', { class: 'row', style: `--i:${i}` }, h('span', { class: 'k' }, m[1]), h('span', { class: 'dots' }), h('span', { class: 'v' }, m[2].replace(/\.$/, '')))
+          ? h('p', { class: 'row', style: `--i:${i}` }, h('span', { class: 'lk' }, m[1]), h('span', { class: 'dots' }), h('span', { class: 'lv' }, m[2].replace(/\.$/, '')))
           : this._p(l, i);
         root.appendChild(p);
       });

@@ -51,12 +51,12 @@ const SNOW_DEFAULT = { amount: 1, threshold: 0.62 };
 
 // [texture generator, standard params, snow config or null]
 const DEFS = {
-  wood: () => [tex.wood(), { roughness: 0.92 }, { amount: 1, threshold: 0.62 }, { bump: 1.4 }],
-  planks: () => [tex.planks(), { roughness: 0.92 }, { amount: 1, threshold: 0.62 }, { bump: 1.4 }],
+  wood: () => [tex.wood(), { roughness: 0.92 }, { amount: 0.85, threshold: 0.62 }, { bump: 1.4 }],
+  planks: () => [tex.planks(), { roughness: 0.92 }, { amount: 0.85, threshold: 0.62 }, { bump: 1.4 }],
   bark: () => [tex.bark(), { roughness: 0.97 }, { amount: 1, threshold: 0.58 }, { bump: 2.0 }],
   logEnd: () => [tex.logEnd(), { roughness: 0.95 }, { amount: 1, threshold: 0.7 }, { bump: 1.2 }],
   birch: () => [tex.birch(), { roughness: 0.85 }, { amount: 0.9, threshold: 0.6 }, { bump: 1.0 }],
-  straw: () => [tex.straw(), { roughness: 0.98 }, { amount: 0.9, threshold: 0.5 }, { bump: 1.6 }],
+  straw: () => [tex.straw(), { roughness: 0.98, side: THREE.DoubleSide }, { amount: 0.9, threshold: 0.5 }, { bump: 1.6 }],
   rope: () => [tex.rope(), { roughness: 0.98 }, { amount: 0.5, threshold: 0.8 }, { bump: 1.5 }],
   linen: () => [tex.linen(), { roughness: 0.96 }, { amount: 0.8, threshold: 0.6 }, { bump: 0.8 }],
   burlap: () => [tex.burlap(), { roughness: 0.98 }, { amount: 0.9, threshold: 0.55 }, { bump: 1.2 }],
@@ -67,7 +67,7 @@ const DEFS = {
   ice: () => [tex.ice(), { roughness: 0.12, metalness: 0.0, emissive: new THREE.Color(0x24465a), emissiveIntensity: 0.35 }, null, { bump: 0.6 }],
   paint: () => [tex.paint(), { roughness: 0.85 }, { amount: 1, threshold: 0.62 }, { bump: 1.2 }],
   face: () => [tex.paint(), { roughness: 0.8 }, null, { bump: 0.8 }],
-  fish: () => [tex.fish(), { roughness: 0.4 }, null, {}],
+  fish: () => [tex.fish(), { roughness: 0.4, side: THREE.DoubleSide }, null, {}],
   clay: () => [tex.clay(), { roughness: 0.85 }, { amount: 1, threshold: 0.6 }, {}],
   folk: () => [tex.folk(), { roughness: 1.0, side: THREE.DoubleSide }, null, {}],
   wicker: () => [tex.wicker(), { roughness: 0.95 }, { amount: 0.9, threshold: 0.6 }, { bump: 1.6 }],

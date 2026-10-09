@@ -3,7 +3,7 @@
 // Mood changes crossfade on the outgoing mood's next bar line (or beat line when a bar line is
 // too far away). Stingers are short finite scores on their own bus that dip the moods a little.
 import { Singer, Choir, Fiddle, Flute, Gurdy, WindTone } from '../instruments/live.js';
-import { Sampler } from '../instruments/baked.js';
+import { Sampler, sampleKeys } from '../instruments/baked.js';
 import { MOOD_DEFS } from './moods/index.js';
 import { STINGER_DEFS } from './stingers.js';
 
@@ -208,6 +208,29 @@ export class Director {
         return true;
       });
     }
+  }
+
+  // Dry-run every mood's score (cheap: just note objects) to find the sampled notes it will
+  // need, and bake them in idle time so no frame ever waits for a bell or a zither string.
+  prebake(bars = 140) {
+    const items = new Map();
+    const defs = { ...MOOD_DEFS, ...Object.fromEntries(Object.entries(STINGER_DEFS).map(([k, v]) => [`stinger:${k}`, v])) };
+    for (const [name, def] of Object.entries(defs)) {
+      const gen = def.score(this.eng.rngFor(`prebake:${name}`));
+      for (let b = 0; b < bars; b++) {
+        const it = gen.next();
+        if (it.done) break;
+        for (const ev of it.value.notes) {
+          const spec = def.parts[ev.part];
+          if (!spec || ev.type || ['singer', 'choir', 'fiddle', 'flute', 'gurdy', 'wind'].includes(spec.inst)) continue;
+          for (const [key, fn] of sampleKeys(spec.inst, ev)) if (!items.has(key)) items.set(key, fn);
+        }
+      }
+    }
+    const bank = this.eng.bank;
+    if (bank.worker) for (const key of items.keys()) bank.request(key, { kind: 'music', rate: bank.rate });
+    else bank.prebake([...items]);
+    return items.size;
   }
 
   info() {

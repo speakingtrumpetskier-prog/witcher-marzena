@@ -22,6 +22,15 @@ export const FOLEY = {
   step_snow: { variants: 8, gain: 0.5, ref: 2, max: 40, pitchVar: 0.06, verb: 0.05, poly: 6, bake: (sr, r, i) => snowStep(sr, r, i) },
   step_ice: {
     variants: 7, gain: 0.5, ref: 2, max: 40, pitchVar: 0.05, verb: 0.08, poly: 6,
+    // Now and then the weight wakes the ice: a crack nearby or a deep groan running away.
+    extra: (player, o) => {
+      const rnd = player.eng.random;
+      if (rnd() > 0.035 || player.eng.ctx.currentTime - (player._iceExtra || -99) < 8) return;
+      player._iceExtra = player.eng.ctx.currentTime;
+      const c = o.pos || player.listener, a = rnd() * 6.283, d = 12 + rnd() * 30;
+      const pos = { x: c.x + Math.cos(a) * d, y: 0.3, z: c.z + Math.sin(a) * d };
+      player.play(rnd() < 0.5 ? 'ice_crack' : 'ice_groan', { pos, volume: 0.45, delay: 0.2 + rnd() * 0.8 });
+    },
     bake: (sr, r) => {
       const dur = 0.3, b = new Float32Array(len(sr, dur));
       const click = burst(sr, r, 0.012, { hp: 1200, env: { a: 0.0003, d: 0.0015 } });
@@ -105,7 +114,7 @@ export const FOLEY = {
     },
   },
   page_turn: {
-    variants: 4, gain: 0.45, ref: 1.5, max: 10, pitchVar: 0.08, verb: 0.05, poly: 2,
+    variants: 4, rate: 32000, gain: 0.45, ref: 1.5, max: 10, pitchVar: 0.08, verb: 0.05, poly: 2,
     bake: (sr, r) => {
       const dur = 0.45, b = new Float32Array(len(sr, dur));
       mix(b, burst(sr, r, dur, { color: 'pink', q: 0.9, sweep: (t) => 1400 + 5000 * (t / dur), env: [[0, 0], [0.08, 0.5], [0.22, 1], [0.38, 0.3], [0.45, 0]] }), 0.8);
@@ -114,7 +123,7 @@ export const FOLEY = {
     },
   },
   coin: {
-    variants: 4, gain: 0.45, ref: 1.5, max: 12, pitchVar: 0.04, verb: 0.1, poly: 3,
+    variants: 4, rate: 32000, gain: 0.45, ref: 1.5, max: 12, pitchVar: 0.04, verb: 0.1, poly: 3,
     bake: (sr, r) => {
       const dur = 0.7, b = new Float32Array(len(sr, dur));
       const n = r.int(2, 3);
@@ -177,7 +186,7 @@ export const FOLEY = {
     },
   },
   heartbeat: {
-    variants: 2, gain: 0.8, ref: 2, max: 8, pitchVar: 0.02, verb: 0, poly: 2,
+    variants: 2, rate: 16000, gain: 0.8, ref: 2, max: 8, pitchVar: 0.02, verb: 0, poly: 2,
     bake: (sr, r) => {
       const dur = 0.8, b = new Float32Array(len(sr, dur));
       mix(b, thump(sr, r, 0.4, { f: 58, fEnd: 40, decay: 0.07, click: 0, noise: 0.15, lp: 200 }), 1);
@@ -186,7 +195,7 @@ export const FOLEY = {
     },
   },
   forge_hammer: {
-    variants: 5, gain: 0.55, ref: 5, max: 110, pitchVar: 0.03, verb: 0.2, poly: 3,
+    variants: 5, rate: 32000, gain: 0.55, ref: 5, max: 110, pitchVar: 0.03, verb: 0.2, poly: 3,
     bake: (sr, r, i) => {
       const anvil = i % 3 === 2;
       const dur = anvil ? 1.1 : 0.6, b = new Float32Array(len(sr, dur));

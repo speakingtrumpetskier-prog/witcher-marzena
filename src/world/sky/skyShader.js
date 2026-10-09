@@ -100,8 +100,8 @@ vec3 aurora(vec3 rd) {
   float w1 = texture2D(uNoise, vec2(xc * 0.018 + t * 0.0035, 0.37)).r - 0.5;
   float w2 = texture2D(uNoise, vec2(xc * 0.06 - t * 0.009, 0.71)).g - 0.5;
   float w3 = texture2D(uNoise, vec2(xc * 0.022 - t * 0.004, 0.11)).r - 0.5;
-  float czA = -5.0 + w1 * 7.0 + w2 * 1.8;
-  float czB = -7.5 + w3 * 8.0 - w2 * 1.2;
+  float czA = -3.6 + w1 * 5.0 + w2 * 1.4;
+  float czB = -5.2 + w3 * 6.0 - w2 * 1.0;
   float raysA = texture2D(uNoise, vec2(xc * 0.55 + t * 0.012, 0.13 + t * 0.0007)).b;
   float raysB = texture2D(uNoise, vec2(xc * 0.8 - t * 0.016, 0.53)).b;
   raysA = 0.25 + 1.1 * smoothstep(0.38, 0.85, raysA);
@@ -117,9 +117,9 @@ vec3 aurora(vec3 rd) {
     float dA = pz - czA, dB = pz - czB;
     float bA = exp(-dA * dA * 3.5) * raysA;
     float bB = exp(-dB * dB * 2.5) * raysB * 0.6;
-    float prof = exp(-fi * 2.4) * smoothstep(0.0, 0.06, fi + 0.02);
-    vec3 col = mix(vec3(0.18, 1.0, 0.55), vec3(0.5, 0.3, 1.0), smoothstep(0.12, 0.65, fi));
-    col = mix(col, vec3(1.0, 0.3, 0.55), smoothstep(0.75, 1.0, fi) * 0.5);
+    float prof = exp(-fi * 1.9) * smoothstep(0.0, 0.05, fi + 0.02);
+    vec3 col = mix(vec3(0.16, 1.0, 0.5), vec3(0.42, 0.32, 1.0), smoothstep(0.35, 0.85, fi));
+    col = mix(col, vec3(0.9, 0.3, 0.6), smoothstep(0.85, 1.0, fi) * 0.4);
     acc += col * (bA + bB) * prof;
   }
   float horizonFade = smoothstep(0.015, 0.12, rd.y);
@@ -179,8 +179,8 @@ vec4 cloudDeck(vec3 rd, float mu) {
   float edge = dens * (1.0 - smoothstep(th + 0.02, th + 0.25, d));
   col += uSunDisk * 0.012 * hg(mu, 0.72) * edge * uSunVis * (1.0 - uOvercast);
   // Overcast decks: broad soft variation instead of crisp banks.
-  float deck = 0.82 + 0.36 * (a - 0.5) + 0.15 * (b - 0.5);
-  col = mix(col, uCloudShade * deck * 1.05, uOvercast * 0.6);
+  float deck = 0.8 + 0.7 * (a - 0.5) + 0.3 * (b - 0.5) + 0.12 * (c - 0.5);
+  col = mix(col, uCloudShade * deck * 1.05, uOvercast * 0.85);
   float horizon = smoothstep(0.0, 0.08, y);
   float alpha = mix(dens, 1.0, uOvercast * smoothstep(0.0, 0.05, y)) * horizon;
   return vec4(col, alpha);
@@ -262,11 +262,13 @@ void main() {
   float dist = uEnvMode > 0.5 && y < 0.0 ? min(60.0 / max(-y, 0.01), 20000.0) : 30000.0;
   // The dome already contains the clear-air scattering, so the aerial haze counts only
   // partly here; ground fog, lake fog and storms count fully.
-  float od = mzExpOD(uFogDensity, uFogHeightFalloff, uFogBaseHeight, cameraPosition.y, rd.y, dist)
-           + mzExpOD(uFogHaze.x, uFogHaze.y, 0.0, cameraPosition.y, rd.y, dist) * mix(uSkyFog, 1.0, step(y, 0.0))
-           + mzLayerOD(cameraPosition, rd, dist);
+  float odA = mzExpOD(uFogDensity, uFogHeightFalloff, uFogBaseHeight, cameraPosition.y, rd.y, dist)
+           + mzExpOD(uFogHaze.x, uFogHaze.y, 0.0, cameraPosition.y, rd.y, dist) * mix(uSkyFog, 1.0, step(y, 0.0));
+  float odL = mzLayerOD(cameraPosition, rd, dist);
+  float od = odA + odL;
   float T = exp(-od);
-  vec3 col = sky * T + fogL * (1.0 - T);
+  vec3 fogMix = odL > 0.0 ? mix(fogL, uFogLayerColor, odL / max(od, 1e-4)) : fogL;
+  vec3 col = sky * T + fogMix * (1.0 - T);
 
   // Sun disk on top, dimmed by the air and by clouds. Through a thin deck it is a pale smudge.
   float sd = sqrt(max(2.0 * (1.0 - mu), 0.0));

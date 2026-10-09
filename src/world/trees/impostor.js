@@ -21,22 +21,16 @@ export async function bakeImpostors(G, kinds, opts = {}) {
   const W = COLS * TW, H = rows * TH;
   const R = G.renderer;
 
-  // Each tile is rendered into a small multisampled target and then copied into the atlas with a
-  // textured quad. (Rendering tile after tile straight into one big multisampled atlas resolves the
-  // whole atlas after every call, which is extremely slow on software GL.)
+  // Each tile is rendered into a small multisampled target and read back into a CPU atlas; the atlas
+  // becomes a DataTexture (mipmapped once on upload). Rendering tile after tile into one big
+  // render target instead regenerates its mipmaps and resolves it after every call, which is
+  // painfully slow on software GL.
   const tileRT = new THREE.WebGLRenderTarget(TW, TH, {
     colorSpace: THREE.SRGBColorSpace, depthBuffer: true, samples: 4, generateMipmaps: false,
     minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter,
   });
-  const mkAtlas = () => {
-    const rt = new THREE.WebGLRenderTarget(W, H, {
-      colorSpace: THREE.SRGBColorSpace, depthBuffer: false, generateMipmaps: true,
-      minFilter: THREE.LinearMipmapLinearFilter, magFilter: THREE.LinearFilter,
-    });
-    rt.texture.anisotropy = 4;
-    return rt;
-  };
-  const rtA = mkAtlas(), rtB = mkAtlas();
+  const bufs = [new Uint8Array(W * H * 4), new Uint8Array(W * H * 4)];
+  const px = new Uint8Array(TW * TH * 4);
 
   // frames
   imp.forEach((k, i) => {
@@ -56,12 +50,6 @@ export async function bakeImpostors(G, kinds, opts = {}) {
   cam.position.set(0, 0, 150);
   cam.lookAt(0, 0, 0);
 
-  // copy pass: one quad textured with the tile, written without blending so alpha is copied
-  const copyMat = new THREE.MeshBasicMaterial({ map: tileRT.texture, blending: THREE.NoBlending, depthTest: false, depthWrite: false, toneMapped: false, fog: false });
-  const copyScene = new THREE.Scene();
-  const copyCam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
-  copyScene.add(new THREE.Mesh(new THREE.PlaneGeometry(2, 2), copyMat));
-
   // save renderer + uniform state
   const prevRT = R.getRenderTarget();
   const prevAuto = R.autoClear;
@@ -73,20 +61,18 @@ export async function bakeImpostors(G, kinds, opts = {}) {
   U.uSunDir.value.set(0, -1, 0);
   U.uWind.value.z = 0; U.uWind.value.w = 0;
   R.autoClear = true;
+  R.setClearColor(0x61705f, 0);
+  R.setRenderTarget(tileRT);
 
   let yieldT = performance.now();
   const maybeYield = async () => {
-    if (performance.now() - yieldT > 20) { await new Promise((r) => setTimeout(r, 0)); yieldT = performance.now(); }
+    if (performance.now() - yieldT > 20) { await new Promise((r) => setTimeout(r, 0)); yieldT = performance.now(); R.setRenderTarget(tileRT); }
   };
-  const run = async (rt, snow, spring) => {
+  const run = async (buf, snow, spring) => {
     U.uSnowCover.value = snow; U.uSpring.value = spring;
-    R.setClearColor(0x61705f, 0);
-    R.setRenderTarget(rt);
-    R.clear();
     for (const k of imp) {
-      const meshes = k.lods[0].parts.map((p) => new THREE.Mesh(p.geometry, p.material));
       const holder = new THREE.Group();
-      meshes.forEach((m) => holder.add(m));
+      for (const p of k.lods[0].parts) holder.add(new THREE.Mesh(p.geometry, p.material));
       scene.add(holder);
       cam.left = -k.imp.fw / 2; cam.right = k.imp.fw / 2; cam.bottom = 0; cam.top = k.imp.fh;
       cam.updateProjectionMatrix();
@@ -94,26 +80,17 @@ export async function bakeImpostors(G, kinds, opts = {}) {
         const tile = k.imp.tile[v];
         const tx = (tile % COLS) * TW, ty = Math.floor(tile / COLS) * TH;
         holder.rotation.y = v * Math.PI * 0.5 + 0.35;
-        R.setRenderTarget(tileRT);
-        R.setClearColor(0x61705f, 0);
-        R.autoClear = true;
         R.render(scene, cam);
-        // copy into the atlas tile
-        rt.viewport.set(tx, ty, TW, TH);
-        rt.scissor.set(tx, ty, TW, TH);
-        rt.scissorTest = true;
-        R.setRenderTarget(rt);
-        R.autoClear = false;
-        R.render(copyScene, copyCam);
+        R.readRenderTargetPixels(tileRT, 0, 0, TW, TH, px);
+        for (let y = 0; y < TH; y++) buf.set(px.subarray(y * TW * 4, (y + 1) * TW * 4), ((ty + y) * W + tx) * 4);
         await maybeYield();
-        R.setClearColor(0x61705f, 0);
       }
       scene.remove(holder);
     }
   };
   try {
-    await run(rtA, snowBake, 0);
-    await run(rtB, 0, 1);
+    await run(bufs[0], snowBake, 0);
+    await run(bufs[1], 0, 1);
   } finally {
     R.setRenderTarget(prevRT);
     R.autoClear = prevAuto;
@@ -122,9 +99,19 @@ export async function bakeImpostors(G, kinds, opts = {}) {
     U.uWind.value.copy(prevWind);
     U.uSnowCover.value = prevSnow; U.uSpring.value = prevSpring;
     tileRT.dispose();
-    copyMat.dispose();
   }
-  return { atlasA: rtA.texture, atlasB: rtB.texture, cols: COLS, rows, rts: [rtA, rtB] };
+  const mk = (buf) => {
+    const t = new THREE.DataTexture(buf, W, H, THREE.RGBAFormat, THREE.UnsignedByteType);
+    t.colorSpace = THREE.SRGBColorSpace;
+    t.flipY = false;
+    t.generateMipmaps = true;
+    t.minFilter = THREE.LinearMipmapLinearFilter;
+    t.magFilter = THREE.LinearFilter;
+    t.anisotropy = 4;
+    t.needsUpdate = true;
+    return t;
+  };
+  return { atlasA: mk(bufs[0]), atlasB: mk(bufs[1]), cols: COLS, rows };
 }
 
 const HEADER_V = /* glsl */ `
@@ -244,7 +231,8 @@ export class ImpostorLayer {
     this.mesh.instanceColor.setUsage(THREE.DynamicDrawUsage);
     this.mesh.frustumCulled = false;
     this.mesh.castShadow = false;
-    this.mesh.receiveShadow = false;
+    // receives the far shadow cascade, so forests standing in a ridge's shadow do not glow
+    this.mesh.receiveShadow = true;
     this.mesh.name = 'vegetation-impostors';
     this.mesh.count = 0;
     this.n = 0;

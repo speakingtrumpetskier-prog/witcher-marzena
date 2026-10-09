@@ -20,14 +20,17 @@ export function fishShape(L) {
   return { shape: s, H };
 }
 
-// Adds one fish to a kit. Hangs by the tail when `hang` (head down), else lies flat.
+// Adds one fish to a kit: a flat, slightly arched double-sided silhouette (dried and frozen fish are flat
+// anyway), ~20 triangles. Hangs head down when rotated by the caller.
 export function addFish(k, L, o = {}) {
   const { shape, H } = fishShape(L);
   const tint = o.tint || k.pick([0xffffff, 0xd8d8e0, 0xc0c8d0, 0xe8e0d0]);
+  const arch = L * 0.05 * (k.chance(0.5) ? 1 : -1);
   k.with({ pos: o.pos || [0, 0, 0], rot: o.rot || [0, 0, 0], yaw: o.yaw || 0 }, () => {
-    k.extrude('fish', shape, L * 0.07, { bevel: L * 0.025, curve: 5, uvFit: [0, -H * 0.62, L, H * 1.24], tint, grime: 0, var: 0.06, pos: [-L / 2, 0, 0] });
-    // Dark eye dot
-    k.sph('matte', L * 0.018, { pos: [-L / 2 + L * 0.07, H * 0.12, L * 0.045], tint: 0x14120f, ws: 5, hs: 4, grime: 0 });
+    k.shape('fish', shape, {
+      pos: [-L / 2, 0, 0], uvFit: [0, -H * 0.62, L, H * 1.24], tint, grime: 0, var: 0.06, curve: 3,
+      warp: (x, y) => [0, 0, Math.sin((x / L) * Math.PI) * arch + y * 0.1],
+    });
   });
 }
 
@@ -151,8 +154,8 @@ export function boat(o = {}) {
   const k = new Kit('boat', o);
   const over = (o.variant || 'frozen') === 'overturned';
   const Lh = (o.length || 4.4) / 2 + k.rs(0.2), B = 0.72 + k.rs(0.06), D = 0.62;
-  const strakes = 6;
-  const N = 14;
+  const strakes = 5;
+  const N = 10;
   k.push({ yaw: o.yaw || 0, rot: over ? [0, 0, Math.PI] : [k.rs(0.05), 0, k.rs(0.12)], pos: over ? [0, D * 0.85, 0] : [0, -0.28, 0] });
   // Loft: stations along z in [-Lh, Lh], rows from keel to gunwale.
   const hull = (inner) => {
@@ -218,13 +221,13 @@ export function boat(o = {}) {
   if (!over) {
     // Ice collar: jagged shards of pressure ice around the waterline, and a frozen skin over the bilge.
     k.push({ yaw: o.yaw || 0 });
-    const n = 18;
+    const n = 14;
     for (let i = 0; i < n; i++) {
       const a = (i / n) * TAU;
       const rx = (Lh * 0.92) * (0.9 + k.rs(0.08)), rz = (B + 0.5) * (1 + k.rs(0.15));
       const x = Math.sin(a) * rz, z = Math.cos(a) * rx;
       const h = k.r(0.12, 0.34) * (1 - 0.3 * Math.abs(Math.cos(a)));
-      k.blob('ice', 0.25, { pos: [x, h * 0.25, z], scale: [k.r(0.5, 1.1), h * 3, k.r(0.6, 1.3)], rot: [k.rs(0.3), k.r(0, TAU), k.rs(0.3)], detail: 1, jitter: 0.05, tint: k.pick([0xd8ecf8, 0xc4dcec, 0xe8f4fc]), grime: 0.05, flat: true });
+      k.blob('ice', 0.25, { pos: [x, h * 0.25, z], scale: [k.r(0.5, 1.1), h * 3, k.r(0.6, 1.3)], rot: [k.rs(0.3), k.r(0, TAU), k.rs(0.3)], detail: 0, jitter: 0.05, tint: k.pick([0xd8ecf8, 0xc4dcec, 0xe8f4fc]), grime: 0.05, flat: true });
     }
     k.cyl('ice', Lh * 0.18, Lh * 0.18, 0.02, { pos: [0, 0.18, 0], radial: 8, tint: 0xcfe4f2, scale: [1, 1, 4.5], grime: 0 });
     k.pop();
@@ -242,16 +245,16 @@ export function iceFishingHole(o = {}) {
   // Dark water (glossy ice material, near black)
   k.cyl('ice', r, r, 0.004, { pos: [0, 0.006, 0], radial: 12, tint: 0x0a1620, grime: 0, var: 0.02, cap: 'ice' });
   // Slush ring: lumpy flattened mounds around the rim.
-  const n = 11;
+  const n = 8;
   for (let i = 0; i < n; i++) {
     const a = (i / n) * TAU + k.rs(0.1);
     const rr = r * (1.05 + k.rs(0.08));
-    k.blob('snowMound', r * 0.4, { pos: [Math.cos(a) * rr, 0.012, Math.sin(a) * rr], scale: [k.r(1.0, 1.6), 0.28, k.r(0.7, 1.1)], rot: [0, -a, 0], detail: 1, jitter: r * 0.08, tint: k.pick([0xc8d4dc, 0xd8e2e8, 0xb8c6d0]), grime: 0.1 });
+    k.mound(r * k.r(0.8, 1.3), r * 0.28, r * k.r(0.6, 0.9), { pos: [Math.cos(a) * rr, 0.004, Math.sin(a) * rr], rot: [0, -a, 0], tint: k.pick([0xc8d4dc, 0xd8e2e8, 0xb8c6d0]), jseed: i });
   }
   // Chopped ice chunks flung to one side.
   for (let i = 0; i < 6; i++) {
     const a = k.rs(0.8) + 0.4, d = k.r(r * 1.4, r * 3);
-    k.blob('ice', 0.07, { pos: [Math.cos(a) * d, 0.03, Math.sin(a) * d], scale: [1, 0.6, 1.2], rot: [k.rs(0.4), k.r(0, TAU), k.rs(0.4)], detail: 1, flat: true, jitter: 0.015, tint: k.pick([0xd8ecf8, 0xe8f4fc]) });
+    k.blob('ice', 0.07, { pos: [Math.cos(a) * d, 0.03, Math.sin(a) * d], scale: [1, 0.6, 1.2], rot: [k.rs(0.4), k.r(0, TAU), k.rs(0.4)], detail: 0, flat: true, jitter: 0.015, tint: k.pick([0xd8ecf8, 0xe8f4fc]) });
   }
   // Skim of new ice with radial cracks over part of the hole (the "slush skin").
   if (o.skim !== false) {
@@ -354,22 +357,22 @@ export function tent(o = {}) {
     const L = 2.6, W = 1.15, H = 1.4;
     for (const sx of [-1, 1]) {
       k.plane('burlap', L, Math.hypot(W, H), {
-        pos: [sx * W / 2, H / 2, 0], rot: [0, Math.PI / 2, sx * Math.atan2(W, H) * -1 + (sx > 0 ? 0 : 0)], sx: 4, sy: 4, tint: cloth, tile: 0.8, grime: 0.4,
+        pos: [sx * W / 2, H / 2, 0], rot: [0, Math.PI / 2, sx * Math.atan2(W, H)], sx: 4, sy: 4, tint: cloth, tile: 0.8, grime: 0.4,
         bend: (x, y) => [0, 0, Math.sin(x * 2.2 + y * 3 + k.seed) * 0.03 + Math.pow(Math.abs(y) / (Math.hypot(W, H) / 2), 3) * -0.02],
       });
     }
     k.cyl('wood', 0.03, 0.03, L + 0.5, { pos: [0, H + 0.01, 0], rot: [Math.PI / 2, 0, 0], radial: 5, tint: 0x9a8a78, cap: 'logEnd' });
-    for (const sz of [-1, 1]) k.cyl('wood', 0.03, 0.03, H + 0.1, { pos: [0, H / 2 + 0.05, sz * (L / 2 + 0.2)], radial: 5, tint: 0x9a8a78, cap: 'logEnd' });
+    for (const sz of [-1, 1]) k.cyl('wood', 0.03, 0.03, H + 0.1, { pos: [0, H / 2 + 0.05, sz * (L / 2 + 0.05)], radial: 5, tint: 0x9a8a78, cap: 'logEnd' });
     // Gable ends with a dark doorway
     for (const sz of [-1, 1]) {
       const sh = new THREE.Shape();
-      sh.moveTo(-W / 2, 0); sh.lineTo(W / 2, 0); sh.lineTo(0, H); sh.closePath();
+      sh.moveTo(-W, 0); sh.lineTo(W, 0); sh.lineTo(0, H); sh.closePath();
       if (sz > 0) {
         const hole = new THREE.Path();
-        hole.moveTo(-0.28, 0); hole.lineTo(0.28, 0); hole.lineTo(0.06, 0.95); hole.lineTo(-0.06, 0.95); hole.closePath();
+        hole.moveTo(-0.34, 0); hole.lineTo(0.34, 0); hole.lineTo(0.08, 1.05); hole.lineTo(-0.08, 1.05); hole.closePath();
         sh.holes.push(hole);
       }
-      k.extrude('burlap', sh, 0.01, { pos: [0, 0, sz * L / 2], tint: sz > 0 ? 0x8a7a62 : cloth, tile: 0.8 });
+      k.extrude('burlap', sh, 0.01, { pos: [0, 0, sz * L / 2], tint: sz > 0 ? 0x8a7a62 : cloth, tile: 0.8, jitter: 0.004 });
     }
     // Guy ropes and pegs
     for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
@@ -377,7 +380,7 @@ export function tent(o = {}) {
       k.cyl('wood', 0.012, 0.012, 0.18, { pos: [sx * (W / 2 + 0.55), 0.06, sz * (L / 2 + 0.3)], rot: [0, 0, sx * 0.3], radial: 4, tint: 0x8a7a68, cap: null });
     }
     if (!o.indoor) {
-      for (const sx of [-1, 1]) k.mound(0.5, 0.12, L * 0.85, { pos: [sx * 0.35, H * 0.62, 0], rot: [0, 0, sx * -0.55], jseed: sx + 3 });
+      for (const sx of [-1, 1]) k.mound(1.0, 0.1, L * 0.85, { pos: [sx * W * 0.42, H * 0.58, 0], rot: [0, 0, -sx * Math.atan2(H, W)], jseed: sx + 3 });
     }
     k.boxCollider(W / 2 + 0.1, L / 2 + 0.05, { h: H });
   }

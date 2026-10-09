@@ -45,7 +45,7 @@ export const PAL = {
   shingle: 0x6e6256, shingleDark: 0x3d342d,
   stone: 0x8c8a85, stoneDark: 0x5c5a58, stoneWarm: 0x9a9084,
   blue: 0x3e5a78, blueFaded: 0x5a748c, red: 0x9a2e22, redFaded: 0x8a4a3a, ochre: 0xb08a4a, cream: 0xc2b498,
-  iron: 0x2a2a2c, bronze: 0x9a7a3a, straw: 0xc8b070, moss: 0x5d6b3a,
+  iron: 0x2a2a2c, bronze: 0x9a7a3a, straw: 0xb4a474, moss: 0x5d6b3a,
   snow: 0xf4f6fa, snowBlue: 0xdfe8f5, ice: 0xb9d6e6, iceDeep: 0x6f9fb8,
   ember: 0xffa040,
 };

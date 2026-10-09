@@ -132,23 +132,23 @@ export function sled(o = {}) {
 export function skis(o = {}) {
   const k = new Kit('skis', o);
   const L = 1.9;
-  k.push({ yaw: o.yaw || 0, rot: [-0.2, 0, 0] });
-  const lean = o.stuck ? 0 : 0;
-  void lean;
+  // Leaning pair: tips up, bases on the ground, tops toward the wall (wall behind, at -Z).
+  k.push({ yaw: o.yaw || 0, rot: [-0.17, 0, 0] });
   for (const sx of [-1, 1]) {
-    const x = sx * 0.1;
-    k.box('wood', 0.085, 0.018, L - 0.35, { pos: [x, 0.0 + 0.95, 0], tint: k.pick([0xe0d2c0, 0xc4ae98]), jitter: 0.002, grain: 'z', seg: [1, 1, 5] });
-    // Upturned tip, two short pieces rising.
-    k.box('wood', 0.085, 0.016, 0.2, { pos: [x, 0.953, (L - 0.35) / 2 + 0.1], rot: [0.12, 0, 0], tint: 0xd8c8b4, jitter: 0.001 });
-    k.box('wood', 0.07, 0.014, 0.16, { pos: [x, 0.99, (L - 0.35) / 2 + 0.26], rot: [0.5, 0, 0], tint: 0xd8c8b4, taper: [0.7, 1], jitter: 0.001 });
-    // Foot strap and binding
-    k.box('wood', 0.1, 0.05, 0.11, { pos: [x, 0.98, -0.1], tint: 0x6a5a4c });
-    k.box('fur', 0.095, 0.03, 0.14, { pos: [x, 1.0, 0.25], tint: 0x4a3626, grime: 0 });
+    const x = sx * 0.11;
+    const tint = k.pick([0xe0d2c0, 0xc4ae98, 0xd8c8b4]);
+    k.box('wood', 0.085, L - 0.4, 0.018, { pos: [x, (L - 0.4) / 2, 0], tint, jitter: 0.002, grain: 'y', seg: [1, 5, 1] });
+    // Upturned tip: two short pieces curling toward the viewer.
+    k.box('wood', 0.085, 0.22, 0.018, { pos: [x, L - 0.4 + 0.1, 0.012], rot: [-0.18, 0, 0], tint, jitter: 0.001 });
+    k.box('wood', 0.07, 0.16, 0.016, { pos: [x, L - 0.4 + 0.26, 0.07], rot: [-0.55, 0, 0], tint, taper: [0.7, 1], jitter: 0.001 });
+    // Binding: wooden block, leather toe strap.
+    k.box('wood', 0.1, 0.1, 0.05, { pos: [x, 0.9, 0.034], tint: 0x6a5a4c });
+    k.box('fur', 0.095, 0.03, 0.05, { pos: [x, 0.97, 0.05], tint: 0x4a3626, grime: 0 });
   }
-  // Pair of poles with birch baskets
+  // Pair of poles with birch-ring baskets, leaning beside the skis.
   for (const sx of [-1, 1]) {
-    k.cyl('wood', 0.012, 0.012, 1.55, { pos: [sx * 0.34, 0.77, -0.06], rot: [0, 0, sx * 0.04], radial: 5, tint: 0xd8c8a8, cap: null });
-    k.torus('wood', 0.045, 0.006, { pos: [sx * 0.33, 0.1, -0.06], rot: [Math.PI / 2, 0, 0], tint: 0x8a6a4a, seg: 8, rseg: 3 });
+    k.cyl('wood', 0.012, 0.012, 1.55, { pos: [sx * 0.36, 0.77, 0.0], rot: [0, 0, sx * 0.03], radial: 5, tint: 0xd8c8a8, cap: null });
+    k.torus('wood', 0.045, 0.006, { pos: [sx * 0.36, 0.1, 0.0], rot: [Math.PI / 2, 0, 0], tint: 0x8a6a4a, seg: 8, rseg: 3 });
   }
   k.pop();
   k.circleCollider(0.3, { h: 0.1 });
@@ -228,7 +228,8 @@ export function quenchBarrel(o = {}) {
 
 export function grindstone(o = {}) {
   const k = new Kit('grindstone', o);
-  k.push({ yaw: o.yaw || 0 });
+  // Local +X is the axle; rotated so the wheel faces +Z (the usual viewing side) at yaw 0.
+  k.push({ yaw: (o.yaw || 0) + Math.PI / 2 });
   const wood = 0xb8a690;
   // Two splayed A-frame legs on each side, axle between them.
   for (const sx of [-1, 1]) {
@@ -280,7 +281,7 @@ export function haystack(o = {}) {
   k.cyl('wood', 0.03, 0.04, 0.9, { pos: [0, 2.8, 0], radial: 5, tint: 0x8a7a68, cap: null });
   for (let i = 0; i < 9; i++) {
     const a = k.r(0, TAU);
-    k.box('straw', 0.015, 0.4, 0.012, { pos: [Math.cos(a) * 1.0, k.r(0.4, 1.3), Math.sin(a) * 1.0], rot: [k.rs(1), a, k.rs(0.8)], tint: 0xdac98a, grime: 0 });
+    k.blade('straw', 0.03, 0.4, { pos: [Math.cos(a) * 1.0, k.r(0.4, 1.3), Math.sin(a) * 1.0], rot: [k.rs(1), a, k.rs(0.8)], tint: 0xdac98a, grime: 0 });
   }
   // Loose skirt of straw around the base and a snow cap.
   k.blob('straw', 0.6, { pos: [0, 0.1, 0], scale: [2.5, 0.2, 2.5], detail: 1, tint: 0xcabd88 });
@@ -350,9 +351,9 @@ export function strawPile(o = {}) {
     k.blob('straw', k.r(0.28, 0.42), { pos: [Math.cos(a) * d, 0.1, Math.sin(a) * d], scale: [1.3, 0.55, 1.1], detail: 1, tint: k.pick([0xe8d9a4, 0xd8c78c, 0xcdbd80]), jitter: 0.07 });
   }
   // Loose stalks fanning out of the pile.
-  for (let i = 0; i < 26; i++) {
+  for (let i = 0; i < 22; i++) {
     const a = k.r(0, TAU), d = k.r(0.15, 0.85);
-    k.box('straw', 0.012, 0.012, k.r(0.25, 0.6), { pos: [Math.cos(a) * d, k.r(0.02, 0.2), Math.sin(a) * d], rot: [k.rs(0.3), k.r(0, TAU), k.rs(0.3)], tint: k.pick([0xeadcaa, 0xd8c88c, 0xc8b878]), grime: 0.2, var: 0.12 });
+    k.blade('straw', 0.028, k.r(0.25, 0.6), { pos: [Math.cos(a) * d, k.r(0.02, 0.2), Math.sin(a) * d], rot: [Math.PI / 2 + k.rs(0.3), k.r(0, TAU), 0], tint: k.pick([0xeadcaa, 0xd8c88c, 0xc8b878]), grime: 0.2, var: 0.12 });
   }
   k.pop();
   k.ud.align = 0.8;

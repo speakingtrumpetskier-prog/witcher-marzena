@@ -139,7 +139,8 @@ export class Coverage {
     return s > 0 ? -amount : amount;
   }
 
-  two({ wide = false } = {}) {
+  // favor: the actor to favor (seen more frontally); the camera eases round behind the other.
+  two({ wide = false, favor } = {}) {
     const a = this.a, b = this.b;
     const ea = a.eye(new THREE.Vector3()), eb = b.eye(new THREE.Vector3());
     a.pos(_a); b.pos(_b);
@@ -152,8 +153,8 @@ export class Coverage {
     const H = W / va;
     const visDeg = wide ? 34 : 30;
     const D = H / 2 / Math.tan((visDeg * DEG) / 2);
-    // Favor b slightly: the camera eases around behind a, a classic three-quarter two-shot.
-    const phi = (wide ? 16 : 24) * DEG;
+    // Favor b by default: the camera eases around behind a, a classic three-quarter two-shot.
+    const phi = (wide ? 16 : 24) * DEG * (favor === a ? -1 : 1);
     const dir = new THREE.Vector3().copy(this.n).multiplyScalar(Math.cos(phi)).addScaledVector(this.u, -Math.sin(phi));
     const pos = mid.clone().addScaledVector(dir, D);
     pos.y = eyeY + (wide ? 0.9 : -0.12);
@@ -175,7 +176,7 @@ export class Coverage {
     u.normalize();
     // Close behind and well off the listener's shoulder: their head and shoulder sit at the
     // frame edge, the subject on the far third.
-    const back = 0.74, lat = 0.72 + (L.isChild && !S.isChild ? -0.1 : 0);
+    const back = 0.74, lat = 0.78 + (L.isChild && !S.isChild ? -0.12 : 0);
     const pos = _b.clone().addScaledVector(u, -back).addScaledVector(this.n, lat);
     // Between the two eye lines, a touch under the listener's eyes, never below their shoulder.
     pos.y = Math.max(Math.min(eL.y * 0.5 + eS.y * 0.5, eL.y - 0.06), _b.y + L.height * 0.78);

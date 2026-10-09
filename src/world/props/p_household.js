@@ -4,7 +4,7 @@ import * as THREE from 'three';
 import { Kit, TAU } from './kit.js';
 
 const WOOD = [0xffffff, 0xe0d2c0, 0xc4ae98, 0xa08a74];
-export const FOLK_RED = 0x9a2e22;
+export const FOLK_RED = 0x8a281e;
 
 // UV rectangle of a cell of the folk atlas (4 x 2).
 export function folkRect(cell) {

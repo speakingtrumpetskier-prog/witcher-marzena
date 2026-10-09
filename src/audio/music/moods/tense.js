@@ -6,9 +6,9 @@ import { P } from './parts.js';
 
 function pulses(S, t0, bars, r, { v = 0.6, dbl = false } = {}) {
   for (let b = 0; b < bars; b++) {
-    const t = t0 + b * 3;
-    S.add('pulse', t, 0.5, null, { v: v });
-    S.add('pulse', t + 0.42, 0.5, null, { v: v * 0.6 });
+    const t = t0 + b * 3, k = 0.88 + r() * 0.24;
+    S.add('pulse', t, 0.5, null, { v: v * k });
+    S.add('pulse', t + 0.4 + r() * 0.05, 0.5, null, { v: v * 0.6 * k });
     if (dbl) { S.add('pulse', t + 1.5, 0.5, null, { v: v * 0.7 }); S.add('pulse', t + 1.92, 0.5, null, { v: v * 0.45 }); }
     else if (r() < 0.3) S.add('pulse', t + 2, 0.5, null, { v: v * 0.3 });
   }

@@ -61,7 +61,7 @@ void main() {
   vUv = position.xy;
   // Energy: sub-pixel flakes fade instead of shrinking, long streaks spread their light.
   float cover = min(1.0, (sizePx * sizePx) / (sz * sz));
-  float spread = 1.0 / (1.0 + len / max(sz, 1.0) * 0.35);
+  float spread = 1.0 / (1.0 + len / max(sz, 1.0) * 0.07);
   float nearFade = smoothstep(0.25, 1.1, dist);
   float farFade = 1.0 - smoothstep(uBox * 0.36, uBox * 0.5, max(max(abs(rel.x), abs(rel.y)), abs(rel.z)));
   vAlpha = cover * spread * nearFade * farFade * (0.55 + 0.45 * s);
@@ -164,15 +164,18 @@ export function createSnowfall(G) {
     uniforms.uFlakeTime.value += step;
     uniforms.uFlutter.value = 0.35 * (1 - 0.6 * wind.strength);
     uniforms.uStreak.value = 0.022 + 0.02 * wind.strength;
-    uniforms.uSize.value = 0.022 - 0.006 * wind.strength;
+    uniforms.uSize.value = 0.022 + 0.02 * wind.strength;
     G.renderer.getDrawingBufferSize(size);
     uniforms.uViewport.value.copy(size);
 
     const A = G.atmosphere;
     if (A?.look) {
       const L = A.look;
-      uniforms.uAmb.value.copy(L.hor).multiplyScalar(0.55).add(tmpC.copy(L.zen).multiplyScalar(0.45));
-      uniforms.uAmb.value.multiplyScalar(0.95);
+      // Flakes catch the sky and the snow bounce, and always read brighter than the air.
+      const amb = uniforms.uAmb.value.copy(L.hor).multiplyScalar(0.55).add(tmpC.copy(L.zen).multiplyScalar(0.45));
+      amb.add(tmpC.copy(L.hemiGround).multiplyScalar(0.25));
+      const fog = G.uniforms.uFogColor.value;
+      amb.setRGB(Math.max(amb.r, fog.r * 1.9), Math.max(amb.g, fog.g * 1.9), Math.max(amb.b, fog.b * 1.9));
       uniforms.uKey.value.copy(A.keyColor).multiplyScalar(A.keyIntensity * 0.1);
       uniforms.uKeyDir.value.copy(A.keyDir);
     }

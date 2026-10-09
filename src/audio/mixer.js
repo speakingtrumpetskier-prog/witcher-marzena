@@ -18,6 +18,11 @@ export class Mixer {
     // Limiter: fast, high ratio. The compressor adds its own makeup gain (spec behavior), which
     // the master gain accounts for. A gentle shaper after it catches lookahead overshoots.
     this.master = g(this.vol.master);
+    // DC and subsonic guard (noise beds can drift), then the limiter.
+    this.dcBlock = ctx.createBiquadFilter();
+    this.dcBlock.type = 'highpass';
+    this.dcBlock.frequency.value = 18;
+    this.dcBlock.Q.value = 0.6;
     this.limiter = ctx.createDynamicsCompressor();
     this.limiter.threshold.value = -7;
     this.limiter.knee.value = 3;
@@ -27,7 +32,8 @@ export class Mixer {
     this.clip = ctx.createWaveShaper();
     this.clip.curve = softClipCurve();
     this.clip.oversample = '2x';
-    this.master.connect(this.limiter);
+    this.master.connect(this.dcBlock);
+    this.dcBlock.connect(this.limiter);
     this.limiter.connect(this.clip);
     this.clip.connect(ctx.destination);
     this.out = this.clip;
@@ -91,7 +97,14 @@ export class Mixer {
     this.sfxVerb = g(this.vol.sfx);
     this.sfxVerb.connect(this.envSplit);
     this.amb = g(this.vol.ambience);
-    this.amb.connect(this.master);
+    // Distant murmur, animals and wind pile up in the low mids; dip them like the music bus.
+    this.ambEq = ctx.createBiquadFilter();
+    this.ambEq.type = 'peaking';
+    this.ambEq.frequency.value = 320;
+    this.ambEq.Q.value = 0.9;
+    this.ambEq.gain.value = -3;
+    this.amb.connect(this.ambEq);
+    this.ambEq.connect(this.master);
     this.ambVerb = g(this.vol.ambience);
     this.ambVerb.connect(this.envSplit);
     // Busses that need a one-node entry point.

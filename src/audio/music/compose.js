@@ -100,6 +100,8 @@ export function theme(S, part, t0, r, o = {}) {
     } else if (style === 'fiddle' || style === 'flute' || style === 'gurdy') {
       ornamentInstrument(ev, n.p, d, r, style, mode, orn, phraseEnd);
       if (style === 'fiddle' && !phraseEnd && next && r() < 0.55) ev.tie = true;
+      // The wheel keeps the gurdy string sounding; only a repeated note lifts the key.
+      if (style === 'gurdy' && !phraseEnd && next && next.p !== n.p) ev.tie = true;
       if (style === 'flute' && !phraseEnd && next && r() < 0.35) ev.tie = true;
       if (phraseEnd && style !== 'gurdy' && r() < falls * 0.5) ev.fall = 2;
     }
@@ -149,6 +151,7 @@ export function phrase(S, part, t0, seq, r, { style = 'fiddle', mode = 'dorian',
     ornamentInstrument(ev, p, d, r, style, mode, orn, end);
     Object.assign(ev, x || {});
     if (!end && r() < slur && style !== 'gurdy') ev.tie = true;
+    if (!end && style === 'gurdy' && N(next[0]) !== N(name)) ev.tie = true;
     if (end && d >= 1.5 && r() < falls && style !== 'gurdy') ev.fall = r.pick([1, 2, 2]);
     if (dbl != null && d >= 1 && p > dbl + 2 && r() < 0.6) ev.dbl = dbl;
     S.add(part, t, d * 0.98, p, ev);
@@ -300,8 +303,9 @@ export function motif(S, part, t0, r, { octave = 1, v = 0.6, broken = 0, slow = 
   let t = t0;
   MOTIF.forEach(([name, d], i) => {
     const p = toMode(N(name), mode) + octave * 12;
-    const dd = d * slow * (1 + broken * i * 0.12);
-    S.add(part, t, dd, p, { v: v * (i === 0 ? 1 : 0.9), cents: broken ? -broken * (20 + r() * 50) : 0, loose: broken ? 8 : 2 });
+    // A wound spring is never quite even: a little rubato and touch on every playing.
+    const dd = d * slow * (1 + broken * i * 0.12) * (1 + r.bi() * 0.06);
+    S.add(part, t, dd, p, { v: v * (i === 0 ? 1 : 0.9) * (0.88 + r() * 0.2), cents: broken ? -broken * (20 + r() * 50) : 0, loose: broken ? 8 : 2 });
     t += dd;
   });
   return t;

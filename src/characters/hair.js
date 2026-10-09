@@ -91,7 +91,7 @@ function buildBraid(ctx, h) {
   const base = col(h.color || '#b9ad94');
   const streak = h.streak ? col(h.streak) : null;
   const r0 = (h.braidR ?? 0.017) * k;
-  const nS = 26;
+  const nS = 20;
   for (let strand = 0; strand < 3; strand++) {
     const rings = [];
     for (let i = 0; i <= nS; i++) {

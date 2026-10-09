@@ -17,7 +17,7 @@ const lerpF = (a, b, t) => a.map((x, i) => x.map((v, k) => v + (b[i][k] - v) * t
 
 export const CREATURES = {
   wolf_howl: {
-    variants: 4, gain: 0.6, ref: 25, max: 900, pitchVar: 0.05, verb: 0.5, poly: 3,
+    variants: 3, heavy: true, gain: 0.32, ref: 25, max: 900, pitchVar: 0.05, verb: 0.5, poly: 3,
     bake: (sr, r) => {
       const dur = 2.6 + r() * 1.0;
       const lo = 360 + r() * 60, hi = 500 + r() * 80;
@@ -36,7 +36,7 @@ export const CREATURES = {
     },
   },
   wolf_growl: {
-    variants: 4, gain: 0.65, ref: 4, max: 60, pitchVar: 0.06, verb: 0.1, poly: 3,
+    variants: 4, heavy: true, gain: 0.65, ref: 4, max: 60, pitchVar: 0.06, verb: 0.1, poly: 3,
     bake: (sr, r) => {
       const dur = 1.1 + r() * 0.6;
       const f0 = 75 + r() * 20, wob = 1.6 + r() * 1.2;
@@ -77,7 +77,7 @@ export const CREATURES = {
     },
   },
   horse_whinny: {
-    variants: 3, gain: 0.6, ref: 8, max: 150, pitchVar: 0.04, verb: 0.2, poly: 1,
+    variants: 3, heavy: true, gain: 0.36, ref: 8, max: 150, pitchVar: 0.04, verb: 0.2, poly: 1,
     bake: (sr, r) => {
       const dur = 1.7, b = new Float32Array(len(sr, dur));
       const top = 1050 + r() * 150;
@@ -110,7 +110,7 @@ export const CREATURES = {
     },
   },
   whistle: {
-    variants: 3, gain: 0.45, ref: 3, max: 40, pitchVar: 0.03, verb: 0.15, poly: 1,
+    variants: 3, heavy: true, gain: 0.17, ref: 3, max: 40, pitchVar: 0.03, verb: 0.15, poly: 1,
     bake: (sr, r, i) => {
       const two = i === 1;
       const pts = two ? [[0, 1300], [0.18, 2050], [0.28, 2050], [0.36, 1350], [0.5, 2050], [0.62, 2100], [0.8, 1500]] : [[0, 1250], [0.25, 2100], [0.4, 2150], [0.75, 1450], [0.85, 1400]];
@@ -127,7 +127,7 @@ export const CREATURES = {
     },
   },
   dog_bark: {
-    variants: 6, gain: 0.55, ref: 8, max: 220, pitchVar: 0.07, verb: 0.25, poly: 3,
+    variants: 6, heavy: true, gain: 0.55, ref: 8, max: 220, pitchVar: 0.07, verb: 0.25, poly: 3,
     bake: (sr, r, i) => {
       const dur = i % 3 === 2 ? 0.7 : 0.3, b = new Float32Array(len(sr, dur));
       const one = (f0) => vocal(sr, r, 0.22, {
@@ -141,7 +141,7 @@ export const CREATURES = {
     },
   },
   crow: {
-    variants: 5, gain: 0.5, ref: 10, max: 250, pitchVar: 0.05, verb: 0.3, poly: 2,
+    variants: 5, heavy: true, gain: 0.5, ref: 10, max: 250, pitchVar: 0.05, verb: 0.3, poly: 2,
     bake: (sr, r) => {
       const n = r.int(1, 3), dur = 0.45 * n, b = new Float32Array(len(sr, dur));
       const f0 = 560 + r() * 120;
@@ -156,7 +156,7 @@ export const CREATURES = {
     },
   },
   raven: {
-    variants: 5, gain: 0.5, ref: 10, max: 250, pitchVar: 0.05, verb: 0.3, poly: 2,
+    variants: 5, heavy: true, gain: 0.5, ref: 10, max: 250, pitchVar: 0.05, verb: 0.3, poly: 2,
     bake: (sr, r, i) => {
       if (i === 4) {
         // The hollow knocking call.
@@ -177,7 +177,7 @@ export const CREATURES = {
     },
   },
   chicken: {
-    variants: 5, gain: 0.45, ref: 6, max: 120, pitchVar: 0.06, verb: 0.15, poly: 3,
+    variants: 5, heavy: true, gain: 0.45, ref: 6, max: 120, pitchVar: 0.06, verb: 0.15, poly: 3,
     bake: (sr, r, i) => {
       const n = r.int(3, 6), b = new Float32Array(len(sr, 1.6));
       let t = 0;
@@ -195,7 +195,7 @@ export const CREATURES = {
     },
   },
   goat: {
-    variants: 4, gain: 0.5, ref: 6, max: 140, pitchVar: 0.06, verb: 0.2, poly: 2,
+    variants: 4, heavy: true, gain: 0.35, ref: 6, max: 140, pitchVar: 0.06, verb: 0.2, poly: 2,
     bake: (sr, r) => {
       const dur = 0.75 + r() * 0.35;
       const f0 = 380 + r() * 120, rate = 7 + r() * 2;
@@ -208,7 +208,7 @@ export const CREATURES = {
     },
   },
   child_laugh: {
-    variants: 4, gain: 0.45, ref: 5, max: 120, pitchVar: 0.05, verb: 0.2, poly: 2,
+    variants: 4, heavy: true, gain: 0.45, ref: 5, max: 120, pitchVar: 0.05, verb: 0.2, poly: 2,
     bake: (sr, r) => {
       const n = r.int(5, 8), b = new Float32Array(len(sr, 1.6));
       let t = 0, f0 = 430 + r() * 80;
@@ -224,7 +224,7 @@ export const CREATURES = {
     },
   },
   owl: {
-    variants: 3, gain: 0.5, ref: 15, max: 400, pitchVar: 0.03, verb: 0.45, poly: 1,
+    variants: 3, heavy: true, gain: 0.28, ref: 15, max: 400, pitchVar: 0.03, verb: 0.45, poly: 1,
     bake: (sr, r) => {
       const dur = 2.6, n = len(sr, dur), b = new Float32Array(n);
       const hoot = (start, d, f, trem) => {

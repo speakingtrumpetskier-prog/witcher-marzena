@@ -59,7 +59,7 @@ export class Title {
       { id: 'settings', label: 'Settings' },
     ], { onSelect: (it) => this._choose(it.id), sfx: (n) => ui.sfx(n, { volume: 0.4 }) });
     this.menu = menu;
-    const foot = h('div', { class: 'foot' }, h('span', null, 'Built from code'), h('i'), h('span', null, G.quality ? `${G.quality} quality` : ''));
+    const foot = h('div', { class: 'foot' }, h('span', null, 'Made with three.js and WebAudio, entirely from code'));
     const cover = h('div', { class: 'cover' });
     const el = h('div', { class: 'mz-title' }, h('div', { class: 'shade' }), h('div', { class: 'box' }, logo, line, tag), h('div', { class: 'menuwrap' }, menu.el), foot, cover);
     this.el = el;
@@ -119,6 +119,8 @@ export class Title {
     cam.position.lerpVectors(a, b, e);
     cam.position.y += Math.sin(this.t * 0.31) * 0.35;
     cam.position.x += Math.sin(this.t * 0.17) * 1.5;
+    const gy = G.world?.heightAt?.(cam.position.x, cam.position.z);
+    if (Number.isFinite(gy) && cam.position.y < gy + 4) cam.position.y = gy + 4;
     // look slightly left of the tower early on, settle onto it as we drift in
     this._look.set(tower.x - 38 + e * 30, 20 + Math.sin(this.t * 0.11) * 0.8 - e * 3, tower.z + 6);
     cam.lookAt(this._look);

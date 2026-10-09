@@ -17,7 +17,7 @@ export function barrel(o = {}) {
   k.push(lie ? { pos: [0, rMid, 0], rot: [0, 0, Math.PI / 2], yaw: k.rs(0.4) } : { yaw: k.r(0, TAU) });
   if (lie) k.push({ pos: [0, -h / 2, 0] });
   const prof = [];
-  for (let i = 0; i <= 8; i++) { const y = (h * i) / 8; prof.push([R(y), y]); }
+  for (let i = 0; i <= 6; i++) { const y = (h * i) / 6; prof.push([R(y), y]); }
   k.lathe('planks', prof, { radial: 16, flat: true, uRepeat: 4, tint: wood, grime: 0.5 });
   // Liner so open barrels have an inside.
   const open = variant === 'open' || variant === 'salt';
@@ -106,8 +106,8 @@ export function sack(o = {}) {
   const tint = k.pick([0xffffff, 0xd8c8a8, 0xbfae92, 0xa89a82]);
   k.push({ yaw: k.r(0, TAU), rot: [k.rs(0.06), 0, k.rs(0.06)], scale: s });
   const topR = slump ? 0.12 : 0.07;
-  const prof = [[0.001, 0], [0.19, 0.012], [0.265, 0.1], [0.27, 0.24], [0.23, 0.4], [0.15, 0.5], [topR, 0.58]];
-  k.lathe('burlap', prof, { radial: 11, tint, jitter: 0.022, jfreq: 5, grime: 0.5, uRepeat: 2 });
+  const prof = [[0.001, 0], [0.12, 0.004], [0.2, 0.03], [0.26, 0.1], [0.275, 0.2], [0.255, 0.32], [0.2, 0.43], [0.13, 0.5], [topR, 0.57]];
+  k.lathe('burlap', prof, { radial: 14, tint, jitter: 0.014, jfreq: 4, grime: 0.5, uRepeat: 2, ripple: { n: 5, amp: 0.05, from: -1, to: 0.6, phase: k.r(0, 6) } });
   // Neck tie and the flopped mouth.
   k.torus('rope', topR + 0.012, 0.012, { pos: [0, 0.56, 0], rot: [Math.PI / 2, 0, 0], tint: 0xb89c6c, seg: 10, rseg: 4 });
   k.lathe('burlap', [[topR + 0.005, 0.54], [topR + 0.045, 0.6], [topR + 0.02, 0.66], [0.02, 0.62]], { radial: 9, tint, jitter: 0.012, uRepeat: 1 });
@@ -173,12 +173,12 @@ export function firewoodStack(o = {}) {
     const x0 = -((n - 1) * rr * 2.05) / 2;
     for (let i = 0; i < n; i++) {
       const rad = rr * k.r(0.78, 1.1);
-      const split = k.chance(0.45);
+      const split = k.chance(0.28);
       const l = len * k.r(0.88, 1.05);
       const xo = x0 + i * rr * 2.05 + k.rs(0.008);
       if (split) {
         // Split billet: wedge of pale wood with a bark back.
-        k.box('wood', rad * 1.6, rad * 1.7, l, { pos: [xo, y + k.rs(0.01), k.rs(0.02)], rot: [0, k.rs(0.05), k.rs(0.7)], tint: k.pick([0xf0e2d0, 0xe0d0b8, 0xd8c8b0]), jitter: 0.008, grain: 'z' });
+        k.box('wood', rad * 1.6, rad * 1.7, l, { pos: [xo, y + k.rs(0.01), k.rs(0.02)], rot: [0, k.rs(0.05), k.rs(0.7)], tint: k.pick([0xd8c8b0, 0xc8b89e, 0xbaa98f]), jitter: 0.008, grain: 'z' });
       } else {
         k.log(rad, l, { lie: 'z', pos: [xo, y + k.rs(0.01), k.rs(0.02)], rot: [0, 0, 0], radial: 7, tint: k.pick([0xffffff, 0xd8cdc0, 0xbfb3a6]) });
       }
@@ -311,7 +311,7 @@ export function lantern(o = {}) {
 export function campfire(o = {}) {
   const k = new Kit('campfire', o);
   const r = 0.55 + k.rs(0.06);
-  const stones = 9 + Math.floor(k.r(0, 3));
+  const stones = 8 + Math.floor(k.r(0, 2));
   k.push({ yaw: k.r(0, TAU) });
   // Melted dark ring and ash.
   k.plane('decal', r * 5.2, r * 5.2, { pos: [0, 0.03, 0], rot: [-Math.PI / 2, 0, 0], tint: 0x6a5a4c, grime: 0, var: 0.1 });

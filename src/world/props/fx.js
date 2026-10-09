@@ -62,13 +62,13 @@ function buildAtlas() {
   const puff = (seed) => (u, v) => {
     const dx = u - 0.5, dy = v - 0.5;
     const r = Math.hypot(dx, dy) * 2;
-    const n = fbm(u * 6, v * 6, 6, 6, seed, 4);
-    const edge = r + (n - 0.5) * 0.7;
-    const a = 1 - sstep(0.18, 0.92, edge);
-    const detail = vn(u * 14, v * 14, 14, 14, seed + 5);
+    const n = fbm(u * 5, v * 5, 5, 5, seed, 4);
+    const edge = r + (n - 0.5) * 0.5;
+    const a = 1 - sstep(0.08, 0.95, edge);
+    const detail = vn(u * 12, v * 12, 12, 12, seed + 5);
     // v grows upward: top of the puff is brighter, the underside darker.
-    const lit = 0.52 + 0.4 * (dy + 0.5) + (n - 0.5) * 0.55 + (detail - 0.5) * 0.15;
-    const aa = a * (0.55 + 0.45 * n) * (1 - sstep(0.75, 1.0, r));
+    const lit = 0.5 + 0.42 * (dy + 0.5) + (n - 0.5) * 0.5 + (detail - 0.5) * 0.14;
+    const aa = a * (0.72 + 0.28 * n) * (1 - sstep(0.78, 1.0, r));
     return [lit, lit, lit, aa];
   };
   put(CELL.puffA % 4, Math.floor(CELL.puffA / 4), puff(3));
@@ -190,7 +190,9 @@ void main() {
     float day = smoothstep(-0.04, 0.22, uSunDir.y);
     float fs = pow(max(dot(rd, uSunDir), 0.0), 3.0);
     vec3 amb = uFogColor * 0.95;
-    vec3 sun = uSunColor * 5.0 * day * (0.55 + 0.9 * fs);
+    vec3 sunc = uSunColor * 3.5;
+    sunc = mix(vec3(dot(sunc, vec3(0.3, 0.59, 0.11))), sunc, 0.55);
+    vec3 sun = sunc * day * (0.55 + 0.9 * fs);
     vec3 lit = vColor.rgb * (amb * 0.8 + sun * t.r * 0.9);
     // Warmth from the fire or windows below (young particles), visible mostly in the dark.
     float vis = 1.0 - 0.75 * day;
@@ -488,7 +490,7 @@ function update(dt) {
     }
     sa[o4] = sizeX; sa[o4 + 1] = sizeY; sa[o4 + 2] = rot; sa[o4 + 3] = P.by[i];
     ca[o4] = P.cr[i]; ca[o4 + 1] = P.cg[i]; ca[o4 + 2] = P.cb[i]; ca[o4 + 3] = a;
-    ma[o4] = cells[i]; ma[o4 + 1] = modes[i]; ma[o4 + 2] = t; ma[o4 + 3] = k === K.flame ? P.warm[i] : P.warm[i] * (1 - Math.min(1, t * 2.2));
+    ma[o4] = cells[i]; ma[o4 + 1] = modes[i]; ma[o4 + 2] = t; ma[o4 + 3] = k === K.flame ? P.warm[i] : P.warm[i] * Math.max(0, 1 - P.age[i] / 3);
   }
   geo.instanceCount = n;
   aPos.needsUpdate = aSize.needsUpdate = aColor.needsUpdate = aMisc.needsUpdate = true;
@@ -714,14 +716,14 @@ class Smoke extends Emitter {
   constructor(o) {
     super(o);
     const height = o.height == null ? 34 : o.height;
-    this.rate = o.rate == null ? 1.5 : o.rate;
+    this.rate = o.rate == null ? 2.6 : o.rate;
     this.life = Math.max(6, Math.min(32, height * 0.75));
     this.d = 1.6 / this.life;
     this.v0 = (height * this.d) / 0.8;
     this.size = o.size == null ? 1 : o.size;
     this.col = o.color || [0.46, 0.46, 0.5];
-    this.alpha = o.opacity == null ? 0.42 : o.opacity;
-    this.warm = o.warm == null ? 0.22 : o.warm;
+    this.alpha = o.opacity == null ? 0.36 : o.opacity;
+    this.warm = o.warm == null ? 0.2 : o.warm;
     this.steamLike = false;
     this.fixedLife = true;
     if (o.prewarm !== false) this.prewarm(this.life);
@@ -734,7 +736,7 @@ class Smoke extends Emitter {
         kind: K.smoke, cell: [CELL.puffA, CELL.puffB, CELL.puffC][Math.floor(rand() * 3)], mode: 0,
         x: this.wx + (rand() - 0.5) * 0.25, y: this.wy, z: this.wz + (rand() - 0.5) * 0.25,
         vx: (rand() - 0.5) * 0.25, vy: this.v0 * (0.85 + rand() * 0.3), vz: (rand() - 0.5) * 0.25,
-        drag: this.d, life, sx: 0.6 * this.size, grow: 11 + rand() * 4, rot: rand() * TAU, rotV: (rand() - 0.5) * 0.12,
+        drag: this.d, life, sx: 0.9 * this.size, grow: 9 + rand() * 4, rot: rand() * TAU, rotV: (rand() - 0.5) * 0.12,
         r: this.col[0], g: this.col[1], b: this.col[2], a: this.alpha * (0.8 + rand() * 0.4), warm: this.warm, advance: adv,
       });
     }
@@ -921,7 +923,9 @@ class Breath extends Emitter {
     this.exhale = 0;
     this.size = o.size == null ? 1 : o.size;
     this.fwd = new THREE.Vector3(0, 0, 1);
-    this.dir = o.dir ? new THREE.Vector3(...toVec(o.dir)) : null;
+    // dir: optional world-space exhale direction (Vector3, [x,y,z] or () => Vector3); default is the anchor's +Z.
+    this.dirSrc = o.dir || null;
+    this.dir = null;
   }
   tick(dt) {
     // Only visible in the cold: fades out as the thaw ending melts the snow.
@@ -936,7 +940,11 @@ class Breath extends Emitter {
       // Forward = object's +Z in world space (characters face +Z).
       this.object.getWorldQuaternion(_q);
       _f.set(0, 0, 1).applyQuaternion(_q);
-      if (this.dir) _f.copy(this.dir);
+      if (this.dirSrc) {
+        const d = typeof this.dirSrc === 'function' ? this.dirSrc() : this.dirSrc;
+        const v = Array.isArray(d) ? d : [d.x, d.y, d.z];
+        _f.set(v[0], v[1], v[2]).normalize();
+      }
       const n = acc(this, 'a', 22 * rateMul, dt);
       for (let j = 0; j < n; j++) {
         spawn({

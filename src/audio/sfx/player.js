@@ -2,12 +2,16 @@
 // panning (PannerNode, listener follows the camera) with air absorption and distance-scaled
 // reverb, and virtual loops that only run while the listener is within earshot.
 import { RECIPES, LOOPS } from './recipes/index.js';
-import { normalize } from '../dsp.js';
+import { normalize, trimTail } from '../dsp.js';
 
-const DEF = { variants: 3, gain: 1, ref: 3, max: 80, pitchVar: 0.04, verb: 0.12, poly: 6, cool: 0 };
-const LOOP_DEF = { gain: 0.5, ref: 3, max: 40, verb: 0.1 };
+// rate: bake sample rate (24 kHz is plenty for most; bright metal gets 32 kHz, beds 16 kHz).
+// heavy: costly to bake; never baked synchronously when a worker is available (the first play
+// is skipped while the worker bakes it, which only matters in the first seconds after unlock).
+const DEF = { variants: 3, gain: 1, ref: 3, max: 80, pitchVar: 0.04, verb: 0.12, poly: 6, cool: 0, rate: 24000, heavy: false };
+const LOOP_DEF = { gain: 0.5, ref: 3, max: 40, verb: 0.1, rate: 24000 };
 
-const norm = (d) => (Array.isArray(d) ? d.map((c) => normalize(c, 0.89)) : normalize(d, 0.89));
+const norm = (d) => (Array.isArray(d) ? d.map((c) => normalize(c, 0.89)) : [normalize(d, 0.89)]);
+const normTrim = (d, sr) => trimTail(norm(d), sr);
 
 export class SfxPlayer {
   constructor(eng) {
@@ -31,19 +35,31 @@ export class SfxPlayer {
   }
 
   buffer(name, rec, i) {
-    return this.eng.bank.get(`sfx:${name}:${i}`, (sr, r) => norm(rec.bake(sr, r, i)));
+    const key = `sfx:${name}:${i}`, bank = this.eng.bank;
+    if (rec.heavy && !bank.has(key) && bank.worker) { bank.request(key, { kind: 'sfx', name, i, rate: rec.rate }); return null; }
+    return bank.get(key, (sr, r) => normTrim(rec.bake(sr, r, i), sr), rec.rate);
   }
 
-  // Bake every variant of every SFX in idle slices.
+  // Bake every variant of every SFX and loop: in the worker when there is one, else in idle slices.
   prebake(names = Object.keys(RECIPES)) {
-    const items = [];
+    const bank = this.eng.bank, items = [];
+    const loops = Object.entries(LOOPS).map(([name, l]) => [name, { ...LOOP_DEF, ...l }]);
+    // Beds and fires first (the ambience waits for them), then the most common sounds.
+    for (const [name, l] of loops) {
+      const key = `loop:${name}`;
+      if (bank.worker) bank.request(key, { kind: 'loop', name, rate: l.rate });
+      else items.push([key, (sr, r) => norm(l.bake(sr, r)), l.rate]);
+    }
     for (const name of names) {
       const rec = this.recipe(name);
       if (!rec) continue;
-      for (let i = 0; i < rec.variants; i++) items.push([`sfx:${name}:${i}`, (sr, r) => norm(rec.bake(sr, r, i))]);
+      for (let i = 0; i < rec.variants; i++) {
+        const key = `sfx:${name}:${i}`;
+        if (bank.worker) bank.request(key, { kind: 'sfx', name, i, rate: rec.rate });
+        else items.push([key, (sr, r) => normTrim(rec.bake(sr, r, i), sr), rec.rate]);
+      }
     }
-    for (const [name, l] of Object.entries(LOOPS)) items.push([`loop:${name}`, (sr, r) => norm(l.bake(sr, r))]);
-    this.eng.bank.prebake(items);
+    if (items.length) bank.prebake(items);
   }
 
   setListener(px, py, pz, fx, fy, fz, ux = 0, uy = 1, uz = 0) {
@@ -108,9 +124,10 @@ export class SfxPlayer {
     while (list.length >= rec.poly) list.shift().stop();
     let i = o.variant ?? Math.floor(eng.random() * rec.variants);
     if (rec.variants > 1 && o.variant == null && i === this.lastVariant[name]) i = (i + 1) % rec.variants;
+    const buf = this.buffer(name, rec, i);
+    if (!buf) return null;
     this.lastVariant[name] = i;
     this.lastTime[name] = now;
-    const buf = this.buffer(name, rec, i);
     const src = ctx.createBufferSource();
     src.buffer = buf;
     src.playbackRate.value = (o.pitch ?? 1) * (1 + (eng.random() * 2 - 1) * rec.pitchVar);
@@ -212,8 +229,10 @@ class LoopHandle {
     this.kill(fade);
   }
   start() {
-    const p = this.p, ctx = p.ctx, rec = this.rec;
-    const buf = p.eng.bank.get(`loop:${this.name}`, (sr, r) => norm(rec.bake(sr, r)));
+    const p = this.p, ctx = p.ctx, rec = this.rec, bank = p.eng.bank, key = `loop:${this.name}`;
+    // With a worker, wait for the bake instead of stalling the frame (update retries each frame).
+    if (!bank.has(key) && bank.worker) { bank.request(key, { kind: 'loop', name: this.name, rate: rec.rate }); return; }
+    const buf = bank.get(key, (sr, r) => norm(rec.bake(sr, r)), rec.rate);
     const src = ctx.createBufferSource();
     src.buffer = buf;
     src.loop = true;

@@ -25,6 +25,11 @@ export function createEngine(ctx, { offline = false, seed = 1, volumes, quality 
 
   eng.mixer = new Mixer(ctx, { volumes });
   eng.bank = new Bank(ctx);
+  // Realtime: SFX and loops bake in a worker so the game never stalls. Offline renders bake inline.
+  if (!offline && typeof Worker !== 'undefined') {
+    try { eng.bank.attachWorker(new Worker(new URL('./bakeWorker.js', import.meta.url), { type: 'module' })); }
+    catch (e) { console.warn('[audio] bake worker unavailable, baking on the main thread', e); }
+  }
 
   // Shared modulation and noise sources for live instruments.
   const mk = (data, rate) => {

@@ -19,13 +19,21 @@ export function buildCharacter(spec) {
   const mb = new MeshBuilder(rig.index);
   const FP = faceParams(spec, M);
   look.FP = FP;
+  const tri = {};
+  let i0 = 0;
+  const mark = (k) => { tri[k] = (mb.I.length - i0) / 3; i0 = mb.I.length; };
   const info = buildHead(mb, rig, FP, look);
+  mark('head');
   buildNeck(mb, rig, look);
+  mark('neck');
   const extra = {};
   if (!look.headOnly) {
     buildHair(mb, rig, look, info);
+    mark('hair');
     buildBody(mb, rig, look, extra);
+    mark('body');
   }
+  tri.total = mb.I.length / 3;
   const geometry = mb.build();
   const size = look.faceRes;
   const canvas = makeFaceCanvas(size);
@@ -47,7 +55,7 @@ export function buildCharacter(spec) {
   // Static bounds (never recomputed per frame): generous sphere around the body.
   mesh.boundingSphere = new THREE.Sphere(new THREE.Vector3(0, M.H * 0.5, 0), M.H * 0.9);
   if (look.ghost) mesh.customDepthMaterial = createFloatDepthMaterial();
-  return { mesh, rig, material, faceTex, info, extra, look, M, FP, canvas };
+  return { mesh, rig, material, faceTex, info, extra, look, M, FP, canvas, tri };
 }
 
 // Fills defaults: skin, hair, resolution, and the rig options garments need.

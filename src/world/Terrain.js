@@ -26,6 +26,10 @@ const LEVELS = 8; // L0 node 100 m (patch 50 m) ... L7 node 12800 m
 const DATA_HALF = 4300; // nodes beyond this are skipped (the far grid ends at 4000 and clamps)
 const MAX_PATCHES = 3000;
 const KEEP_NEAR = 70; // keep patches this close even outside the view (shadow casters)
+// Range stretch per level: coarse levels reach further so distant ridgelines keep ~8 to 12 px
+// per vertex. Each level still contains its nodes (range[L] + node diagonal < range[L+1]).
+const RANGE_BOOST = [1, 1, 1.15, 1.3, 1.6, 1.8, 1.8, 1.8];
+export const lodRange = (r0, L) => r0 * 2 ** L * RANGE_BOOST[L];
 
 function boxBlur(src, n, r) {
   const tmp = new Float32Array(n * n), out = new Float32Array(n * n);
@@ -188,7 +192,7 @@ class CDLOD {
     this.range = [];
     this.range2 = [];
     for (let L = 0; L < LEVELS; L++) {
-      const rr = r0 * 2 ** L;
+      const rr = lodRange(r0, L);
       this.range.push(rr);
       this.range2.push(rr * rr);
     }
@@ -310,7 +314,7 @@ export async function init(G) {
   const r0 = q === 'high' ? 140 : q === 'medium' ? 115 : 90;
   uniforms.uMzMorph = { value: [] };
   for (let L = 0; L < LEVELS; L++) {
-    const end = r0 * 2 ** L, start = end * 0.72;
+    const end = lodRange(r0, L), start = Math.max(end * 0.72, L ? lodRange(r0, L - 1) * 1.05 : 0);
     uniforms.uMzMorph.value.push(new THREE.Vector2(start, 1 / (end - start)));
   }
   uniforms.uMzLodCam = { value: new THREE.Vector3() };

@@ -227,8 +227,9 @@ function villager(sex, idx, kind = 'villager') {
       noseRed: R.range(0.3, 0.8), underEye: R.range(0.4, 0.9), stubble: fem || child ? 0 : R.range(0.2, 0.7), missingTooth: R.chance(0.15),
     },
     hair: { color: hairC },
-    headRes: child ? 'mid' : 'mid',
+    headRes: 'mid',
     faceRes: 256,
+    detail: 0.75,
     seed: hashStr(`${kind}_${sex}_${idx}`) % 997,
   };
   const outfit = {};

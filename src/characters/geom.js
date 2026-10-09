@@ -245,7 +245,9 @@ export function tube(mb, o) {
     const inset = o.inner.inset ?? 0.006;
     const lineMat = o.inner.mat || mat;
     const rows2 = [];
+    const from = o.inner.from ?? 0;
     for (let ri = 0; ri < rows.length; ri++) {
+      if (ri < from) { rows2.push(null); continue; }
       const row = [];
       for (let j = 0; j <= seg; j++) {
         const q = mb.pos(rows[ri][j]);
@@ -261,7 +263,7 @@ export function tube(mb, o) {
       }
       rows2.push(row);
     }
-    for (let ri = 0; ri < rows2.length - 1; ri++) {
+    for (let ri = from; ri < rows2.length - 1; ri++) {
       for (let j = 0; j < seg; j++) {
         const a = rows2[ri][j], b = rows2[ri][j + 1], c = rows2[ri + 1][j + 1], d = rows2[ri + 1][j];
         if (flip) mb.quad(a, b, c, d); else mb.quad(a, d, c, b);
@@ -277,7 +279,7 @@ export function tube(mb, o) {
     }
     // Open edges along the angular sides.
     if (!full && o.inner.sides !== false) {
-      for (let ri = 0; ri < rows.length - 1; ri++) {
+      for (let ri = from; ri < rows.length - 1; ri++) {
         for (const j of [0, seg]) {
           const a = rows[ri][j], b = rows[ri + 1][j], c = rows2[ri + 1][j], d = rows2[ri][j];
           if ((j === 0) !== flip) mb.quad(a, b, c, d); else mb.quad(a, d, c, b);

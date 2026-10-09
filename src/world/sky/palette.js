@@ -26,49 +26,49 @@ const KEYS = [
   { h: 0.0, ...NIGHT },
   { h: 5.0, ...NIGHT },
   { h: 6.2, key: '#8fa4e8', keyI: 0.12,
-    zen: [0.010, 0.020, 0.062], hor: [0.034, 0.038, 0.072], fog: [0.034, 0.039, 0.072], fogSun: [0.075, 0.05, 0.07], glow: [0.06, 0.035, 0.045],
+    zen: [0.010, 0.020, 0.062], hor: [0.032, 0.038, 0.074], fog: [0.026, 0.034, 0.068], fogSun: [0.075, 0.05, 0.07], glow: [0.06, 0.035, 0.045],
     hemiSky: [0.004, 0.006, 0.012], hemiGround: [0.010, 0.012, 0.020], ovc: [0.020, 0.022, 0.030],
     exp: 2.0, lift: '#0b1434', gain: '#e8e6ff', sat: 0.95, tint: [0.97, 1.0, 1.05] },
   { h: 6.95, key: '#ff8a5a', keyI: 4,
-    zen: [0.03, 0.06, 0.17], hor: [0.15, 0.13, 0.17], fog: [0.13, 0.13, 0.19], fogSun: [0.65, 0.32, 0.2], glow: [0.75, 0.36, 0.24],
+    zen: [0.03, 0.06, 0.17], hor: [0.15, 0.13, 0.17], fog: [0.1, 0.11, 0.18], fogSun: [0.65, 0.32, 0.2], glow: [0.75, 0.36, 0.24],
     hemiSky: [0.012, 0.016, 0.03], hemiGround: [0.04, 0.035, 0.045], ovc: [0.09, 0.09, 0.11],
     exp: 1.4, lift: '#101438', gain: '#ffe8e0', sat: 1.05, tint: [1.03, 1.0, 0.98] },
-  { h: 8.0, key: '#ffb880', keyI: 15,
+  { h: 8.0, key: '#ffc890', keyI: 15,
     zen: [0.06, 0.15, 0.44], hor: [0.36, 0.38, 0.52], fog: [0.32, 0.36, 0.54], fogSun: [1.3, 0.85, 0.55], glow: [1.0, 0.6, 0.4],
     hemiSky: [0.025, 0.035, 0.065], hemiGround: [0.26, 0.21, 0.17], ovc: [0.42, 0.44, 0.5],
-    exp: 0.78, lift: '#0e1638', gain: '#fff0e6', sat: 1.06, tint: [1.02, 1.0, 0.97] },
+    exp: 0.66, lift: '#0e1638', gain: '#fff0e6', sat: 1.06, tint: [1.02, 1.0, 0.97] },
   { h: 10.0, key: '#ffe6c4', keyI: 17.5,
     zen: [0.07, 0.19, 0.52], hor: [0.42, 0.5, 0.7], fog: [0.40, 0.48, 0.70], fogSun: [1.05, 0.95, 0.82], glow: [0.8, 0.72, 0.6],
-    hemiSky: [0.03, 0.045, 0.08], hemiGround: [0.42, 0.40, 0.37], ovc: [0.66, 0.70, 0.79],
-    exp: 0.72, lift: '#0c1636', gain: '#fff8f0', sat: 1.06, tint: [1.0, 1.0, 1.0] },
+    hemiSky: [0.03, 0.045, 0.08], hemiGround: [0.42, 0.40, 0.37], ovc: [0.52, 0.56, 0.63],
+    exp: 0.63, lift: '#0c1636', gain: '#fff8f0', sat: 1.06, tint: [1.0, 1.0, 1.0] },
   { h: 12.0, key: '#ffeccc', keyI: 18,
     zen: [0.07, 0.19, 0.53], hor: [0.43, 0.52, 0.72], fog: [0.41, 0.50, 0.72], fogSun: [1.0, 0.96, 0.88], glow: [0.8, 0.75, 0.66],
-    hemiSky: [0.03, 0.045, 0.08], hemiGround: [0.45, 0.43, 0.40], ovc: [0.72, 0.77, 0.86],
-    exp: 0.7, lift: '#0c1636', gain: '#fffaf4', sat: 1.06, tint: [1.0, 1.0, 1.0] },
+    hemiSky: [0.03, 0.045, 0.08], hemiGround: [0.45, 0.43, 0.40], ovc: [0.56, 0.6, 0.68],
+    exp: 0.62, lift: '#0c1636', gain: '#fffaf4', sat: 1.06, tint: [1.0, 1.0, 1.0] },
   { h: 14.0, key: '#ffe2bc', keyI: 17.5,
     zen: [0.07, 0.185, 0.52], hor: [0.42, 0.5, 0.7], fog: [0.40, 0.48, 0.70], fogSun: [1.1, 0.95, 0.78], glow: [0.85, 0.72, 0.55],
-    hemiSky: [0.03, 0.045, 0.08], hemiGround: [0.42, 0.39, 0.35], ovc: [0.66, 0.70, 0.78],
-    exp: 0.72, lift: '#0c1636', gain: '#fff6ec', sat: 1.07, tint: [1.01, 1.0, 0.99] },
+    hemiSky: [0.03, 0.045, 0.08], hemiGround: [0.42, 0.39, 0.35], ovc: [0.52, 0.56, 0.62],
+    exp: 0.63, lift: '#0c1636', gain: '#fff6ec', sat: 1.07, tint: [1.01, 1.0, 0.99] },
   { h: 15.3, key: '#ffbe66', keyI: 17,
     zen: [0.07, 0.18, 0.50], hor: [0.36, 0.44, 0.62], fog: [0.34, 0.42, 0.62], fogSun: [1.1, 0.78, 0.42], glow: [0.9, 0.6, 0.3],
     hemiSky: [0.03, 0.04, 0.07], hemiGround: [0.34, 0.27, 0.19], ovc: [0.50, 0.50, 0.56],
-    exp: 0.7, lift: '#0e1636', gain: '#fff2e2', sat: 1.1, tint: [1.03, 1.0, 0.93] },
+    exp: 0.58, lift: '#0e1636', gain: '#fff2e2', sat: 1.1, tint: [1.03, 1.0, 0.93] },
   { h: 16.2, key: '#ffaa4c', keyI: 17,
     zen: [0.06, 0.15, 0.42], hor: [0.32, 0.36, 0.50], fog: [0.30, 0.36, 0.55], fogSun: [1.2, 0.68, 0.28], glow: [1.0, 0.55, 0.22],
     hemiSky: [0.025, 0.035, 0.06], hemiGround: [0.25, 0.18, 0.12], ovc: [0.36, 0.35, 0.40],
-    exp: 0.76, lift: '#101638', gain: '#ffeedd', sat: 1.14, tint: [1.04, 1.0, 0.91] },
+    exp: 0.62, lift: '#101638', gain: '#ffeedd', sat: 1.14, tint: [1.04, 1.0, 0.91] },
   { h: 16.75, key: '#ff9440', keyI: 15,
-    zen: [0.04, 0.09, 0.27], hor: [0.25, 0.25, 0.32], fog: [0.22, 0.24, 0.36], fogSun: [1.0, 0.46, 0.17], glow: [1.0, 0.45, 0.15],
+    zen: [0.04, 0.09, 0.27], hor: [0.22, 0.24, 0.34], fog: [0.17, 0.2, 0.33], fogSun: [1.0, 0.46, 0.17], glow: [1.0, 0.45, 0.15],
     hemiSky: [0.02, 0.028, 0.05], hemiGround: [0.12, 0.08, 0.06], ovc: [0.22, 0.21, 0.25],
-    exp: 0.98, lift: '#121640', gain: '#ffe8d0', sat: 1.15, tint: [1.05, 1.0, 0.94] },
+    exp: 0.8, lift: '#121640', gain: '#ffe8d0', sat: 1.15, tint: [1.05, 1.0, 0.94] },
   { h: 17.15, key: '#ff6a38', keyI: 2,
-    zen: [0.025, 0.05, 0.15], hor: [0.12, 0.10, 0.14], fog: [0.10, 0.10, 0.16], fogSun: [0.6, 0.25, 0.1], glow: [0.7, 0.3, 0.1],
+    zen: [0.022, 0.05, 0.16], hor: [0.12, 0.11, 0.16], fog: [0.06, 0.075, 0.14], fogSun: [0.45, 0.2, 0.09], glow: [0.7, 0.3, 0.1],
     hemiSky: [0.01, 0.014, 0.03], hemiGround: [0.03, 0.025, 0.035], ovc: [0.10, 0.10, 0.12],
-    exp: 1.45, lift: '#101438', gain: '#ffe6d8', sat: 1.1, tint: [1.04, 1.0, 0.97] },
+    exp: 1.3, lift: '#101438', gain: '#ffe6d8', sat: 1.1, tint: [1.04, 1.0, 0.97] },
   { h: 17.7, key: '#8fa4e8', keyI: 0,
-    zen: [0.012, 0.025, 0.075], hor: [0.03, 0.04, 0.08], fog: [0.03, 0.038, 0.075], fogSun: [0.07, 0.045, 0.06], glow: [0.08, 0.04, 0.03],
+    zen: [0.01, 0.022, 0.07], hor: [0.028, 0.038, 0.082], fog: [0.022, 0.03, 0.065], fogSun: [0.07, 0.045, 0.06], glow: [0.08, 0.04, 0.03],
     hemiSky: [0.004, 0.006, 0.012], hemiGround: [0.010, 0.012, 0.022], ovc: [0.025, 0.027, 0.034],
-    exp: 1.9, lift: '#0c1636', gain: '#eaeaff', sat: 1.0, tint: [0.97, 1.0, 1.05] },
+    exp: 1.8, lift: '#0c1636', gain: '#eaeaff', sat: 1.0, tint: [0.97, 1.0, 1.05] },
   { h: 18.6, ...NIGHT, exp: 2.4, hor: [0.012, 0.016, 0.033], fog: [0.013, 0.017, 0.034] },
   { h: 20.0, ...NIGHT },
 ];
@@ -124,9 +124,10 @@ export function applyWeather(look, w) {
   const ov = w.overcast;
   look.keyI *= w.sunVis;
   // Under a deck the sky is the deck: flat, cold grey, brightness following the time of day.
+  // Heavy overhead, lighter toward the horizon.
   const deck = _c.copy(look.ovc).multiplyScalar(1 - 0.45 * w.dim);
-  look.zen.lerp(deck, ov);
-  look.hor.lerp(deck, ov);
+  look.zen.lerp(_g.copy(deck).multiplyScalar(0.62), ov);
+  look.hor.lerp(_g.copy(deck).multiplyScalar(1.05), ov);
   look.glow.multiplyScalar(1 - ov * 0.85);
   look.fog.lerp(deck, ov * 0.9);
   look.fogSun.lerp(look.fog, ov * 0.85);
@@ -136,10 +137,15 @@ export function applyWeather(look, w) {
   }
   // Ambient follows the deck (the environment map is rebuilt from it); a little extra fill keeps
   // forms readable in flat light.
-  look.hemiSky.lerp(_c.copy(look.ovc).multiplyScalar(0.12), ov);
-  look.hemiGround.lerp(_c.copy(look.ovc).multiplyScalar(0.35), ov);
+  look.hemiSky.lerp(_c.copy(look.ovc).multiplyScalar(0.3), ov);
+  look.hemiGround.lerp(_c.copy(look.ovc).multiplyScalar(0.45), ov);
+  // Fog and mist cool the light: the sun reaches through as a pale disk, not a golden key.
+  if (w.fogWhite > 0) {
+    look.key.lerp(_g.setRGB(1, 0.97, 0.92), w.fogWhite * 0.6);
+    look.tint.lerp(_g.setRGB(0.97, 1.0, 1.04), w.fogWhite * 0.6);
+  }
   look.sat *= w.satMul;
-  look.exp *= 1 + ov * 0.1 + w.dim * 0.25;
+  look.exp *= 1 - ov * 0.14 + w.dim * 0.3;
   look.tint.lerp(_g.setRGB(0.98, 1.0, 1.03), ov * 0.7);
   look.gain.lerp(_g.setRGB(0.93, 0.96, 1.0), ov * 0.6);
 }

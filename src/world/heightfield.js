@@ -26,7 +26,10 @@ const ss = (e0, e1, x) => {
   return t * t * (3 - 2 * t);
 };
 const mix = (a, b, t) => a + (b - a) * t;
-const gauss = (x, z, cx, cz, r) => Math.exp(-((x - cx) ** 2 + (z - cz) ** 2) / (r * r));
+const gauss = (x, z, cx, cz, r) => {
+  const d2 = ((x - cx) * (x - cx) + (z - cz) * (z - cz)) / (r * r);
+  return d2 > 12 ? 0 : Math.exp(-d2);
+};
 
 // ---------------------------------------------------------------------------------------------
 // Value noise with analytic derivatives (quintic), used by the eroded fbm.
@@ -130,6 +133,9 @@ export function escarpmentZ(x) {
   return ESC[ESC.length - 1][1];
 }
 
+// Sunset window seen from the lake center (azimuth 55 degrees west of south).
+const SUN_WIN = { x: 40, z: -120, dx: -0.819, dz: 0.574 };
+
 // Valley frame: normalized elliptical distance from the valley center.
 const VC = { x: 20, z: -40, rx: 720, rz: 640 };
 export const MOUNTAIN = { snowline: 140, rockline: 900 };
@@ -174,55 +180,66 @@ function hash3(i, j, k) {
 // Union (max) of concave pyramids on a jittered lattice: horn peaks with three or four
 // faces (polygonal distance), aretes where faces and neighbours meet, broad cirque hollows
 // between them. Returns 0..1.
-const PEAKS = new Map();
-function peakCell(cx, cz, seed, rMin, rMax) {
-  const key = (cx + 4096) * 8192 + (cz + 4096) + seed * 67108864;
-  let c = PEAKS.get(key);
-  if (c) return c;
-  const nf = 3 + (hash3(cx, cz, seed + 4) > 0.5 ? 1 : 0);
-  const a0 = hash3(cx, cz, seed + 5) * 6.2832;
-  const dirs = new Float64Array(nf * 2);
-  for (let k = 0; k < nf; k++) {
-    const an = a0 + (k * 6.2832) / nf + (hash3(cx, cz, seed + 6 + k) - 0.5) * 0.7;
-    dirs[k * 2] = Math.cos(an); dirs[k * 2 + 1] = Math.sin(an);
+// Per-cell peak data, cached in flat arrays for the lattice range the world uses.
+const PK_R = 24, PK_N = PK_R * 2 + 1;
+const PEAK_TABLES = new Map();
+function peakTable(seed, rMin, rMax) {
+  let t = PEAK_TABLES.get(seed);
+  if (t) return t;
+  const n = PK_N * PK_N;
+  t = { px: new Float64Array(n), pz: new Float64Array(n), a: new Float64Array(n), r: new Float64Array(n), nf: new Uint8Array(n), dirs: new Float64Array(n * 8) };
+  for (let cz = -PK_R; cz <= PK_R; cz++) {
+    for (let cx = -PK_R; cx <= PK_R; cx++) {
+      const o = (cz + PK_R) * PK_N + (cx + PK_R);
+      const nf = 3 + (hash3(cx, cz, seed + 4) > 0.5 ? 1 : 0);
+      const a0 = hash3(cx, cz, seed + 5) * 6.2832;
+      for (let k = 0; k < nf; k++) {
+        const an = a0 + (k * 6.2832) / nf + (hash3(cx, cz, seed + 6 + k) - 0.5) * 0.7;
+        t.dirs[o * 8 + k * 2] = Math.cos(an); t.dirs[o * 8 + k * 2 + 1] = Math.sin(an);
+      }
+      t.nf[o] = nf;
+      t.px[o] = cx + 0.1 + 0.8 * hash3(cx, cz, seed);
+      t.pz[o] = cz + 0.1 + 0.8 * hash3(cx, cz, seed + 1);
+      t.a[o] = 0.5 + 0.5 * hash3(cx, cz, seed + 2);
+      t.r[o] = rMin + (rMax - rMin) * hash3(cx, cz, seed + 3);
+    }
   }
-  c = {
-    px: cx + 0.1 + 0.8 * hash3(cx, cz, seed),
-    pz: cz + 0.1 + 0.8 * hash3(cx, cz, seed + 1),
-    a: 0.5 + 0.5 * hash3(cx, cz, seed + 2),
-    r: rMin + (rMax - rMin) * hash3(cx, cz, seed + 3),
-    nf, dirs,
-  };
-  PEAKS.set(key, c);
-  return c;
+  PEAK_TABLES.set(seed, t);
+  return t;
 }
 
 function peakField(x, z, cell, seed, rMin, rMax, pw) {
+  const t = peakTable(seed, rMin, rMax);
   const fx = x / cell, fz = z / cell;
   const ix = Math.floor(fx), iz = Math.floor(fz);
   let best = 0;
   for (let j = -1; j <= 1; j++) {
+    const cz = iz + j;
+    if (cz < -PK_R || cz > PK_R) continue;
     for (let i = -1; i <= 1; i++) {
-      const c = peakCell(ix + i, iz + j, seed, rMin, rMax);
-      const dx = fx - c.px, dz = fz - c.pz;
+      const cx = ix + i;
+      if (cx < -PK_R || cx > PK_R) continue;
+      const o = (cz + PK_R) * PK_N + (cx + PK_R);
+      const dx = fx - t.px[o], dz = fz - t.pz[o];
       const de = Math.sqrt(dx * dx + dz * dz);
-      if (de >= c.r * 1.25) continue;
+      const r = t.r[o];
+      if (de >= r * 1.25) continue;
       // Polygonal distance: max over a few face directions (a pyramid), blended with round.
       let dp = 0;
-      const dr = c.dirs;
-      for (let k = 0; k < c.nf; k++) {
-        const v = dx * dr[k * 2] + dz * dr[k * 2 + 1];
+      for (let k = 0, q = o * 8; k < t.nf[o]; k++, q += 2) {
+        const v = dx * t.dirs[q] + dz * t.dirs[q + 1];
         if (v > dp) dp = v;
       }
-      const d = (de * 0.35 + dp * 1.25 * 0.65) / c.r;
+      const d = (de * 0.35 + dp * 1.25 * 0.65) / r;
       if (d >= 1) continue;
-      const v = c.a * Math.pow(1 - d, pw);
+      const v = t.a[o] * Math.pow(1 - d, pw);
       if (v > best) best = v;
     }
   }
   return best;
 }
 
+let lastEnv = 0;
 function mountainHeight(x, z, dv, ux, uz) {
   const massif = 0.5 + 0.5 * noise2(x * 0.00038 + 3.3, z * 0.00038 - 1.7);
   const north = ss(0.2, 0.95, -uz);
@@ -230,10 +247,11 @@ function mountainHeight(x, z, dv, ux, uz) {
   const east = ss(0.4, 0.95, ux);
   const eNear = 300 + 260 * massif + 280 * north * (0.6 + 0.4 * massif) - 130 * south + 60 * east;
   const env = eNear * (1 + 0.45 * ss(1.3, 4.8, dv)) + 300 * ss(2.2, 5.0, dv) + 140 * south * ss(2.5, 5, dv);
+  lastEnv = env;
 
   // Domain warp bends ridgelines so pyramid unions do not look like a lattice.
-  const wx = x + 230 * noise2(x * 0.0006 + 1.3, z * 0.0006 + 7.1) + 50 * noise2(x * 0.003, z * 0.003);
-  const wz = z + 230 * noise2(x * 0.0006 - 4.2, z * 0.0006 + 2.6) + 50 * noise2(x * 0.003 + 5, z * 0.003 - 2);
+  const wx = x + 240 * noise2(x * 0.0006 + 1.3, z * 0.0006 + 7.1);
+  const wz = z + 240 * noise2(x * 0.0006 - 4.2, z * 0.0006 + 2.6);
   const pa = peakField(wx, wz, 1050, 11, 0.85, 1.25, 1.35);
   const pb = peakField(wx + 170, wz - 90, 430, 29, 0.8, 1.15, 1.2);
   // Sharp secondary aretes: ridged noise that only bites high on the massifs.
@@ -250,56 +268,97 @@ function riverBank(d) {
   return 0.6 + 0.16 * e + 0.0016 * e * e;
 }
 
+// North escarpment line at x: cliff foot line zc, main height, upper step line and height.
+// Shared with the cliff-face meshes (terrain/cliffs.js) so they stay on the heightfield cliff.
+export function escarpmentAt(x) {
+  const zc = escarpmentZ(x) + 16 * noise2(x * 0.007, 3.7) + 5 * noise2(x * 0.03, 1.1);
+  const along = ss(-480, -380, x) * ss(460, 380, x);
+  const vary = 0.62 + 0.38 * noise2(x * 0.0055, 9.3) + 0.15 * noise2(x * 0.019, 4.4);
+  const hgt = Math.max(5, 34 * vary);
+  const upper = ss(0.15, 0.45, noise2(x * 0.004 + 7.7, 2.9));
+  const z2 = zc - 30 - 14 * noise2(x * 0.008, 6.6);
+  const h2 = (8 + 10 * (0.5 + 0.5 * noise2(x * 0.009, 2.1))) * upper;
+  return { zc, along, vary, hgt, z2, h2 };
+}
+
+// Falls cliff line at z: cliff center xc and half-width of the step (vertical near the falls).
+export function fallsCliff(z) {
+  const dz = Math.abs(z - FALLS.z);
+  const xc = FALLS.x + 7 * (noise2(z * 0.018, 5.5) - noise2(FALLS.z * 0.018, 5.5)) * ss(10, 40, dz) + 2.5 * noise2(z * 0.09, 1.3) * ss(8, 30, dz);
+  const wdt = 1.6 + 26 * ss(9, 42, dz) + 6 * (0.5 + 0.5 * noise2(z * 0.05, 8.1)) * ss(9, 30, dz);
+  return { xc, wdt, dz };
+}
+
 // Natural terrain before pads, roads, the river channel and the lake carving.
 function natural(x, z, sd) {
   const dvx = (x - VC.x) / VC.rx, dvz = (z - VC.z) / VC.rz;
   const dv = Math.sqrt(dvx * dvx + dvz * dvz);
-  let h = bowl(dv);
+  // Sunset window weight (see SUN_WIN): the far bowl sinks there so the low ranges keep relief.
+  const swx = x - SUN_WIN.x, swz = z - SUN_WIN.z, swd = Math.sqrt(swx * swx + swz * swz) + 1e-6;
+  const sunW = ss(0.955, 0.99, (swx * SUN_WIN.dx + swz * SUN_WIN.dz) / swd);
+  let h = bowl(dv) * (1 - 0.6 * sunW * ss(0.9, 1.6, dv));
 
   // Foothills, calmer near the shore and the village fields.
   const dl = Math.max(0, sd);
   const hillAmp = 2.5 + 22 * ss(10, 280, dl);
   h += fbm2(x * 0.0026 + 4.1, z * 0.0026 - 2.2, 4) * hillAmp;
   h += erodedFbm(x * 0.011, z * 0.011, 4) * 5 * ss(20, 160, dl);
+  // Wind dunes: low drifts elongated across the prevailing wind (west-southwest).
+  if (dv < 1.1) {
+    const along = x * 0.94 + z * 0.34, across = -x * 0.34 + z * 0.94;
+    const dn = 1 - Math.abs(noise2(along * 0.006, across * 0.034 + 3.3));
+    h += (dn * dn - 0.45) * 0.9 * ss(6, 40, dl) * (1 - ss(0.85, 1.1, dv));
+  }
 
   // Mountain ring, cut by the pass gorge and the river gorge.
   let m = ss(0.78, 1.42, dv);
   if (m > 0) {
     const ux = dvx / dv, uz = dvz / dv;
     // Gorges: warped distance so the walls wander, with spurs reaching into the corridor.
-    const gx = x + 70 * noise2(x * 0.0021 + 3.1, z * 0.0021), gz = z + 70 * noise2(x * 0.0021, z * 0.0021 - 6.4);
-    const spur = 30 * noise2(x * 0.006 - 1.9, z * 0.006 + 4.2);
-    if (x < PASS_LINE.maxX && z > PASS_LINE.minZ) m *= ss(30 + spur, 170 + spur, nearest(PASS_LINE, gx, gz).d);
-    if (x > RIVER_LINE.minX && z > RIVER_LINE.minZ && z < RIVER_LINE.maxZ) m *= mix(0.03, 1, ss(50 + spur, 250 + spur, nearest(RIVER_LINE, gx, gz).d));
-    if (m > 0) h += m * mountainHeight(x, z, dv, ux, uz);
+    const inPass = x < PASS_LINE.maxX && z > PASS_LINE.minZ;
+    const inRiver = x > RIVER_LINE.minX && z > RIVER_LINE.minZ && z < RIVER_LINE.maxZ;
+    if (inPass || inRiver) {
+      const gx = x + 70 * noise2(x * 0.0021 + 3.1, z * 0.0021), gz = z + 70 * noise2(x * 0.0021, z * 0.0021 - 6.4);
+      const spur = 30 * noise2(x * 0.006 - 1.9, z * 0.006 + 4.2);
+      if (inPass) m *= ss(30 + spur, 170 + spur, nearest(PASS_LINE, gx, gz).d);
+      if (inRiver) m *= mix(0.03, 1, ss(50 + spur, 250 + spur, nearest(RIVER_LINE, gx, gz).d));
+    }
+    if (m > 0.0015) {
+      let mh = m * mountainHeight(x, z, dv, ux, uz);
+      // Sunset window: toward the afternoon sun (15:00 to 16:00, 7 to 13 degrees up) the
+      // ranges are scaled down to stay under a ~7 degree line from the lake, so golden light
+      // reaches the ice and the south-west horizon is a low, layered backlit silhouette.
+      if (sunW > 0) {
+        // Ranges rise from ~6.3 degrees near to ~8.5 degrees far so they layer behind each other.
+        const cap = swd * (0.11 + 0.04 * ss(1000, 3500, swd));
+        const allowed = Math.max(0, cap - h - 6);
+        const shape = Math.min(1.05, (mh / (m * lastEnv + 1)) * 1.25);
+        mh = mix(mh, Math.min(mh, allowed) * 0.25 + allowed * shape * 0.75, sunW);
+      }
+      h += mh;
+    }
   }
 
-  // North escarpment above the lake's north shore (bear den cliffs): stepped tiers whose
-  // height varies along the line, with buttresses, notches and talus. Fades out to the north
-  // where the mountains take over.
+  // North escarpment above the lake's north shore (bear den cliffs): one main cliff whose
+  // height and line wander (bays, promontories, low ramps), an upper step in places, talus.
   if (z < -280 && z > -720 && x > -480 && x < 460) {
-    const zc = escarpmentZ(x) + 10 * noise2(x * 0.012, 3.7) + 3 * noise2(x * 0.05, 1.1);
-    const along = ss(-480, -380, x) * ss(460, 380, x) * ss(-720, -560, z);
-    const vary = 0.6 + 0.4 * noise2(x * 0.006, 9.3) + 0.12 * noise2(x * 0.02, 4.4);
-    const hgt = Math.max(8, 30 * vary);
-    const tier1 = ss(zc + 4, zc - 5, z);
-    const z2 = zc - 26 - 12 * noise2(x * 0.01, 6.6);
-    const tier2 = ss(z2 + 4, z2 - 9, z) * (10 + 8 * (0.5 + 0.5 * noise2(x * 0.009, 2.1)));
-    const talus = ss(zc + 22, zc + 3, z) * 3.5 * vary;
-    h += along * (tier1 * hgt + tier2 + talus);
+    const e = escarpmentAt(x);
+    const along = e.along * ss(-720, -560, z);
+    const tier1 = ss(e.zc + 4, e.zc - 5, z);
+    const tier2 = ss(e.z2 + 5, e.z2 - 10, z) * e.h2;
+    const talus = ss(e.zc + 24, e.zc + 3, z) * 4 * e.vary;
+    h += along * (tier1 * e.hgt + tier2 + talus);
   }
 
   // Hanging valley east of the falls: a cliff line across the river valley.
   if (x > 400 && z > FALLS.z - 270 && z < FALLS.z + 270) {
-    const dzF = Math.abs(z - FALLS.z);
-    const xc = FALLS.x + 7 * (noise2(z * 0.018, 5.5) - noise2(FALLS.z * 0.018, 5.5)) * ss(10, 40, dzF) + 2.5 * noise2(z * 0.09, 1.3) * ss(8, 30, dzF);
-    const wdt = 1.6 + 5 * ss(12, 60, dzF);
-    const step = ss(xc - wdt, xc + wdt, x) * (1 - ss(140, 260, dzF));
-    h += step * 40;
+    const f = fallsCliff(z);
+    h += ss(f.xc - f.wdt, f.xc + f.wdt, x) * (1 - ss(140, 260, f.dz)) * 40;
   }
 
   // Featured hills.
-  h += gauss(x, z, 200, 230, 75) * 40; // idol hill
+  h += gauss(x, z, 200, 230, 75) * 48; // idol hill
+  h += gauss(x, z, -585, 548, 150) * 22; // the pass climbs out of the valley
   h += gauss(x, z, -40, 222, 42) * 9; // sledding hill
   h += gauss(x, z, -362, 344, 80) * 22; // watchtower ridge
   h += gauss(x, z, -300, 330, 60) * 8;

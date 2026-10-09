@@ -270,7 +270,7 @@ export class Dialogue {
       const want = node.cam || 'auto';
       let shot = null;
       const sameSubject = dir.last?.subject === spk;
-      if (want === 'wide') shot = cov.two({ wide: false });
+      if (want === 'wide') shot = cov.two({ wide: false, favor: spk });
       else if (want === 'close') shot = cov.close(spk, mainListener);
       else if (want === 'ots') shot = cov.ots(spk);
       else {
@@ -282,7 +282,7 @@ export class Dialogue {
         else if (strong && sameSubject && last?.size === 4) shot = last;
         else if (strong && dir.lineIndex > 1 && (dir.sinceClose >= 2 || charge >= 2.4)) shot = cov.close(spk, mainListener);
         // Every so often, breathe with a two-shot on a long, calm line.
-        else if (dir.sinceWide >= 7 && dur > 3 && !strong) shot = cov.two({ wide: false });
+        else if (dir.sinceWide >= 7 && dur > 3 && !strong) shot = cov.two({ wide: false, favor: spk });
         // Same speaker again: hold the setup, or move to a clean single for a longer line.
         else if (sameSubject && last?.size === 2) shot = dur > 3.2 ? cov.single(spk, mainListener) : last;
         else if (sameSubject && last?.size === 3) shot = last;

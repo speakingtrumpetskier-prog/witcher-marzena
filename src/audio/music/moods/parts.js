@@ -3,8 +3,8 @@
 export const P = {
   voice: (o) => ({ inst: 'singer', type: 'white', level: 0.42, pan: 0, verb: 0.3, ...o }),
   voiceFar: (o) => ({ inst: 'singer', type: 'white', level: 0.3, pan: 0.15, verb: 0.75, lp: 2600, gain: 0.8, ...o }),
-  hum: (o) => ({ inst: 'singer', type: 'alto', level: 0.38, pan: 0, verb: 0.35, vibDepth: 16, breath: 0.035, wave: 'glottalSoft', ...o }),
-  throat: (o) => ({ inst: 'singer', type: 'throat', level: 0.5, pan: -0.05, verb: 0.4, vibDepth: 8, jitter: 5, lp: 3000, warmth: 0.5, ...o }),
+  hum: (o) => ({ inst: 'singer', type: 'hum', level: 0.38, pan: 0, verb: 0.35, vibDepth: 16, breath: 0.035, wave: 'glottalSoft', ...o }),
+  throat: (o) => ({ inst: 'singer', type: 'throat', level: 0.5, pan: -0.05, verb: 0.4, vibDepth: 8, jitter: 5, lp: 3000, warmth: 0.3, ...o }),
   choirF: (o) => ({ inst: 'choir', type: 'alto', singers: 6, banks: 2, level: 0.15, pan: -0.12, verb: 0.38, ...o }),
   choirM: (o) => ({ inst: 'choir', type: 'bass', singers: 4, banks: 2, level: 0.19, pan: 0.12, verb: 0.38, lp: 3600, ...o }),
   fiddle: (o) => ({ inst: 'fiddle', level: 0.3, pan: -0.22, verb: 0.24, ...o }),

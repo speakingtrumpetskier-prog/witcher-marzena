@@ -13,7 +13,7 @@ import * as THREE from 'three';
 import { G, ORDER } from '../core/G.js';
 import { Character } from './Character.js';
 import { presetSpec, PRESET_IDS, MAIN_CAST } from './presets.js';
-import { clipNames, registerClips } from './clips/index.js';
+import { clipNames, registerClips, getClip } from './clips/index.js';
 import { buildLibrary } from './clips/library.js';
 import { createHorse as makeHorse } from './horse.js';
 
@@ -46,7 +46,9 @@ function unregister(c) {
 
 const stats = { updated: 0, total: 0 };
 
+const fixedStep = parseFloat(G.params.get('animStep'));
 function update(dt) {
+  if (fixedStep > 0) dt = fixedStep; // debug: deterministic animation steps for contact sheets
   const cam = G.camera;
   if (!cam) return;
   _pm.multiplyMatrices(cam.projectionMatrix, cam.matrixWorldInverse);
@@ -96,6 +98,16 @@ export async function init(G_) {
     _unregister: unregister,
   };
   G_.addSystem('characters', update, ORDER.characters);
+  // Bake the remaining clip blocks in idle time so the first attack or story beat never hitches.
+  if (!G_.shot) {
+    const names = clipNames();
+    const idle = window.requestIdleCallback || ((f) => setTimeout(() => f({ timeRemaining: () => 8 }), 50));
+    const pump = (dl) => {
+      while (names.length && dl.timeRemaining() > 4) getClip(names.shift());
+      if (names.length) idle(pump);
+    };
+    setTimeout(() => idle(pump), 3000);
+  }
 }
 
 export { Character, PRESET_IDS, MAIN_CAST };

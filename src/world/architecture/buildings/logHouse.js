@@ -13,7 +13,7 @@ export function logHouse(opts = {}) {
   const w = opts.w ?? w0, d = opts.d ?? d0;
   const gallery = !!opts.gallery;
   const floors = opts.floors ?? (gallery ? 2 : 1);
-  const shutters = opts.shutters ?? kit.pick(['blue', 'blue', 'red', 'cream']);
+  const shutters = opts.shutters ?? kit.pick(['blue', 'blue', 'red', 'ochre']);
   const porch = opts.porch ?? false;
   const doorS = opts.doorS ?? (porch ? 0 : kit.pick([-1, 1]) * w * 0.17);
   const windows = [];
