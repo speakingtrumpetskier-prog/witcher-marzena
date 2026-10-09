@@ -51,7 +51,7 @@ export class MzPostPass extends Pass {
     this.prefilter = mat(PREFILTER_FRAG, {
       tColor: { value: null }, tMask: { value: black }, uTexel: { value: new THREE.Vector2() },
       uExposure: { value: 1 }, uThreshold: { value: 3.2 }, uKnee: { value: 1.6 },
-      uSenses: { value: 0 }, uClueColor: { value: new THREE.Color(2.4, 0.9, 0.25) },
+      uSenses: { value: 0 },
     });
     this.downMat = mat(DOWN_FRAG, { tSrc: { value: null }, uTexel: { value: new THREE.Vector2() } });
     this.upMat = mat(UP_FRAG, { tSrc: { value: null }, tBase: { value: null }, uTexel: { value: new THREE.Vector2() }, uScatter: { value: 1 } });
@@ -72,24 +72,18 @@ export class MzPostPass extends Pass {
       uLift: { value: new THREE.Color(0, 0, 0) }, uGain: { value: new THREE.Color(1, 1, 1) },
       uSat: { value: 1 }, uContrast: { value: 1 }, uVignette: { value: 0.3 }, uGrain: { value: 0.03 },
       uTime: { value: 0 }, uSenses: { value: 0 }, uSensesTime: { value: 0 },
-      uClueColor: { value: new THREE.Color(1.0, 0.52, 0.16) }, uEcho: { value: 0 }, uFrost: { value: 0 },
+      uEcho: { value: 0 }, uFrost: { value: 0 },
       uFlashColor: { value: new THREE.Color(1, 1, 1) }, uFlash: { value: 0 },
     });
     this.quad = new FullScreenQuad(this.composite);
 
-    // Clue mask material: white where visible, dim where something in front hides it.
-    const maskMat = new THREE.MeshBasicMaterial({ color: 0xffffff, fog: false });
+    // Clue mask materials (one per glow color): the clue color where visible, dimmed where
+    // something in front hides it. Marked objects swap to these only for the mask pass.
     this.maskUniforms = { tSceneDepth: { value: null }, uMaskRes: { value: new THREE.Vector2(1, 1) }, uNearFar: { value: new THREE.Vector2(0.1, 9000) } };
-    addCompileHook(maskMat, 'mzSensesMask', (shader) => {
-      Object.assign(shader.uniforms, this.maskUniforms);
-      shader.fragmentShader = shader.fragmentShader
-        .replace('void main() {', 'uniform sampler2D tSceneDepth;\nuniform vec2 uMaskRes;\nuniform vec2 uNearFar;\n' +
-          'float mzViewZ(float d) { float n = uNearFar.x, f = uNearFar.y; return (n * f) / ((f - n) * d - f); }\nvoid main() {')
-        .replace(/}\s*$/, '  float sd = texture2D(tSceneDepth, gl_FragCoord.xy / uMaskRes).r;\n' +
-          '  float vis = mzViewZ(gl_FragCoord.z) >= mzViewZ(sd) - 0.35 ? 1.0 : 0.4;\n' +
-          '  gl_FragColor = vec4(vec3(vis), 1.0);\n}');
-    });
-    this.maskMat = maskMat;
+    this.maskMats = new Map();
+    this.clues = new Map(); // Object3D -> THREE.Color (filled by PostFX.markClue)
+    this._swap = [];
+    this._savedClear = new THREE.Color();
 
     // Values driven by PostFX each frame.
     this.state = {
@@ -120,6 +114,24 @@ export class MzPostPass extends Pass {
     this.quad.render(renderer);
   }
 
+  maskMaterialFor(color) {
+    const key = color.getHex();
+    let m = this.maskMats.get(key);
+    if (m) return m;
+    m = new THREE.MeshBasicMaterial({ color, fog: false });
+    addCompileHook(m, 'mzSensesMask', (shader) => {
+      Object.assign(shader.uniforms, this.maskUniforms);
+      shader.fragmentShader = shader.fragmentShader
+        .replace('void main() {', 'uniform sampler2D tSceneDepth;\nuniform vec2 uMaskRes;\nuniform vec2 uNearFar;\n' +
+          'float mzViewZ(float d) { float n = uNearFar.x, f = uNearFar.y; return (n * f) / ((f - n) * d - f); }\nvoid main() {')
+        .replace(/}\s*$/, '  float sd = texture2D(tSceneDepth, gl_FragCoord.xy / uMaskRes).r;\n' +
+          '  float vis = mzViewZ(gl_FragCoord.z) >= mzViewZ(sd) - 0.35 ? 1.0 : 0.4;\n' +
+          '  gl_FragColor = vec4(diffuse * vis, 1.0);\n}');
+    });
+    this.maskMats.set(key, m);
+    return m;
+  }
+
   renderMask(renderer, depthTex) {
     const { scene, camera } = this;
     if (!scene || !camera) return;
@@ -127,11 +139,23 @@ export class MzPostPass extends Pass {
     mu.tSceneDepth.value = depthTex;
     mu.uMaskRes.value.set(this.mask.width, this.mask.height);
     mu.uNearFar.value.set(camera.near, camera.far);
+    // Swap every marked mesh to the mask material of its clue color.
+    const swap = this._swap;
+    swap.length = 0;
+    for (const [root, color] of this.clues) {
+      const mat = this.maskMaterialFor(color);
+      root.traverse((o) => {
+        if (!(o.isMesh || o.isPoints || o.isLine) || !o.material) return;
+        swap.push(o, o.material);
+        o.material = Array.isArray(o.material) ? o.material.map(() => mat) : mat;
+      });
+    }
     const savedBg = scene.background, savedOverride = scene.overrideMaterial, savedMask = camera.layers.mask;
     const savedAuto = renderer.shadowMap.autoUpdate;
-    const savedClear = renderer.getClearColor(new THREE.Color()), savedAlpha = renderer.getClearAlpha();
+    renderer.getClearColor(this._savedClear);
+    const savedAlpha = renderer.getClearAlpha();
     scene.background = null;
-    scene.overrideMaterial = this.maskMat;
+    scene.overrideMaterial = null;
     camera.layers.set(SENSES_LAYER);
     renderer.shadowMap.autoUpdate = false;
     renderer.setRenderTarget(this.mask);
@@ -142,7 +166,9 @@ export class MzPostPass extends Pass {
     scene.overrideMaterial = savedOverride;
     scene.background = savedBg;
     renderer.shadowMap.autoUpdate = savedAuto;
-    renderer.setClearColor(savedClear, savedAlpha);
+    renderer.setClearColor(this._savedClear, savedAlpha);
+    for (let i = 0; i < swap.length; i += 2) swap[i].material = swap[i + 1];
+    swap.length = 0;
   }
 
   render(renderer, writeBuffer, readBuffer) {
@@ -246,7 +272,7 @@ export class MzPostPass extends Pass {
 
   dispose() {
     for (const t of [...this.down, ...this.up, this.rayA, this.rayB, this.mask]) t.dispose();
-    for (const m of [this.prefilter, this.downMat, this.upMat, this.rayMaskMat, this.rayBlurMat, this.composite, this.maskMat]) m.dispose();
+    for (const m of [this.prefilter, this.downMat, this.upMat, this.rayMaskMat, this.rayBlurMat, this.composite, ...this.maskMats.values()]) m.dispose();
     this.quad.dispose();
   }
 }

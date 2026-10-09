@@ -13,8 +13,8 @@ export const PINE_VARIANTS = [
 const PAL = {
   barkLow: rgb('#5a5149'),
   barkMid: rgb('#6a5646'),
-  barkHigh: rgb('#8a6446'), // muted orange-brown upper bark
-  limb: rgb('#7d5c44'),
+  barkHigh: rgb('#7f5e46'), // muted orange-brown upper bark
+  limb: rgb('#72584a'),
   needleDark: rgb('#1f3a33'),
   needleLight: rgb('#3f6350'),
   needleWarm: rgb('#4f7048'),

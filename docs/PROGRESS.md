@@ -9,7 +9,7 @@ catches issues, and fixes them or sends a targeted fix back to the builder. No c
 | 0 | Design bible, story script, village plan, architecture, engine skeleton, harness | lead | done | n/a | docs/DESIGN.md, docs/STORY.md, docs/VILLAGE.md, docs/ARCHITECTURE.md |
 | 1 | Terrain, ice, water, rocks | opus | done, reviewed | 1 | worker-built 1025 + far grids, single instanced LOD terrain, horn-peak ranges with a sunset notch, black ice with depth, frozen river and falls, 3.8k rocks, full thaw |
 | 1 | Atmosphere, sky, weather, post | opus | building | 0 | |
-| 1 | Characters, animation, horse | opus | building | 0 | |
+| 1 | Characters, animation, horse | opus | reviewed, rework sent | 1 | 46 presets, 70 clips, skinned bodies with layered clothing and spring bones, LOD; hair, resting expressions, skin and horse body need a pass |
 | 1 | Audio and music | opus | done, reviewed | 1 | 12 moods, 7 stingers, 68 SFX, auto ambience; no clipping, loudness on target; needs human ears |
 | 1 | Vegetation | sonnet | reviewed, rework sent | 1 | 34k trees + 33k far billboards, 3 LODs, wind, marsh reeds, spring leaves; close-up spruce too faceted, dither stipple, speckled mid forest |
 | 1 | Architecture kit | sonnet | done, reviewed | 1 | full catalog incl. enterable tavern, longhouse+cellar, Hanka's house, workshop, walkable bell tower; placeBuilding with foundations, colliders, doors, lights, walk floors |

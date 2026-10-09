@@ -18,7 +18,6 @@ uniform float uExposure;
 uniform float uThreshold;
 uniform float uKnee;
 uniform float uSenses;
-uniform vec3 uClueColor;
 varying vec2 vUv;
 vec3 tap(vec2 o) {
   vec3 c = texture2D(tColor, vUv + o * uTexel).rgb;
@@ -34,7 +33,8 @@ vec3 tap(vec2 o) {
 }
 void main() {
   vec3 c = (tap(vec2(-0.5, -0.5)) + tap(vec2(0.5, -0.5)) + tap(vec2(-0.5, 0.5)) + tap(vec2(0.5, 0.5))) * 0.25;
-  if (uSenses > 0.0) c += uClueColor * texture2D(tMask, vUv).r * uSenses;
+  // Clue mask carries each clue's own glow color (linear), so it blooms in that color.
+  if (uSenses > 0.0) c += texture2D(tMask, vUv).rgb * uSenses * 2.4;
   gl_FragColor = vec4(c, 1.0);
 }
 `;
@@ -155,7 +155,6 @@ uniform float uGrain;
 uniform float uTime;
 uniform float uSenses;
 uniform float uSensesTime;
-uniform vec3 uClueColor;
 uniform float uEcho;
 uniform float uFrost;
 uniform vec3 uFlashColor;
@@ -263,16 +262,17 @@ void main() {
     float ring = exp(-pow((rad - ph * 1.25) / 0.045, 2.0)) * (1.0 - ph);
     g += vec3(0.05, 0.065, 0.08) * ring * s;
     g *= 1.0 - s * 0.5 * smoothstep(0.35, 0.95, rad);
-    float core = texture2D(tMask, vUv).r;
-    float glow = 0.0;
+    // Added after the desaturation, so clues keep their own color (orange clues, turquoise echoes).
+    vec3 core = texture2D(tMask, vUv).rgb;
+    vec3 glow = vec3(0.0);
     for (int i = 0; i < 8; i++) {
       float a = float(i) * 0.7854;
-      glow += texture2D(tMask, vUv + vec2(cos(a), sin(a)) * uMaskTexel * 3.0).r;
-      glow += texture2D(tMask, vUv + vec2(cos(a + 0.39), sin(a + 0.39)) * uMaskTexel * 7.0).r * 0.6;
+      glow += texture2D(tMask, vUv + vec2(cos(a), sin(a)) * uMaskTexel * 3.0).rgb;
+      glow += texture2D(tMask, vUv + vec2(cos(a + 0.39), sin(a + 0.39)) * uMaskTexel * 7.0).rgb * 0.6;
     }
     glow /= 12.8;
-    float rim = clamp(glow - core * 0.6, 0.0, 1.0);
-    g += uClueColor * (rim * 1.1 + core * 0.4) * s;
+    vec3 rim = clamp(glow - core * 0.6, 0.0, 1.0);
+    g += (rim * 1.1 + core * 0.45) * s;
   }
 
   // Echo: a cold blue reconstruction, like memory seen through ice.

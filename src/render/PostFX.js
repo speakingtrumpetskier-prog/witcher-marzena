@@ -9,9 +9,14 @@
 //   echo                   0..1 cold blue ghostly reconstruction look (echo cutscenes)
 //   flash(color, seconds)  additive full-screen flash that fades out (color: hex, Color or css)
 //   bloom, rays            strength multipliers (default 1)
-//   SENSES_LAYER           layer number for hunter-senses clues
-//   markClue(obj, on)      put obj (and children) on the clue layer: glows warm orange when
-//                          uSenses > 0. Objects with userData.senses = true are picked up too.
+//   SENSES_LAYER           layer number for hunter-senses clues (5)
+//   markClue(obj, on = true, color = '#ff8a3d')
+//                          highlight obj (and children) while uSenses > 0: a rim glow plus
+//                          bloom in `color`, added after the senses desaturation so it keeps its
+//                          hue (echoes: '#9ff5ff', exported as ECHO_COLOR). Dimmed where the
+//                          clue is hidden behind other geometry. on = false removes it.
+//                          Objects with userData.senses = true (optional userData.sensesColor)
+//                          are picked up automatically while senses are on.
 // Reads uSenses (0..1). G.quality 'low' disables bloom, god rays and MSAA.
 import * as THREE from 'three';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
@@ -21,6 +26,8 @@ import { getFrostTexture } from './post/frostTex.js';
 import { clamp, smoothstep } from '../core/util.js';
 
 const WHITE = new THREE.Color(1, 1, 1);
+const CLUE_DEFAULT = '#ff8a3d';
+export const ECHO_COLOR = '#9ff5ff';
 
 export async function init(G) {
   const renderer = G.renderer;
@@ -66,8 +73,12 @@ export async function init(G) {
       flashDur = Math.max(0.01, seconds);
       flashT = flashDur;
     },
-    markClue(obj, on = true) {
+    // Hunter-senses highlight. color: hex/css/Color, default warm orange; echoes use #9ff5ff.
+    markClue(obj, on = true, color = CLUE_DEFAULT) {
+      if (!obj) return;
       obj.traverse((o) => (on ? o.layers.enable(SENSES_LAYER) : o.layers.disable(SENSES_LAYER)));
+      if (on) pass.clues.set(obj, new THREE.Color(color));
+      else pass.clues.delete(obj);
     },
     render(dt) {
       const A = G.atmosphere;
@@ -104,7 +115,9 @@ export async function init(G) {
         scanClock -= dt;
         if (scanClock <= 0) {
           scanClock = 1;
-          G.scene.traverse((o) => { if (o.userData && o.userData.senses === true) P.markClue(o, true); });
+          G.scene.traverse((o) => {
+            if (o.userData && o.userData.senses === true && !pass.clues.has(o)) P.markClue(o, true, o.userData.sensesColor || CLUE_DEFAULT);
+          });
         }
       } else scanClock = 0;
 

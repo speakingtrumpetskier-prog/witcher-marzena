@@ -132,7 +132,7 @@ export function buildSpruce(v, lod = 0) {
         const phase = r() * 6.28;
         frond(b, { x: ox, y, z: oz }, th, L, W, droop, rise, {
           rng: r, sRows: sRowsMid, jag: 0.1, col: [tintLo, tintHi], shade,
-          snow: v.snow * 0.95, snowEdge: 0.3, sag: 0.5 + 0.2 * (1 - f), tipLift: f > 0.5 ? L * 0.08 * r() : 0, phase,
+          snow: v.snow * 0.82, snowEdge: 0.25, sag: 0.5 + 0.2 * (1 - f), tipLift: f > 0.5 ? L * 0.08 * r() : 0, phase,
           r0: 0.14, uvRect: NEEDLE_UV.spruce, widthFn: cardW,
         });
         // a hanging card under the lower branches: the ragged curtain that Norway spruce wears

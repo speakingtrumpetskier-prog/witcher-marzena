@@ -4,7 +4,7 @@
 // URL extras:
 //   sweep=H       advance the clock H hours per rendered frame (contact sheets of the day:
 //                 node scripts/shot.mjs --q "scene=atmosphere&sweep=2&hour=0" --seq 12 --every 50)
-//   senses=1      hunter senses on, the red post is marked as a clue
+//   senses=1      hunter senses on: the red post is an orange clue, the metal sphere a turquoise echo
 //   echo=1, frost=0.8, aurora=1
 import * as THREE from 'three';
 import { ORDER } from '../../core/G.js';
@@ -36,8 +36,10 @@ export async function init(G) {
     new THREE.MeshStandardMaterial({ color: 0xb0b4b8, roughness: 0.3, metalness: 1 }),
     new THREE.MeshLambertMaterial({ color: 0x2f4a2a }),
   ];
+  const spheres = [];
   mats.forEach((m, i) => {
     const s = new THREE.Mesh(new THREE.SphereGeometry(1.1, 48, 24), m);
+    spheres.push(s);
     s.position.set(-6 + i * 3, 1.1, 0);
     s.castShadow = s.receiveShadow = true;
     G.scene.add(s);
@@ -66,6 +68,7 @@ export async function init(G) {
   if (p.get('senses')) {
     G.uniforms.uSenses.value = 1;
     G.postfx?.markClue(post, true);
+    G.postfx?.markClue(spheres[3], true, '#9ff5ff');
   }
   if (p.get('echo') && G.postfx) G.postfx.echo = parseFloat(p.get('echo'));
   if (p.get('frost') && G.postfx) G.postfx.frost = parseFloat(p.get('frost'));
