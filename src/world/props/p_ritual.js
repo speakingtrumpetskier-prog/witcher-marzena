@@ -206,7 +206,7 @@ export function effigy(o = {}) {
     k.cyl('wood', 0.034, 0.046, poleTop + 0.25, { pos: [0, (poleTop - 0.25) / 2 + 0.12, -0.01], radial: 6, tint: burnt ? 0x2a2420 : 0xb8a690, jitter: 0.005, cap: 'logEnd' });
     if (variant === 'pole') k.cyl('wood', 0.025, 0.025, 1.1, { pos: [0, 1.27 + raised, -0.01], rot: [0, 0, Math.PI / 2], radial: 5, tint: 0xb8a690, cap: 'logEnd' });
     const headY = addBody(k, {
-      y0: raised, arms: burnt === 1 ? 'down' : variant === 'standing' || frozen ? 'down' : 'out', burn: burnt, frozen, ice: frozen,
+      y0: raised, arms: o.arms || (burnt === 1 ? 'down' : variant === 'standing' || frozen ? 'down' : 'out'), burn: burnt, frozen, ice: frozen,
       tilt: burnt ? 0.45 : 0.0, roll: burnt ? 0.2 : frozen ? 0.04 : k.rs(0.08), turn: k.rs(0.2), armMissing: burnt === 1 ? 1 : 0, sway: frozen ? 0 : 0.55,
     });
     void headY;

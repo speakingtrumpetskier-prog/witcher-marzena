@@ -23,7 +23,7 @@ export const TITLE_SHOT = {
   cam: new THREE.Vector3(14.19, 1.25, -36.23),
   look: new THREE.Vector3(-57.7, 9.5, 33.3),
   // She faces us, turned a little: backlit, her face in shadow (her support stakes stay hidden behind).
-  effigy: { x: LOC.ritual.x, z: LOC.ritual.z, yaw: Math.atan2(14.19 - LOC.ritual.x, -36.23 - LOC.ritual.z) + 0.38, scale: 1.12 },
+  effigy: { x: LOC.ritual.x, z: LOC.ritual.z, yaw: Math.atan2(14.19 - LOC.ritual.x, -36.23 - LOC.ritual.z) + 0.38, scale: 1.4 },
   // A ribbon pole of our own close on the right, cut by the frame edge: it carries the parallax.
   pole: { x: 9.61, z: -34.93 },
 };
@@ -143,7 +143,7 @@ export class TitleScene {
     try {
       const { props } = await import('../world/props/index.js');
       if (!this.active) return;
-      const e = props.make('effigy', { variant: 'pole', seed: 4, scale: S.effigy.scale });
+      const e = props.make('effigy', { variant: 'standing', arms: 'out', seed: 4, scale: S.effigy.scale });
       e.position.set(S.effigy.x, 0, S.effigy.z);
       e.rotation.y = S.effigy.yaw;
       e.name = 'title-effigy';
