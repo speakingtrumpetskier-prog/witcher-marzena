@@ -514,13 +514,12 @@ Restrained, period-flavored. Fonts: Cormorant Garamond (titles, speakers), Alegr
 
 ## 8. Quality bar (the Gauntlet)
 
-We use a builder and blind critic loop. Builders build. Critics with fresh context see only
-the output (screenshots, frame sequences, scripts) and compare against The Witcher 3 at
-comparable framing and against the best browser WebGL games. Honest target: a browser game made
+Builders build; the lead reviews every result directly (screenshots, frame sequences, scripts)
+against The Witcher 3 at comparable framing and against the best browser WebGL games. Honest target: a browser game made
 from code will not beat a AAA engine on raw fidelity; it must win on composition, light,
 atmosphere, density, story and coherence, and have zero glaring artifacts (floating objects,
 z-fighting, clipping, popping, black frames, broken animations).
 
-Critic rubric per area (1 to 10): composition, light and atmosphere, palette cohesion,
+Review rubric per area (1 to 10): composition, light and atmosphere, palette cohesion,
 density, scale and grandeur, material readability, silhouettes, animation, technical
 cleanliness, and "would a player screenshot this and share it".

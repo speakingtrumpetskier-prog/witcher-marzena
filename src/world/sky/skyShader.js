@@ -209,8 +209,11 @@ void main() {
   float y = rd.y;
   float yy = max(y, 0.0);
 
-  // Gradient: rich zenith blue to a paler horizon, with a slightly brighter band just above it.
-  vec3 sky = mix(uHorizon, uZenith, pow(yy, 0.5));
+  // Gradient: rich zenith blue down to a horizon built from the fog in-scatter color, so the
+  // sky meets fogged terrain without a seam.
+  vec3 fogL = mzFogInscatter(rd);
+  vec3 hor = mix(uHorizon, fogL, 0.7);
+  vec3 sky = mix(hor, uZenith, pow(yy, 0.5));
   sky *= 1.0 + 0.15 * exp(-yy * 18.0);
 
   // Warm horizon on the sun side, Mie glow around the sun.
@@ -250,9 +253,13 @@ void main() {
 
   // Fog over the whole dome with an "infinite" ray, matching distant terrain.
   float dist = uEnvMode > 0.5 && y < 0.0 ? min(60.0 / max(-y, 0.01), 20000.0) : 30000.0;
-  float od = mzFogOD(cameraPosition, rd, dist) * mix(uSkyFog, 1.0, step(y, 0.0));
+  // The dome already contains the clear-air scattering, so the aerial haze counts only
+  // partly here; ground fog, lake fog and storms count fully.
+  float od = mzExpOD(uFogDensity, uFogHeightFalloff, uFogBaseHeight, cameraPosition.y, rd.y, dist)
+           + mzExpOD(uFogHaze.x, uFogHaze.y, 0.0, cameraPosition.y, rd.y, dist) * mix(uSkyFog, 1.0, step(y, 0.0))
+           + mzLayerOD(cameraPosition, rd, dist);
   float T = exp(-od);
-  vec3 col = sky * T + mzFogInscatter(rd) * (1.0 - T);
+  vec3 col = sky * T + fogL * (1.0 - T);
 
   // Sun disk on top, dimmed by the air and by clouds. Through a thin deck it is a pale smudge.
   float sd = sqrt(max(2.0 * (1.0 - mu), 0.0));

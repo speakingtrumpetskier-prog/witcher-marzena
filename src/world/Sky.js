@@ -186,7 +186,7 @@ export async function init(G) {
 
     const cam = G.camera;
     uniforms.uPixelAngle.value = THREE.MathUtils.degToRad(cam.fov) / Math.max(1, G.renderer.domElement.height);
-    uniforms.uSkyFog.value = 0.85;
+    uniforms.uSkyFog.value = 0.3;
 
     // Environment map refresh: on demand, every 3 in-game minutes, or while the weather blends.
     envClock += dt;

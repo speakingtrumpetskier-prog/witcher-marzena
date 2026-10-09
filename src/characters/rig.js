@@ -32,9 +32,9 @@ export function measure(body = {}) {
   const M = { sex, age, child, elder, H, mass, muscle, fem, headH, heads, stoop: body.stoop ?? (elder ? 0.6 : 0) };
   const k = H / 1.76; // linear scale vs reference male (used for girths)
   M.k = k;
-  M.headK = headH / 0.2347; // head sculpt is authored for a 23.5 cm head
+  M.headK = headH / 0.222; // head sculpt is authored for a 22 cm head (chin to crown)
   M.crown = H;
-  M.headPivotY = H - 0.8 * headH;
+  M.headPivotY = H - 0.85 * headH;
   M.neckLen = H * (child ? 0.04 : 0.046) * (body.neck || 1);
   M.neckBaseY = M.headPivotY - M.neckLen;
   M.ankleY = H * 0.046;
@@ -109,17 +109,17 @@ export function legJoints(M, s) {
 export function headLandmarks(M) {
   const h = M.headK;
   return {
-    eyeL: V(0.032 * h, 0.072 * h, 0.073 * h),
-    eyeR: V(-0.032 * h, 0.072 * h, 0.073 * h),
-    jaw: V(0, 0.028 * h, 0.006 * h),
-    mouthL: V(0.024 * h, 0.006 * h, 0.098 * h),
-    mouthR: V(-0.024 * h, 0.006 * h, 0.098 * h),
-    browIL: V(0.017 * h, 0.098 * h, 0.098 * h),
-    browIR: V(-0.017 * h, 0.098 * h, 0.098 * h),
-    browOL: V(0.046 * h, 0.1 * h, 0.082 * h),
-    browOR: V(-0.046 * h, 0.1 * h, 0.082 * h),
-    cheekL: V(0.042 * h, 0.042 * h, 0.085 * h),
-    cheekR: V(-0.042 * h, 0.042 * h, 0.085 * h),
+    eyeL: V(0.0315 * h, 0.0715 * h, 0.073 * h),
+    eyeR: V(-0.0315 * h, 0.0715 * h, 0.073 * h),
+    jaw: V(0, 0.036 * h, 0.002 * h),
+    mouthL: V(0.0225 * h, 0.0105 * h, 0.093 * h),
+    mouthR: V(-0.0225 * h, 0.0105 * h, 0.093 * h),
+    browIL: V(0.016 * h, 0.092 * h, 0.094 * h),
+    browIR: V(-0.016 * h, 0.092 * h, 0.094 * h),
+    browOL: V(0.043 * h, 0.094 * h, 0.08 * h),
+    browOR: V(-0.043 * h, 0.094 * h, 0.08 * h),
+    cheekL: V(0.04 * h, 0.048 * h, 0.085 * h),
+    cheekR: V(-0.04 * h, 0.048 * h, 0.085 * h),
   };
 }
 

@@ -132,7 +132,7 @@ export class MapView {
     this.G = G;
     this.ui = ui;
     this.scr = null;
-    this.N = G.quality === 'high' ? 1024 : 768;
+    this.N = G.quality === 'high' ? 1536 : G.quality === 'medium' ? 1024 : 768;
     this.base = null;
     this.ready = null;
     this.shores = null;
@@ -165,6 +165,7 @@ export class MapView {
 
   async _buildBase() {
     const G = this.G, W = G.world, N = this.N;
+    const tStart = performance.now();
     const cell = SPAN / N;
     const slice = async () => new Promise((r) => setTimeout(r, 0));
     // Parchment tone first.
@@ -201,7 +202,7 @@ export class MapView {
         const shade = (-dhx * L[0] + L[1] - dhz * L[2]) * inv;
         const slope = Math.sqrt(dhx * dhx + dhz * dhz);
         slopeAt[j * N + i] = slope;
-        let k = Math.max(-0.3, Math.min(0.18, (shade - L[1]) * 1.05 - slope * 0.05));
+        let k = Math.max(-0.22, Math.min(0.16, (shade - L[1]) * 1.0 - slope * 0.04));
         // contour hints
         if (hc > 0.6) {
           const a = Math.floor(hc / 20);
@@ -221,9 +222,10 @@ export class MapView {
     // Hachures on steep ground.
     const r = rng(77);
     ctx.lineCap = 'round';
-    for (let y = 4; y < N - 4; y += 6) {
-      for (let x = 4; x < N - 4; x += 6) {
-        const jx = x + (r() - 0.5) * 5, jy = y + (r() - 0.5) * 5;
+    const hs = Math.round(6 * N / 1024);
+    for (let y = 4; y < N - 4; y += hs) {
+      for (let x = 4; x < N - 4; x += hs) {
+        const jx = x + (r() - 0.5) * hs * 0.8, jy = y + (r() - 0.5) * hs * 0.8;
         const ix = Math.max(0, Math.min(N - 1, jx | 0)), iy = Math.max(0, Math.min(N - 1, jy | 0));
         const sl = slopeAt[iy * N + ix];
         if (sl < 0.4 || r() > Math.min(0.95, (sl - 0.25) * 1.3)) continue;
@@ -231,9 +233,9 @@ export class MapView {
         let gx = hts[o + 1] - hts[o - 1], gz = hts[o + S] - hts[o - S];
         const gl = Math.hypot(gx, gz) || 1;
         gx /= gl; gz /= gl;
-        const len = 2.5 + Math.min(5, sl * 3);
+        const len = (2.5 + Math.min(5, sl * 3)) * (N / 1024);
         ctx.strokeStyle = `rgba(${INK_RGB},${0.3 + Math.min(0.35, sl * 0.14)})`;
-        ctx.lineWidth = 1;
+        ctx.lineWidth = N / 1024;
         ctx.beginPath();
         ctx.moveTo(jx - gx * len * 0.5, jy - gz * len * 0.5);
         ctx.lineTo(jx + gx * len * 0.5, jy + gz * len * 0.5);
@@ -242,46 +244,54 @@ export class MapView {
       if (y % 24 === 0 && performance.now() - t0 > 14) { await slice(); t0 = performance.now(); }
     }
 
-    // Forest stipple: tiny pines where trees likely stand.
+    // Forest: positions only here (drawn as vector pines at the current zoom), plus a soft green
+    // wash in the raster so woods read as areas even when zoomed far out.
     const treeAt = G.vegetation?.treeAt ? (x, z) => { try { return !!G.vegetation.treeAt(x, z, 5); } catch { return false; } } : null;
-    const roadNear = (x, z) => ROADS.some((rd) => {
-      for (let i = 0; i < rd.pts.length - 1; i++) {
-        const [ax, az] = rd.pts[i], [bx, bz] = rd.pts[i + 1];
+    const segs = [];
+    for (const rd of ROADS) for (let i = 0; i < rd.pts.length - 1; i++) segs.push([rd.pts[i][0], rd.pts[i][1], rd.pts[i + 1][0], rd.pts[i + 1][1], rd.width * 0.5 + 5]);
+    const roadNear = (x, z) => {
+      for (const [ax, az, bx, bz, w] of segs) {
         const dx = bx - ax, dz = bz - az;
         const tt = Math.max(0, Math.min(1, ((x - ax) * dx + (z - az) * dz) / (dx * dx + dz * dz || 1)));
-        if (Math.hypot(x - (ax + dx * tt), z - (az + dz * tt)) < rd.width * 0.5 + 5) return true;
+        if (Math.hypot(x - (ax + dx * tt), z - (az + dz * tt)) < w) return true;
       }
       return false;
-    });
-    const locNear = (x, z) => Object.values(LOC).some((l) => l.r >= 5 && Math.hypot(x - l.x, z - l.z) < l.r + 6 && l.r < 60);
+    };
+    const locs = Object.values(LOC).filter((l) => l.r >= 5 && l.r < 60);
+    const locNear = (x, z) => locs.some((l) => Math.hypot(x - l.x, z - l.z) < l.r + 6);
     const village = LOC.village;
-    const rf = rng(131);
-    ctx.lineWidth = 0.9;
-    for (let y = 6; y < N - 6; y += 7) {
-      for (let x = 6; x < N - 6; x += 7) {
-        const jx = x + (rf() - 0.5) * 6, jy = y + (rf() - 0.5) * 6;
-        const wx = -HALF + jx * cell, wz = -HALF + jy * cell;
-        const hc = hts[((jy | 0) + 1) * S + (jx | 0) + 1];
-        if (hc < 0.8 || hc > 150) continue;
-        if (slopeAt[(jy | 0) * N + (jx | 0)] > 0.55) continue;
-        if (lakeSDF(wx, wz) < 6) continue;
-        if (Math.hypot(wx - village.x, wz - village.z) < 88) continue;
-        let tree;
-        if (treeAt) tree = treeAt(wx, wz);
-        else {
-          const n = noise.fbm2(wx * 0.0052 + 3, wz * 0.0052 - 8, 3);
-          tree = n > -0.12 + (hc / 150) * 0.4 - 0.1 && noise.noise2(wx * 0.05, wz * 0.05) > -0.5;
+    const hAt = (wx, wz) => {
+      const fi = Math.max(0, Math.min(N - 1, ((wx + HALF) / cell) | 0)), fj = Math.max(0, Math.min(N - 1, ((wz + HALF) / cell) | 0));
+      return [hts[(fj + 1) * S + fi + 1], slopeAt[fj * N + fi]];
+    };
+    const sample = async (spacing, seed) => {
+      const rf = rng(seed);
+      const out = [];
+      for (let wz = -HALF + spacing; wz < HALF - spacing; wz += spacing) {
+        for (let wx = -HALF + spacing; wx < HALF - spacing; wx += spacing) {
+          const x = wx + (rf() - 0.5) * spacing * 0.8, z = wz + (rf() - 0.5) * spacing * 0.8;
+          const [hc, sl] = hAt(x, z);
+          if (hc < 0.8 || hc > 150 || sl > 0.55) continue;
+          if (lakeSDF(x, z) < 6) continue;
+          if (Math.hypot(x - village.x, z - village.z) < 88) continue;
+          let tree;
+          if (treeAt) tree = treeAt(x, z);
+          else {
+            const n = noise.fbm2(x * 0.0052 + 3, z * 0.0052 - 8, 3);
+            tree = n > -0.22 + (hc / 150) * 0.4 && noise.noise2(x * 0.05, z * 0.05) > -0.5;
+          }
+          if (!tree || roadNear(x, z) || locNear(x, z)) continue;
+          out.push(x, z);
         }
-        if (!tree || roadNear(wx, wz) || locNear(wx, wz)) continue;
-        ctx.fillStyle = 'rgba(104,116,78,0.09)';
-        ctx.beginPath(); ctx.arc(jx, jy, 6.5, 0, 7); ctx.fill();
-        ctx.strokeStyle = `rgba(${INK_RGB},0.55)`;
-        ctx.beginPath();
-        ctx.moveTo(jx - 2.3, jy + 1.6); ctx.lineTo(jx, jy - 3); ctx.lineTo(jx + 2.3, jy + 1.6);
-        ctx.moveTo(jx, jy - 0.4); ctx.lineTo(jx, jy + 3);
-        ctx.stroke();
+        if (performance.now() - t0 > 14) { await slice(); t0 = performance.now(); }
       }
-      if (y % 21 === 0 && performance.now() - t0 > 14) { await slice(); t0 = performance.now(); }
+      return new Float32Array(out);
+    };
+    this.treesA = await sample(9, 131);
+    this.treesB = await sample(4.5, 977);
+    ctx.fillStyle = 'rgba(104,116,78,0.085)';
+    for (let i = 0; i < this.treesA.length; i += 2) {
+      ctx.beginPath(); ctx.arc((this.treesA[i] + HALF) / cell, (this.treesA[i + 1] + HALF) / cell, 8 * (N / 1024), 0, 7); ctx.fill();
     }
 
     // Edge burn so the sheet reads aged.
@@ -292,6 +302,7 @@ export class MapView {
     ctx.fillRect(0, 0, N, N);
 
     this.base = base;
+    this.buildMs = Math.round(performance.now() - tStart);
     this._buildShores();
     this.dirty = true;
   }
@@ -358,27 +369,25 @@ export class MapView {
     if (key === this.veilKey && this.veil) return;
     this.veilKey = key;
     const V = 512, k = V / SPAN;
-    if (!this.veil) {
+    if (!this.veilTex) {
+      // Parchment wash with a cloudy alpha, built once.
+      const t = document.createElement('canvas');
+      t.width = t.height = V;
+      const c = t.getContext('2d');
+      c.drawImage(paperCanvas(256, 256, { seed: 9, edge: 0, stain: 0.6, tone: [214, 200, 164] }), 0, 0, V, V);
+      const id = c.getImageData(0, 0, V, V);
+      for (let y = 0; y < V; y++) {
+        for (let x = 0; x < V; x++) id.data[(y * V + x) * 4 + 3] = Math.max(0, Math.min(255, 226 + noise.fbm2(x * 0.02, y * 0.02, 3) * 38));
+      }
+      c.putImageData(id, 0, 0);
+      this.veilTex = t;
       this.veil = document.createElement('canvas');
       this.veil.width = this.veil.height = V;
-      this.veilBase = paperCanvas(256, 256, { seed: 9, edge: 0, stain: 0.6, tone: [214, 200, 164] });
     }
     const c = this.veil.getContext('2d');
     c.globalCompositeOperation = 'source-over';
     c.clearRect(0, 0, V, V);
-    c.globalAlpha = 0.9;
-    c.drawImage(this.veilBase, 0, 0, V, V);
-    c.globalAlpha = 1;
-    // wispy cloud texture so the veil reads as a wash, not a flat sheet
-    const id = c.getImageData(0, 0, V, V);
-    for (let y = 0; y < V; y += 1) {
-      for (let x = 0; x < V; x += 1) {
-        const n = noise.fbm2(x * 0.02, y * 0.02, 3);
-        const o = (y * V + x) * 4;
-        id.data[o + 3] = Math.max(0, Math.min(255, 224 + n * 38));
-      }
-    }
-    c.putImageData(id, 0, 0);
+    c.drawImage(this.veilTex, 0, 0);
     c.globalCompositeOperation = 'destination-out';
     for (const [x, z, rr] of circles) {
       const sx = (x + HALF) * k, sy = (z + HALF) * k, sr = rr * k;
@@ -433,10 +442,10 @@ export class MapView {
       lg(svg('<svg viewBox="0 0 24 24"><path d="M12 2.6 20.6 12 12 21.4 3.4 12z" fill="#9a2e22" stroke="#2a1e14" stroke-width="1.2"/></svg>'), 'Objective'),
       lg(svg('<svg viewBox="0 0 24 24" fill="none" stroke="#2a1e14" stroke-width="1.4" stroke-linecap="round"><path d="M3 18C8 18 8 8 13 8s5 10 8 10" stroke-dasharray="1 3.4"/></svg>'), 'Road'));
     this.hintEl = h('div', { class: 'mz-map-hint' }, h('span', { class: 'k' }, 'Drag'), ' Move', h('i'), h('span', { class: 'k' }, 'Wheel'), ' Zoom', h('i'), h('span', { class: 'k' }, 'Space'), ' Centre', h('i'), h('span', { class: 'k' }, 'M'), ' Close');
-    const sheet = h('div', { class: 'mz-map-sheet' }, paper, h('div', { class: 'grain', style: { backgroundImage: `url(${grainURL()})` } }), this.canvas, this.cartouche, this.legend, this.status);
+    const sheet = h('div', { class: 'mz-map-sheet' }, paper, h('div', { class: 'grain', style: { backgroundImage: `url(${grainURL()})` } }), this.canvas, this.cartouche, this.status);
     sheet.style.clipPath = tornClip(11, 34, 0.7);
     this.sheet = sheet;
-    this.el = h('div', { class: 'mz-mapmodal' }, h('div', { class: 'mz-map-wrap' }, sheet, this.hintEl));
+    this.el = h('div', { class: 'mz-mapmodal' }, h('div', { class: 'mz-map-wrap' }, sheet, this.legend, this.hintEl));
     this._pointer();
     this._ro = new ResizeObserver(() => { this._size(); });
     this._ro.observe(this.sheet);
@@ -464,7 +473,7 @@ export class MapView {
 
   _resetView(opts) {
     const pp = this.G.player?.position;
-    const z = opts.zoom ?? 1.35;
+    const z = opts.zoom ?? 1.0;
     if (opts.center) { this.cx = opts.center[0]; this.cz = opts.center[1]; } else if (pp) { this.cx = pp.x; this.cz = pp.z; } else { this.cx = 0; this.cz = 0; }
     this.scale = this.cover * z;
     this._clampView();
@@ -579,6 +588,7 @@ export class MapView {
     else { ctx.fillStyle = '#d6c79e'; ctx.fillRect(x0, y0, size, size); }
 
     if (this.base && this.shores) this._drawWater(ctx);
+    this._drawTrees(ctx);
     this._drawRoads(ctx);
 
     // veil
@@ -654,6 +664,33 @@ export class MapView {
     ctx.textBaseline = 'middle';
     if ('letterSpacing' in ctx) ctx.letterSpacing = `${fs * 0.5}px`;
     ctx.fillText('BELLMERE', this.sx(LAKE.x - 10), this.sy(LAKE.z - 60));
+    ctx.restore();
+  }
+
+  _drawTrees(ctx) {
+    if (!this.treesA) return;
+    const zoom = this.scale / this.cover;
+    const sz = Math.max(3.2, Math.min(9, 2.6 + zoom * 1.5));
+    const x0 = this.cx - this.cw / 2 / this.scale - 10, x1 = this.cx + this.cw / 2 / this.scale + 10;
+    const z0 = this.cz - this.ch / 2 / this.scale - 10, z1 = this.cz + this.ch / 2 / this.scale + 10;
+    ctx.save();
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.lineWidth = Math.max(0.8, Math.min(1.5, sz * 0.15));
+    const draw = (arr, alpha) => {
+      ctx.strokeStyle = `rgba(${INK_RGB},${alpha})`;
+      ctx.beginPath();
+      for (let i = 0; i < arr.length; i += 2) {
+        const wx = arr[i], wz = arr[i + 1];
+        if (wx < x0 || wx > x1 || wz < z0 || wz > z1) continue;
+        const X = (wx - this.cx) * this.scale + this.cw / 2, Y = (wz - this.cz) * this.scale + this.ch / 2;
+        ctx.moveTo(X - sz * 0.5, Y + sz * 0.38); ctx.lineTo(X, Y - sz * 0.7); ctx.lineTo(X + sz * 0.5, Y + sz * 0.38);
+        ctx.moveTo(X, Y - sz * 0.1); ctx.lineTo(X, Y + sz * 0.72);
+      }
+      ctx.stroke();
+    };
+    draw(this.treesA, 0.58);
+    if (zoom > 1.9) draw(this.treesB, Math.min(0.5, (zoom - 1.9) * 0.5));
     ctx.restore();
   }
 
@@ -765,7 +802,7 @@ export class MapView {
     ctx.translate(X, Y);
     ctx.beginPath(); ctx.arc(0, 0, 11 + pulse * 5, 0, 7); ctx.strokeStyle = `rgba(${INK_RGB},${0.4 - pulse * 0.3})`; ctx.lineWidth = 1.2; ctx.stroke();
     ctx.rotate(ang);
-    ctx.beginPath(); ctx.moveTo(0, -11); ctx.lineTo(7.5, 8); ctx.lineTo(0, 4); ctx.lineTo(-7.5, 8); ctx.closePath();
+    ctx.beginPath(); ctx.moveTo(0, -14); ctx.lineTo(9.5, 10); ctx.lineTo(0, 5); ctx.lineTo(-9.5, 10); ctx.closePath();
     ctx.fillStyle = INK; ctx.fill(); ctx.strokeStyle = '#eadfc0'; ctx.lineWidth = 1.5; ctx.lineJoin = 'round'; ctx.stroke();
     ctx.restore();
   }

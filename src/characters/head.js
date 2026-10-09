@@ -95,13 +95,13 @@ function makeSculpt(FP) {
   const eyeL = V(0.0315 * es, 0.0715, 0.073);
   const eyeR = V(-0.0315 * es, 0.0715, 0.073);
   const nl = FP.noseLen, nw = FP.noseW, ns = FP.noseSize;
-  const tipY = 0.031 - (nl - 1) * 0.03;
+  const tipY = 0.041 - (nl - 1) * 0.03;
   const tipZ = 0.112 + (ns - 1) * 0.01;
-  const noseA = V(0, 0.081, 0.089), noseB = V(0, tipY + 0.005 + FP.noseTip * 0.0015, tipZ - 0.004);
-  const stomY = 0.0 - (fl - 1) * 0.02;
-  const chinY = -0.031 - (fl - 1) * 0.03;
+  const noseA = V(0, 0.083, 0.088), noseB = V(0, tipY + 0.005 + FP.noseTip * 0.0015, tipZ - 0.004);
+  const stomY = 0.0105 - (fl - 1) * 0.02;
+  const chinY = -0.0185 - (fl - 1) * 0.03;
   const lf = FP.lipFull, lw = FP.lipW;
-  const gonL = V(0.051 * jw, 0.002 + (1 - FP.jawSq) * 0.004, -0.004);
+  const gonL = V(0.051 * jw, 0.008 + (1 - FP.jawSq) * 0.004, -0.004);
   const chinPL = V(0.011 * FP.chinW, chinY - 0.002, 0.079 + FP.chin * 0.004);
   const browH = 0.0075 + FP.brow * 0.004;
   const cheekS = 0.75 + FP.cheek * 0.5;
@@ -117,13 +117,13 @@ function makeSculpt(FP) {
     // midface, zygomatic arches, jaw body, jawline, ramus, chin
     d = smin(d, sdEll(x, y, z, 0, 0.045, 0.034, 0.061, 0.056 * fl, 0.06), 0.03);
     d = smin(d, sdCone(ax, y, z, V(0.045, 0.053, 0.06), V(0.063, 0.05, 0.004), 0.009, 0.008), 0.02);
-    d = smin(d, sdEll(x, y, z, 0, 0.004, 0.04, 0.05 * jw, 0.032 * fl, 0.05), 0.025);
+    d = smin(d, sdEll(x, y, z, 0, 0.013, 0.04, 0.05 * jw, 0.031 * fl, 0.05), 0.025);
     d = smin(d, sdCone(ax, y, z, gonL, chinPL, 0.011 + FP.jawSq * 0.002, 0.012), 0.018);
     d = smin(d, sdCone(ax, y, z, V(0.048 * jw, 0.033, -0.008), gonL, 0.01, 0.011), 0.016);
     d = smin(d, sdEll(x, y, z, 0, chinY, 0.085 + FP.chin * 0.004, 0.015 * FP.chinW, 0.013, 0.011), 0.01);
     // cheekbones and cheek fat
     d = smin(d, sdEll(ax, y, z, 0.043, 0.053, 0.07, 0.016 * cheekS, 0.0095 * cheekS, 0.014), 0.012);
-    if (full > 0) d = smin(d, sdEll(ax, y, z, 0.034, 0.028, 0.079, 0.019, 0.02, 0.013 + full * 0.002), 0.012 + full * 0.006);
+    if (full > 0) d = smin(d, sdEll(ax, y, z, 0.036, 0.044, 0.079, 0.02, 0.017, 0.012 + full * 0.002), 0.012 + full * 0.006);
     if (FP.gaunt > 0.3) d = smax(d, -sdEll(ax, y, z, 0.047, 0.022, 0.088, 0.014, 0.016, 0.01), 0.012 / FP.gaunt);
     // brow ridge
     const bz = 0.087 + FP.brow * 0.004;
@@ -139,13 +139,13 @@ function makeSculpt(FP) {
     d = smin(d, nose, 0.006);
     d = smax(d, -sdEll(ax, y, z, 0.0058 * nw, tipY - 0.0078, tipZ - 0.0105, 0.003, 0.0015, 0.0035), 0.0015);
     // lips
-    const ul = sdEll(x, y, z, 0, stomY + 0.005 * lf, 0.0975, 0.0215 * lw, 0.0058 * lf, 0.008 * lf);
-    const ll = sdEll(x, y, z, 0, stomY - 0.0055 * lf, 0.0945, 0.019 * lw, 0.0068 * lf, 0.0085 * lf);
+    const ul = sdEll(x, y, z, 0, stomY + 0.005 * lf, 0.0962, 0.0212 * lw, 0.0056 * lf, 0.0077 * lf);
+    const ll = sdEll(x, y, z, 0, stomY - 0.0055 * lf, 0.0932, 0.0188 * lw, 0.0066 * lf, 0.008 * lf);
     d = smin(d, smin(ul, ll, 0.0014), 0.006);
     d = smax(d, -sdCone(x, y, z, V(0, tipY - 0.011, 0.104), V(0, stomY + 0.0105, 0.1035), 0.0016, 0.0022), 0.003);
-    d = smax(d, -sdEll(x, y, z, 0, stomY, 0.103, 0.022 * lw, 0.0008, 0.006), 0.0012);
+    d = smax(d, -sdEll(x, y, z, 0, stomY, 0.1035, 0.0215 * lw, 0.0005, 0.0035), 0.0015);
     d = smax(d, -sdEll(ax, y, z, 0.0225 * lw, stomY, 0.092, 0.0028, 0.0024, 0.006), 0.003);
-    d = smax(d, -sdEll(x, y, z, 0, stomY - 0.0145, 0.099, 0.013, 0.0028, 0.006), 0.005);
+    d = smax(d, -sdEll(x, y, z, 0, stomY - 0.0145, 0.0975, 0.013, 0.0028, 0.006), 0.005);
     if (FP.wrinkles > 0.2) d = smax(d, -sdCone(ax, y, z, V(0.016 * nw, tipY - 0.005, 0.099), V(0.027, stomY - 0.006, 0.088), 0.0015, 0.0013), 0.004);
     return d;
   };
@@ -224,7 +224,7 @@ export function buildHead(mb, rig, FP, look) {
   let kStom = Math.round(tStom * nPol);
   const polAt = (i) => (i === kStom ? stom.pol : polW.fwd(polTs[i]));
   // Mouth half-width in azimuth.
-  const azCorner = Math.atan2(0.0245 * FP.lipW, 0.092);
+  const azCorner = Math.atan2(0.0225 * FP.lipW, 0.08);
 
   const sdf = (p) => S.sdf(p.x, p.y, p.z);
   const grad = (p, out) => {
@@ -265,7 +265,7 @@ export function buildHead(mb, rig, FP, look) {
     ['browIL', L.browIL, 0.011, 0.9], ['browIR', L.browIR, 0.011, 0.9],
     ['browOL', L.browOL, 0.013, 0.9], ['browOR', L.browOR, 0.013, 0.9],
     ['cheekL', L.cheekL, 0.014, 0.75], ['cheekR', L.cheekR, 0.014, 0.75],
-    ['mouthL', V(0.0245 * FP.lipW, S.stomY, 0.094), 0.0085, 0.95], ['mouthR', V(-0.0245 * FP.lipW, S.stomY, 0.094), 0.0085, 0.95],
+    ['mouthL', V(0.0225 * FP.lipW, S.stomY, 0.092), 0.0085, 0.95], ['mouthR', V(-0.0225 * FP.lipW, S.stomY, 0.092), 0.0085, 0.95],
   ];
   const jawW = (p, row, copy) => {
     // copy: 0 normal vertex, 1 upper copy on the mouth slit, 2 lower copy
@@ -785,7 +785,7 @@ export function paintFace(canvas, info, FP, look) {
     const pts = [];
     for (let i = 0; i <= 10; i++) {
       const t = i / 10;
-      pts.push(P(lerp(0.046, 0.04, t) + Math.sin(t * 5) * 0.0012, lerp(0.058, -0.004, t), lerp(0.078, 0.07, t)));
+      pts.push(P(lerp(0.041, 0.054, t) + Math.sin(t * 5) * 0.0012, lerp(0.058, 0.004, t), lerp(0.08, 0.055, t)));
     }
     const pale = skin.clone().lerp(col('#f2dcd2'), 0.7);
     const pink = skin.clone().lerp(col('#b8706a'), 0.5);

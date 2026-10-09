@@ -20,6 +20,8 @@ import { MzPostPass, SENSES_LAYER } from './post/MzPostPass.js';
 import { getFrostTexture } from './post/frostTex.js';
 import { clamp, smoothstep } from '../core/util.js';
 
+const WHITE = new THREE.Color(1, 1, 1);
+
 export async function init(G) {
   const renderer = G.renderer;
   const pr = renderer.getPixelRatio();
@@ -74,8 +76,9 @@ export async function init(G) {
       const c = pass.composite.uniforms;
       st.exposure = gr ? gr.exposure : 1;
       if (gr) {
-        c.uLift.value.copy(gr.lift).multiplyScalar(0.55);
-        c.uGain.value.copy(gr.gain);
+        // Palette colors are linear; the grade works in display space.
+        c.uLift.value.copy(gr.lift).convertLinearToSRGB().multiplyScalar(0.5);
+        c.uGain.value.copy(gr.gain).convertLinearToSRGB().lerp(WHITE, 0.45);
         c.uTint.value.copy(gr.tint);
         c.uSat.value = gr.sat;
         c.uContrast.value = gr.contrast;

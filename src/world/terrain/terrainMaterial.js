@@ -204,7 +204,9 @@ export function createTerrainMaterials(G, uniforms) {
     let fs = shader.fragmentShader;
     fs = FRAG_PARS + fs;
     fs = fs.replace('#include <lights_physical_pars_fragment>', '#include <lights_physical_pars_fragment>\n' + RE_OVERRIDE);
-    fs = fs.replace('#include <normal_fragment_maps>', '#include <normal_fragment_maps>\n' + FRAG_SHADE);
+    const dbg = G.params.get('tdbg');
+    if (dbg !== 'nofrag') fs = fs.replace('#include <normal_fragment_maps>', '#include <normal_fragment_maps>\n' + FRAG_SHADE);
+    else fs = fs.replace('#include <normal_fragment_maps>', '#include <normal_fragment_maps>\n{ float l; vec4 nt = mzTerrainNormal(vMzWP.xz, l); normal = normalize((viewMatrix * vec4(nt.xyz, 0.0)).xyz); diffuseColor.rgb = vec3(0.85); }');
     shader.fragmentShader = fs;
   });
 

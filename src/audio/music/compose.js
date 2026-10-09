@@ -64,7 +64,7 @@ export function theme(S, part, t0, r, o = {}) {
   const {
     mode = 'dorian', from = 0, to = 16, octave = 0, v = 0.8, style = 'voice', orn = 0.3,
     seven = false, lyrics = false, hold = 0, falls = 1, vowel = null, scoop = 0.5, transpose = 0,
-    extra = {},
+    extra = {}, cadenceFall = true,
   } = o;
   const notes = themeNotes({ mode, from, to, octave });
   const barLen = seven ? 7 : 3;
@@ -87,7 +87,8 @@ export function theme(S, part, t0, r, o = {}) {
       if (phraseStart) { ev.breath = true; if (r() < scoop) ev.scoop = r.pick([1, 2, 2, 3]); }
       if (phraseEnd || n.cadence) {
         ev.vib = 1.25;
-        if (r() < falls || n.fall) ev.fall = n.fall || r.pick([3, 4, 5]);
+        if (r() < falls || (n.fall && cadenceFall)) ev.fall = (cadenceFall && n.fall) || r.pick([3, 4, 5]);
+        if (!cadenceFall && n.cadence) delete ev.fall;
       } else if (d >= 2 && r() < orn) {
         // A flip up a step late in a long note, the white voice's little cry.
         const up = step(n.p, 1, mode);

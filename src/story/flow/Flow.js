@@ -11,7 +11,7 @@
 //
 // Boot: in shot mode, with ?scene or with ?nostory nothing starts. Otherwise the title screen
 // (G.ui.title(), or a fallback overlay) decides New Game or Continue. The flow drives a slow
-// title backdrop camera (owner 'title') unless G.ui.drivesTitleCamera is true.
+// title backdrop camera (owner 'title') only for the fallback title (the real one drives its own).
 // Rule kept here: `night1` is set when the clock passes 20:00 (rest or wait) with `hanka_hired`.
 import * as THREE from 'three';
 import { SPAWN } from '../../world/layout.js';
@@ -251,7 +251,8 @@ export class Flow {
     if (G.input) G.input.context = 'ui';
     if (G.time) { G.time.setHours(17.2); G.time.scale = 0; }
     G.weather?.set?.('clear', 0);
-    if (!G.ui?.drivesTitleCamera) this._startTitleCam();
+    // The real title screen drives its own camera (owner 'title'); the fallback needs ours.
+    if (!ui.real('title') && !G.ui?.drivesTitleCamera) this._startTitleCam();
     const choice = await ui.title();
     G.audio?.unlock?.();
     G.input?.requestLock?.();

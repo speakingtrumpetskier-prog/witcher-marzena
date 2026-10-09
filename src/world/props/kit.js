@@ -400,6 +400,19 @@ export class Kit {
   lathe(mat, pts, o = {}) {
     const radial = o.radial || 14;
     const g = new THREE.LatheGeometry(pts.map((p) => new THREE.Vector2(p[0], p[1])), radial);
+    if (o.ripple) {
+      // Folds: radial sine waves around the axis that fade out toward `to` (cloth, skirts).
+      const { n, amp, from = -9, to = 9, phase = 0 } = o.ripple;
+      const p = g.attributes.position;
+      for (let i = 0; i < p.count; i++) {
+        const x = p.getX(i), y = p.getY(i), z = p.getZ(i);
+        const a = Math.atan2(x, z);
+        const f = 1 - sstep(from, to, y);
+        const k2 = 1 + Math.sin(a * n + phase + y * 2.0) * amp * f + Math.sin(a * (n * 2 + 1) + phase * 2) * amp * 0.4 * f;
+        p.setXYZ(i, x * k2, y, z * k2);
+      }
+      g.computeVertexNormals();
+    }
     let len = 0, rmax = 0;
     for (let i = 1; i < pts.length; i++) len += Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]);
     for (const p of pts) rmax = Math.max(rmax, p[0]);

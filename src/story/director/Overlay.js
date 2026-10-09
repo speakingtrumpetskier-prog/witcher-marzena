@@ -96,10 +96,17 @@ export function createStoryUI(G) {
   }
 
   // Fraction of the frame height visible inside the letterbox (1 when the bars are off).
+  // The real UI sizes its bars with the CSS variable --mz-lb-size (vh or px per bar).
   function cinemaFrac() {
     if (!lbOn) return 1;
-    const w = G.renderer?.domElement?.clientWidth || window.innerWidth;
     const h = G.renderer?.domElement?.clientHeight || window.innerHeight;
+    if (real('letterbox')) {
+      const v = getComputedStyle(document.documentElement).getPropertyValue('--mz-lb-size').trim();
+      const n = parseFloat(v);
+      if (Number.isFinite(n)) return Math.max(0.5, 1 - 2 * (v.endsWith('px') ? n / h : n / 100));
+      return 0.78;
+    }
+    const w = G.renderer?.domElement?.clientWidth || window.innerWidth;
     return Math.min(1, (w / h) / CINE_ASPECT);
   }
 
@@ -120,7 +127,8 @@ export function createStoryUI(G) {
 
     // opts.italic: render the line in italics (Wiesia, songs).
     subtitle(name, text, seconds = 3, opts = {}) {
-      if (real('subtitle')) { G.ui.subtitle(name || '', text, seconds, opts); return; }
+      // The real UI renders *text* in italics.
+      if (real('subtitle')) { G.ui.subtitle(name || '', opts.italic ? `*${text}*` : text, seconds); return; }
       const d = root();
       const body = opts.italic ? `<span class="it">${esc(text)}</span>` : esc(text);
       d.sub.innerHTML = (name ? `<span class="who">${esc(name)}</span>` : '') + body;
@@ -154,7 +162,8 @@ export function createStoryUI(G) {
 
     titleCard(title, sub, seconds = 4.5) {
       if (real('titleCard')) {
-        G.ui.titleCard(title, sub, seconds);
+        // The real card spends about 3.8 s fading in and out around its hold.
+        G.ui.titleCard(title, sub, { hold: Math.max(0.8, seconds - 3.8) });
         return;
       }
       const d = root();
