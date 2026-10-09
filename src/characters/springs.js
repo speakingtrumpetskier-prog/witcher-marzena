@@ -23,6 +23,8 @@ export class Springs {
     const float = !!ch.look.ghost;
     for (const chain of rig.chains) {
       const P = { ...PRESET[chain.kind] || PRESET.tail };
+      // a braid laid over the shoulder holds its line; gravity alone would drag it off
+      if (chain.kind === 'braid' && chain.root) { P.stiff = 14; P.grav = 0.3; P.drag = 0.4; }
       if (float && chain.kind === 'skirt') { P.grav = 0.12; P.stiff = 2.6; P.drag = 0.18; P.current = 0.5; }
       for (let i = 0; i < chain.joints.length; i++) {
         const bone = rig.byName[chain.joints[i]];
@@ -50,6 +52,13 @@ export class Springs {
       this.colliders.push({ a: by.chest, b: null, r: M.chestD + 0.05 * M.k, off: new THREE.Vector3(0, 0, 0.0) });
       this.colliders.push({ a: by.spine, b: null, r: M.waistD + 0.045 * M.k, off: new THREE.Vector3(0, 0, 0) });
       this.colliders.push({ a: by.head, b: null, r: 0.1 * M.headK, off: new THREE.Vector3(0, 0.07 * M.headK, 0) });
+    }
+    if (rig.chains.some((c) => c.kind === 'braid' && c.root) || rig.chains.some((c) => c.kind === 'tail')) {
+      // shoulders (trapezius and collar) and upper arms keep braids lying on top of the coat
+      for (const S of ['L', 'R']) {
+        this.colliders.push({ a: by.neck, b: by['arm' + S], r: 0.052 * M.k });
+        this.colliders.push({ a: by['arm' + S], b: by['forearm' + S], r: M.armR * 1.5 + 0.012 * M.k });
+      }
     }
     this.gravity = new THREE.Vector3(0, -1, 0);
   }

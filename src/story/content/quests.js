@@ -27,17 +27,17 @@ const QUESTS = {
     stages: [
       {
         id: 'pass', objective: 'Get through the pass', marker: 'passStart',
-        journal: 'Hollow Pass in a blizzard. Kasza hates me. Fair.',
+        journal: 'Hollow Pass. Snowing hard. Lost the road twice.',
         debug: { day: 1, time: 14.5, weather: 'blizzard', at: [SPAWN.prologue.x, SPAWN.prologue.z, SPAWN.prologue.yaw] },
       },
       {
         id: 'wreck', objective: 'Examine the wreck', marker: [-556, 514],
-        log: 'A family. Tried to leave the valley. The father died looking back over his shoulder.',
+        log: 'Cart on the pass road. A man, a woman, a small girl, all frozen. Letter on the man, to his brother.',
         debug: { day: 1, time: 14.7, weather: 'blizzard', at: [-551, 511, 2.4] },
       },
       {
         id: 'wolves', objective: 'Survive the wolves',
-        log: 'Three wolves. Thin. Hungry things do stupid things. So do I.',
+        log: 'Three wolves on the road. Starving, all ribs.',
         debug: { day: 1, time: 14.9, weather: 'blizzard', at: [-548, 506, 2.4] },
       },
       {
@@ -59,7 +59,7 @@ const QUESTS = {
       },
       {
         id: 'board', objective: 'Read the notice board', marker: [9, 113],
-        log: '"Something walks the ice at night." Signed H. A careful hand. Somebody practiced that letter.',
+        log: 'Contract on the board in the square: something walks the ice at night. Three fishermen missing. Signed only "H."',
         done: (S) => !!S.flag('contract_taken'), sets: ['contract_taken'],
         debug: { day: 1, time: 16.6, weather: 'clear', at: [SPAWN.square.x, SPAWN.square.z, SPAWN.square.yaw] },
       },
@@ -68,12 +68,13 @@ const QUESTS = {
         objectives: [
           {
             id: 'tavern', text: 'Ask at the Drowned Bell', marker: 'tavern', done: (S) => !!S.flag('met_zbyszek'),
-            log: 'Three fishermen gone. Bread at three grosze. The rite is tomorrow night. The barman says only Hanka writes that fair.',
+            log: "Zbyszek at the tavern: the missing men are Stach, Bolek and the younger Wrona. Their rite is tomorrow night. Says the hand on the contract is Hanka's.",
           },
           {
             id: 'reeve', text: 'See the reeve', marker: 'longhouse', done: (S) => !!S.flag('met_bogdan'),
-            log: (S) => 'The reeve does not want me here. He offered me money to leave. '
-              + (S.flag('took_reeve_money') ? 'I took it. Money is money.' : "I didn't take it. He looked relieved and angry at once."),
+            log: (S) => (S.flag('took_reeve_money')
+              ? 'The reeve, Bogdan Kral, paid me 100 grosze to leave. Took it. He wants me off the lake.'
+              : "The reeve, Bogdan Kral, offered 100 grosze to leave. Didn't take it. He wants me off the lake."),
           },
         ],
         sets: ['met_zbyszek', 'knows_fair_hand', 'met_bogdan', 'refused_reeve_money'],
@@ -81,7 +82,7 @@ const QUESTS = {
       },
       {
         id: 'hanka', objective: 'Find Hanka', marker: 'hanka',
-        log: "Hanka posted the contract. Her daughter Ola is the maiden they mean to drown. Pay: sixty-one grosze and a wedding ring. I've worked for less. Not often.",
+        log: 'Hanka posted it. They have picked her daughter Ola for the rite. Paid 61 grosze and her wedding ring. Wants it done before tomorrow night.',
         done: (S) => !!S.flag('hanka_hired'), sets: ['met_hanka', 'hanka_hired'], give: { coins: 61, ring: 1 },
         debug: { day: 1, time: 17.6, weather: 'clear', at: [70, 76, 1.9] },
       },
@@ -94,25 +95,25 @@ const QUESTS = {
     stages: [
       {
         id: 'night', objective: 'Wait for nightfall', marker: null,
-        journal: "Whatever walks the ice walks at night. So I'll walk the ice at night.",
+        journal: 'They say it comes out at night. Wait for dark.',
         done: (S) => !!S.flag('night1'), sets: ['night1'],
         debug: { day: 1, time: 18.2, weather: 'clear', at: [70, 76, 1.9] },
       },
       {
         id: 'camp', objective: 'Search the ice-fishing camp', marker: 'iceCamp',
-        log: 'Drag marks. Straw. A mitten with a hand-darned thumb.',
+        log: 'Ice camp: the stools are gone. Drag marks going north, loose straw, one mitten.',
         done: (S) => !!S.flag('trail_found'), sets: ['trail_found'],
         debug: { day: 1, time: 21, weather: 'clear', at: [-66, 18, 3.3] },
       },
       {
         id: 'trail', objective: 'Follow the trail', marker: 'ritual',
-        log: 'Straw dolls, walking. Fire takes them. Each one had a red knot tied at the neck.',
+        log: 'Straw figures moving on the ice. Fire works on them. Red thread tied at every neck.',
         done: (S) => !!S.flag('effigies_fought'), sets: ['effigies_fought'],
         debug: { day: 1, time: 21.4, weather: 'clear', at: [-60, 2, 2.0] },
       },
       {
         id: 'echo', objective: 'Examine the ritual site', marker: 'ritual',
-        log: "Three years ago. A girl went under the ice with the effigy. They kept singing. They didn't look back. One did.",
+        log: 'At the poles: three years ago a girl went through the ice with the effigy. Nobody went back for her. Hanka turned round, then kept walking.',
         done: (S) => !!S.flag('echo_seen'), sets: ['echo_seen'],
         debug: { day: 1, time: 22, weather: 'clear', at: [4, -18, 2.8] },
       },
@@ -130,13 +131,13 @@ const QUESTS = {
     stages: [
       {
         id: 'climb', objective: 'Climb the drowned tower', marker: 'bellTower',
-        journal: 'The bell tower of Old Marzena. Stairs inside, rotten, iced.',
+        journal: 'The old church tower in the ice. Stairs inside, rotten.',
         reach: { x: 120, z: -150, r: 5 }, done: (S) => !!S.flag('lair_seen'),
         debug: { day: 1, time: 23, weather: 'clear', at: [112, -138, 2.6] },
       },
       {
         id: 'belfry', objective: 'Reach the belfry', marker: 'bellTower',
-        log: "Seventeen straw girls around a table. Frozen bread. A music box. Three men under the ice, faces up. She wasn't hunting. She was keeping house.",
+        log: "Belfry: seventeen effigies sat round a table, frozen bread, a music box. The three fishermen are under the ice by the tower. A girl's voice asked if her mother sent me.",
         done: (S) => !!S.flag('lair_seen'), sets: ['lair_seen', 'wiesia_spoke'],
         debug: { day: 1, time: 23.3, weather: 'clear', at: [118, -147, 2.6] },
       },
@@ -153,21 +154,21 @@ const QUESTS = {
     stages: [
       {
         id: 'dobra', objective: 'Ask Dobra about the rite', marker: 'dobra',
-        log: 'The effigy maker. Hands like roots. She told me the rite was a mercy once. She looked at my medallion for too long.',
+        log: 'Dobra, the effigy maker. Says the old carvings on the island show real girls, before the straw. Kept looking at the knot on my chain.',
         done: (S) => !!S.flag('met_dobra'), sets: ['met_dobra', 'dobra_knot_noticed'],
         debug: { day: 2, time: 7.5, weather: 'fog', at: [-15, 66, 3.14] },
       },
       {
         id: 'confront', objective: 'Confront Hanka', marker: 'hanka',
         log: (S) => (S.flag('hanka_blamed')
-          ? "I told her the truth. She'll come onto the ice. I don't know what else she'll do."
-          : "I told her Ola needs her to look now. She'll come onto the ice."),
+          ? "Told Hanka what I saw, and what I think of it. She'll be on the ice tonight."
+          : "Told Hanka what I saw. She'll be on the ice tonight."),
         done: (S) => !!S.flag('hanka_confronted'), sets: ['hanka_confronted', 'hanka_comforted'],
         debug: { day: 2, time: 10, weather: 'overcast', at: [70, 76, 1.9] },
       },
       {
         id: 'wait', objective: 'Wait for the equinox night', marker: null,
-        journal: 'Tonight they drown Marzanna. Tonight they mean to drown Ola.',
+        journal: 'The rite is tonight, after dark.',
         done: (S, G) => (G.time?.day ?? 0) >= 2 && G.time.hours >= 19.5,
         debug: { day: 2, time: 12, weather: 'overcast', at: [SPAWN.square.x, SPAWN.square.z, SPAWN.square.yaw] },
       },
@@ -205,8 +206,8 @@ const QUESTS = {
     stages: [
       {
         id: 'bring', objective: 'Leave the bird on the belfry table', marker: 'bellTower',
-        journal: "He asks me to take it to her. To the ice. I said I'd see.",
-        log: 'I left the bird on her table.',
+        journal: 'Jarek, a fisherman, carved a bird for Wiesia and never gave it to her. Wants me to take it out there.',
+        log: 'Left the bird on the table in the belfry.',
         done: (S) => !!S.flag('bird_given'), sets: ['jarek_met', 'bird_taken', 'bird_given'],
       },
     ],
@@ -217,7 +218,7 @@ const QUESTS = {
     stages: [
       {
         id: 'find', objective: 'Search under the longhouse', marker: 'longhouse',
-        log: "The reeve gave his own share away. To the Nowak children. To widow Pawlak. His son's name is crossed out.",
+        log: "Reeve's ledger, in the cellar. He has been giving his own ration away. His son's name is crossed out.",
         done: (S) => !!S.flag('ledger_found'), sets: ['ledger_found'],
       },
       {
@@ -233,13 +234,13 @@ const QUESTS = {
     stages: [
       {
         id: 'follow', objective: 'Follow the lights in the reeds', marker: 'marsh',
-        journal: 'Pale lights in the west marsh. They drift off when I come close.', // draft
-        log: 'A smuggler, frozen in the reeds. A key in his coat. Third kiln at the burners\' camp.', // draft
+        journal: 'Pale lights in the west marsh. They drift off when I come close.',
+        log: 'A smuggler, frozen in the reeds. A key in his coat. Third kiln at the burners\' camp.',
         done: (S) => !!S.flag('smuggler_key'), sets: ['wisps_done', 'smuggler_key'],
       },
       {
         id: 'stash', objective: 'Open the stash in the third kiln', marker: 'charcoal',
-        log: "Thirty-five grosze and two Thaw draughts. He won't be back for them.", // draft
+        log: 'Thirty-five grosze and two Thaw draughts in the third kiln.',
         done: (S) => !!S.flag('stash_opened'), sets: ['stash_opened'], give: { coins: 35, thaw: 2 },
       },
     ],
@@ -250,17 +251,17 @@ const QUESTS = {
     stages: [
       {
         id: 'mill', objective: 'Talk to Gniewko at the mill', marker: 'mill',
-        journal: 'Gniewko, the miller. Wolves took his dog and near took his boy. He pays what he has.', // draft
+        journal: 'Gniewko, the miller. Wolves took his dog and near took his boy. He pays what he has.',
         reach: { x: 362, z: -58, r: 10 },
       },
       {
         id: 'den', objective: 'Find the den below the frozen falls', marker: [432, -70],
-        log: 'Four wolves and a scarred old one. Thin, all of them.', // draft
+        log: 'Four wolves and a scarred old one. Thin, all of them.',
         done: (S) => !!S.flag('wolves_mill_done'), sets: ['wolves_mill_done'],
       },
       {
         id: 'reward', objective: 'Return to Gniewko', marker: 'mill',
-        log: 'Warm water comes up near the poles, the miller says. His father never let anyone fish there.', // draft
+        log: 'Warm water comes up near the poles, the miller says. His father never let anyone fish there.',
         done: (S) => !!S.flag('miller_warm_water'), sets: ['miller_warm_water'], give: { coins: 40 },
       },
     ],
@@ -271,10 +272,10 @@ const QUESTS = {
     stages: [
       {
         id: 'fight', objective: 'Snow fight on the sledding hill', marker: 'sledHill',
-        journal: 'Ola and two others with snowballs. I am Marzanna, apparently.', // draft
+        journal: 'Ola and two other children, with snowballs.',
         log: (S) => (S.flag('ola_lie')
-          ? "She asked if drowning hurts. I told her it won't happen. She knew." // draft
-          : 'She asked if drowning hurts. I told her the truth.'), // draft
+          ? 'Ola asked if drowning hurts. Told her it would not happen.'
+          : 'Ola asked if drowning hurts. Told her the truth.'),
         done: (S) => !!(S.flag('ola_truth') || S.flag('ola_lie')), sets: ['snowfight_done', 'ola_truth'],
       },
     ],

@@ -158,7 +158,7 @@ export async function init(G) {
     const views = heads ? [0.55, -0.7, 1.75, Math.PI] : P.has('views') ? [0, 0.6, Math.PI / 2, Math.PI] : [parseFloat(P.get('yaw') || '0')];
     views.forEach((yaw, i) => {
       const c = C.create(preset);
-      c.setPosition((i - (views.length - 1) / 2) * (heads ? 0.5 : 0.95), 0);
+      c.setPosition((i - (views.length - 1) / 2) * (heads ? 0.44 : 0.95), 0);
       c.yaw = yaw;
       G.scene.add(c.root);
       apply(c);
@@ -198,9 +198,9 @@ export async function init(G) {
     const H = c.height;
     if (heads) {
       // head turnaround: front three-quarter both sides, profile, back
-      G.camera.position.set(0, H * 0.9, 2.3);
+      G.camera.position.set(0, H * 0.88, 1.75);
       G.camera.lookAt(0, H * 0.86, 0);
-      G.camera.fov = 22;
+      G.camera.fov = 23;
     } else if (P.has('close')) {
       camRig.mode = 'face';
       camRig.target = c;

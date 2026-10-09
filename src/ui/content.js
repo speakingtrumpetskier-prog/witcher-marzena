@@ -42,7 +42,7 @@ export const QUEST_FALLBACK = {
 export const NOTES = {
   note_cart_family: {
     title: 'A Letter from the Cart', where: 'The Hollow Pass', kind: 'letter',
-    text: 'Brother.\nIf this finds you, we did not make it over. Three winters and the snow up here has not gone soft once, not even at midsummer. The old women in Marzena say the lake will not let anyone leave until it gets what it wants. I say a man can walk. Mira says I am a fool. Zosia asked me if the goddess is angry with her. I told her goddesses do not know her name.',
+    text: 'Brother.\nIf this finds you, we did not make it over. Three winters and the snow up here has not gone soft once, not even at midsummer. The old women in Marzena say the lake will not let anyone leave until it gets what it wants. I say a man can walk. Mira says I am a fool. Zosia\'s cough is worse. We go tomorrow if it stops snowing, and the day after if it does not.',
     sign: 'Tomasz',
   },
   note_contract: {
@@ -61,7 +61,7 @@ export const NOTES = {
   },
   note_hanged: {
     title: 'Pinned to the Coat', where: 'The hanged man’s tree', kind: 'letter',
-    text: 'He took three loaves for my children. The reeve wept when he gave the order. I will not weep for the reeve. If you mean to hang me too, find a better rope. This one is frayed, and we have no other.',
+    text: 'He took three loaves for my children. The reeve cried when he gave the order, as if that helps anyone. Cut him down if you can, I can\'t reach.',
     sign: 'Agnieszka',
   },
   note_burner: {
@@ -74,11 +74,11 @@ export const NOTES = {
   },
   note_island: {
     title: 'The Carvings', where: 'Stone Circle Isle', kind: 'carving',
-    text: 'Carvings older than the church. Women on the ice with a girl between them. A hole. The girl going down.\nThe next stone: a straw girl going down instead, and the women dancing.\nSomebody, a long time ago, decided this was better.',
+    text: 'Carvings older than the church. Women on the ice with a girl between them. A hole. The girl going down.\nThe next stone: a straw girl going down instead, and the women dancing.\nThe stones are worn smooth where people have touched them.',
   },
   note_ledger: {
     title: 'The Reeve’s Ledger', where: 'Longhouse cellar', kind: 'ledger',
-    text: 'Sacks: 41.\nMouths: 186.\nRation: half a measure.\nKral household: Bogdan. Mateusz (crossed out).\nKral ration given to the Nowak children.\nGiven to widow Pawlak.\nGiven to the Wrona girl.\nSacks at the thaw, if the thaw comes: 0. If it does not come: 0.',
+    text: 'Sacks: 41.\nMouths: 186.\nRation: half a measure.\nKral household: Bogdan. Mateusz (crossed out).\nKral ration given to the Nowak children.\nGiven to widow Pawlak.\nGiven to the Wrona girl.\nWeeks left at this ration: 5.',
   },
   note_drawing: {
     title: 'The Ice Lady', where: 'Under the boardwalk', kind: 'drawing',
@@ -95,7 +95,7 @@ export const NOTES = {
   },
   item_ring: { title: 'A Wedding Ring', where: 'Hanka', kind: 'object', text: 'A thin wedding ring on a string. Hanka’s.' },
   item_bird: { title: 'The Waxwing', where: 'Jarek', kind: 'object', text: 'A waxwing carved from birch, the crest done with care. Never given.' },
-  item_music_box: { title: 'Music Box', where: 'The belfry', kind: 'object', text: 'A tin music box with a crank. It plays four notes and a fall.' },
+  item_music_box: { title: 'Music Box', where: 'The belfry', kind: 'object', text: 'A tin music box with a crank. It plays one tune.' },
   item_ribbon: { title: 'Red Ribbon', where: 'The belfry', kind: 'object', text: 'A red ribbon, stiff with frost, tied in Dobra’s knot.' },
   item_straw_doll: { title: 'Straw Doll', where: 'Dobra', kind: 'object', text: 'A straw doll the size of a hand. Red thread at the neck.' },
 };
@@ -107,31 +107,31 @@ export const BESTIARY = [
     id: 'wolf', name: 'Wolves', sub: 'Grey wolf, northern, starving', sketch: 'wolf',
     unlock: (S) => !!(S.flag('wolves_seen') || S.flag('wolves_fought') || S.data.stats?.kills > 0 || S.data.quests?.main_pass?.stage >= 3),
     text: [
-      'Grey wolf. Pack of three or four, led by whoever eats last and fights first. These are thin, and thin wolves come down to roads.',
-      'They circle. They feint at the legs, then go for the hamstring, never the throat. Do not turn your back. Do not run. Do not be clever.',
-      'They came down the pass in daylight. Wolves do not do that. Something pushed them.',
+      'Grey wolf, packs of three or four. These ones are starving, which is why they are on the roads.',
+      'They circle and go for the legs. One feints while another comes in from the side. Keep moving and keep them in front of you.',
+      'They came down the pass in daylight. The trapper on the north side wrote the same thing.',
     ],
-    weak: 'Ember. A cone of fire and they remember being afraid.',
-    beware: 'They flank. Put a wall at your back.',
+    weak: 'Fire. Ember breaks them up.',
+    beware: 'They flank. Keep something at your back.',
   },
   {
     id: 'marzanny', name: 'Marzanny', sub: 'The straw girls', sketch: 'marzanny',
     unlock: (S) => !!(S.flag('effigies_fought') || S.flag('trail_found')),
     text: [
-      'Effigies. Straw bodies, a white rag for a dress, a pale wooden face nailed on. They have no business walking.',
-      'Slow, until they are not. One heavy swing from above, then a grab, and a grab holds. I have not worked out what they want, so I assume company.',
-      'Straw burns. Ember and they come apart into wet hay, and each leaves a red knot where its neck was. Tied tight and tied neat. Somebody took pride.',
+      'The straw effigies from the rite, the ones they drown each spring. White dress, wooden face. They get up at night and walk the ice.',
+      'Slow, then a heavy swing from above, then they try to grab. The grab is the dangerous part.',
+      'They burn well. When they go down they leave wet straw and the red knot from the neck. Dobra ties those knots.',
     ],
-    weak: 'Ember. Fire jumps between them, which is a mercy.',
-    beware: 'Dodge the swing. Do not stand and block it.',
+    weak: 'Fire. Ember, and it spreads between them.',
+    beware: 'Dodge the swing, don\'t try to block it.',
   },
   {
     id: 'marzanna', name: 'The Marzanna', sub: 'A girl, three winters in the water', sketch: 'marzanna',
     unlock: (S) => !!(S.flag('lair_seen') || S.flag('wiesia_spoke') || S.flag('boss_started')),
     text: [
-      'Not a monster the way a wolf is. A girl holding a door shut so the light stays out. Fourteen, and three winters under the ice.',
-      'White cloth and frost, hair that floats on no water, a crown of frozen straw. Four meters tall at her worst. She screams when she is frightened, which is most of the time.',
-      'Gale breaks the ice on her. Ward takes the scream. The rest is patience, and, I suspect, a mother.',
+      'Wiesia, Hanka\'s daughter. Fourteen when she went through the ice at the rite, three winters ago.',
+      'White cloth and ice, hair moving like it is underwater, a crown of frozen straw. Four meters tall when she rises. She screams.',
+      'Gale cracks the ice on her. Ward holds against the scream. She keeps going back under the ice and coming up somewhere else.',
     ],
     weak: 'Gale. It cracks the ice armor.',
     beware: 'A pale glow under your feet means she is beneath you. Move.',

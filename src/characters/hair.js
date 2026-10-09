@@ -156,7 +156,7 @@ function buildHairShell(ctx, h) {
       info.grad(p, nrm);
       let th = cfg.vol * (0.6 + 0.4 * smoothstep(0.02, 0.14, p.y)) * (1 + cfg.clump * pnoise(phi, 13, tr * 1.5, seed));
       if (cfg.pole === 'gather') th *= 1 + 0.5 * smoothstep(0.3, 0.0, tr);
-      th = lerp(0.0017, th, smoothstep(1.0, 0.68, tr));
+      th = lerp(0.0022, th, smoothstep(1.0, 0.78, tr));
       if (cover) th = lerp(th, 0.0009, smoothstep(-0.003, 0.008, cover(p)));
       const q = p.clone().addScaledVector(nrm, th);
       const tone = (0.82 + 0.26 * pnoise(phi, 31, 0.4, seed + 3) + 0.1 * pnoise(phi, 9, 0, seed + 5)) *
@@ -288,86 +288,92 @@ function topShell(ctx, o) {
 }
 
 function buildBraid(ctx, h) {
-  const { mb, rig, k } = ctx;
+  const { rig, k } = ctx;
   const chain = rig.chains.find((c) => c.kind === 'braid');
   if (!chain) return;
-  const names = chain.joints;
+  const names = chain.root ? [chain.root, ...chain.joints] : chain.joints;
   const pts = names.map((n) => rig.world[n].clone());
-  const last = pts[pts.length - 1];
-  const prev = pts[pts.length - 2];
-  pts.push(last.clone().add(last.clone().sub(prev).multiplyScalar(0.9)));
-  // cumulative distance
-  const sAt = [0];
-  for (let i = 1; i < pts.length; i++) sAt.push(sAt[i - 1] + pts[i].distanceTo(pts[i - 1]));
-  const total = sAt[sAt.length - 1];
-  const joints = names.map((n, i) => ({ name: n, s: sAt[i] }));
-  const along = (s) => {
-    for (let i = 1; i < pts.length; i++) if (s <= sAt[i]) {
-      const t = (s - sAt[i - 1]) / (sAt[i] - sAt[i - 1]);
-      return { p: pts[i - 1].clone().lerp(pts[i], t), d: pts[i].clone().sub(pts[i - 1]).normalize() };
-    }
-    return { p: pts[pts.length - 1].clone(), d: pts[pts.length - 1].clone().sub(pts[pts.length - 2]).normalize() };
+  pts.push(pts[pts.length - 1].clone().add(chain.tip));
+  braidAlong(ctx, pts, names, {
+    r0: (h.braidR ?? 0.017) * k, base: col(h.color || '#b9ad94'), streak: h.streak ? col(h.streak) : null,
+    tie: h.tie || '#3a2a20', gather: true, nS: 26,
+  });
+}
+
+// Three-strand braid along a smooth curve through pts (joint positions, last = tip). Strands
+// cross with a flat lay that faces away from the body; tapers into a tied tuft.
+function braidAlong(ctx, pts, names, o) {
+  const { mb, k } = ctx;
+  const curve = new THREE.CatmullRomCurve3(pts, false, 'centripetal');
+  const div = (pts.length - 1) * 24;
+  const lens = curve.getLengths(div);
+  const total = lens[div];
+  const joints = names.map((n, i) => ({ name: n, s: lens[i * 24] }));
+  const at = (s) => {
+    const u = clamp(s / total, 0, 1);
+    return { p: curve.getPointAt(u), d: curve.getTangentAt(u).normalize() };
   };
-  const base = col(h.color || '#b9ad94');
-  const streak = h.streak ? col(h.streak) : null;
-  const r0 = (h.braidR ?? 0.017) * k;
-  const nS = 20;
+  const out = (p) => V(p.x, 0, p.z + 0.02 * k).normalize();
+  const r0 = o.r0, nS = o.nS || 20;
+  const endS = total * 0.84;
   for (let strand = 0; strand < 3; strand++) {
     const rings = [];
     for (let i = 0; i <= nS; i++) {
-      const s = (i / nS) * total * 0.97;
-      const { p, d } = along(s);
-      const f = frame(d, V(0, 0, -1));
-      const taper = lerp(1, 0.55, smoothstep(0.55, 1, s / total));
-      const ph = s / (0.05 * k) * TAU / 3 + strand * TAU / 3;
-      const off = f.a.clone().multiplyScalar(Math.cos(ph) * r0 * 0.5 * taper).addScaledVector(f.b, Math.sin(ph * 2) * r0 * 0.28 * taper);
-      rings.push({ c: p.clone().add(off), a: f.a, b: f.b, ra: r0 * 0.62 * taper, rb: r0 * 0.5 * taper, s });
+      const s = (i / nS) * endS;
+      const { p, d } = at(s);
+      const f = frame(d, out(p));
+      const taper = lerp(1, 0.6, smoothstep(0.5, 1, s / endS)) * lerp(0.75, 1, smoothstep(0, 0.12 * total, s));
+      const ph = (s / (0.045 * k)) * TAU / 3 + (strand * TAU) / 3;
+      const c = p.clone().addScaledVector(f.b, Math.cos(ph) * r0 * 0.52 * taper).addScaledVector(f.a, Math.sin(ph * 2) * r0 * 0.24 * taper);
+      rings.push({ c, a: f.a, b: f.b, ra: r0 * 0.52 * taper, rb: r0 * 0.62 * taper, s });
     }
-    // re-orthonormalize frames along the actual strand path
     for (let i = 0; i < rings.length; i++) {
       const a = rings[Math.max(0, i - 1)].c, b = rings[Math.min(rings.length - 1, i + 1)].c;
-      const f = frame(b.clone().sub(a), V(0, 0, -1));
+      const f = frame(b.clone().sub(a), out(rings[i].c));
       rings[i].a = f.a; rings[i].b = f.b;
     }
-    const sc = strand === 1 && streak ? streak : base.clone().multiplyScalar(0.92 + strand * 0.06);
-    const sm = { ...ctx.hairMat, color: sc };
-    tube(mb, { rings, seg: 6, mat: sm, capEnd: true,
-      color: (ri, th) => sc.clone().multiplyScalar(0.8 + 0.25 * Math.max(0, Math.cos(th)) * (0.7 + 0.3 * Math.sin(rings[ri].s * 120))),
+    const sc = strand === 1 && o.streak ? o.streak : o.base.clone().multiplyScalar(0.9 + strand * 0.07);
+    const sm = mat(sc, { tile: 'hair', rough: 0.5, fuzz: 0.45, tileU: 2, tileV: 18 });
+    tube(mb, { rings, seg: 7, mat: sm, capStart: true,
+      // each lobe is lit on its crest and darker where it tucks under the next strand
+      color: (ri, th) => sc.clone().multiplyScalar(0.72 + 0.3 * Math.max(0, Math.cos(th)) * (0.65 + 0.35 * Math.sin((rings[ri].s / (0.045 * k)) * TAU / 3 * 2 + strand * 2.1))),
       weights: (ri) => chainWeights(joints, rings[ri].s, 0.03 * k) });
   }
-  // gathered base at the nape and a tie near the end
-  blob(mb, pts[0].clone().add(V(0, 0.01 * k, 0.006 * k)), { x: 0.03 * k, y: 0.028 * k, z: 0.022 * k }, { ...ctx.hairMat, color: base.clone().multiplyScalar(0.9) }, [['head', 0.7], [names[0], 0.3]], 8, 5);
-  const tie = along(total * 0.86);
-  const tieMat = mat(col(h.tie || '#3a2a20'), { tile: 'leather', rough: 0.6, tileU: 1, tileV: 1 });
-  blob(mb, tie.p, { x: r0 * 0.75, y: 0.012 * k, z: r0 * 0.75 }, tieMat, chainWeights(joints, total * 0.86, 0.02 * k), 8, 3);
-  // tassel end
-  const end = along(total);
-  blob(mb, end.p.clone().addScaledVector(end.d, -0.01 * k), { x: r0 * 0.6, y: 0.03 * k, z: r0 * 0.55 }, { ...ctx.hairMat, color: base }, chainWeights(joints, total, 0.02 * k), 6, 4);
+  if (o.gather) {
+    const g0 = at(0.012 * k);
+    blob(mb, g0.p, { x: r0 * 1.25, y: r0 * 1.1, z: r0 * 1.0 }, mat(o.base.clone().multiplyScalar(0.88), { tile: 'hair', rough: 0.5, fuzz: 0.4, tileU: 2, tileV: 4 }),
+      chainWeights(joints, 0.012 * k, 0.02 * k), 8, 5);
+  }
+  // tie, then a loose tapering tuft of strands
+  const tie = at(endS);
+  const tieMat = mat(col(o.tie), { tile: o.tieTile || 'leather', rough: 0.7, tileU: 1, tileV: 1 });
+  blob(mb, tie.p, { x: r0 * 0.62, y: 0.01 * k, z: r0 * 0.62 }, tieMat, chainWeights(joints, endS, 0.02 * k), 8, 3);
+  const tuftMat = mat(o.base, { tile: 'hair', rough: 0.5, fuzz: 0.45, tileU: 1, tileV: 10 });
+  const ft = frame(tie.d, out(tie.p));
+  for (let q = 0; q < 6; q++) {
+    const ang = (q / 6) * TAU;
+    const dir = tie.d.clone().addScaledVector(ft.a, Math.cos(ang) * 0.22).addScaledVector(ft.b, Math.sin(ang) * 0.22).normalize();
+    const len = (total - endS) * (0.9 + (q % 3) * 0.15);
+    const p0 = tie.p.clone().addScaledVector(ft.a, Math.cos(ang) * r0 * 0.25).addScaledVector(ft.b, Math.sin(ang) * r0 * 0.25);
+    const ps = [], sd = [], wd = [];
+    for (let t = 0; t <= 3; t++) {
+      ps.push(p0.clone().addScaledVector(dir, len * (t / 3)));
+      sd.push(ft.a.clone().multiplyScalar(-Math.sin(ang)).addScaledVector(ft.b, Math.cos(ang)).normalize());
+      wd.push(r0 * 0.75 * (1 - t / 3.3));
+    }
+    ribbon(mb, ps, sd, wd, { ...tuftMat, color: o.base.clone().multiplyScalar(0.85 + (q % 3) * 0.08) }, () => chainWeights(joints, total, 0.02 * k), { double: true });
+  }
 }
 
 function buildPigtails(ctx, h) {
-  const { mb, rig, k } = ctx;
+  const { rig } = ctx;
   const base = col(h.color || '#6b4a2e');
   for (const S of ['L', 'R']) {
     const chain = rig.chains.find((c) => c.kind === 'tail' && c.joints[0].startsWith('pig' + S));
     if (!chain) continue;
     const p0 = rig.world[chain.joints[0]], p1 = rig.world[chain.joints[1]];
-    const tip = p1.clone().add(chain.tip);
-    const pts = [p0, p1, tip];
-    const rings = [];
-    const n = 10;
-    for (let i = 0; i <= n; i++) {
-      const t = i / n;
-      const p = t < 0.5 ? p0.clone().lerp(p1, t * 2) : p1.clone().lerp(tip, (t - 0.5) * 2);
-      const d = (t < 0.5 ? p1.clone().sub(p0) : tip.clone().sub(p1)).normalize();
-      const f = frame(d, V(0, 0, 1));
-      const r = (0.011 - t * 0.004) * k * (1 + 0.18 * Math.abs(Math.sin(t * 22)));
-      rings.push({ c: p, a: f.a, b: f.b, ra: r, rb: r * 0.85, t });
-    }
-    tube(mb, { rings, seg: 6, mat: { ...ctx.hairMat, color: base }, capEnd: true,
-      weights: (ri) => { const t = rings[ri].t; return t < 0.5 ? [[chain.joints[0], 1 - t], [chain.joints[1], t]] : [[chain.joints[1], 1]]; } });
-    const tie = mat(col(h.tie || '#9a2e22'), { tile: 'wool', rough: 0.9, tileU: 1, tileV: 1 });
-    blob(mb, pts[2].clone().lerp(pts[1], 0.2), { x: 0.009 * k, y: 0.006 * k, z: 0.009 * k }, tie, [[chain.joints[1], 1]], 6, 3);
+    const pts = [p0.clone(), p1.clone(), p1.clone().add(chain.tip)];
+    braidAlong(ctx, pts, chain.joints, { r0: 0.0125 * rig.M.headK, base, tie: h.tie || '#9a2e22', tieTile: 'wool', gather: true, nS: 14 });
   }
 }
 

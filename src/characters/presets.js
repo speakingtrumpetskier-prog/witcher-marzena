@@ -34,7 +34,7 @@ const CAST = {
     face: { scar: true, slit: true, iris: '#c8902c', iris2: '#6a3e10', browColor: '#5e5244', jawW: 0.97, jawSq: 0.6, cheek: 0.8, gaunt: 0.35,
       brow: 0.45, noseBridge: 0.35, noseW: 0.95, lipFull: 0.82, blush: 0.3, noseRed: 0.25, wrinkles: 0.28, underEye: 0.45, eyeTilt: 3, lidHeavy: 0.28, fullCheek: 0.15,
       mouthDown: 0.0013, rest: { squint: 0.45, browDown: 0.35, press: 0.6, frown: 0.2 } },
-    hair: { style: 'braid', color: '#b5a88e', streak: '#dcdad4', braidLen: 0.48, thick: 0.01, peak: 0.0 },
+    hair: { style: 'braid', color: '#b5a88e', streak: '#dcdad4', braidLen: 0.5, braidR: 0.024, over: 1, line: -0.01, peak: 0.003 },
     outfit: {
       shirt: { color: '#34312e', tile: 'wool' },
       coat: { color: '#38414e', tile: 'wool', length: 0.52, open: 0.42, vent: 0.14, lining: '#26221e', loose: 1.22, placket: true,

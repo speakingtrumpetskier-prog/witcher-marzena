@@ -22,7 +22,7 @@ What made Witcher 3 special, and how Marzena captures each in compressed form:
 | Witcher senses | Investigation as play: follow trails, reconstruct events | Hunter senses with a twist: on the ice, senses reveal **echoes**, ghostly reenactments of what happened at that spot |
 | Weather and time of day | Storms, fog, sunsets that change the mood of the same place | **Weather is the antagonist.** Winter has not ended for three years. The ending can literally turn the whole world from winter to spring |
 | Music (Percival) | Slavic folk: female voice, hurdy-gurdy, fiddle, frame drums, adaptive | A procession song ("Marzanno") that is the main theme, sung by the villagers, hummed by the hero, broken in the boss fight, resolved in the ending |
-| Dry humor in darkness | Geralt's deadpan, absurd peasants | Vesna's bone-dry wit; a tavern keeper who waters beer by the season; a girl who asks if mutants eat snow |
+| Life and humor in the dark | Realism, not quips: the Baron drunk and honest, peasants arguing over a goat | People who talk like people: a tavern keeper defensive about thin beer, a girl unimpressed by a hunter's eyes ("They're just yellow"), an old woman bossing everyone |
 | Cinematic dialogue | Shot / reverse shot, characters act, timed choices | A cutscene director with real camera work, letterbox, acted gestures, and choices that branch the ending |
 | Personal stakes | Ciri, Yennefer: the contract touches the hero | Vesna was born here and doesn't know it. The tune she has hummed all her life is this village's death song |
 
@@ -48,14 +48,17 @@ female hunter *wiedźma*, witch, which she has stopped correcting).
   two swords crossed on the back (steel and silver), fur-lined hood usually down, wrapped boots,
   a lynx medallion **with a small red-thread knot tied to its chain** (she doesn't know why;
   it was on her when she was bought).
-- Voice: laconic, observant, dry. Kindness shown in acts, never declared. Never says "I feel".
-  Concrete nouns. Gets quieter, not louder, under pressure. Humor is deadpan and a little dark.
+- Voice: a working professional. Practical, observant, quiet. She asks what she needs to know,
+  haggles, says plain kind things sometimes, and often says nothing. She is not a wit and not a
+  philosopher, and she never comments on the meaning of what she sees. Under pressure she gets
+  quieter. See the "Writing voice" rules at the top of docs/STORY.md; they bind every line.
 
 Sample lines (tone reference, not final script):
-- (on salted paths) "Three winters and you still salt the path. Optimists."
-- (to Ola, asked if mutants eat snow) "Too cold. We eat children. Only in season."
-- (to the reeve) "Your contract says 'something'. That word costs extra."
-- (examining a frozen corpse) "Looked back over his shoulder. Last thing he ever did."
+- (at the tavern) "Is there anything hot?"
+- (to the reeve) "Who wrote the contract?"
+- (to Ola, who says mutants eat snow) "Does she."
+- (examining a frozen body) "Two days. Maybe three."
+- (to Kasza, who balks at the ice) "All right. All right, we'll go round."
 
 Her horse: **Kasza** (Polish: groats, porridge). A shaggy dun mare who hates ice.
 
@@ -177,13 +180,13 @@ someone made something. Walk 80 meters in the wild and find a small story.
 | Character | Role | Look | Voice |
 |---|---|---|---|
 | **Vesna** | Hunter, protagonist | see section 1 | see section 1 |
-| **Ola** (11) | Chosen maiden, Wiesia's sister | Too-big sheepskin coat, red knitted cap, two short braids, missing tooth | Fierce, funny, deflects fear with jokes, pretends she doesn't care |
+| **Ola** (11) | Chosen maiden, Wiesia's sister | Too-big sheepskin coat, red knitted cap, two short braids, missing tooth | Direct, curious, talks like an eleven-year-old, deflects fear by being busy or rude; pretends she doesn't care |
 | **Hanka** (40) | Wiesia's and Ola's mother, posted the contract | Thin, grey headscarf, dark shawl, red-raw hands | Few words, flat affect, sudden cracks |
-| **Bogdan Kral** (50) | The reeve | Big, bearded, bear-fur mantle, a ledger always | Plain, tired, the arithmetic of survival. Not a villain: his son died of fever last winter, and he gave his own grain ration away |
-| **Dobra** (62) | Effigy maker, Vesna's mother | Small, stooped, sharp eyes, straw in her hair, red thread on her wrist | Earthy, profane, warm, proverbs; her hands never stop working |
-| **Zbyszek** (45) | Tavern keeper of The Drowned Bell | Round, apron, bald with a fringe | Gossip, complains, cowardly-kind, comic relief |
+| **Bogdan Kral** (50) | The reeve | Big, bearded, bear-fur mantle, a ledger always | Plain and tired; talks about sacks, wood and numbers, not ideas. Not a villain: his son died of fever last winter, and he gave his own grain ration away |
+| **Dobra** (62) | Effigy maker, Vesna's mother | Small, stooped, sharp eyes, straw in her hair, red thread on her wrist | Earthy, bossy, warm; talks about the work in front of her; her hands never stop working |
+| **Zbyszek** (45) | Tavern keeper of The Drowned Bell | Round, apron, bald with a fringe | Gossip, complains, cowardly-kind; funny because he is defensive, not because he jokes |
 | **Jarek** (19) | Young fisherman who loved Wiesia | Lanky, thin beard, fisherman's oilskin | Broken, drunk, tender |
-| **Wiesia** (14, dead) | The marzanna | Under-ice pale, long dark hair floating as if underwater, white ritual dress with red embroidery, a crown of frozen straw | Speaks rarely. Childlike. Echoes lines of the song. Text in italics |
+| **Wiesia** (14, dead) | The marzanna | Under-ice pale, long dark hair floating as if underwater, white ritual dress with red embroidery, a crown of frozen straw | Speaks rarely, like the frightened fourteen-year-old she is. Text in italics |
 | **Miller Gniewko + wife Bożena + 2 kids** | Mill family | Flour-dusted, practical | Side quest |
 | Villagers | 25 to 30 ambient | Sheepskins, wool, linen with red embroidery, headscarves, fur hats | Barks |
 

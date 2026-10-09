@@ -202,7 +202,20 @@ export function buildSkeleton(M, opts = {}) {
       chains.push({ kind: 'skirt', index: i, ang, joints: [`skirt${i}_0`, `skirt${i}_1`], tip: tip.clone().sub(p1), len });
     }
   }
-  if (opts.braid) {
+  if (opts.braidPath) {
+    // Braid laid along a path (bind world positions, last = tip): the gather rides the head,
+    // the rest is a spring chain anchored on the chest so it stays on the shoulder.
+    const path = opts.braidPath;
+    const names = [];
+    for (let j = 0; j < path.length - 1; j++) {
+      const name = `braid${j}`;
+      add(name, j === 0 ? 'head' : j === 1 ? (opts.braidAnchor || 'chest') : `braid${j - 1}`, path[j]);
+      names.push(name);
+    }
+    let len = 0;
+    for (let j = 2; j < path.length; j++) len += path[j].distanceTo(path[j - 1]);
+    chains.push({ kind: 'braid', root: names[0], joints: names.slice(1), tip: path[path.length - 1].clone().sub(path[path.length - 2]), len });
+  } else if (opts.braid) {
     const n = opts.braid;
     let p = hp.clone().add(opts.braidStart);
     let parent = 'head';
@@ -232,9 +245,10 @@ export function buildSkeleton(M, opts = {}) {
     // Generic dangling pairs (scarf ends, apron strings): [{ name, parent, at: Vector3, len }]
     for (const t of opts.tails) {
       add(`${t.name}_0`, t.parent, t.at);
-      const p1 = t.at.clone().add(V(0, -t.len * 0.5, 0));
+      const d = t.dir ? t.dir.clone().normalize() : V(0, -1, 0);
+      const p1 = t.at.clone().addScaledVector(d, t.len * 0.5);
       add(`${t.name}_1`, `${t.name}_0`, p1);
-      chains.push({ kind: 'tail', joints: [`${t.name}_0`, `${t.name}_1`], tip: V(0, -t.len * 0.5, 0), len: t.len });
+      chains.push({ kind: 'tail', joints: [`${t.name}_0`, `${t.name}_1`], tip: d.clone().multiplyScalar(t.len * 0.5), len: t.len });
     }
   }
   if (opts.sheaths) {

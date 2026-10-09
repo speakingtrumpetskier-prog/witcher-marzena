@@ -79,7 +79,25 @@ function resolveLook(spec, M) {
     look.rigOpts.skirt = 8;
     look.rigOpts.skirtLen = (M.hipJY + 0.03 * M.k) * skirtLen;
   }
-  if (look.hair.style === 'braid' || look.hair.braid) {
+  if ((look.hair.style === 'braid' || look.hair.braid) && look.hair.over) {
+    // over the shoulder (s = +1 left): nape gather, behind the neck, over the trapezius,
+    // then down the front of the chest
+    const s = look.hair.over, k = M.k, hk = M.headK;
+    const V3 = (x, y, z) => new THREE.Vector3(x, y, z);
+    const hp = V3(0, M.headPivotY, -0.006 * k);
+    const len = look.hair.braidLen || 0.42;
+    const front = M.chestD * 1.32 + 0.012 * k;
+    // clear of a sheepskin collar: up behind the neck, over the roll, down the lapel
+    const cl = look.outfit?.collar ? 1 : 0;
+    look.rigOpts.braidPath = [
+      hp.clone().add(V3(s * 0.016 * hk, 0.028 * hk, -0.094 * hk)),
+      V3(s * 0.07 * k, M.neckBaseY + (0.02 + 0.045 * cl) * k, -(0.07 + 0.012 * cl) * k),
+      V3(s * 0.118 * k, M.shoulderY + (0.07 + 0.035 * cl) * k, 0.0),
+      V3(s * 0.122 * k, M.shoulderY - 0.02 * k, front + 0.024 * cl * k),
+      V3(s * 0.116 * k, M.shoulderY - 0.03 * k - len * 0.3, front + 0.026 * cl * k),
+      V3(s * 0.11 * k, M.shoulderY - 0.03 * k - len * 0.62, front + 0.03 * cl * k),
+    ];
+  } else if (look.hair.style === 'braid' || look.hair.braid) {
     const k = M.headK;
     look.rigOpts.braid = 5;
     look.rigOpts.braidStart = new THREE.Vector3(0, 0.035 * k, -0.095 * k);
@@ -90,11 +108,13 @@ function resolveLook(spec, M) {
   }
   if (outfit.swords) look.rigOpts.sheaths = true;
   if (look.hair.style === 'pigtails') {
+    // two short braids from behind the ears, hanging forward over the collar
     const k = M.headK;
-    const hp = (x) => new THREE.Vector3(x * 0.072 * k, M.headPivotY + 0.035 * k, -0.035 * k);
+    const hp = (x) => new THREE.Vector3(x * 0.074 * k, M.headPivotY + 0.018 * k, -0.02 * k);
+    const dir = (x) => new THREE.Vector3(x * 0.32, -1, 0.42).normalize();
     look.rigOpts.tails = [
-      { name: 'pigL', parent: 'head', at: hp(1), len: 0.16 * M.k },
-      { name: 'pigR', parent: 'head', at: hp(-1), len: 0.16 * M.k },
+      { name: 'pigL', parent: 'head', at: hp(1), len: 0.17 * M.k, dir: dir(1) },
+      { name: 'pigR', parent: 'head', at: hp(-1), len: 0.17 * M.k, dir: dir(-1) },
     ];
   }
   const hatT = spec.hat?.type;

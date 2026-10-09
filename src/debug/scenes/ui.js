@@ -39,7 +39,7 @@ function fakeState(G) {
   const S = G.state;
   S.data.quests = {
     main_pass: { stage: 4, done: true, log: [
-      E('Hollow Pass in a blizzard. Kasza hates me. Fair.'),
+      E('Hollow Pass. Snowing hard. Lost the road twice.'),
       E('A family. Tried to leave the valley. The father died looking back over his shoulder.'),
       E('Three wolves. Thin. Hungry things do stupid things. So do I.'),
     ] },

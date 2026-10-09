@@ -504,7 +504,7 @@ export function hairMask(p, h) {
   }
   const m = smoothstep(line - 0.004, line + 0.014, p.y);
   // the grid only carries the painted roots; hair.js builds the volume as a shell over it
-  return { mask: m, thick: 0.0018 };
+  return { mask: m, thick: 0.0007 };
 }
 
 function buildEyes(mb, rig, FP, S, sc, pivot, uvOf, look) {
@@ -1018,7 +1018,6 @@ function paintScalp(g, info, look, W, Hh, R, css) {
   const h = look.hair;
   if (!h || h.style === 'bald' || h.style === 'none') return;
   const hc = col(h.color || '#4a3a2c');
-  const streak = h.streak ? col(h.streak) : null;
   // Rasterize the mask in UV space by sampling grid points (pre-collected).
   const pts = info.hairPts;
   const sz = W / 512;
@@ -1039,22 +1038,6 @@ function paintScalp(g, info, look, W, Hh, R, css) {
   g.filter = `blur(${2.5 * sz}px)`;
   g.drawImage(layer, 0, 0);
   g.filter = 'none';
-  // strands: streaks running down v (crown to edges)
-  for (let i = 0; i < 2600 * sz; i++) {
-    const p = pts[(R() * pts.length) | 0];
-    if (!p) break;
-    if (hairMask(p, h).mask < 0.5) continue;
-    const [u, v] = info.uvOf(p);
-    const light = R() < 0.5;
-    let c = hc.clone().multiplyScalar(light ? 1.35 : 0.65);
-    if (streak && Math.abs(p.x - (h.streakX ?? 0.025)) < 0.012 && p.y > 0.08) c = streak.clone();
-    g.strokeStyle = css(c, 0.35);
-    g.lineWidth = (0.7 + R()) * sz;
-    g.beginPath();
-    g.moveTo(u * W, v * Hh);
-    g.lineTo(u * W + (R() - 0.5) * 2 * sz, v * Hh + (8 + R() * 14) * sz);
-    g.stroke();
-  }
 }
 
 function paintIris(g, FP, W, Hh, css, R) {
