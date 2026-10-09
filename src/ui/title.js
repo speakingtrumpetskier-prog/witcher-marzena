@@ -1,18 +1,18 @@
 // Title screen: G.ui.title() -> Promise<'new' | 'continue'>.
 //
-// Drives the camera itself (G.cameraOwner = 'title') in a slow drift over the frozen lake toward the
-// drowned bell tower at dusk, and restores the previous owner and field of view when it closes.
-// The first click or key calls G.audio.unlock() (browsers need a gesture) and starts the quiet
-// 'night' mood unless opts.mood === false. A choice resolves the promise at once (the story flow
+// Drives the camera itself (G.cameraOwner = 'title') through the living picture in titleScene.js
+// (the ritual ring against the low sun), and restores the previous owner and field of view when
+// it closes. The picture fades up from black alone, the name follows, and the first key or click
+// (browsers need a gesture for sound anyway) brings in the main theme ('reveal') and the menu,
+// unless opts.mood === false. With sound already running there is no wait for a key. A choice resolves the promise at once (the story flow
 // then fades to black and loads); the screen keeps drifting under that fade and removes itself
 // opts.linger ms later (default 1500). It never lifts a fade itself.
 // Options: hour (set the clock, the story flow already does), weather, startAt (seconds into the
 // drift), fov, mood.
-import * as THREE from 'three';
 import { h, svg } from './dom.js';
 import { ICON } from './icons.js';
 import { menuList } from './menus.js';
-import { LOC } from '../world/layout.js';
+import { TitleScene, TITLE_SHOT } from './titleScene.js';
 
 const THREAD = 'M2 8 C 46 3, 98 12, 160 6 S 268 4, 318 7';
 
@@ -22,9 +22,7 @@ export class Title {
     this.ui = ui;
     this.active = false;
     this.t = 0;
-    this._a = new THREE.Vector3();
-    this._b = new THREE.Vector3();
-    this._look = new THREE.Vector3();
+    this.scene = new TitleScene(G);
   }
 
   open(opts = {}) {
@@ -41,9 +39,10 @@ export class Title {
       quat: G.camera?.quaternion.clone(),
     };
     G.cameraOwner = 'title';
-    if (G.camera && opts.fov !== false) { G.camera.fov = opts.fov ?? 40; G.camera.updateProjectionMatrix(); }
-    // The story flow sets the dusk clock and clear weather before calling us; the gallery asks for it.
-    if (opts.hour != null) { try { G.time?.setHours(opts.hour); } catch { /* optional */ } }
+    if (G.camera && opts.fov !== false) { G.camera.fov = opts.fov ?? TITLE_SHOT.fov; G.camera.updateProjectionMatrix(); }
+    // The picture is lit for one hour of the afternoon; the flow holds the clock still.
+    try { G.time?.setHours(opts.hour ?? TITLE_SHOT.hour); } catch { /* optional */ }
+    this.scene.start();
     if (opts.weather) { try { G.weather?.set?.(opts.weather, 0); } catch { /* optional */ } }
     this.titleFov = G.camera?.fov;
     G.events.emit('title:open', {});
@@ -61,16 +60,26 @@ export class Title {
     this.menu = menu;
     const foot = h('div', { class: 'foot' }, h('span', null, 'Made with three.js and WebAudio, entirely from code'));
     const cover = h('div', { class: 'cover' });
-    const el = h('div', { class: 'mz-title' }, h('div', { class: 'shade' }), h('div', { class: 'box' }, logo, line, tag), h('div', { class: 'menuwrap' }, menu.el), foot, cover);
+    const press = h('div', { class: 'press' }, 'Press any key');
+    const el = h('div', { class: 'mz-title' }, h('div', { class: 'shade' }), h('div', { class: 'box' }, logo, line, tag), h('div', { class: 'menuwrap' }, menu.el), press, foot, cover);
     this.el = el;
 
-    // First gesture: unlock audio, begin the quiet music.
+    // Wait for a key before the menu when sound is not running yet: the first gesture unlocks it
+    // and the theme comes in with the menu.
+    this.attract = !G.audio?.ready && !opts.noAttract;
+    this._swallow = 0;
     this._unlocked = false;
     const unlock = () => {
       if (this._unlocked) return;
       this._unlocked = true;
       try { G.audio?.unlock?.(); } catch { /* optional */ }
-      if (opts.mood !== false) { try { G.audio?.setMood?.(opts.mood || 'night', { fade: 4 }); } catch { /* optional */ } }
+      if (opts.mood !== false) { try { G.audio?.setMood?.(opts.mood || 'reveal', { fade: 1.5 }); } catch { /* optional */ } }
+      if (this.attract) {
+        this.attract = false;
+        this._swallow = performance.now() + 300; // the key that woke the menu does not also press it
+        el.classList.remove('attract');
+        el.classList.add('ready');
+      }
       window.removeEventListener('pointerdown', unlock, true);
       window.removeEventListener('keydown', unlock, true);
     };
@@ -78,8 +87,10 @@ export class Title {
     window.addEventListener('keydown', unlock, true);
     this._unlockCleanup = () => { window.removeEventListener('pointerdown', unlock, true); window.removeEventListener('keydown', unlock, true); };
 
-    this.scr = ui.openScreen({ name: 'title', el, swallow: false, onKey: (e) => menu.key(e) });
+    this.scr = ui.openScreen({ name: 'title', el, swallow: false, onKey: (e) => { if (!this.attract && performance.now() > this._swallow) menu.key(e); } });
     el.classList.add('intro');
+    if (this.attract) el.classList.add('attract');
+    else el.classList.add('auto');
     setTimeout(() => el.classList.remove('intro'), 60);
     this.promise = new Promise((resolve) => { this._resolve = resolve; });
     return this.promise;
@@ -98,6 +109,7 @@ export class Title {
     await new Promise((r) => setTimeout(r, this.opts.linger ?? 1500));
     this.scr.close();
     this._unlockCleanup?.();
+    this.scene.stop();
     this.active = false;
     ui.titleActive = false;
     if (G.cameraOwner === 'title') G.cameraOwner = this.prev.owner === 'title' ? 'rig' : this.prev.owner;
@@ -105,24 +117,10 @@ export class Title {
     this._busy = false;
   }
 
-  // Camera drift: a slow ping-pong along a gentle arc over the ice, always looking at the tower.
   update(dt) {
     if (!this.active) return;
-    const G = this.G;
     this.t += dt;
-    if (G.cameraOwner !== 'title' || !G.camera) return;
-    const tower = LOC.bellTower;
-    const u = (1 - Math.cos(this.t * 0.05)) / 2; // 0..1..0, period about 125 s
-    const e = u * u * (3 - 2 * u);
-    const a = this._a.set(-150, 9.5, 64), b = this._b.set(-52, 8.2, -34);
-    const cam = G.camera;
-    cam.position.lerpVectors(a, b, e);
-    cam.position.y += Math.sin(this.t * 0.31) * 0.35;
-    cam.position.x += Math.sin(this.t * 0.17) * 1.5;
-    const gy = G.world?.heightAt?.(cam.position.x, cam.position.z);
-    if (Number.isFinite(gy) && cam.position.y < gy + 4) cam.position.y = gy + 4;
-    // look slightly left of the tower early on, settle onto it as we drift in
-    this._look.set(tower.x - 38 + e * 30, 20 + Math.sin(this.t * 0.11) * 0.8 - e * 3, tower.z + 6);
-    cam.lookAt(this._look);
+    if (this.G.cameraOwner !== 'title') return;
+    this.scene.update(dt);
   }
 }
