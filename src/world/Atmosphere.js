@@ -50,8 +50,10 @@ export async function init(G) {
   key.castShadow = shadows;
   const size = G.quality === 'high' ? 2048 : 1024;
   key.shadow.mapSize.set(size, size);
-  key.shadow.bias = -0.0001;
-  key.shadow.normalBias = 0.035;
+  // The near map spans ~280 m (about 0.14 m per texel at 2048). With the winter sun this low,
+  // anything under about one texel of normal bias shows as striped acne across lit snow.
+  key.shadow.bias = -0.0002;
+  key.shadow.normalBias = size >= 2048 ? 0.14 : 0.26;
   key.shadow.radius = 1.6;
   // Far cascade: a black light that only carries a coarse shadow map (see shadowCascade.js).
   // Added right after the key so it is directional shadow index 1.

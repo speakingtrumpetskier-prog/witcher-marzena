@@ -179,9 +179,15 @@ const FRAG_SHADE = /* glsl */ `
     vec2 wn = vec2(-wd.y, wd.x);
     vec2 q = vec2(dot(xz, wd) * 4.5, dot(xz, wn));
     vec4 r1 = mzNoiseK(q, 0.55);
-    vec2 gq = (r1.z * 4.5) * wd + r1.w * wn;
+    // Procedural normals have no mip filtering: fade each band out as its frequency nears the
+    // pixel footprint, or grazing views under the low sun alias into concentric moire bands.
+    float fpQ = max(fwidth(q.x), fwidth(q.y)) * 0.55;
+    float fpX = max(fwidth(xz.x), fwidth(xz.y));
+    float aaQ = 1.0 - smoothstep(0.12, 0.35, fpQ);
+    float aa3 = 1.0 - smoothstep(0.12, 0.35, fpX * 4.0);
+    vec2 gq = ((r1.z * 4.5) * wd + r1.w * wn) * aaQ;
     vec4 r2 = mzNoiseK(xz + 71.0, 0.3);
-    vec4 r3 = mzNoiseK(xz - 29.0, 4.0);
+    vec4 r3 = mzNoiseK(xz - 29.0, 4.0) * vec4(1.0, 1.0, aa3, aa3);
     float flat_ = (1.0 - trample) * (1.0 - onRoad);
     vec2 dg = qDr.z * 0.35 * vec2(0.94, 0.34) + qDr.w * vec2(-0.34, 0.94);
     vec2 sg = gq * 0.022 * flat_ + r2.zw * 0.22 + dg * 0.9 * flat_ + r3.zw * mix(0.004, 0.014, clamp(trample + onRoad * 0.5, 0.0, 1.0));

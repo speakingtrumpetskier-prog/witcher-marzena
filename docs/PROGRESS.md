@@ -14,7 +14,7 @@ catches issues, and fixes them or sends a targeted fix back to the builder. No c
 | 1 | Vegetation | sonnet | done, reviewed | 2 | needle-card spruce and pine tufts, Bayer LOD dither, coherent far canopy, marsh reeds, spring leaves |
 | 1 | Architecture kit | sonnet | done, reviewed | 1 | full catalog incl. enterable tavern, longhouse+cellar, Hanka's house, workshop, walkable bell tower; placeBuilding with foundations, colliders, doors, lights, walk floors |
 | 1 | Props kit and FX | sonnet | done, reviewed | 1 | 74 props, pooled FX (fire, smoke, steam, sparks, wisps, breath), PropBatch merging; lead fixed the Collision yaw convention both kits worked around |
-| 2 | Player, camera, horse riding, player moveset | sonnet (worktree) | building | 0 | |
+| 2 | Player, camera, horse riding, player moveset | sonnet (worktree) | done, merged | 1 | locomotion with ice slide, moveset events, stats and warmth, W3 camera with lock-on, Kasza call/mount/gallop/ice refusal/road assist |
 | 2 | UI | sonnet | done, reviewed | 1 | HUD, compass, subtitles, barks, choices, journal, parchment map, notes, pause, settings, title, credits |
 | 2 | Dialogue, cutscene director, quests, interaction, senses, flow | opus (single agent) | done, reviewed | 1 | TV-director coverage, skippable cutscenes, all quests, senses trails and echoes, title/new game/continue/rest |
 | 2 | NPCs and animals | sonnet (worktree) | building | 0 | |
@@ -35,6 +35,9 @@ Model policy (user request): Part Two and later run on Sonnet 5.5, except a sing
 - Architecture: bell tower should lean a few degrees and look drowned (ice line stains, broken boards, frost); stone texture cartoonish up close.
 - Terrain: noon snow blown out and no distance haze (sent to atmosphere builder); ice wind streaks too regular; talus boulders read as scattered teeth; marsh pool edges look cut; bear den needs a cave opening in the escarpment (locations builder; terrain left a pattern at the falls).
 - Done: Senses routes echo clues through G.postfx.markClue in turquoise.
+- Fixed (lead): striped shadow acne on low-sun snow (near shadow normalBias); snow micro-normals now fade with pixel footprint.
+- Integration: 'Multiple instances of Three.js being imported' warning in the playground scene; find the stray import.
+- Gameplay: no strafe or turn-in-place clips for lock-on; mount clip has an 8 cm seat pop; no mounted combat.
 - Characters: Ola's bangs read as a sawtooth up close; Bogdan's cheek beard edge slab-like at extreme close-up; braid stretches on extreme head turns. Main cast now 11k to 14k tris and 0.3 to 0.6 s to build: NPCs must spread creation over frames.
 - Vegetation: LOD1/LOD2 spruce (30 to 100 m) still read as stylized tiered cones; consider needle fringe at LOD1.
 - Integration: windows and fires need emissive about 3 to 6 x uWindowLight to bloom at night (architecture, props).
