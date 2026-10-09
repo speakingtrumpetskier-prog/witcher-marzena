@@ -34,7 +34,8 @@ function proxyGeometry(rec) {
   const roof = info.roof;
   const X = roof.X, Z = roof.Z;
   const yEaveTop = roof.topY(X, 0) + lift, ridge = roof.ridgeY + lift;
-  const wall = new THREE.Color(0x40332a), shade = new THREE.Color(0x2e241d), snow = new THREE.Color(0xe9eef7), under = new THREE.Color(0x3a2e25);
+  // Darker than the log albedo: proxies have no texture or AO, so a matching flat color reads orange in low sun.
+  const wall = new THREE.Color(0x261e19), shade = new THREE.Color(0x1b1512), snow = new THREE.Color(0xe9eef7), under = new THREE.Color(0x221b16);
   const pos = [], col = [], nor = [];
   const V3 = (x, y, z) => new THREE.Vector3(x, y, z);
   const face = (pts, color) => {

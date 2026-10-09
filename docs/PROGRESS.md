@@ -19,7 +19,7 @@ catches issues, and fixes them or sends a targeted fix back to the builder. No c
 | 2 | Dialogue, cutscene director, quests, interaction, senses, flow | opus (single agent) | done, reviewed | 1 | TV-director coverage, skippable cutscenes, all quests, senses trails and echoes, title/new game/continue/rest |
 | 2 | NPCs and animals | sonnet (worktree) | done, merged | 1 | schedules, A* paths over colliders, pairs chatting, head turns, barks, indoors at night and in blizzards; dogs, hens, goat on a roof, cat, ravens |
 | 2 | Combat, creatures, signs, boss mechanics | sonnet (worktree) | building | 0 | |
-| 3 | Village composition | sonnet (worktree) | building | 0 | |
+| 3 | Village composition | sonnet (worktree) | done, merged | 1 | 28 houses + heroes + 11 outbuildings, palisade and gates, stilted huts, boardwalk, graveyard, ~440 props, 177 NPC stations, fires, light pool, smoke, interiors, doors, discovery tracker, story anchors |
 | 3 | Lake set pieces and wilderness nooks | sonnet (worktree) | building | 0 | |
 | 3 | Writing and cutscene scripts | | pending | | |
 
@@ -38,6 +38,8 @@ Model policy (user request): Part Two and later run on Sonnet 5.5, except a sing
 - Fixed (lead): striped shadow acne on low-sun snow (near shadow normalBias); snow micro-normals now fade with pixel footprint.
 - Integration: 'Multiple instances of Three.js being imported' warning in the playground scene; find the stray import.
 - Gameplay: no strafe or turn-in-place clips for lock-on; mount clip has an 8 cm seat pop; no mounted combat.
+- Fixed (lead): village LOD proxies read orange at golden hour; walls darkened to match log albedo.
+- Village: busiest views sit at the budget (~450 calls, 2.5M tris; the full street vista from the west is 2.9M); square foreground bare until NPCs; Hanka's milk shelf is a flat disc; south road and sled hill lightly dressed.
 - NPCs: the cat is small and weak at distance; goat is pale with stick legs; net mender and well tool poses unconfirmed.
 - Characters: Ola's bangs read as a sawtooth up close; Bogdan's cheek beard edge slab-like at extreme close-up; braid stretches on extreme head turns. Main cast now 11k to 14k tris and 0.3 to 0.6 s to build: NPCs must spread creation over frames.
 - Vegetation: LOD1/LOD2 spruce (30 to 100 m) still read as stylized tiered cones; consider needle fringe at LOD1.
