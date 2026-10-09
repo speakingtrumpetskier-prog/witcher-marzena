@@ -8,7 +8,7 @@ catches issues, and fixes them or sends a targeted fix back to the builder. No c
 |---|---|---|---|---|---|
 | 0 | Design bible, story script, village plan, architecture, engine skeleton, harness | lead | done | n/a | docs/DESIGN.md, docs/STORY.md, docs/VILLAGE.md, docs/ARCHITECTURE.md |
 | 1 | Terrain, ice, water, rocks | opus | done, reviewed | 1 | worker-built 1025 + far grids, single instanced LOD terrain, horn-peak ranges with a sunset notch, black ice with depth, frozen river and falls, 3.8k rocks, full thaw |
-| 1 | Atmosphere, sky, weather, post | opus | building | 0 | |
+| 1 | Atmosphere, sky, weather, post | opus | done, reviewed | 1 | real sun/moon paths, 15 palettes, near+far shadows, sky with aurora, 3-layer fog, 5 weathers with snowfall, MSAA/bloom/god rays/grade, senses/echo/frost, markClue |
 | 1 | Characters, animation, horse | opus | reviewed, rework sent | 1 | 46 presets, 70 clips, skinned bodies with layered clothing and spring bones, LOD; hair, resting expressions, skin and horse body need a pass |
 | 1 | Audio and music | opus | done, reviewed | 1 | 12 moods, 7 stingers, 68 SFX, auto ambience; no clipping, loudness on target; needs human ears |
 | 1 | Vegetation | sonnet | reviewed, rework sent | 1 | 34k trees + 33k far billboards, 3 LODs, wind, marsh reeds, spring leaves; close-up spruce too faceted, dither stipple, speckled mid forest |
@@ -33,4 +33,8 @@ Model policy (user request): Part Two and later run on Sonnet 5.5, except a sing
 - Architecture: idol faces too blocky (tiki read); sculpt deeper relief, weather it, keep the silhouette.
 - Architecture: bell tower should lean a few degrees and look drowned (ice line stains, broken boards, frost); stone texture cartoonish up close.
 - Terrain: noon snow blown out and no distance haze (sent to atmosphere builder); ice wind streaks too regular; talus boulders read as scattered teeth; marsh pool edges look cut; bear den needs a cave opening in the escarpment (locations builder; terrain left a pattern at the falls).
+- Integration: Senses.js should call G.postfx.markClue instead of its hidden mask geometry.
+- Integration: windows and fires need emissive about 3 to 6 x uWindowLight to bloom at night (architecture, props).
+- Integration: some unnamed mesh has NaN positions (atmosphere report); find and fix.
+- Integration: move the six extra fog uniforms from fogChunk.js into Uniforms.js.
 - Architecture: large buildings 21k to 42k tris; drop log segments 10 to 8 if the village view is over budget.

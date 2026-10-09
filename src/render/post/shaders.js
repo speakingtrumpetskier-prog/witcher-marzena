@@ -34,7 +34,7 @@ vec3 tap(vec2 o) {
 void main() {
   vec3 c = (tap(vec2(-0.5, -0.5)) + tap(vec2(0.5, -0.5)) + tap(vec2(-0.5, 0.5)) + tap(vec2(0.5, 0.5))) * 0.25;
   // Clue mask carries each clue's own glow color (linear), so it blooms in that color.
-  if (uSenses > 0.0) c += texture2D(tMask, vUv).rgb * uSenses * 2.4;
+  if (uSenses > 0.0) c += texture2D(tMask, vUv).rgb * uSenses * 1.7;
   gl_FragColor = vec4(c, 1.0);
 }
 `;
@@ -272,7 +272,7 @@ void main() {
     }
     glow /= 12.8;
     vec3 rim = clamp(glow - core * 0.6, 0.0, 1.0);
-    g += (rim * 1.1 + core * 0.45) * s;
+    g += (rim * 1.1 + core * 0.3) * s;
   }
 
   // Echo: a cold blue reconstruction, like memory seen through ice.
