@@ -6,16 +6,18 @@ The Witcher 3 at similar framing. Work loops until the critic passes it or the r
 
 | Phase | Area | Builder | Status | Critic rounds | Notes |
 |---|---|---|---|---|---|
-| 0 | Design bible, architecture, engine skeleton, harness | lead | done | n/a | |
-| 1 | Terrain, ice, water, rocks | opus | pending | 0 | |
-| 1 | Atmosphere, sky, weather, post | opus | pending | 0 | |
-| 1 | Characters, animation, horse | opus | pending | 0 | |
-| 1 | Audio and music | opus | pending | 0 | |
-| 1 | Vegetation | sonnet | pending | 0 | |
-| 1 | Architecture kit | sonnet | pending | 0 | |
-| 1 | Props kit and FX | sonnet | pending | 0 | |
+| 0 | Design bible, story script, village plan, architecture, engine skeleton, harness | lead | done | n/a | docs/DESIGN.md, docs/STORY.md, docs/VILLAGE.md, docs/ARCHITECTURE.md |
+| 1 | Terrain, ice, water, rocks | opus | building | 0 | |
+| 1 | Atmosphere, sky, weather, post | opus | building | 0 | |
+| 1 | Characters, animation, horse | opus | building | 0 | |
+| 1 | Audio and music | opus | building | 0 | |
+| 1 | Vegetation | sonnet | building | 0 | |
+| 1 | Architecture kit | sonnet | building | 0 | |
+| 1 | Props kit and FX | sonnet | building | 0 | |
 | 2 | Player, camera, horse riding, combat, senses | | pending | | |
-| 2 | UI | | pending | | |
-| 2 | Dialogue, quests, cutscene director, NPCs | | pending | | |
+| 2 | UI | sonnet | building | 0 | started early, no dependencies |
+| 2 | Dialogue, cutscene director, quests, interaction, senses, flow | opus | building | 0 | started early |
+| 2 | NPCs and animals | sonnet | pending | | |
+| 2 | Combat and creatures | sonnet | pending | | |
 | 3 | Village and wilderness locations | | pending | | |
 | 3 | Writing and cutscene scripts | | pending | | |
