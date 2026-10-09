@@ -364,8 +364,8 @@ export function buildHead(mb, rig, FP, look) {
       const ps = Math.asin(clamp(q.y / dist, -1, 1));
       const u = a / LS.phM;
       const uc = clamp(u, -1, 1);
-      const out = Math.max(ps - LS.upper(uc), LS.lower(uc) - ps, (Math.abs(u) - 1) * 4);
-      const c = Math.pow(smoothstep(0.42, -0.04, out), 1.5) * smoothstep(-0.25, 0.1, q.z / dist);
+      const out = Math.max(ps - LS.upper(uc), LS.lower(uc) - ps, (Math.abs(u) - 1) * 2.2);
+      const c = Math.pow(smoothstep(0.17, -0.03, out), 1.2) * smoothstep(-0.25, 0.1, q.z / dist);
       if (c > 0) p.copy(E).addScaledVector(q.normalize(), lerp(dist, S.re - 0.0025, c));
     }
   };
@@ -566,8 +566,8 @@ function buildEyes(mb, rig, FP, S, sc, pivot, uvOf, look) {
       for (let r = 0; r <= nR + 1; r++) {
         const row = [];
         for (let c = 0; c <= nC; c++) {
-          // shells run 20% past the corners so the carved skin never shows a gap there
-          const uu = (c / nC * 2 - 1) * 1.2;
+          // shells run 30% past the corners so the carved skin never shows a gap there
+          const uu = (c / nC * 2 - 1) * 1.3;
           const u = clamp(uu, -1, 1);
           const edgeW = 1 - Math.pow(Math.abs(u), 6);
           const mps = marginOf(u);
@@ -576,7 +576,7 @@ function buildEyes(mb, rig, FP, S, sc, pivot, uvOf, look) {
           const f = r / nR;
           if (r <= nR) {
             ps = lerp(far, mps, Math.pow(f, 0.75));
-            rr = lerp(re - 0.0004, rl, smoothstep(0.0, 0.42, f) * smoothstep(1.2, 1.02, Math.abs(uu))) + 0.00035 * smoothstep(0.7, 1, f) * edgeW;
+            rr = lerp(re - 0.0004, rl, smoothstep(0.0, 0.42, f) * smoothstep(1.3, 1.12, Math.abs(uu))) + 0.00035 * smoothstep(0.7, 1, f) * edgeW;
           } else { ps = mps + (upper ? -0.06 : 0.05); rr = re + 0.0002; }
           const ph = uu * LS.phM * (r <= nR ? lerp(1.12, 1, f) : 1);
           const pl = toLocal(ph, ps, rr);
