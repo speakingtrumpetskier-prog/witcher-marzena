@@ -21,7 +21,10 @@ uniform float uSenses;
 uniform vec3 uClueColor;
 varying vec2 vUv;
 vec3 tap(vec2 o) {
-  vec3 c = texture2D(tColor, vUv + o * uTexel).rgb * uExposure;
+  vec3 c = texture2D(tColor, vUv + o * uTexel).rgb;
+  // Guard: one NaN or Inf pixel (mirror-like speculars) would smear into a black bloom blot.
+  if (any(isnan(c)) || any(isinf(c))) c = vec3(0.0);
+  c = min(c, vec3(1000.0)) * uExposure;
   float br = max(c.r, max(c.g, c.b));
   float soft = clamp(br - uThreshold + uKnee, 0.0, 2.0 * uKnee);
   soft = soft * soft / (4.0 * uKnee + 1e-4);
@@ -85,7 +88,9 @@ float tapSky(vec2 o) {
   vec2 uv = vUv + o * uTexel;
   float d = texture2D(tDepth, uv).r;
   if (d < 0.99999) return 0.0;
-  vec3 c = texture2D(tColor, uv).rgb * uExposure;
+  vec3 c = texture2D(tColor, uv).rgb;
+  if (any(isnan(c)) || any(isinf(c))) return 0.0;
+  c = min(c, vec3(1000.0)) * uExposure;
   float l = dot(c, vec3(0.3, 0.59, 0.11));
   return smoothstep(0.25, 2.2, l);
 }
@@ -140,6 +145,7 @@ uniform float uBloom;
 uniform float uRays;
 uniform vec3 uRaysColor;
 uniform vec3 uTint;
+uniform vec2 uShoulder;
 uniform vec3 uLift;
 uniform vec3 uGain;
 uniform float uSat;
@@ -211,6 +217,8 @@ void main() {
   }
 
   vec3 c = texture2D(tColor, uv).rgb;
+  if (any(isnan(c)) || any(isinf(c))) c = vec3(0.0);
+  c = min(c, vec3(1000.0));
   if (uEcho > 0.001) {
     vec2 dir = (vUv - 0.5) * 0.006 * uEcho;
     c.r = texture2D(tColor, uv + dir).r;
@@ -227,6 +235,14 @@ void main() {
   c += bloom * uBloom;
   c += texture2D(tRays, vUv).rgb * uRaysColor * uRays;
   c *= uTint;
+
+  // Highlight shoulder on luminance (hue kept): sunlit snow keeps its drifts and sparkle
+  // instead of flattening into the top of the tone curve.
+  float lum = luma(c);
+  if (lum > uShoulder.x) {
+    float nl = uShoulder.x + (lum - uShoulder.x) / (1.0 + (lum - uShoulder.x) * uShoulder.y);
+    c *= nl / lum;
+  }
 
   vec3 t = acesFilmic(c);
   vec3 g = pow(t, vec3(1.0 / 2.2));

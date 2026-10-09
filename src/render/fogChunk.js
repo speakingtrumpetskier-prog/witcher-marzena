@@ -97,7 +97,8 @@ export const FOG_FUNCS_GLSL = /* glsl */ `
     float len = abs(dy) < 0.02
       ? dist * clamp((top - 0.5 * (y0 + y1)) / soft, 0.0, 1.0)
       : (mzSlabF(y1, top, soft) - mzSlabF(y0, top, soft)) / dy * dist;
-    return uFogLayer.x * max(len, 0.0) * area * (0.55 + 0.9 * n);
+    float patches = smoothstep(0.15, 0.75, n);
+    return uFogLayer.x * max(len, 0.0) * area * (0.25 + 1.35 * patches);
   }
 
   float mzFogOD(vec3 cam, vec3 rd, float dist) {

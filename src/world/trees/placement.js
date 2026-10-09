@@ -23,7 +23,10 @@ const gauss = (x, z, cx, cz, r) => Math.exp(-((x - cx) ** 2 + (z - cz) ** 2) / (
 // --- footprints: LOC circles (except the marsh, which wants reeds) ---------------------------
 const LOCS = Object.entries(LOC).filter(([id]) => id !== 'marsh').map(([id, l]) => ({ id, x: l.x, z: l.z, r: l.r }));
 const VILLAGE = LOC.village;
-const MARSH = LOC.marsh;
+// The flat marsh at ice level that merges into the lake's west end (design: reeds and cattails stand
+// through the ice where the terrain is below 0 inside this ellipse; nothing else grows in it).
+const MARSH_E = { x: -268, z: -82, rx: 105, rz: 78 };
+const marshE = (x, z) => Math.sqrt(((x - MARSH_E.x) / MARSH_E.rx) ** 2 + ((z - MARSH_E.z) / MARSH_E.rz) ** 2);
 
 function locDistance(x, z) {
   let best = 1e9;
@@ -87,7 +90,7 @@ function macroBirch(x, z, h) {
 
 function macroDead(x, z) {
   let d = 0.018;
-  d += 0.16 * smoothstep(140, 40, Math.hypot(x - MARSH.x, z - MARSH.z));
+  d += 0.16 * smoothstep(1.9, 0.9, marshE(x, z));
   d += 0.1 * smoothstep(70, 18, Math.hypot(x - LOC.hunterCabin.x, z - LOC.hunterCabin.z));
   d += 0.1 * smoothstep(60, 15, Math.hypot(x - LOC.bearDen.x, z - LOC.bearDen.z));
   d += 0.1 * smoothstep(80, 18, Math.hypot(x - LOC.charcoal.x, z - LOC.charcoal.z));
@@ -236,14 +239,17 @@ export async function placeVegetation(G, kinds) {
     return nrm.y;
   };
 
+  const rocks = G.rocks && G.rocks.rockAt ? G.rocks : null;
   const emit = (list, ki, x, y, z, s, sxMul, yaw, tiltMax, tintBase, view) => {
     const kind = kinds[ki];
+    if (rocks && rocks.rockAt(x, z, Math.max(0.8, kind.trunkR * s * sxMul + 0.7))) return false; // boulders and outcrops from G.rocks
     tint(rn, tintBase, 0.3, col);
     const tx = (rn() - 0.5) * 2 * tiltMax, tz = (rn() - 0.5) * 2 * tiltMax;
     list.push({
       k: ki, x, y, z, yaw, sx: s * sxMul, sy: s, r: col[0], g: col[1], b: col[2], tx, tz, view: view ?? (rn() < 0.5 ? 0 : 1),
       trunk: kind.trunkR * s * sxMul,
     });
+    return true;
   };
 
   // ------------------------------------------------------------------ inner forest
@@ -259,8 +265,11 @@ export async function placeVegetation(G, kinds) {
       if (ld < 1.8) continue;
       const h = W.heightAt(x, z);
       if (h > 392) continue;
+      if (h < 0.15) continue; // ice level: only reeds stand there
       const sd = lakeInfo(x, z);
       if (sd < 2.5) continue;
+      const me = marshE(x, z);
+      if (me < 1.0) continue; // the marsh belongs to the reeds
       const exF = EXCLUSIONS.length ? exclusionFactor(x, z, 'tree') : 1;
       if (exF <= 0) continue;
       const F = macro.f(x, z);
@@ -283,8 +292,7 @@ export async function placeVegetation(G, kinds) {
       D *= smoothstep(0.52, 0.8, ny);
       D *= smoothstep(1.8, 22, ld) * smoothstep(3.0, 14, rd) * exF;
       D *= smoothstep(2.5, 22, sd);
-      const mdx = x - MARSH.x, mdz = z - MARSH.z;
-      D *= smoothstep(MARSH.r * 0.9, MARSH.r + 38, Math.sqrt(mdx * mdx + mdz * mdz));
+      D *= smoothstep(1.0, 1.35, me);
       if (x > 280 && z > -170 && z < 30) D *= smoothstep(RIVER.width * 0.5 + 2, RIVER.width * 0.5 + 12, riverDistance(x, z)); // keep the frozen river free
       const vis = vistaFactor(x, z);
       D *= vis;
@@ -302,6 +310,10 @@ export async function placeVegetation(G, kinds) {
 
       const roll = rn();
       if (roll < D) {
+        // reject cliff edges that the 2.5 m slope test smooths over
+        const c8 = 8;
+        const g8x = W.terrainAt(x - c8, z) - W.terrainAt(x + c8, z), g8z = W.terrainAt(x, z - c8) - W.terrainAt(x, z + c8);
+        if (2 * c8 / Math.hypot(g8x, 2 * c8, g8z) < 0.58) continue;
         // choose species
         const B = macro.b(x, z);
         const hcurv = h - 0.25 * (W.heightAt(x + 30, z) + W.heightAt(x - 30, z) + W.heightAt(x, z + 30) + W.heightAt(x, z - 30));
@@ -344,7 +356,7 @@ export async function placeVegetation(G, kinds) {
         const roadside = rd < 11 ? smoothstep(3, 5, rd) * smoothstep(11, 6, rd) : 0;
         const shore = sd < 28 ? smoothstep(2.5, 6, sd) * smoothstep(28, 10, sd) : 0;
         const forest = smoothstep(0.25, 0.6, F);
-        let pu = (0.012 + 0.07 * edge + 0.1 * roadside + 0.08 * shore + 0.012 * forest) * dens * exF * smoothstep(0.62, 0.8, ny) * vill;
+        let pu = (0.012 + 0.07 * edge + 0.1 * roadside + 0.08 * shore + 0.012 * forest) * dens * exF * smoothstep(0.62, 0.8, ny) * vill * smoothstep(1.0, 1.2, me);
         pu *= smoothstep(1.8, 12, ld) * (0.4 + 0.6 * vis);
         if (rn() < pu) {
           const w = rn();
@@ -387,31 +399,23 @@ export async function placeVegetation(G, kinds) {
   const reedKinds = reedIdx.filter((i) => i !== cattail);
   {
     const RS = 1.9;
-    const reach = 82;
-    for (let gz = MARSH.z - reach; gz < MARSH.z + reach; gz += RS) {
+    for (let gz = MARSH_E.z - MARSH_E.rz; gz < MARSH_E.z + MARSH_E.rz; gz += RS) {
       await maybeYield();
-      for (let gx = MARSH.x - reach; gx < MARSH.x + reach; gx += RS) {
+      for (let gx = MARSH_E.x - MARSH_E.rx; gx < MARSH_E.x + MARSH_E.rx; gx += RS) {
         const x = gx + rn() * RS, z = gz + rn() * RS;
-        const dm = Math.hypot(x - MARSH.x, z - MARSH.z);
-        if (dm > reach) continue;
-        const ld = locDistance(x, z);
-        if (ld < 0.5) continue;
+        const me = marshE(x, z);
+        if (me > 1.0) continue;
+        if (W.terrainAt(x, z) >= 0) continue; // reeds stand where the terrain is below the ice
         const exF = EXCLUSIONS.length ? exclusionFactor(x, z, 'reed') : 1;
         if (exF <= 0) continue;
-        const sd = lakeInfo(x, z);
-        const inMarsh = dm < MARSH.r + 14;
-        if (sd < -1 && !inMarsh) continue;
         if (roads.edge(x, z) < 1.5) continue;
-        const h = W.heightAt(x, z);
-        if (h > 6) continue;
         const patch = N.fbm2(x / 17 + 80, z / 17 - 40, 2) * 0.5 + 0.5;
-        const core = smoothstep(MARSH.r + 34, MARSH.r * 0.25, dm);
-        const dd = (0.2 + 0.8 * smoothstep(0.28, 0.55, patch)) * core * exF * dens;
+        const dd = (0.3 + 0.7 * smoothstep(0.28, 0.55, patch)) * smoothstep(1.0, 0.8, me) * exF * dens;
         if (rn() < dd) {
-          const isCat = rn() < 0.18 && dm < MARSH.r + 6;
+          const isCat = rn() < 0.2;
           const ki = isCat ? cattail : pickVar(reedKinds, [1, 0.7]);
           const s = 0.8 + rn() * 0.5;
-          emit(inner, ki, x, h - 0.05, z, s, 0.9 + rn() * 0.3, rn() * 6.28, 0.04, 1, 0);
+          emit(inner, ki, x, 0, z, s, 0.9 + rn() * 0.3, rn() * 6.28, 0.04, 1, 0);
           stats.reed++;
         }
       }
@@ -430,7 +434,7 @@ export async function placeVegetation(G, kinds) {
         if (lakeSDF(LAKE.x + ca * LAKE.rx * mid, LAKE.z + sa * LAKE.rz * mid) < 0) lo = mid; else hi = mid;
       }
       const sx = LAKE.x + ca * LAKE.rx * lo, sz = LAKE.z + sa * LAKE.rz * lo;
-      if (Math.hypot(sx - MARSH.x, sz - MARSH.z) < MARSH.r + 30) continue;
+      if (marshE(sx, sz) < 1.3) continue;
       const bed = N.fbm2(a * 2.2 + 5, 1.7, 3) * 0.5 + 0.5 + N.fbm2(sx / 30, sz / 30, 2) * 0.2;
       if (bed < 0.58) continue;
       const n = 1 + Math.floor(rn() * 3);
@@ -560,10 +564,11 @@ export class GroundGenerator {
         const ld = Math.abs(x) > 700 || Math.abs(z) > 700 ? 99 : locDistance(x, z);
         if (ld < 0.8) continue;
         const sd = lakeInfo(x, z);
-        const dm = Math.hypot(x - MARSH.x, z - MARSH.z);
-        if (sd < 1.5 && !(dm < MARSH.r + 6 && sd > -30)) continue;
+        const me = marshE(x, z);
+        if (sd < 1.5 && me > 1.0) continue;
         const h = W.heightAt(x, z);
-        if (h > 330) continue;
+        if (h > 330 || h < 0.15) continue; // no tufts on ice
+        if (this.G.rocks && this.G.rocks.rockAt && this.G.rocks.rockAt(x, z, 0.5)) continue;
         const rd = roads.edge(x, z);
         if (rd < 0.9) continue;
         if (this.cleared.some((e) => Math.hypot(x - e.x, z - e.z) < e.r)) continue;
@@ -581,7 +586,7 @@ export class GroundGenerator {
         p += 0.18 * smoothstep(8, 3, rd) * smoothstep(0.9, 1.6, rd);
         p += 0.2 * smoothstep(30, 4, sd) * smoothstep(1.5, 4, sd);
         p *= smoothstep(0.6, 0.85, ny) * smoothstep(1.2, 4, ld) * exF * this.density;
-        if (dm < MARSH.r + 10) p += 0.2;
+        if (me < 1.0) p += 0.2;
         if (r1 >= p) continue;
         const v = r2;
         const ki = v < 0.34 ? a : v < 0.82 ? b : c;

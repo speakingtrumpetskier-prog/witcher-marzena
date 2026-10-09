@@ -8,7 +8,7 @@
 export const WEATHER_STATES = {
   clear: {
     cover: 0.3, cirrus: 0.6, overcast: 0, sunVis: 1,
-    fogDensity: 0.00012, fogFalloff: 0.012, haze: 0.0008, hazeFalloff: 1 / 1000,
+    fogDensity: 0.00012, fogFalloff: 0.012, haze: 0.0007, hazeFalloff: 1 / 1400,
     lake: 0, lakeTop: 4, lakeSoft: 2.5, lakeNoise: 1.5,
     fogWhite: 0, snowfall: 0, wind: 0.22, gust: 0.25, drift: 0.18,
     satMul: 1, dim: 0, stars: 1, aurora: 1, shadow: 1,
@@ -37,7 +37,7 @@ export const WEATHER_STATES = {
   fog: {
     cover: 0.4, cirrus: 0, overcast: 0.4, sunVis: 0.42,
     fogDensity: 0.0008, fogFalloff: 0.022, haze: 0.0011, hazeFalloff: 1 / 800,
-    lake: 0.045, lakeTop: 10, lakeSoft: 3.5, lakeNoise: 3.5,
+    lake: 0.02, lakeTop: 8, lakeSoft: 4, lakeNoise: 3.5,
     fogWhite: 0.5, snowfall: 0, wind: 0.06, gust: 0.05, drift: 0,
     satMul: 0.85, dim: 0, stars: 0.3, aurora: 0, shadow: 0.6,
   },

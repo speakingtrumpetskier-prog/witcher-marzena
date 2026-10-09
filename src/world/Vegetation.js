@@ -7,8 +7,13 @@
 //                              and drop their colliders; returns the number of hidden trees/bushes
 //   treeAt(x, z, r = 0)       { kind, species, x, z, r } of a live trunk within r of the point, or null
 //   snagsNear(x, z, r = 40)   [{ kind, x, y, z, top, r }] dead standing trees (perches for ravens)
-//   report()                  instance counts per species, draw call and triangle estimate
-//   layers { trees, ground, impostors }, kinds, stats  (debug)
+//   drawStats()               vegetation only: { calls, tris, perSpecies, impostors } of the last update
+//   report()                  placement counts, timings and renderer totals
+//   farReady (Promise)        resolves when the far impostor ring is placed
+//   layers { trees, ground, impostors }, kinds, placement  (debug)
+// Placement honours the lake, ice level (terrain below 0.15 m), roads, LOC footprints, EXCLUSIONS,
+// steep cliffs and G.rocks.rockAt (rocks load first). Reeds and cattails stand only in the marsh
+// ellipse (-268, -82, radii 105 x 78) where the terrain is below the ice, plus patches on lake shores.
 // Locations builders may also append circles or boxes to src/world/exclusions.js at any time; the
 // system hides trees under new entries on the next frame.
 import { ORDER } from '../core/G.js';
