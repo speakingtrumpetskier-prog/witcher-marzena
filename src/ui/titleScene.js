@@ -14,18 +14,19 @@
 import * as THREE from 'three';
 import { LOC } from '../world/layout.js';
 
-// Composition (see docs/PROGRESS.md "Title"). Hour 15.8: the sun about 8.5 degrees up, just over
-// the sunset window's ranges. The camera looks a little left of the sun so it sits on the right
-// third; the effigy sits left of center.
+// Composition. Hour 15.8: the sun about 8.5 degrees up, just over the sunset window's ranges, on
+// the right third; the effigy just left of it on the right half; the left third is left quiet
+// (village, mountain) for the name and the menu.
 export const TITLE_SHOT = {
   hour: 15.8,
   fov: 40,
-  cam: new THREE.Vector3(14.19, 1.25, -36.23),
-  look: new THREE.Vector3(-57.7, 9.5, 33.3),
-  // She faces us, turned a little: backlit, her face in shadow (her support stakes stay hidden behind).
-  effigy: { x: LOC.ritual.x, z: LOC.ritual.z, yaw: Math.atan2(14.19 - LOC.ritual.x, -36.23 - LOC.ritual.z) + 0.38, scale: 1.4 },
+  cam: new THREE.Vector3(15.91, 1.25, -34.62),
+  look: new THREE.Vector3(-56.0, 9.5, 34.9),
+  // She faces us, turned a little: backlit, her face in shadow, the sun just past her shoulder
+  // (the camera's arc carries it behind her and out again). Her support stakes stay hidden behind.
+  effigy: { x: LOC.ritual.x, z: LOC.ritual.z, yaw: Math.atan2(15.91 - LOC.ritual.x, -34.62 - LOC.ritual.z) + 0.38, scale: 1.4 },
   // A ribbon pole of our own close on the right, cut by the frame edge: it carries the parallax.
-  pole: { x: 9.61, z: -34.93 },
+  pole: { x: 11.33, z: -33.32 },
 };
 
 const ease = (u) => u * u * u * (u * (u * 6 - 15) + 10);

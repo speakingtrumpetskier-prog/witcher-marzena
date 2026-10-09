@@ -51,17 +51,15 @@ export class Title {
     const logo = h('div', { class: 'logo' }, 'MARZENA');
     const line = h('div', { class: 'line' },
       svg(`<svg viewBox="0 0 320 14" preserveAspectRatio="none"><path d="${THREAD}" pathLength="1"/></svg>`, 'thread'), svg(ICON.knot, 'kn'));
-    const tag = h('div', { class: 'tag' }, 'A tale of the long winter');
     const menu = menuList([
       { id: 'new', label: 'New Game' },
       { id: 'continue', label: 'Continue', disabled: !hasSave },
       { id: 'settings', label: 'Settings' },
     ], { onSelect: (it) => this._choose(it.id), sfx: (n) => ui.sfx(n, { volume: 0.4 }) });
     this.menu = menu;
-    const foot = h('div', { class: 'foot' }, h('span', null, 'Made with three.js and WebAudio, entirely from code'));
     const cover = h('div', { class: 'cover' });
     const press = h('div', { class: 'press' }, 'Press any key');
-    const el = h('div', { class: 'mz-title' }, h('div', { class: 'shade' }), h('div', { class: 'box' }, logo, line, tag), h('div', { class: 'menuwrap' }, menu.el), press, foot, cover);
+    const el = h('div', { class: 'mz-title' }, h('div', { class: 'shade' }), h('div', { class: 'box' }, logo, line), h('div', { class: 'menuwrap' }, menu.el), press, cover);
     this.el = el;
 
     // Wait for a key before the menu when sound is not running yet: the first gesture unlocks it
