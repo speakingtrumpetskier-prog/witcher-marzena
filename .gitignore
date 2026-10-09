@@ -25,3 +25,6 @@ dist-ssr
 
 # screenshot harness output
 shots/
+
+# agent worktrees
+.claude/worktrees/
