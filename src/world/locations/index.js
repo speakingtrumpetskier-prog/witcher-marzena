@@ -4,9 +4,11 @@
 // Owners: village.js and village/* (village builder); wilderness/*.js (wilderness builder).
 // Each location module exports `async function build(G, ctx)`; ctx carries shared helpers.
 
+// import.meta.glob only includes files that exist, so an unbuilt location is skipped cleanly.
+const FOUND = import.meta.glob(['./village.js', './wilderness/index.js']);
 const LOCATIONS = [
-  ['village', () => import('./village.js')],
-  ['wilderness', () => import('./wilderness/index.js')],
+  ['village', './village.js'],
+  ['wilderness', './wilderness/index.js'],
 ];
 
 export async function init(G) {
@@ -24,16 +26,14 @@ export async function init(G) {
   const ctx = { props: props?.props, PropBatch: props?.PropBatch, fx: props?.props?.fx };
 
   const only = (G.params.get('loc') || '').split(',').filter(Boolean);
-  for (const [name, load] of LOCATIONS) {
-    if (only.length && !only.includes(name)) continue;
+  for (const [name, path] of LOCATIONS) {
+    if ((only.length && !only.includes(name)) || !FOUND[path]) continue;
     let mod;
     try {
-      mod = await load();
+      mod = await FOUND[path]();
     } catch (e) {
-      if (!/Failed to fetch|Cannot find|does not provide|404|Unknown variable dynamic import/i.test(e.message)) {
-        console.error(`[location ${name}]`, e);
-        G.errors.push(`location ${name}: ${e.message}`);
-      }
+      console.error(`[location ${name}]`, e);
+      G.errors.push(`location ${name}: ${e.message}`);
       continue;
     }
     try {

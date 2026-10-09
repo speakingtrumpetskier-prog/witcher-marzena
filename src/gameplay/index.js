@@ -4,30 +4,31 @@
 // Player, CameraRig, Horse (gameplay core builder), combat and creatures (combat builder),
 // npcs (NPC builder).
 
+// import.meta.glob only includes files that exist, so a subsystem that is not built yet is simply
+// skipped (a plain dynamic import of a missing file fails the whole module in Vite).
+const FOUND = import.meta.glob(['./Interact.js', './Senses.js', './Player.js', './CameraRig.js', './Horse.js',
+  './combat/index.js', './creatures/index.js', './npcs/index.js']);
 const SUBSYSTEMS = [
-  ['interact', () => import('./Interact.js')],
-  ['senses', () => import('./Senses.js')],
-  ['player', () => import('./Player.js')],
-  ['cameraRig', () => import('./CameraRig.js')],
-  ['horse', () => import('./Horse.js')],
-  ['combat', () => import('./combat/index.js')],
-  ['creatures', () => import('./creatures/index.js')],
-  ['npcs', () => import('./npcs/index.js')],
+  ['interact', './Interact.js'],
+  ['senses', './Senses.js'],
+  ['player', './Player.js'],
+  ['cameraRig', './CameraRig.js'],
+  ['horse', './Horse.js'],
+  ['combat', './combat/index.js'],
+  ['creatures', './creatures/index.js'],
+  ['npcs', './npcs/index.js'],
 ];
 
 export async function init(G) {
   const skip = (G.params.get('skipGameplay') || '').split(',');
-  for (const [name, load] of SUBSYSTEMS) {
-    if (skip.includes(name)) continue;
+  for (const [name, path] of SUBSYSTEMS) {
+    if (skip.includes(name) || !FOUND[path]) continue;
     let mod;
     try {
-      mod = await load();
+      mod = await FOUND[path]();
     } catch (e) {
-      // Not built yet is expected during development; anything else is a real error.
-      if (!/Failed to fetch|Cannot find|does not provide|404|Unknown variable dynamic import/i.test(e.message)) {
-        console.error(`[gameplay ${name}]`, e);
-        G.errors.push(`gameplay ${name}: ${e.message}`);
-      }
+      console.error(`[gameplay ${name}]`, e);
+      G.errors.push(`gameplay ${name}: ${e.message}`);
       continue;
     }
     try {

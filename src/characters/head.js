@@ -12,6 +12,7 @@ import { M as mat, tube, blob, SPECIAL } from './geom.js';
 import { headLandmarks } from './rig.js';
 
 const V = (x, y, z) => new THREE.Vector3(x, y, z);
+const DBG = typeof location !== 'undefined' ? (new URLSearchParams(location.search).get('mzdbg') || '') : '';
 
 // ---------------------------------------------------------------- SDF primitives
 function sdEll(px, py, pz, cx, cy, cz, rx, ry, rz) {
@@ -204,6 +205,20 @@ function makeWarp(density, x0, x1, n = 2048) {
   };
 }
 
+// Ambient occlusion from SDF samples along the normal and four tilted directions: smoother
+// than a single ray, so sockets and creases shade without per-vertex speckle.
+function sdfConeAO(sdf, p, nn) {
+  const t1 = Math.abs(nn.y) < 0.9 ? V(0, 1, 0) : V(1, 0, 0);
+  const a = new THREE.Vector3().crossVectors(nn, t1).normalize();
+  const b = new THREE.Vector3().crossVectors(nn, a);
+  const dirs = [nn.clone(), ...[[a, 1], [a, -1], [b, 1], [b, -1]].map(([t, sg]) => nn.clone().multiplyScalar(0.8).addScaledVector(t, 0.6 * sg).normalize())];
+  let occ = 0;
+  for (const d of dirs) {
+    for (const [h, w] of [[0.004, 0.4], [0.009, 0.35], [0.016, 0.25]]) occ += w * Math.max(0, h - sdf(p.clone().addScaledVector(d, h))) / h;
+  }
+  return clamp(1 - (occ / dirs.length) * 1.25, 0.45, 1);
+}
+
 // ---------------------------------------------------------------- build
 const SCULPT_KEYS = ['jawW', 'jawSq', 'chin', 'chinW', 'cheek', 'gaunt', 'brow', 'noseLen', 'noseW', 'noseBridge', 'noseTip', 'noseSize',
   'lipFull', 'lipW', 'eyeSize', 'eyeSpace', 'eyeTilt', 'lidHeavy', 'faceLen', 'craniumW', 'fullCheek', 'child', 'fem', 'wrinkles', 'mouthDown'];
@@ -367,7 +382,9 @@ export function buildHead(mb, rig, FP, look) {
       const out = Math.max(ps - LS.upper(uc), LS.lower(uc) - ps, (Math.abs(u) - 1) * 2.2);
       const c = Math.pow(smoothstep(0.17, -0.03, out), 1.2) * smoothstep(-0.25, 0.1, q.z / dist);
       if (c > 0) p.copy(E).addScaledVector(q.normalize(), lerp(dist, S.re - 0.0025, c));
+      if (c > 0) return c;
     }
+    return 0;
   };
   // --- grid
   const skinMat = mat(0xffffff, { face: true, skin: 1, rough: 0.62, fuzz: 0.12 });
@@ -378,6 +395,7 @@ export function buildHead(mb, rig, FP, look) {
   const n = new THREE.Vector3();
   const scale = hk;
   const vUV = 0.8;
+  const coneAO = (p, nn) => sdfConeAO(sdf, p, nn);
   if (!SC.grid) {
     // cast the grid once per sculpt; SDF ambient occlusion, then blurred over grid neighbours
     // so the shading has no stair steps where the warped quads are uneven
@@ -385,13 +403,14 @@ export function buildHead(mb, rig, FP, look) {
     for (let i = 0; i <= nPol; i++) for (let j = 0; j <= nAz; j++) {
       const p = cast(dirOf(azW.fwd(j / nAz), polAt(i, j)));
       const nn = grad(p, new THREE.Vector3());
-      let occ = 0;
-      for (const [h, w] of [[0.003, 0.5], [0.007, 0.3], [0.013, 0.2]]) occ += w * Math.max(0, h - sdf(p.clone().addScaledVector(nn, h))) / h;
-      const ao = clamp(1 - occ * 1.25, 0.35, 1);
-      carveEyes(p);
-      G0.push({ p, n: nn, ao });
+      const ao = coneAO(p, nn);
+      const cv = carveEyes(p);
+      G0.push({ p, n: nn, ao, cv });
     }
     const W1 = nAz + 1;
+    // carved skin hides behind the lids, but its triangles reach out to visible neighbours:
+    // give it the AO of the lid surface in front of it so nothing dark bleeds out
+    for (const g of G0) if (g.cv > 0) g.ao = lerp(g.ao, 0.82, Math.min(1, g.cv * 3));
     for (let it = 0; it < 3; it++) {
       const next = G0.map((g) => g.ao);
       for (let i = 1; i < nPol; i++) for (let j = 0; j <= nAz; j++) {
@@ -413,7 +432,7 @@ export function buildHead(mb, rig, FP, look) {
       const g = SC.grid[gk];
       const p = g.p.clone();
       n.copy(g.n);
-      const ao = g.ao;
+      const ao = DBG.includes('noao') ? 1 : g.ao;
       const hm = scalp(p);
       const isHair = hm.mask > 0.02;
       if (isHair) p.addScaledVector(n, hm.thick * hm.mask);
@@ -425,6 +444,8 @@ export function buildHead(mb, rig, FP, look) {
       const u = j / nAz, v = (dPol[j] !== 0 && Math.abs(i - kStom) < 12 ? polW.inv(pol) : i === kStom ? tStom : polTs[i]) * vUV;
       const wp = p.clone().multiplyScalar(scale).add(pivot);
       const shade = new THREE.Color(ao, ao, ao);
+      if (DBG.includes('carve')) shade.setRGB(1, 1 - g.cv, 1 - g.cv);
+      if (DBG.includes('aoviz')) shade.setRGB(ao ** 3, ao ** 3, ao ** 3);
       const m = isHair && hm.mask > 0.5 ? hairMatD : skinMat;
       const idx = mb.vert(wp, shade, u, v, m, weightsAt(p, i, slit ? 1 : 0));
       row.push(idx);
@@ -542,15 +563,8 @@ function buildEyes(mb, rig, FP, S, sc, pivot, uvOf, look) {
         S.sdf(p.x, p.y, p.z + e) - S.sdf(p.x, p.y, p.z - e)).normalize();
       return { p, n };
     };
-    const aoAt = (pl) => {
-      const nn = pl.clone().sub(E).normalize();
-      let occ = 0;
-      for (const [h, w] of [[0.003, 0.5], [0.007, 0.3], [0.013, 0.2]]) {
-        const q = pl.clone().addScaledVector(nn, h);
-        occ += w * Math.max(0, h - S.sdf(q.x, q.y, q.z)) / h;
-      }
-      return clamp(1 - occ * 1.25, 0.35, 1);
-    };
+    const sdfV = (q) => S.sdf(q.x, q.y, q.z);
+    const aoAt = (sk) => sdfConeAO(sdfV, sk.p, sk.n);
     const lidMat = mat(0xffffff, { face: true, skin: 1, rough: 0.5, fuzz: 0.1 });
     const toLocal = (ph, ps, r) => {
       const a = ph + LS.yaw;
@@ -585,7 +599,7 @@ function buildEyes(mb, rig, FP, S, sc, pivot, uvOf, look) {
           // The eye carve moves skin along rays from the eye centre, so the uncarved skin point
           // on this ray carries the UV (and normal) the surrounding skin uses here.
           const sk = skinOnRay(toLocal(ph, ps, 1).sub(E));
-          let shade = r <= nR ? aoAt(sk.p) : 1;
+          let shade = r <= nR ? aoAt(sk) : 1;
           if (r === nR) shade *= upper ? 0.82 : 0.92;
           if (r > nR) shade = upper ? 0.5 : 0.68;
           const [tu, tv] = uvOf(r <= nR ? sk.p : toLocal(ph, ps, rl + 0.002));
@@ -996,6 +1010,7 @@ export function paintFace(canvas, info, FP, look) {
   }
   // scalp hair painted on the grid region above the hairline
   paintScalp(g, info, look, W, Hh, R, css);
+  if (DBG.includes('flat')) { g.fillStyle = css(skin); g.fillRect(0, 0, W, Hh * 0.8); }
   // irises
   paintIris(g, FP, W, Hh, css, R);
 }
