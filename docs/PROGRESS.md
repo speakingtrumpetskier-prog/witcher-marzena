@@ -32,8 +32,6 @@ Model policy (user request): Part Two and later run on Sonnet 5.5, except a sing
 - Combat: Player has no grabbed or stunned state (grab overrides position, now with a break-free prompt); Weather has no gust() hook (the boss gust has its own sound and push).
 - Wilderness: pass drifts show polygon edges; ice cave reads bright and its crystals look like plain shards; belfry table slab reads oversized; bear nest and hunter skeleton simple.
 - Wilderness: G.water has one under-glow slot (boss glow, grab telegraph and the bell tower glow share it).
-- UI: distant barks low contrast over grey trees (strengthen shadow/scrim for barks).
-- UI: map lake label BELLMERE collides with the Stone Circle Isle label.
 - UI: retune the title camera path once the village and locations exist.
 - Props: 128 px textures tile at close range; effigies read a little doll-like (bigger straw silhouette, rougher hem).
 - Audio: needs a human listen (voice synthesis is the risk).

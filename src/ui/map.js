@@ -676,15 +676,21 @@ export class MapView {
     ctx.strokeStyle = 'rgba(150,178,192,0.6)'; ctx.lineWidth = Math.max(2, RIVER.width * this.scale); ctx.stroke();
     ctx.strokeStyle = `rgba(${INK_RGB},0.55)`; ctx.lineWidth = 1; ctx.stroke();
 
-    // big letterspaced name on the ice
-    const fs = Math.max(13, Math.min(30, 20 * this.scale / this.cover * 0.8));
+    // big letterspaced name on the ice; zoomed out it would sit on the location labels, and the
+    // cartouche already names the lake, so it fades out
+    const raw = 20 * this.scale / this.cover * 0.8;
+    const fs = Math.max(13, Math.min(30, raw));
+    const fadeIn = Math.min(1, Math.max(0, (raw - 15) / 4));
+    if (fadeIn <= 0) return;
     ctx.save();
+    ctx.globalAlpha = fadeIn;
     ctx.font = `600 ${fs}px "Cormorant Garamond", Georgia, serif`;
     ctx.fillStyle = `rgba(${INK_RGB},0.38)`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    if ('letterSpacing' in ctx) ctx.letterSpacing = `${fs * 0.5}px`;
-    ctx.fillText('BELLMERE', this.sx(LAKE.x - 10), this.sy(LAKE.z - 60));
+    if ('letterSpacing' in ctx) ctx.letterSpacing = `${fs * 0.36}px`;
+    // In open water between the isle and the ritual site, clear of their labels and the tower's.
+    ctx.fillText('BELLMERE', this.sx(LAKE.x - 25), this.sy(LAKE.z + 28));
     ctx.restore();
   }
 
