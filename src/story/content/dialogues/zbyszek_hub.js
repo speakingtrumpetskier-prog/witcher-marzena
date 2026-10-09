@@ -108,7 +108,7 @@ export default {
         { t: 'How long has it been like this?', next: 'winter1', once: true, if: (S) => !S.flag('ending') },
         { t: 'Who else knew them? Anyone who would talk?', next: 'friends1', once: true, if: (S) => !S.flag('ending') },
         { t: 'I came over the pass. There was a cart on the road.', next: 'cart1', once: true, if: (S) => !!S.data.notes?.includes('note_cart_family') },
-        { t: 'I found the three. They are under the ice, by the old tower.', next: 'men1', once: true, if: (S) => !!S.flag('lair_seen') && !S.flag('ending') },
+        { t: "I found your three. They're under the ice, out by the old tower.", next: 'men1', once: true, if: (S) => !!S.flag('lair_seen') && !S.flag('ending') },
         { t: 'Three years ago. At the rite. Where were you?', next: 'rite1', once: true, if: (S) => !!S.flag('echo_seen') && !S.flag('ending') },
         { t: 'Are you going tonight?', next: 'tonight1', once: true, if: (S) => !!S.flag('echo_seen') && !S.flag('ending') },
         { t: 'A bowl of the soup. (2 grosze)', next: 'soup0' },
@@ -152,7 +152,7 @@ export default {
     cart6: { s: 'zbyszek', t: "I didn't have anything to say to that.", next: 'cart7' },
     cart7: { s: 'vesna', t: 'No.', next: 'hub' },
 
-    men1: { s: 'vesna', t: 'I found the three. They are under the ice, by the old tower.', next: 'men2' },
+    men1: { s: 'vesna', t: "I found your three. They're under the ice, out by the old tower.", next: 'men2' },
     men2: { s: 'zbyszek', t: 'Under it.', wait: 0.8, next: 'men3' },
     men3: { s: 'vesna', t: "They've been there a while.", next: 'men4' },
     men4: { s: 'zbyszek', t: 'Right.', wait: 1.2, next: 'men5' },
