@@ -19,6 +19,7 @@ import { Convos } from './convo.js';
 import { NAMED, MILL, buildAmbient } from './cast.js';
 import { allStations } from './stations.js';
 import { createAnimals } from './animals/index.js';
+import { Snowballs } from './snow.js';
 import { LOC } from '../../world/layout.js';
 
 const nextFrame = () => new Promise((r) => requestAnimationFrame(() => r()));
@@ -48,8 +49,11 @@ class Npcs {
       cam: new THREE.Vector3(), player: new THREE.Vector3(), playerYaw: 0, playerSpeed: 0, lookTarget: this.lookTarget, agents: [],
     };
     this.animals = createAnimals(this);
+    this.snow = new Snowballs(G);
     this.paused = false;
     this.frame = 0;
+    this.updateMs = 0; // smoothed cost of one NPC + animal update (ms), for budget checks
+    this.updateMsMax = 0;
   }
 
   // ---- registry ---------------------------------------------------------------------------
@@ -150,12 +154,15 @@ class Npcs {
     const stations = allStations(G);
     this.perchStations = stations.filter((s) => s.perch && (s.animal === 'raven' || s.animal === 'crow' || s.animal === 'bird'))
       .map((s) => ({ x: s.x, y: s.y ?? G.world.heightAt(s.x, s.z) + 3, z: s.z }));
+    const had = this.nav.regions.length;
     for (const s of stations) this.nav.ensure(s.x, s.z);
     if (!this.nav.regions.length) this.nav.ensure(LOC.village.x, LOC.village.z);
-    this.nav.rebuild();
+    if (had) this.nav.rebuild(); // regions built before the buildings existed: re-read the colliders
     if (opts.named !== false) this.spawnNamed(opts.mill !== false);
     if (opts.ambient !== false) {
-      for (const d of buildAmbient(G, { count: opts.count ?? 30, seed: opts.seed })) this.spawn(d);
+      // quality scales the crowd: low 50%, medium 75%
+      const qk = G.quality === 'low' ? 0.5 : G.quality === 'medium' ? 0.75 : 1;
+      for (const d of buildAmbient(G, { count: Math.round((opts.count ?? 30) * qk), seed: opts.seed })) this.spawn(d);
     }
     if (opts.animals !== false) this.populateAnimals(stations, opts);
     this.populated = true;
@@ -232,7 +239,7 @@ class Npcs {
       if (n.frozen) frozen++;
       if (n.visible) visible++;
     }
-    return { total: this.list.length, created, visible, walking, inside, frozen, stare, animals: this.animals.list.length, nav: this.nav.stats };
+    return { total: this.list.length, created, visible, walking, inside, frozen, stare, animals: this.animals.list.length, updateMs: +this.updateMs.toFixed(2), updateMsMax: +this.updateMsMax.toFixed(1), nav: this.nav.stats };
   }
 
   // ---- per frame --------------------------------------------------------------------------
@@ -273,10 +280,11 @@ class Npcs {
     const G = this.G;
     if (!G.camera) return;
     if (dt > 0.1) dt = 0.1;
+    const tStart = performance.now();
     const S = this._frameData(dt);
     this.barkClock -= dt;
     S.barkOK = this.barkClock <= 0 && !S.busy;
-    S.createLeft = 1;
+    S.createLeft = this.frame % 3 === 0 ? 1 : 0; // character builds are the expensive part: spread them out
     this.frame++;
     // neighbors for steering (people near the camera)
     const ag = S.agents;
@@ -299,6 +307,10 @@ class Npcs {
     this.nav.pump(2.5);
     this.convos.update(dt, S);
     this.animals.update(dt, S);
+    this.snow.update(dt);
+    const ms = performance.now() - tStart;
+    this.updateMs += (ms - this.updateMs) * 0.05;
+    if (ms > this.updateMsMax) this.updateMsMax = ms;
   }
 }
 

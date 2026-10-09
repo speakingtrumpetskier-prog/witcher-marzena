@@ -10,6 +10,8 @@
 //   &player=x,z|none     where the stand-in Vesna stands (default 4,127); &vesna=walk loops her along the street
 //   &named=0 &animals=0 &count=0   leave out the named cast, the animals or the ambient crowd (for perf baselines)
 //   &ang=<rad> &ground=1  force the camera angle around a focus subject / put the animal camera on the ground (roof goat)
+//   &ui=1                load the UI module (floating barks show; try --eval "__G.npcs.list.forEach((n) => { n.barkCD = 0.1; })" with Vesna nearby)
+//   &tscale=900          run the game clock fast (shot mode freezes it) to watch schedules play out
 //   &veg=0               skip vegetation (faster load)   &debug=1  markers for stations, paths and nav blocks
 //   &weather=blizzard    people head indoors             &mill=1  frame the mill family
 //   &ceye=x,z,dy&cat=x,z,dy&fov=  camera by ground offsets (eye dy above terrain), e.g. ceye=-4,108,1.7&cat=6,124,1.4
@@ -23,7 +25,7 @@ import { LOC } from '../../world/layout.js';
 import { ORDER } from '../../core/G.js';
 
 const qs = new URLSearchParams(location.search);
-export const modules = ['atmosphere', 'sky', 'terrain', 'water', 'weather', ...(qs.get('veg') === '0' ? [] : ['vegetation']), 'characters', 'postfx'];
+export const modules = ['atmosphere', 'sky', 'terrain', 'water', 'weather', ...(qs.get('veg') === '0' ? [] : ['vegetation']), 'characters', ...(qs.has('ui') ? ['ui'] : []), 'postfx'];
 export const needsWorld = true;
 
 export async function init(G) {
@@ -102,7 +104,7 @@ export async function init(G) {
   const chop2 = A('choppingBlock', 52, 106, { seed: 2 });
   A('firewoodStack', -69, 117, { yaw: 0.3, seed: 1 });
   A('firewoodStack', 55, 107, { yaw: -0.2, seed: 2 });
-  const hay = [[-66, 146], [-63.5, 149], [-66.5, 152], [-62, 144]].map(([x, z], i) => A('hayBale', x, z, { yaw: i * 0.9, seed: i }));
+  const hay = [[-66, 146], [-63.5, 149], [-66.5, 152], [-62, 144]].map(([x, z], i) => A('stump', x, z, { yaw: i * 0.9, seed: i }));
   const rack1 = A('dryingRack', -12, 92, { yaw: 0.1, seed: 1 });
   const rack2 = A('dryingRack', 14, 84, { yaw: -0.1, seed: 2 });
   const laundry = A('laundryLine', -14, 152, { yaw: 0.2, seed: 1 });
@@ -153,6 +155,9 @@ export async function init(G) {
     }
   }
 
+  // tscale=900 runs the clock fast (the harness freezes it): watch schedules play out
+  if (P.has('tscale')) G.time.scale = parseFloat(P.get('tscale'));
+
   // ---- people and animals ----
   await G.npcs.populate({
     count: parseInt(P.get('count') || '30', 10), seed: parseInt(P.get('seed') || '4242', 10),
@@ -161,10 +166,59 @@ export async function init(G) {
   const report = { buildMs: Math.round(performance.now() - t0), ...G.npcs.stats() };
   console.warn('[npcs scene]', JSON.stringify(report));
   window.__npcsReport = () => G.npcs.stats();
+  // Behavior self-test (use with --eval "__npcsTest()"): flight, proximity reactions, goTo, pause, time jump.
+  window.__npcsTest = () => {
+    const N = G.npcs, log = (...a) => console.warn(`T ${a.join(' ')}`);
+    const step = (n, dt = 0.05) => { for (let i = 0; i < n; i++) { G.clock.elapsed += dt; N.update(dt); } };
+    const barks = [];
+    const oldUi = G.ui;
+    G.ui = { ...(oldUi || {}), bark: (name, text) => barks.push(`${name}:${text}`) };
+    // 1. raven flies off and lands again
+    const r = N.animals.list.find((a) => a.kind === 'raven' && a.state === 'perch');
+    if (r) {
+      const y0 = r.y; r.takeOff(N.S); step(30);
+      log('raven after 1.5s', r.state, `y ${y0.toFixed(1)}->${r.y.toFixed(1)}`);
+      step(400); log('raven after 21s', r.state, r.x.toFixed(0), r.y.toFixed(1), r.z.toFixed(0));
+    } else log('no perched raven');
+    // 2. Vesna walks up to a standing villager
+    const n1 = N.list.find((n) => n.state === 'station' && n._c && n.anim && n.anim !== 'sit_bench' && !n.hidden && n.station.kind === 'work' && !n.station.indoor && n.d2 < 28 * 28);
+    if (n1 && G.player) {
+      const p = n1._c.root.position;
+      G.player.position.set(p.x + 3.5, p.y, p.z);
+      step(20);
+      G.player.position.set(p.x + 0.6, p.y, p.z);
+      n1.barkCD = 0; N.barkClock = 0;
+      step(40);
+      log('villager', n1.id, 'lookOn', n1.lookOn, 'side', n1.sideX.toFixed(2), n1.sideZ.toFixed(2), 'barks', JSON.stringify(barks.slice(0, 2)));
+      G.player.position.set(-70, p.y, 100); step(60);
+    }
+    // 3. goTo across the village and back to the schedule
+    const n2 = N.get('zbyszek') || N.list.find((n) => n._c);
+    n2.goTo({ x: -60, z: 135, yaw: 1 }).then((ok) => log('goTo resolved', ok));
+    step(1200, 0.1);
+    const q = n2._c.root.position;
+    log('goTo end', n2.state, q.x.toFixed(1), q.z.toFixed(1));
+    n2.release(); step(600, 0.1);
+    log('after release', n2.state, n2.station && n2.station.id, n2._c.root.position.x.toFixed(1), n2._c.root.position.z.toFixed(1));
+    // 4. pause freezes the brain
+    const n3 = N.list.find((n) => n.state === 'walk' && n._c);
+    if (n3) {
+      const a = n3._c.root.position.clone(); n3.pause(true); step(40);
+      const moved = a.distanceTo(n3._c.root.position);
+      n3.pause(false); step(100);
+      log('pause moved', moved.toFixed(3), 'resumed state', n3.state);
+    }
+    // 5. a time jump to night puts people indoors, then back to day
+    G.time.setHours(23); step(5);
+    log('night', JSON.stringify(N.stats()).slice(0, 160));
+    G.time.setHours(11); step(5);
+    log('day', JSON.stringify(N.stats()).slice(0, 160));
+    G.ui = oldUi;
+  };
   // Console dump of who is where (use with --eval "__npcsDump()"): id:state:anim:station:x,z (H hidden, C talking)
   window.__npcsDump = () => {
     const N = G.npcs;
-    const rows = N.list.filter((n) => n._c).map((n) => `${n.id.replace('villager_', 'v')}:${n.state[0]}:${(n.anim || '-').slice(0, 5)}:${n.station ? n.station.id : '-'}:${n._c.root.position.x.toFixed(0)},${n._c.root.position.z.toFixed(0)}${n.hidden ? 'H' : ''}${n.convo ? 'C' : ''}`);
+    const rows = N.list.filter((n) => n._c).map((n) => `${n.id.replace('villager_', 'v')}:${n.state[0]}:${(n.anim || '-').slice(0, 5)}:${n.station ? n.station.id : '-'}:${n._c.root.position.x.toFixed(0)},${n._c.root.position.z.toFixed(0)}${n.hidden ? 'H' : ''}${n.convo ? 'C' : ''}${n.throwing ? 'T' : ''}`);
     let chunk = '';
     for (const r of rows) { if ((chunk + r).length > 330) { console.warn(`D ${chunk}`); chunk = ''; } chunk += `${r} | `; }
     console.warn(`D ${chunk}`);
@@ -291,8 +345,11 @@ function registerStations(c) {
   reg('chickens_2', { animal: 'chicken', x: 22, z: 106, count: 3, r: 5 });
   reg('goats_1', { animal: 'goat', x: 36, z: 159, count: 2, r: 4 });
   if (placed.shed) {
-    const box = new THREE.Box3().setFromObject(placed.shed.group);
-    reg('goat_roof', { animal: 'goat', perch: true, x: placed.shed.x, z: placed.shed.z, y: box.max.y - 0.12 });
+    // Ridge height: cast a ray down onto the shed from above (the bounding box includes finials and chimney).
+    placed.shed.root.updateMatrixWorld(true);
+    const hit = new THREE.Raycaster(new THREE.Vector3(placed.shed.x, 40, placed.shed.z), new THREE.Vector3(0, -1, 0)).intersectObject(placed.shed.group, true)[0];
+    const ry = hit ? hit.point.y : new THREE.Box3().setFromObject(placed.shed.group).max.y - 0.6;
+    reg('goat_roof', { animal: 'goat', perch: true, x: placed.shed.x, z: placed.shed.z, y: ry - 0.04 });
   }
   const porch = placed.house8 ? placed.house8 : null;
   if (porch) reg('cat_porch', { animal: 'cat', x: porch.anchors.porch ? porch.anchors.porch.x : porch.x, z: porch.anchors.porch ? porch.anchors.porch.z + 0.5 : porch.z + 4, y: ground(porch.x, porch.z) + 0.4, perch: true });
@@ -315,8 +372,8 @@ function setupCamera(G, P, vesna) {
   const org = new THREE.Vector3(), dir = new THREE.Vector3();
   let subject = null, frame = 0, mode = null, ang = null;
   // A camera angle (radians around the subject) with a clear line to the subject, tried in order of preference.
-  const clearAngle = (tx, ty, tz, base, d, eyeY) => {
-    for (const off of [0.45, -0.45, 1.1, -1.1, 1.8, -1.8, 2.6, -2.6, Math.PI]) {
+  const clearAngle = (tx, ty, tz, base, d, eyeY, offs = [0.45, -0.45, 1.1, -1.1, 1.8, -1.8, 2.6, -2.6, Math.PI]) => {
+    for (const off of offs) {
       const a = base + off;
       const ex = tx + Math.sin(a) * d, ez = tz + Math.cos(a) * d;
       org.set(tx, ty, tz);
@@ -336,18 +393,32 @@ function setupCamera(G, P, vesna) {
         subject = cv ? { pair: [cv.a, cv.b] } : null; mode = 'pair'; break;
       }
       case 'kids': {
-        const kids = list.filter((n) => n.def.child && n.anim === 'child_play' && n.station && n.station.tag === 'bale');
-        subject = kids.length ? { group: kids.slice(0, 4) } : null; mode = 'group'; break;
+        // the two children playing closest together, plus any third within 5 m
+        const kids = list.filter((n) => n.def.child && n.anim === 'child_play' && n._c && n.station && (n.station.tag === 'bale' || n.station.tag === 'sled'));
+        let pair = null, bd = 1e9;
+        for (const a of kids) for (const b of kids) {
+          if (a === b) continue;
+          const d = Math.hypot(a._c.root.position.x - b._c.root.position.x, a._c.root.position.z - b._c.root.position.z);
+          if (d < bd) { bd = d; pair = [a, b]; }
+        }
+        subject = pair ? { group: pair.concat(kids.filter((k) => !pair.includes(k) && Math.hypot(k._c.root.position.x - pair[0]._c.root.position.x, k._c.root.position.z - pair[0]._c.root.position.z) < 5)) } : null;
+        mode = 'group'; break;
       }
       case 'smith': subject = list.find((n) => n.anim === 'hammer'); mode = 'follow'; break;
       case 'chop': subject = list.find((n) => n.anim === 'chop_wood'); mode = 'follow'; break;
       case 'home': case 'walkers': {
-        const w = list.filter((n) => n.state === 'walk');
-        subject = w.length ? { group: w.slice(0, 5) } : null; mode = 'group'; break;
+        // the walker with the most other walkers within 20 m, plus those neighbors
+        const w = list.filter((n) => n.state === 'walk' && n._c);
+        let best = [];
+        for (const a of w) {
+          const g = w.filter((b) => Math.hypot(b._c.root.position.x - a._c.root.position.x, b._c.root.position.z - a._c.root.position.z) < 20);
+          if (g.length > best.length) best = g;
+        }
+        subject = best.length ? { group: best.slice(0, 5) } : null; mode = 'group'; break;
       }
       case 'dog': case 'goat': case 'cat': case 'chicken': case 'raven': {
         const all = N.animals.list.filter((x) => x.kind === focus);
-        const a = (P.has('roof') ? all.find((x) => x.yFix != null) : null) || all[0];
+        const a = (P.has('roof') ? all.find((x) => x.yFix != null) : null) || (focus === 'raven' ? all.find((x) => x.state === 'perch') : null) || all[0];
         subject = a ? { animal: a } : null; mode = 'animal'; break;
       }
       default: break;
@@ -371,7 +442,7 @@ function setupCamera(G, P, vesna) {
       const a = subject.pair[0].character.root.position, b = subject.pair[1].character.root.position;
       tgt.set((a.x + b.x) / 2, a.y + 1.25, (a.z + b.z) / 2);
       const d = dist * 1.25;
-      if (ang == null) ang = force ?? clearAngle(tgt.x, tgt.y, tgt.z, Math.atan2(b.x - a.x, b.z - a.z) + Math.PI / 2 - 0.45, d, a.y + 1.45);
+      if (ang == null) ang = force ?? clearAngle(tgt.x, tgt.y, tgt.z, Math.atan2(b.x - a.x, b.z - a.z) + Math.PI / 2, d, a.y + 1.45, [0.15, -0.15, 0.6, -0.6, Math.PI - 0.15, Math.PI + 0.3]);
       eye.set(tgt.x + Math.sin(ang) * d, a.y + 1.45, tgt.z + Math.cos(ang) * d);
     } else if (mode === 'group') {
       const g = subject.group.filter((n) => n._c);
@@ -379,8 +450,8 @@ function setupCamera(G, P, vesna) {
       for (const n of g) tgt.add(n._c.root.position);
       tgt.multiplyScalar(1 / Math.max(1, g.length));
       tgt.y += 1.0;
-      let r = 4;
-      for (const n of g) r = Math.max(r, Math.hypot(n._c.root.position.x - tgt.x, n._c.root.position.z - tgt.z) + 3);
+      let r = dist;
+      for (const n of g) r = Math.max(r, Math.hypot(n._c.root.position.x - tgt.x, n._c.root.position.z - tgt.z) + 2.5);
       if (ang == null) ang = force ?? clearAngle(tgt.x, tgt.y, tgt.z, 0.05, r * 1.1, tgt.y + 0.7);
       eye.set(tgt.x + Math.sin(ang) * r * 1.1, tgt.y + 0.7, tgt.z + Math.cos(ang) * r * 1.1);
     } else if (mode === 'animal') {

@@ -45,8 +45,8 @@ export const SPECS = {
   goat: {
     len: 0.88, h: 0.62, bodyR: 0.19, legR: 0.034, headR: 0.095, snout: 0.09, neckLen: 0.1, earKind: 'side', tail: 'short', tailLen: 0.1, horns: true, beard: true,
     palettes: [
-      { fur: 0xe4dccc, belly: 0xf2ece0, dark: 0x4a4038, light: 0xf6f0e6 },
-      { fur: 0x9a8a78, belly: 0xd8ccb8, dark: 0x2e2824, light: 0xeee4d2 },
+      { fur: 0xc4b9a4, belly: 0xded4c0, dark: 0x4a4038, light: 0xe6dcc8 },
+      { fur: 0x8a7a68, belly: 0xc4b8a2, dark: 0x2e2824, light: 0xd8ccb6 },
       { fur: 0x5a4c40, belly: 0xa8967c, dark: 0x1e1a16, light: 0xd8c8aa },
     ],
   },
@@ -127,7 +127,7 @@ export function makeQuad(kind, seed = 0) {
   body.add(tail);
   let tailG;
   if (S.tail === 'curl') tailG = part(caps(0.02, S.tailLen, 2, 5), pal.fur, 0, S.tailLen * 0.5, -0.02, -0.5, 0, 0);
-  else if (S.tail === 'long') tailG = mergeGeometries([part(caps(0.017, S.tailLen * 0.6, 2, 5), pal.fur, 0, 0.05, -0.1, -1.1, 0, 0), part(caps(0.016, S.tailLen * 0.45, 2, 5), pal.dark, 0, 0.19, -0.2, -0.4, 0, 0)], false);
+  else if (S.tail === 'long') tailG = mergeGeometries([part(caps(0.016, S.tailLen * 0.6, 2, 6), pal.fur, 0, 0.05, -0.1, -1.1, 0, 0), part(caps(0.015, S.tailLen * 0.45, 2, 6), pal.fur, 0, 0.19, -0.2, -0.4, 0, 0)], false);
   else tailG = part(new THREE.ConeGeometry(0.03, S.tailLen, 5), pal.fur, 0, S.tailLen * 0.3, -0.03, -0.9, 0, 0);
   const tailM = new THREE.Mesh(tailG, material());
   tail.add(tailM);

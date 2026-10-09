@@ -20,9 +20,9 @@ import { makeTool, TOOL_FOR_ANIM, TOOL_POSE } from './tools.js';
 import { chooseBark, chooseExchange } from './barks.js';
 import { fx } from '../../world/props/fx.js';
 
-const FREEZE2 = 170 * 170, WAKE2 = 150 * 150, NEAR2 = 45 * 45, FAR2 = 60 * 60;
+const FREEZE2 = 170 * 170, WAKE2 = 150 * 150, PRECREATE2 = 280 * 280, NEAR2 = 45 * 45, FAR2 = 60 * 60;
 const _slot = { x: 0, z: 0, yaw: 0 };
-const _v = new THREE.Vector3();
+const _v = new THREE.Vector3(), _from = new THREE.Vector3(), _to = new THREE.Vector3();
 
 const inRange = (h, a, b) => (a <= b ? h >= a && h < b : h >= a || h < b);
 const wrap24 = (h) => ((h % 24) + 24) % 24;
@@ -81,6 +81,8 @@ export class NPC {
     this.convo = null;
     this.interactId = null;
     this.laughT = 3 + this.rand() * 10;
+    this.snowT = 4 + this.rand() * 10;
+    this.throwing = false; this.throwTarget = null; this.throwStartT = 0;
     this.arriveCb = null;
     const age = def.child ? 1 : /^elder/.test(this.preset) ? 2 : 0;
     this.walkSpeed = (age === 1 ? 1.55 : age === 2 ? 0.95 : 1.22) + this.rand() * 0.16;
@@ -197,7 +199,8 @@ export class NPC {
     c.npc = this;
     this.G.scene.add(c.root);
     c.setVisible(false);
-    c.onEvent((name) => { if (name === 'hit') this._onHit(); });
+    c.setPosition(this.baseX, this.baseZ); // so distance gating works before placeNow
+    c.onEvent((name) => { if (name === 'hit') this._onHit(); else if (name === 'release') this._onRelease(); });
     this._c = c;
     return c;
   }
@@ -341,6 +344,7 @@ export class NPC {
     this.hidden = false;
     this.state = 'station';
     this._startStation(S);
+    if (this.override && this.override.st === st) this._resolveOverride(true);
   }
 
   _placeAlong(path, dist, S) {
@@ -404,17 +408,20 @@ export class NPC {
     const px = p ? p.x : this.baseX, pz = p ? p.z : this.baseZ;
     const dx = px - cam.x, dz = pz - cam.z;
     this.d2 = dx * dx + dz * dz;
+    if (!c0) {
+      // No character yet: build one when the camera gets within range, a few frames apart. Those
+      // beyond the wake range are built hidden and frozen so walking into the village does not hitch.
+      if (this.d2 < PRECREATE2 && S.createLeft > 0) {
+        S.createLeft--;
+        if (this.d2 < WAKE2) { this.frozen = false; this.placeNow(S); } else { this._create(); this.frozen = true; }
+      } else if (this.d2 > FREEZE2) this.frozen = true;
+      return;
+    }
     if (this.frozen) {
       if (this.d2 > WAKE2) return;
       this._thaw(S);
     } else if (this.d2 > FREEZE2 && !this.def.keepAlive && !this.override) {
       this._freeze();
-      return;
-    }
-    if (!this._c) {
-      if (S.createLeft <= 0) return;
-      S.createLeft--;
-      this.placeNow(S);
       return;
     }
     this.acc += dt;
@@ -638,7 +645,7 @@ export class NPC {
     this.faceYaw = _slot.yaw;
     this.state = 'station';
     this._startStation(S);
-    if (this.override) { const r = this.override.resolve; this.override.resolve = () => {}; r(true); }
+    if (this.override && this.override.st === st) this._resolveOverride(true);
   }
 
   // ---- stations ---------------------------------------------------------------------------
@@ -653,6 +660,7 @@ export class NPC {
       c.lookAt(null);
     }
     this.lookOn = false;
+    this.throwing = false; this.throwStartT = 0;
     this._dropTool();
     this.carrying = null;
     this.anim = null;
@@ -696,6 +704,11 @@ export class NPC {
     }
     // step aside for the player while standing
     if (st && st.kind !== 'sit' && st.kind !== 'bed' && !st.indoor) this._sidestep(dt, S);
+    // children throw snowballs at each other
+    if (this.def.child && this.anim === 'child_play' && this.d2 < NEAR2 && !this.convo) {
+      if (this.throwStartT > 0) { this.throwStartT -= dt; if (this.throwStartT <= 0) this._playThrow(); }
+      else if (!this.throwing) { this.snowT -= dt; if (this.snowT <= 0) this._pickThrow(S); }
+    }
     // errands and wandering
     if (!this.errand && !this.override && S.dayTime && (this.def.errand ?? 0.5) > 0) {
       this.errandT -= dt * (this.def.errand ?? 0.5) * 2;
@@ -792,7 +805,7 @@ export class NPC {
     this.state = 'inside';
     this.path = null;
     this.v = 0;
-    if (this.override) { const r = this.override.resolve; this.override.resolve = () => {}; r(true); }
+    if (this.override) this._resolveOverride(true);
     void S;
   }
 
@@ -828,6 +841,58 @@ export class NPC {
 
   _dropTool() {
     if (this.tool) { this.tool.parent?.remove(this.tool); this.tool = null; this.toolKey = ''; }
+  }
+
+  // ---- snowballs --------------------------------------------------------------------------
+  _pickThrow(S) {
+    this.snowT = this.sys.G.shot ? 3 + this.rand() * 4 : 7 + this.rand() * 12;
+    const c = this._c, p = c.root.position;
+    let best = null, n = 0;
+    for (const a of S.agents) {
+      const o = a.npc;
+      if (o === this || !o.def.child || o.state !== 'station' || !o._c || o.paused) continue;
+      const d = Math.hypot(a.x - p.x, a.z - p.z);
+      if (d < 2.5 || d > 11) continue;
+      if (this.rand() < 1 / ++n) best = o;
+    }
+    if (!best) return;
+    this.throwing = true;
+    this.throwTarget = best;
+    this.faceYaw = Math.atan2(best._c.root.position.x - p.x, best._c.root.position.z - p.z);
+    this.throwStartT = 0.45;
+  }
+
+  _playThrow() {
+    const c = this._c;
+    if (!c || !this.throwing) return;
+    this._setTool('snowball', 'handR');
+    c.play('throw_snowball', { loop: false, fade: 0.2 }).then(() => {
+      if (this.disposed || !this.throwing) return;
+      this.throwing = false;
+      if (this.state === 'station' && this.anim === 'child_play' && !this.paused) {
+        this._dropTool();
+        c.play('child_play', { loop: true, fade: 0.3 });
+      }
+    });
+  }
+
+  _onRelease() {
+    const t = this.throwTarget;
+    if (!this.throwing || !t || !t._c || this.paused) return;
+    const c = this._c;
+    c.sockets.handR.getWorldPosition(_from);
+    t._c.root.getWorldPosition(_to);
+    _to.y += t._c.height * (0.5 + this.rand() * 0.25);
+    _to.x += (this.rand() - 0.5) * 0.5;
+    this._dropTool();
+    this.sys.snow.launch(_from, _to, () => t._hitBySnow());
+  }
+
+  _hitBySnow() {
+    const c = this._c;
+    if (!c || this.paused || this.state === 'inside') return;
+    c.gesture('hit_flinch');
+    if (this.d2 < 35 * 35) this.sys.sfx('child_laugh', c.root.position, 0.45);
   }
 
   _onHit() {
@@ -885,7 +950,7 @@ export class NPC {
     const c = this._c;
     this.stareCD -= dt;
     // breath puffs
-    if (!this.breath && this.d2 < 28 * 28 && S.cold) {
+    if (!this.breath && this.d2 < 28 * 28 && S.cold && this.G.quality !== 'low') {
       const k = c.M ? c.M.headK : 1;
       this.breath = fx.breath({ parent: c.bones.head, position: [0, 0.075 * k, 0.1 * k], getSpeed: () => c.speed });
     }
@@ -929,6 +994,14 @@ export class NPC {
     c.talk(true);
     this.speakT = secs;
     c.playUpper(['talk_1', 'talk_2', 'talk_3'][Math.floor(this.rand() * 3)], { loop: false, fade: 0.3 });
+  }
+
+  // goTo() promises resolve true once the NPC stands at the override station (walked or hopped there).
+  _resolveOverride(ok) {
+    if (!this.override) return;
+    const r = this.override.resolve;
+    this.override.resolve = () => {};
+    r(ok);
   }
 
   _cancelOverrideWaiters() {
