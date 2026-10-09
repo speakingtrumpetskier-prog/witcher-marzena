@@ -139,15 +139,18 @@ export async function init(G_) {
     } else if (P.loco?.sprinting) fovGoal += 3;
 
     // Lock-on: the camera swings to look at the target and pulls back to keep both in frame.
-    let focusLerp = 0;
+    let focusLerp = 0, tall = 0;
     const tgt = R.target;
     if (tgt) {
       const tp = targetPos(tgt, _look);
       const dx = tp.x - P.position.x, dz = tp.z - P.position.z;
       const d = Math.hypot(dx, dz);
       if (d > 0.5) R.yaw = dampAngle(R.yaw, Math.atan2(dx, dz), R.snap ? 100 : 4.2, dt);
-      R.pitch = damp(R.pitch, M.pitch + clamp(d * 0.012, 0, 0.1), 2.2, dt);
-      distGoal += clamp(d * 0.32, 0, 3.4);
+      // Tall targets (the boss is about 4.5 m) need a level camera, more distance and a higher
+      // pivot, or the frame cuts her off at the waist.
+      tall = clamp(((tgt.height ?? 1.8) - 2.2) / 3, 0, 1);
+      R.pitch = damp(R.pitch, M.pitch + clamp(d * 0.012, 0, 0.1) - tall * 0.2, 2.2, dt);
+      distGoal += clamp(d * 0.32, 0, 3.4) + tall * 2.2;
       focusLerp = 0.26;
     } else if (R.recentering) {
       R.yaw = dampAngle(R.yaw, P.yaw, 6, dt);
@@ -160,7 +163,7 @@ export async function init(G_) {
 
     cur.dist += (distGoal - cur.dist) * k;
     cur.side += (M.side - cur.side) * k;
-    cur.pivotH += (M.pivotH - cur.pivotH) * k;
+    cur.pivotH += (M.pivotH + tall * 0.9 - cur.pivotH) * k;
     cur.fov += (fovGoal - cur.fov) * (R.snap ? 1 : 1 - Math.exp(-(R.mode === 'mounted' ? 2.2 : 3.2) * dt));
 
     // ---- follow with lag ---------------------------------------------------------------------

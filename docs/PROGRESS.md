@@ -28,8 +28,8 @@ catches issues, and fixes them or sends a targeted fix back to the builder. No c
 Model policy (user request): Part Two and later run on Sonnet 5.5, except a single long-running builder may stay on Opus (the story systems builder).
 
 ## Polish list (lead, integration pass)
-- Creatures: wolves and Marzanny read pale and flat at night on black ice; one more material pass under real lighting.
-- Combat: Player has no grabbed or stunned state (grab overrides position); lock-on frames the boss's feet; no creature footsteps, bear roar or gust sounds; Weather has no gust() hook.
+- Creatures: Marzanny still glow pale at night (white dresses, partly intended); wolves fixed (darker coat, night glow cut to a third).
+- Combat: Player has no grabbed or stunned state (grab overrides position); no creature footsteps, bear roar or gust sounds; Weather has no gust() hook.
 - Wilderness: pass drifts show polygon edges; ice cave reads bright and its crystals look like plain shards; belfry table slab reads oversized; bear nest and hunter skeleton simple.
 - Wilderness: G.water has one under-glow slot (boss glow, grab telegraph and the bell tower glow share it).
 - UI: distant barks low contrast over grey trees (strengthen shadow/scrim for barks).
