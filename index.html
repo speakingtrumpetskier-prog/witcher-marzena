@@ -2,20 +2,23 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>The Witcher: Marzena</title>
-    <style>
-      body {
-        margin: 0;
-        padding: 0;
-        background: #0a0908;
-        overflow-x: hidden;
-      }
-    </style>
+    <title>Marzena</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=EB+Garamond:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet" />
   </head>
   <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
+    <div id="app"></div>
+    <div id="ui-root"></div>
+    <div id="loading">
+      <div class="loading-inner">
+        <div class="loading-title">MARZENA</div>
+        <div class="loading-thread"></div>
+        <div class="loading-track"><div id="loading-bar"></div></div>
+        <div id="loading-msg">Waking the valley</div>
+      </div>
+    </div>
+    <script type="module" src="/src/main.js"></script>
   </body>
 </html>
