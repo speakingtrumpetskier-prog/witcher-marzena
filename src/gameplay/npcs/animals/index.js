@@ -444,6 +444,7 @@ export function createAnimals(sys) {
       else if (kind === 'cat') a = new Cat(sys, x, z, opts);
       else if (kind === 'chicken') a = new Chicken(sys, x, z, opts);
       else if (kind === 'raven' || kind === 'crow') a = new Corvid(sys, kind, x, z, opts);
+      else if (kind === 'horse') return null; // Kasza belongs to gameplay/Horse.js; the stable station is her parking spot
       else { console.warn(`[animals] unknown kind ${kind}`); return null; }
       sys.G.scene.add(a.root);
       list.push(a);
