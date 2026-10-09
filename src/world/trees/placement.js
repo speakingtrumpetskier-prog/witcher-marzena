@@ -10,8 +10,8 @@
 // roads (with a margin), inside LOC footprints or EXCLUSIONS.
 import { createNoise } from '../../core/Noise.js';
 import { rng, smoothstep, clamp, lerp, nearestOnPolyline } from '../../core/util.js';
-import { LOC, ROADS, LAKE, RIVER, WORLD, nearestRoad } from '../layout.js';
-import { lakeSDF, computeHeight } from '../heightfield.js';
+import { LOC, ROADS, LAKE, RIVER, nearestRoad } from '../layout.js';
+import { lakeSDF } from '../heightfield.js';
 import { exclusionFactor, EXCLUSIONS } from '../exclusions.js';
 
 export const INNER = 660; // full detail area half size (playable is 620)
@@ -29,10 +29,30 @@ function locDistance(x, z) {
   let best = 1e9;
   for (let i = 0; i < LOCS.length; i++) {
     const l = LOCS[i];
-    const d = Math.hypot(x - l.x, z - l.z) - l.r;
+    const dx = x - l.x, dz = z - l.z;
+    const d = Math.sqrt(dx * dx + dz * dz) - l.r;
     if (d < best) best = d;
   }
   return best;
+}
+
+// Vista points keep an open ring around them so the view is not a wall of trunks:
+// [x, z, fully open radius, back to normal density radius]
+const VISTAS = [
+  [LOC.watchtower.x, LOC.watchtower.z, 42, 120],
+  [LOC.idol.x, LOC.idol.z, 24, 80],
+  [LOC.passStart.x, LOC.passStart.z, 26, 70],
+  [LOC.crossroads.x, LOC.crossroads.z, 14, 40],
+];
+function vistaFactor(x, z) {
+  let f = 1;
+  for (let i = 0; i < VISTAS.length; i++) {
+    const v = VISTAS[i];
+    const dx = x - v[0], dz = z - v[1];
+    const d = Math.sqrt(dx * dx + dz * dz);
+    if (d < v[3]) f = Math.min(f, smoothstep(v[2], v[3], d));
+  }
+  return f;
 }
 
 // --- macro fields: forest density, birch weight, deadwood weight ---------------------------
@@ -42,9 +62,10 @@ function riverDistance(x, z) {
 }
 
 function macroForest(x, z) {
-  let f = 0.52 + 0.85 * N.fbm2(x / 310 + 11, z / 310 - 5, 3);
-  f += 0.58 * smoothstep(-170, -360, z); // north: dense dark forest
-  f += 0.5 * smoothstep(-80, -300, x); // west
+  let f = 0.3 + 1.15 * N.fbm2(x / 310 + 11, z / 310 - 5, 3);
+  f -= 0.55 * smoothstep(0.12, 0.4, N.fbm2(x / 470 + 100, z / 470 + 40, 2)); // big open meadows
+  f += 0.75 * smoothstep(-170, -360, z); // north: dense dark forest
+  f += 0.6 * smoothstep(-80, -300, x); // west
   f += 0.12 * smoothstep(250, 470, x);
   f -= 0.95 * gauss(x, z, 200, 230, 95); // idol hill stays open for its silhouette
   f -= 0.45 * gauss(x, z, -40, 215, 60); // sledding meadow
@@ -73,6 +94,46 @@ function macroDead(x, z) {
   d += 0.08 * smoothstep(50, 12, Math.hypot(x - LOC.crossroads.x, z - LOC.crossroads.z));
   return d;
 }
+
+// Macro fields sampled on a 12 m raster (they vary slowly), bilinear lookups per candidate.
+class Macro {
+  constructor(W, half, cell) {
+    this.half = half; this.cell = cell;
+    this.n = Math.ceil((half * 2) / cell) + 1;
+    const n = this.n;
+    this.F = new Float32Array(n * n);
+    this.B = new Float32Array(n * n);
+    this.D = new Float32Array(n * n);
+    this.P = new Float32Array(n * n);
+    for (let j = 0; j < n; j++) {
+      for (let i = 0; i < n; i++) {
+        const x = i * cell - half, z = j * cell - half;
+        const o = j * n + i;
+        const h = W.heightAt(x, z);
+        this.F[o] = macroForest(x, z);
+        this.B[o] = macroBirch(x, z, h);
+        this.D[o] = macroDead(x, z);
+        this.P[o] = N.fbm2(x / 180 + 50, z / 180 - 20, 2);
+      }
+    }
+  }
+  _s(a, x, z) {
+    const fx = (x + this.half) / this.cell, fz = (z + this.half) / this.cell;
+    const n = this.n;
+    let ix = Math.floor(fx), iz = Math.floor(fz);
+    if (ix < 0) ix = 0; else if (ix > n - 2) ix = n - 2;
+    if (iz < 0) iz = 0; else if (iz > n - 2) iz = n - 2;
+    const tx = clamp(fx - ix, 0, 1), tz = clamp(fz - iz, 0, 1);
+    const o = iz * n + ix;
+    return (a[o] * (1 - tx) + a[o + 1] * tx) * (1 - tz) + (a[o + n] * (1 - tx) + a[o + n + 1] * tx) * tz;
+  }
+  f(x, z) { return this._s(this.F, x, z); }
+  b(x, z) { return this._s(this.B, x, z); }
+  d(x, z) { return this._s(this.D, x, z); }
+  p(x, z) { return this._s(this.P, x, z); }
+}
+let _macro = null;
+export function getMacro(W) { return _macro || (_macro = new Macro(W, INNER + 60, 12)); }
 
 // Road distance raster (distance to the road edge, meters) at 4 m, valid up to 40 m.
 class RoadRaster {
@@ -140,22 +201,23 @@ function indexByPrefix(kinds) {
 }
 
 // ---------------------------------------------------------------------------------------------
-export async function placeVegetation(G, kinds, opts = {}) {
+export async function placeVegetation(G, kinds) {
   const W = G.world;
   const q = G.quality;
   const dens = { low: 0.6, medium: 0.82, high: 1 }[q] ?? 1;
   const rn = rng(4711);
   const inner = [];
-  const far = [];
   const by = indexByPrefix(kinds);
   const roads = roadRaster();
+  const macro = getMacro(W);
   const nrm = { x: 0, y: 1, z: 0 };
   const col = [1, 1, 1];
   let yieldT = performance.now();
   const maybeYield = async () => {
     if (performance.now() - yieldT > 30) { await new Promise((r) => setTimeout(r, 0)); yieldT = performance.now(); }
   };
-  const stats = { tree: 0, snag: 0, bush: 0, deadwood: 0, reed: 0, far: 0 };
+  const stats = { tree: 0, snag: 0, bush: 0, deadwood: 0, reed: 0, ms: {} };
+  const tStart = performance.now();
 
   const pickVar = (list, weights) => {
     if (!weights) return list[Math.floor(rn() * list.length)];
@@ -201,7 +263,7 @@ export async function placeVegetation(G, kinds, opts = {}) {
       if (sd < 2.5) continue;
       const exF = EXCLUSIONS.length ? exclusionFactor(x, z, 'tree') : 1;
       if (exF <= 0) continue;
-      const F = macroForest(x, z);
+      const F = macro.f(x, z);
       const rd = roads.edge(x, z);
       if (rd < 3.0) {
         // road verge: shrubs and the odd sapling only
@@ -212,34 +274,38 @@ export async function placeVegetation(G, kinds, opts = {}) {
         }
         continue;
       }
-      const dv = Math.hypot(x - VILLAGE.x, z - VILLAGE.z) - VILLAGE.r; // distance outside the village footprint
+      const dvx = x - VILLAGE.x, dvz = z - VILLAGE.z;
+      const dv = Math.sqrt(dvx * dvx + dvz * dvz) - VILLAGE.r; // distance outside the village footprint
       const ny = normalAt(x, z);
       if (ny < 0.5) continue;
-      let D = smoothstep(0.2, 0.62, F);
+      let D = smoothstep(0.3, 0.82, F) * 0.85;
       D *= 1 - smoothstep(250, 390, h);
       D *= smoothstep(0.52, 0.8, ny);
       D *= smoothstep(1.8, 22, ld) * smoothstep(3.0, 14, rd) * exF;
       D *= smoothstep(2.5, 22, sd);
+      const vis = vistaFactor(x, z);
+      D *= vis;
       // village: thin and gappy, cut for firewood
       let vill = 1;
       if (dv < 190) vill = Math.pow(smoothstep(-2, 190, dv), 1.35);
       D *= vill;
       // glades and clumps
       const gl = N.fbm2(x / 62 + 13, z / 62 - 7, 2);
-      D *= 1 - 0.96 * smoothstep(0.28, 0.5, gl);
-      const mic = N.fbm2(x / 15 + 3, z / 15 + 9, 2);
-      D *= 0.62 + 0.62 * (mic * 0.5 + 0.5);
+      D *= 1 - 0.97 * smoothstep(0.2, 0.42, gl);
+      // thickets and thin patches at 12 to 30 m: breaks the even plantation spacing
+      const mic = N.fbm2(x / 13 + 3, z / 13 + 9, 2) * 0.65 + N.fbm2(x / 34 - 40, z / 34 + 17, 2) * 0.5;
+      D *= 0.3 + 1.05 * smoothstep(-0.5, 0.45, mic);
       D *= dens;
 
       const roll = rn();
       if (roll < D) {
         // choose species
-        const B = macroBirch(x, z, h);
+        const B = macro.b(x, z);
         const hcurv = h - 0.25 * (W.heightAt(x + 30, z) + W.heightAt(x - 30, z) + W.heightAt(x, z + 30) + W.heightAt(x, z - 30));
-        let P = 0.55 * smoothstep(0.88, 0.7, ny) + 0.5 * smoothstep(2, 9, hcurv) + 0.35 * smoothstep(0.1, 0.55, N.fbm2(x / 180 + 50, z / 180 - 20, 2)) * smoothstep(0.0, 0.5, 1 - B)
+        let P = 0.55 * smoothstep(0.88, 0.7, ny) + 0.5 * smoothstep(2, 9, hcurv) + 0.35 * smoothstep(0.1, 0.55, macro.p(x, z)) * smoothstep(0.0, 0.5, 1 - B)
           + 0.35 * smoothstep(90, 240, h);
         P = clamp(P, 0, 0.9);
-        const dead = macroDead(x, z) * (0.6 + 0.8 * (1 - F));
+        const dead = macro.d(x, z) * (0.6 + 0.8 * (1 - F));
         let ki, s, sxm, tiltMax, tb;
         const u = rn();
         if (rn() < dead) {
@@ -257,8 +323,8 @@ export async function placeVegetation(G, kinds, opts = {}) {
         } else {
           // spruce: forest interior favours the tall variants, edges the young ones
           const young = smoothstep(0.55, 0.28, F);
-          ki = pickVar(spruceIdx, [1, 0.9, 0.35 + 0.2 * F, 0.15 + 0.9 * young]);
-          s = lerp(0.62, 1.12, Math.pow(rn(), 1.15)) * (1 + 0.08 * smoothstep(0.7, 1.1, F));
+          ki = pickVar(spruceIdx, [1, 0.9, 0.35 + 0.2 * F, 0.15 + 0.9 * young, 0.7, 0.8]);
+          s = lerp(0.5, 1.12, Math.pow(rn(), 1.3)) * (1 + 0.08 * smoothstep(0.7, 1.1, F));
           sxm = (0.88 + rn() * 0.22) * (1 - 0.1 * clamp(F, 0, 1));
           tiltMax = 0.02; tb = 1;
           stats.tree++;
@@ -276,7 +342,7 @@ export async function placeVegetation(G, kinds, opts = {}) {
         const shore = sd < 28 ? smoothstep(2.5, 6, sd) * smoothstep(28, 10, sd) : 0;
         const forest = smoothstep(0.25, 0.6, F);
         let pu = (0.012 + 0.07 * edge + 0.1 * roadside + 0.08 * shore + 0.012 * forest) * dens * exF * smoothstep(0.62, 0.8, ny) * vill;
-        pu *= smoothstep(1.8, 12, ld);
+        pu *= smoothstep(1.8, 12, ld) * (0.4 + 0.6 * vis);
         if (rn() < pu) {
           const w = rn();
           const forestInterior = forest > 0.5;
@@ -311,6 +377,7 @@ export async function placeVegetation(G, kinds, opts = {}) {
     }
   }
 
+  stats.ms.inner = Math.round(performance.now() - tStart);
   // ------------------------------------------------------------------ marsh and shore reeds
   const reedIdx = by.reed;
   const cattail = kinds.findIndex((k) => k.id === 'cattail');
@@ -381,59 +448,63 @@ export async function placeVegetation(G, kinds, opts = {}) {
     }
   }
 
-  // ------------------------------------------------------------------ far ring (impostors only)
-  {
-    const FS = 12;
-    // coarse height grid for prefiltering (exact height only for accepted cells)
-    const GS = 48;
-    const gn = Math.ceil((FAR * 2) / GS) + 1;
-    const grid = new Float32Array(gn * gn);
-    for (let j = 0; j < gn; j++) {
-      await maybeYield();
-      for (let i = 0; i < gn; i++) {
-        const x = -FAR + i * GS, z = -FAR + j * GS;
-        grid[j * gn + i] = (Math.abs(x) < WORLD.gridHalf - 20 && Math.abs(z) < WORLD.gridHalf - 20) ? W.terrainAt(x, z) : computeHeight(x, z);
-      }
-    }
-    const gh = (x, z) => {
-      const fx = (x + FAR) / GS, fz = (z + FAR) / GS;
-      const ix = clamp(Math.floor(fx), 0, gn - 2), iz = clamp(Math.floor(fz), 0, gn - 2);
-      const tx = fx - ix, tz = fz - iz;
-      const a = grid[iz * gn + ix], b = grid[iz * gn + ix + 1], c = grid[(iz + 1) * gn + ix], d = grid[(iz + 1) * gn + ix + 1];
-      return lerp(lerp(a, b, tx), lerp(c, d, tx), tz);
-    };
-    for (let gz = -FAR; gz < FAR; gz += FS) {
-      await maybeYield();
-      for (let gx = -FAR; gx < FAR; gx += FS) {
-        const x = gx + rn() * FS, z = gz + rn() * FS;
-        if (Math.abs(x) < R && Math.abs(z) < R) continue;
-        const hc = gh(x, z);
-        if (hc > 420 || hc < 1) continue;
-        const sl = Math.hypot(gh(x + 20, z) - gh(x - 20, z), gh(x, z + 20) - gh(x, z - 20)) / 40;
-        if (sl > 1.05) continue;
-        let F = macroForest(x, z);
-        F = F * 0.9 + 0.12;
-        let D = smoothstep(0.18, 0.6, F) * (1 - smoothstep(260, 395, hc)) * (1 - smoothstep(0.55, 1.0, sl));
-        D *= 1 - 0.9 * smoothstep(0.3, 0.52, N.fbm2(x / 90 + 5, z / 90 + 9, 2));
-        D *= 1.4 * dens;
-        if (rn() >= D) continue;
-        const h = Math.abs(x) < WORLD.gridHalf - 8 && Math.abs(z) < WORLD.gridHalf - 8 ? W.terrainAt(x, z) : computeHeight(x, z);
-        if (h > 405) continue;
-        const B = macroBirch(x, z, h);
-        const u = rn();
-        let ki;
-        if (u < 0.1 + 0.2 * smoothstep(90, 250, h)) ki = pickVar(pineIdx);
-        else if (u < 0.1 + B * 0.5 && B > 0.35 && h < 130) ki = pickVar(birchIdx);
-        else ki = pickVar(spruceIdx, [1, 0.9, 0.5, 0.2]);
-        const stunt = lerp(1, 0.4, smoothstep(160, 335, h));
-        const s = lerp(0.7, 1.15, rn()) * stunt * 1.12;
-        tint(rn, 1, 0.3, col);
-        far.push({ k: ki, x, y: h - 1.0 - sl * 3, z, sx: s * (0.95 + rn() * 0.2), sy: s, r: col[0], g: col[1], b: col[2], view: rn() < 0.5 ? 0 : 1 });
-        stats.far++;
-      }
+  stats.ms.total = Math.round(performance.now() - tStart);
+  return { inner, stats };
+}
+
+// ---------------------------------------------------------------------------------------------
+// Far ring: impostor-only trees on the mountain slopes out to FAR meters, placed with the terrain
+// builder's far height grid so they stand exactly on the far terrain mesh.
+export async function placeFarRing(G, kinds, opts = {}) {
+  const W = G.world;
+  const dens = { low: 0.6, medium: 0.82, high: 1 }[G.quality] ?? 1;
+  const rn = rng(8128);
+  const by = indexByPrefix(kinds);
+  const spruceIdx = by.spruce, pineIdx = by.pine, birchIdx = by.birch;
+  const far = [];
+  const col = [1, 1, 1];
+  let yieldT = performance.now();
+  const maybeYield = async () => {
+    if (performance.now() - yieldT > 25) { await new Promise((r) => setTimeout(r, 0)); yieldT = performance.now(); }
+  };
+  const pickVar = (list, weights) => {
+    let tot = 0;
+    for (const w of weights) tot += w;
+    let u = rn() * tot;
+    for (let i = 0; i < list.length; i++) { u -= weights[i]; if (u <= 0) return list[i]; }
+    return list[list.length - 1];
+  };
+  const R = INNER;
+  const ready = W.farReady ? await Promise.race([W.farReady, new Promise((r) => setTimeout(() => r(null), opts.waitMs ?? 20000))]) : null;
+  void ready;
+  const FS = 12;
+  for (let gz = -FAR; gz < FAR; gz += FS) {
+    await maybeYield();
+    for (let gx = -FAR; gx < FAR; gx += FS) {
+      const x = gx + rn() * FS, z = gz + rn() * FS;
+      if (Math.abs(x) < R && Math.abs(z) < R) continue;
+      const h = W.terrainAt(x, z);
+      if (h > 405 || h < 1) continue;
+      const sl = Math.sqrt((W.terrainAt(x + 18, z) - W.terrainAt(x - 18, z)) ** 2 + (W.terrainAt(x, z + 18) - W.terrainAt(x, z - 18)) ** 2) / 36;
+      if (sl > 1.05) continue;
+      const F = macroForest(x, z) * 0.9 + 0.12;
+      let D = smoothstep(0.24, 0.72, F) * (1 - smoothstep(260, 395, h)) * (1 - smoothstep(0.55, 1.0, sl));
+      D *= 1 - 0.9 * smoothstep(0.3, 0.52, N.fbm2(x / 90 + 5, z / 90 + 9, 2));
+      D *= 1.3 * dens;
+      if (rn() >= D) continue;
+      const B = macroBirch(x, z, h);
+      const u = rn();
+      let ki;
+      if (u < 0.1 + 0.2 * smoothstep(90, 250, h)) ki = pickVar(pineIdx, pineIdx.map(() => 1));
+      else if (u < 0.1 + B * 0.5 && B > 0.35 && h < 130) ki = pickVar(birchIdx, birchIdx.map(() => 1));
+      else ki = pickVar(spruceIdx, [1, 0.9, 0.5, 0.2, 0.7, 0.8]);
+      const stunt = lerp(1, 0.4, smoothstep(160, 335, h));
+      const s = lerp(0.7, 1.15, rn()) * stunt * 1.12;
+      tint(rn, 1, 0.3, col);
+      far.push({ k: ki, x, y: h - 1.0 - sl * 3, z, sx: s * (0.95 + rn() * 0.2), sy: s, r: col[0], g: col[1], b: col[2], view: rn() < 0.5 ? 0 : 1 });
     }
   }
-  return { inner, far, stats };
+  return far;
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -452,6 +523,7 @@ export class GroundGenerator {
   generate(cx, cz, cs) {
     const W = this.G.world;
     const roads = roadRaster();
+    const macro = getMacro(W);
     const out = [];
     const rn = rng(((cx * 73856093) ^ (cz * 19349663) ^ 0x9e3779b1) >>> 0);
     const step = 1.5;
@@ -477,7 +549,7 @@ export class GroundGenerator {
         const nx = W.terrainAt(x - e, z) - W.terrainAt(x + e, z), nz = W.terrainAt(x, z - e) - W.terrainAt(x, z + e);
         const ny = 2 * e / Math.hypot(nx, 2 * e, nz);
         if (ny < 0.6) continue;
-        const F = macroForest(x, z);
+        const F = macro.f(x, z);
         const forest = smoothstep(0.3, 0.75, F);
         const patch = N.fbm2(x / 8 + 21, z / 8 - 33, 2) * 0.5 + 0.5;
         const meadow = 1 - 0.65 * forest;

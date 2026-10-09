@@ -50,7 +50,7 @@ export class MzPostPass extends Pass {
 
     this.prefilter = mat(PREFILTER_FRAG, {
       tColor: { value: null }, tMask: { value: black }, uTexel: { value: new THREE.Vector2() },
-      uExposure: { value: 1 }, uThreshold: { value: 1.6 }, uKnee: { value: 0.8 },
+      uExposure: { value: 1 }, uThreshold: { value: 3.2 }, uKnee: { value: 1.6 },
       uSenses: { value: 0 }, uClueColor: { value: new THREE.Color(2.4, 0.9, 0.25) },
     });
     this.downMat = mat(DOWN_FRAG, { tSrc: { value: null }, uTexel: { value: new THREE.Vector2() } });

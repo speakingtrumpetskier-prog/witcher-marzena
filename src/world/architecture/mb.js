@@ -254,18 +254,19 @@ export class MB {
     }
     // End caps with a painted growth-ring gradient.
     const capCol = o.endCol ? C(o.endCol) : null;
-    const cap = (t, sign, enabled) => {
+    const cap = (t, sign, enabled, detail = 2) => {
       if (enabled === false) return;
       const cxp = A.x + dir.x * t + (bow ? bow[0] * 4 * t * (1 - t) : 0);
       const cyp = A.y + dir.y * t + (bow ? bow[1] * 4 * t * (1 - t) : 0);
       const czp = A.z + dir.z * t + (bow ? bow[2] * 4 * t * (1 - t) : 0);
       const r = r0 + (r1 - r0) * t;
       const base = capCol || mixC(col, 0xc9a878, 0.55);
-      const mul = [0.62, 0.8, 1.0];
+      const mul = detail === 1 ? [0.7, 0.7, 1.0] : [0.62, 0.8, 1.0];
       const rad = [0, 0.55, 1.0];
       const rings = [];
       const nx = dn.x * sign, ny = dn.y * sign, nz = dn.z * sign;
       for (let k = 0; k < 3; k++) {
+        if (detail === 1 && k === 1) { rings.push(null); continue; }
         const row = [];
         const cc = tmp.setRGB(base.r * mul[k], base.g * mul[k], base.b * mul[k]).clone();
         const n = k === 0 ? 1 : seg;
@@ -281,6 +282,11 @@ export class MB {
       // Center fan then ring bands.
       for (let j = 0; j < seg; j++) {
         const j2 = (j + 1) % seg;
+        if (detail === 1) {
+          if (sign > 0) this.tri(rings[0][0], rings[2][j], rings[2][j2]);
+          else this.tri(rings[0][0], rings[2][j2], rings[2][j]);
+          continue;
+        }
         if (sign > 0) this.tri(rings[0][0], rings[1][j], rings[1][j2]);
         else this.tri(rings[0][0], rings[1][j2], rings[1][j]);
         for (let k = 1; k < 2; k++) {
@@ -290,8 +296,8 @@ export class MB {
         }
       }
     };
-    cap(1, 1, o.capB);
-    cap(0, -1, o.capA);
+    cap(1, 1, o.capB, o.capDetailB ?? o.capDetail ?? 2);
+    cap(0, -1, o.capA, o.capDetailA ?? o.capDetail ?? 2);
   }
 
   // A tube swept through a polyline of points (smooth joints, parallel-transported frame).

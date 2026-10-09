@@ -2,7 +2,6 @@
 // grave post, bones, skull, signpost, horse head carving, roof finial.
 import * as THREE from 'three';
 import { Kit, TAU } from './kit.js';
-import { FOLK_RED } from './p_household.js';
 
 const STRAW = [0xe8d9a6, 0xdcc98c, 0xd0bd7c, 0xe2d29a];
 const RED = [0x9a2e22, 0xa83426, 0x862a20];
@@ -15,23 +14,27 @@ function addHead(k, o = {}) {
   const burn = o.burn || 0;
   const c = burn ? 0x3a2e26 : tint;
   k.with({ pos: [0, y, 0], rot: [o.tilt || 0, o.turn || 0, o.roll || 0], scale: s }, () => {
-    k.sph('wood', 0.1, { scale: [0.9, 1.16, 0.96], ws: 14, hs: 10, tint: c, jitter: 0.0025, grime: 0, var: 0.06, tile: 0.45 });
-    // Chin and jaw weight
-    k.sph('wood', 0.055, { pos: [0, -0.095, 0.03], scale: [1.0, 0.8, 0.9], ws: 8, hs: 6, tint: c, grime: 0, tile: 0.45 });
+    k.sph('face', 0.1, { scale: [0.9, 1.16, 0.96], ws: 12, hs: 9, flat: true, tint: c, jitter: 0.002, grime: 0, var: 0.06, tile: 0.45 });
+    // Chin, jaw weight and small ears
+    k.sph('face', 0.055, { pos: [0, -0.095, 0.03], scale: [1.0, 0.8, 0.9], ws: 8, hs: 6, tint: c, grime: 0, tile: 0.45 });
+    for (const sx of [-1, 1]) k.sph('face', 0.022, { pos: [sx * 0.092, -0.01, 0.0], scale: [0.5, 1.2, 0.9], ws: 6, hs: 5, tint: c, grime: 0, tile: 0.45 });
     // Nose wedge, brow ridge, cheekbones
-    k.box('wood', 0.034, 0.06, 0.045, { pos: [0, -0.012, 0.094], rot: [0.35, 0, 0], taper: [0.45, 0.5], tint: c, grime: 0, var: 0.04, tile: 0.45 });
-    k.box('wood', 0.15, 0.016, 0.03, { pos: [0, 0.045, 0.083], rot: [0.1, 0, 0], tint: burn ? c : 0xd8c8ae, grime: 0, tile: 0.45 });
-    for (const sx of [-1, 1]) k.sph('wood', 0.028, { pos: [sx * 0.062, -0.025, 0.065], scale: [1, 0.8, 0.8], ws: 6, hs: 5, tint: c, grime: 0, tile: 0.45 });
-    // Painted eyes (dark almonds), mouth and cheek dots in folk red.
+    k.box('face', 0.04, 0.07, 0.05, { pos: [0, -0.012, 0.094], rot: [0.35, 0, 0], taper: [0.45, 0.5], tint: c, grime: 0, var: 0.04, tile: 0.45 });
+    k.box('face', 0.15, 0.018, 0.034, { pos: [0, 0.047, 0.082], rot: [0.1, 0, 0], tint: burn ? c : 0xd8c8ae, grime: 0, tile: 0.45 });
+    for (const sx of [-1, 1]) k.sph('face', 0.03, { pos: [sx * 0.062, -0.025, 0.065], scale: [1, 0.8, 0.8], ws: 6, hs: 5, tint: c, grime: 0, tile: 0.45 });
+    // Painted brows, deep dark eye sockets with almond eyes, mouth and cheek dots in folk red.
     for (const sx of [-1, 1]) {
-      k.sph('matte', 0.016, { pos: [sx * 0.04, 0.02, 0.091], scale: [1.7, 0.55, 0.35], ws: 6, hs: 5, tint: 0x16110d, grime: 0, var: 0 });
-      k.sph('matte', 0.006, { pos: [sx * 0.04, 0.02, 0.0965], scale: [1, 1, 0.5], ws: 4, hs: 3, tint: 0xe8e2d4, grime: 0, var: 0 });
+      k.box('matte', 0.05, 0.009, 0.01, { pos: [sx * 0.042, 0.037, 0.098], rot: [0, 0, sx * -0.18], tint: 0x2a1a12, grime: 0, var: 0 });
+      k.sph('matte', 0.024, { pos: [sx * 0.042, 0.02, 0.087], scale: [1.6, 0.8, 0.5], ws: 6, hs: 5, tint: 0x2a1e16, grime: 0, var: 0 });
+      k.sph('matte', 0.016, { pos: [sx * 0.042, 0.02, 0.0935], scale: [1.7, 0.55, 0.35], ws: 6, hs: 5, tint: 0x0e0a08, grime: 0, var: 0 });
+      k.sph('matte', 0.006, { pos: [sx * 0.042, 0.02, 0.098], scale: [1, 1, 0.5], ws: 4, hs: 3, tint: 0xe8e2d4, grime: 0, var: 0 });
       k.cyl('paint', 0.02, 0.02, 0.004, { pos: [sx * 0.063, -0.045, 0.074], rot: [Math.PI / 2 - 0.35, sx * 0.3, 0], radial: 8, tint: burn ? 0x2a1a14 : RED[0], grime: 0, var: 0, cap: 'paint' });
     }
-    k.box('paint', 0.05, 0.009, 0.01, { pos: [0, -0.07, 0.092], tint: burn ? 0x2a1a14 : 0x7a1f18, grime: 0, var: 0, rot: [0.15, 0, 0] });
+    k.box('paint', 0.05, 0.008, 0.012, { pos: [0, -0.066, 0.092], tint: burn ? 0x2a1a14 : 0x8a2a20, grime: 0, var: 0, rot: [0.15, 0, 0] });
+    k.box('paint', 0.04, 0.007, 0.012, { pos: [0, -0.078, 0.09], tint: burn ? 0x2a1a14 : 0x7a1f18, grime: 0, var: 0, rot: [0.1, 0, 0] });
   });
   // Straw hair: strands hanging from the crown, longer at the back; a fringe at the sides only.
-  const n = o.hairCount || 46;
+  const n = o.hairCount || 80;
   for (let i = 0; i < n; i++) {
     const a = (i / n) * TAU + k.rs(0.07);
     const front = 0.5 + 0.5 * Math.cos(a); // 1 at the face, 0 behind
@@ -42,7 +45,7 @@ function addHead(k, o = {}) {
     const topY = y + 0.075 - 0.025 * (1 - front) * 0 + (1 - front) * 0.015;
     const burnt = burn > 0.5 && k.chance(0.7);
     if (burnt) continue;
-    k.box('straw', 0.017, len, 0.012, {
+    k.box('straw', 0.026 * s, len, 0.016, {
       pos: [Math.sin(a) * r0 * s, topY - len / 2 - 0.02 * front, Math.cos(a) * r0 * s - 0.005], yaw: a, rot: [-0.1 - k.r(0, 0.18) - (1 - front) * 0.05, 0, k.rs(0.06)],
       taper: [0.35, 0.6], tint: o.frozen ? k.pick([0xe0ecf4, 0xd0dfe8, 0xc4d6e2]) : k.pick(STRAW), var: 0.12, grime: 0.05, jitter: 0.002, tile: 0.4, seg: [1, 2, 1],
     });
@@ -50,7 +53,7 @@ function addHead(k, o = {}) {
   // Wreath of twisted straw with a few red bits.
   if (o.wreath !== false && !burn) {
     k.with({ pos: [0, y + 0.098 * s, 0.0], rot: [0.12, 0, 0] }, () => {
-      k.torus('straw', 0.1 * s, 0.017 * s, { rot: [Math.PI / 2, 0, 0], seg: 14, rseg: 5, tint: o.frozen ? 0xdbe8f0 : 0xd8c78a, var: 0.15, grime: 0 });
+      k.torus('straw', 0.092 * s, 0.02 * s, { rot: [Math.PI / 2, 0, 0], seg: 16, rseg: 5, tint: o.frozen ? 0xdbe8f0 : 0xc8b070, var: 0.18, grime: 0, jitter: 0.004 });
       for (let i = 0; i < 6; i++) {
         const a = (i / 6) * TAU + 0.3;
         k.box('ribbon', 0.014, 0.022, 0.014, { pos: [Math.sin(a) * 0.1 * s, 0, Math.cos(a) * 0.1 * s], rot: [0, a, 0], tint: RED[i % 3], grime: 0, var: 0 });
@@ -94,7 +97,7 @@ function addKnot(k, y, z, burn = 0) {
 function addArm(k, side, ang, len, o = {}) {
   const sleeveTint = o.tint || 0xffffff;
   const mat = o.straw ? 'straw' : 'dress';
-  k.with({ pos: [side * 0.14, 1.27, 0], rot: [o.fwd || 0, 0, side * ang] }, () => {
+  k.with({ pos: [side * 0.14, o.shoulder, 0], rot: [o.fwd || 0, 0, side * ang] }, () => {
     k.cyl(mat, 0.078, 0.052, len, {
       pos: [0, -len / 2, 0], radial: 9, tint: sleeveTint, grime: 0, jitter: o.straw ? 0.01 : 0.006, cap: null, uRepeat: 1, tile: 1.0, ...(o.straw ? {} : { sway: o.sway || 0.35, swayFrom: 0 }),
     });
@@ -109,19 +112,20 @@ function addArm(k, side, ang, len, o = {}) {
 function addBody(k, p) {
   const burn = p.burn || 0;
   const frozen = !!p.frozen;
-  const white = burn ? 0x3a322c : frozen ? 0xe4eef6 : 0xffffff;
+  const white = burn ? 0x3a322c : frozen ? 0xe4eef6 : 0xf2ecde;
   const fadeTo = burn ? [0xe0d8cc, 0.55, 1.15] : null;
   const y0 = p.y0 || 0;
-  const hem = 0.1 + y0, waist = 0.88 + y0;
+  const waist = (p.waistH || 0.88) + y0;
+  const hem = p.seated ? 0.04 + y0 : 0.1 + y0;
   const prof = p.seated
-    ? [[0.44, hem - 0.04], [0.42, hem + 0.16], [0.36, hem + 0.34], [0.26, hem + 0.5], [0.15, waist - 0.35]]
-    : [[0.43, hem], [0.41, hem + 0.1], [0.36, hem + 0.32], [0.28, hem + 0.52], [0.19, hem + 0.68], [0.14, waist]];
+    ? [[0.5, hem], [0.48, hem + 0.14], [0.42, hem + 0.3], [0.32, hem + 0.42], [0.2, waist - 0.05], [0.14, waist]]
+    : [[0.5, hem], [0.47, hem + 0.1], [0.39, hem + 0.32], [0.29, hem + 0.52], [0.2, hem + 0.68], [0.14, waist]];
   const top = prof[prof.length - 1][1];
   const burntSkirt = burn > 0.85;
   if (!p.bare && !burntSkirt) {
     k.lathe('dress', prof, {
       radial: 22, tint: white, uRepeat: 1, tile: 1.0, grime: 0.3, var: 0.05, jitter: 0.004,
-      ripple: { n: 9, amp: 0.035, from: hem + 0.2, to: hem + 0.62, phase: k.r(0, TAU) },
+      ripple: { n: 8, amp: 0.06, from: hem + 0.25, to: hem + 0.7, phase: k.r(0, TAU) },
       sway: p.sway == null ? 0.55 : p.sway, swayFrom: top, ...(fadeTo ? { fade: fadeTo } : {}),
     });
   } else if (p.bare) {
@@ -132,6 +136,14 @@ function addBody(k, p) {
     // Burnt away: charred straw stump with black rags.
     k.lathe('straw', [[0.12, hem + 0.1], [0.17, hem + 0.35], [0.14, hem + 0.6], [0.12, waist]], { radial: 10, tint: 0x28221e, jitter: 0.04, uRepeat: 2, grime: 0, tile: 0.7 });
     k.lathe('dress', [[0.24, hem + 0.34], [0.2, hem + 0.5], [0.15, waist]], { radial: 10, tint: 0x2a2420, uRepeat: 1, ripple: { n: 6, amp: 0.06, from: -9, to: 9 }, jitter: 0.02, sway: 0 });
+  }
+  // Straw showing under the hem: the figure is a bundle of stalks in a dress.
+  if (!p.seated && !p.bare && !burntSkirt) {
+    for (let i = 0; i < 34; i++) {
+      const a = (i / 34) * TAU + k.rs(0.1);
+      const L = 0.1 + k.r(0, 0.1);
+      k.box('straw', 0.02, L, 0.012, { pos: [Math.sin(a) * 0.42, hem + 0.02 - L / 2 + 0.03, Math.cos(a) * 0.42], yaw: a, rot: [-0.12 - k.r(0, 0.15), 0, 0], tint: frozen ? 0xdbe8f0 : k.pick(STRAW), var: 0.12, grime: 0.1, taper: [0.5, 0.7] });
+    }
   }
   // Bodice
   const bod = [[0.14, waist], [0.15, waist + 0.1], [0.165, waist + 0.26], [0.15, waist + 0.38], [0.075, waist + 0.45]];
@@ -148,27 +160,28 @@ function addBody(k, p) {
   }
   // Neck, twine wraps and the shoulders' straw padding.
   const nk = waist + 0.45;
+  k.torus('straw', 0.075, 0.03, { pos: [0, nk + 0.02, 0], rot: [Math.PI / 2, 0, 0], seg: 12, rseg: 5, tint: frozen ? 0xdbe8f0 : 0xd8c78a, var: 0.15, grime: 0, jitter: 0.005 });
   k.cyl('straw', 0.052, 0.062, 0.14, { pos: [0, nk + 0.02, 0], radial: 8, tint: frozen ? 0xdbe8f0 : burn ? 0x28221e : 0xd8c78a, jitter: 0.006, cap: null, grime: 0 });
   for (let i = 0; i < 3; i++) twine(k, nk - 0.03 + i * 0.03, 0.056, RED[i % 3], 0.008);
   addKnot(k, waist + 0.2, 0.135 * 0.78 + 0.02, burn);
   // Arms
   const arm = p.arms || 'down';
   if (arm !== 'none') {
-    const ang = arm === 'out' ? 1.5 : arm === 'lap' ? 0.18 : arm === 'limp' ? 0.1 : 0.32;
+    const ang = arm === 'out' ? 1.38 : arm === 'lap' ? 0.18 : arm === 'limp' ? 0.1 : 0.32;
     const fwd = arm === 'lap' ? -1.05 : 0;
     for (const side of [-1, 1]) {
       if (p.armMissing === side) continue;
-      addArm(k, side, ang + k.rs(0.05) + (arm === 'down' ? side * 0.05 : 0), 0.5 - (burn ? 0.12 : 0), { fwd, tint: white, straw: p.bare, frozen, ice: p.ice && !p.bare, sway: p.frozen ? 0 : 0.35 });
+      addArm(k, side, ang + k.rs(0.05) + (arm === 'down' ? side * 0.05 : 0), 0.55 - (burn ? 0.12 : 0), { shoulder: waist + 0.39, fwd, tint: white, straw: p.bare, frozen, ice: p.ice && !p.bare, sway: p.frozen ? 0 : 0.35 });
     }
   }
   // Head (not on the half-made one: it waits on the bench).
   if (p.head !== false) {
-    addHead(k, { y: nk + 0.16, tilt: p.tilt || 0, turn: p.turn || 0, roll: p.roll || 0, burn, frozen, ice: p.ice, hair: burn ? 0.4 : 1, wreath: !p.bare });
+    addHead(k, { y: nk + 0.22, scale: 1.4, tilt: p.tilt || 0, turn: p.turn || 0, roll: p.roll || 0, burn, frozen, ice: p.ice, hair: burn ? 0.4 : 1, wreath: !p.bare });
   } else {
-    k.sph('straw', 0.1, { pos: [0, nk + 0.16, 0], scale: [0.95, 1.1, 0.95], ws: 10, hs: 8, tint: 0xd0bd7c, jitter: 0.015, tile: 0.4 });
-    twine(k, nk + 0.09, 0.07, 0x6a5a3c, 0.01);
+    k.sph('straw', 0.12, { pos: [0, nk + 0.2, 0], scale: [0.95, 1.1, 0.95], ws: 10, hs: 8, tint: 0xd0bd7c, jitter: 0.015, tile: 0.4 });
+    twine(k, nk + 0.1, 0.08, 0x6a5a3c, 0.01);
   }
-  return nk + 0.16;
+  return nk + 0.22;
 }
 
 export function effigy(o = {}) {
@@ -186,12 +199,19 @@ export function effigy(o = {}) {
     // Central pole through the body, crossbar for the arms.
     const poleTop = 1.62 + raised;
     k.cyl('wood', 0.034, 0.046, poleTop + 0.25, { pos: [0, (poleTop - 0.25) / 2 + 0.12, -0.01], radial: 6, tint: burnt ? 0x2a2420 : 0xb8a690, jitter: 0.005, cap: 'logEnd' });
-    k.cyl('wood', 0.025, 0.025, 1.3, { pos: [0, 1.27 + raised, -0.01], rot: [0, 0, Math.PI / 2], radial: 5, tint: burnt ? 0x2a2420 : 0xb8a690, cap: 'logEnd' });
+    if (variant === 'pole') k.cyl('wood', 0.025, 0.025, 1.1, { pos: [0, 1.27 + raised, -0.01], rot: [0, 0, Math.PI / 2], radial: 5, tint: 0xb8a690, cap: 'logEnd' });
     const headY = addBody(k, {
       y0: raised, arms: burnt === 1 ? 'down' : variant === 'standing' || frozen ? 'down' : 'out', burn: burnt, frozen, ice: frozen,
       tilt: burnt ? 0.45 : 0.0, roll: burnt ? 0.2 : frozen ? 0.04 : k.rs(0.08), turn: k.rs(0.2), armMissing: burnt === 1 ? 1 : 0, sway: frozen ? 0 : 0.55,
     });
     void headY;
+    if (burnt) {
+      // Coal glow in the charred core (inside the leaning frame).
+      k.blob('coal', 0.2, { pos: [0.0, 0.62 + raised, 0.0], scale: [1, 0.9, 0.8], detail: 1, tint: 0xffffff, grime: 0, jitter: 0.03, var: 0.1 });
+      k.blob('coal', 0.12, { pos: [0.05, 1.02 + raised, 0.08], detail: 1, tint: 0xffffff, grime: 0, jitter: 0.03 });
+      k.fx('smoke', [0.0, 1.0 + raised, 0.0], { height: 5, rate: 0.7, size: 0.5, opacity: 0.3, warm: 0.4 });
+      if (variant === 'burning') k.fx('fire', [0.0, 0.7, 0.0], { scale: 1.0, radius: 0.28, height: 0.9, light: true, smoke: true });
+    }
     k.pop();
     // Support: stakes lashed at the back, or a mound of stones and snow around the foot of the pole.
     for (let i = 0; i < 2; i++) {
@@ -210,19 +230,11 @@ export function effigy(o = {}) {
         k.cone('ice', 0.018, k.r(0.07, 0.24), { pos: [Math.cos(a) * r, 0.1 + raised - 0.05, Math.sin(a) * r], rot: [Math.PI, 0, 0], radial: 5, tint: k.pick([0xd8ecf8, 0xc4dcec]), grime: 0 });
       }
       k.cyl('ice', 0.6, 0.65, 0.04, { pos: [0, 0.02, 0], radial: 10, tint: 0xcfe4f2, jitter: 0.02, grime: 0 });
-      k.mound(0.5, 0.1, 0.4, { pos: [0, 1.58 + raised, 0.0], jseed: 3 });
-      k.mound(0.5, 0.06, 0.3, { pos: [-0.5, 1.3 + raised, 0.0], jseed: 4 });
-      k.mound(0.5, 0.06, 0.3, { pos: [0.5, 1.3 + raised, 0.0], jseed: 5 });
+      k.mound(0.3, 0.07, 0.3, { pos: [0, 1.74 + raised, 0.0], jseed: 3 });
+      for (const sx of [-1, 1]) k.mound(0.2, 0.04, 0.2, { pos: [sx * 0.2, 1.37 + raised, 0.0], jseed: 4 + sx });
     }
     if (burnt) {
       k.plane('decal', 1.8, 1.8, { pos: [0, 0.03, 0], rot: [-Math.PI / 2, 0, 0], tint: 0x1c1a18, grime: 0, var: 0.2 });
-      // Coal glow in the charred core.
-      k.blob('coal', 0.22, { pos: [0.0, 0.5 + raised, 0.05], scale: [1, 0.9, 0.8], detail: 1, tint: 0xffffff, grime: 0, jitter: 0.03, var: 0.1 });
-      k.blob('coal', 0.14, { pos: [0.12, 0.9, 0.05], detail: 1, tint: 0xffffff, grime: 0, jitter: 0.03 });
-      k.fx('smoke', [0.1, 0.9, 0.0], { height: 5, rate: 0.7, size: 0.5, opacity: 0.3, warm: 0.4 });
-      if (variant === 'burning') k.fx('fire', [0.0, 0.5, 0.0], { scale: 1.6, radius: 0.3, height: 0.9, light: true, smoke: true });
-    } else if (!frozen) {
-      if (!o.indoor) k.mound(0.5, 0.08, 0.35, { pos: [0, 1.58 + raised, 0.0], jseed: 3 });
     }
     k.circleCollider(0.4, { h: 1.7 + raised });
   } else if (variant === 'hung') {
@@ -242,10 +254,7 @@ export function effigy(o = {}) {
   } else if (variant === 'seated') {
     // On a stump, hands in the lap, head slightly bowed.
     k.cyl('bark', 0.26, 0.32, 0.4, { pos: [0, 0.2, 0], radial: 9, cap: 'logEnd', noBottom: true, jitter: 0.015, tint: 0xd8cdc0 });
-    k.push({ pos: [0, 0.36, 0], scale: 0.86 });
-    addBody(k, { y0: -0.04, arms: 'lap', seated: true, tilt: 0.2, roll: k.rs(0.08), sway: 0.6 });
-    k.pop();
-    if (!o.indoor) k.mound(0.5, 0.08, 0.35, { pos: [0, 1.38, 0.0], jseed: 3 });
+    addBody(k, { y0: 0, waistH: 0.56, arms: 'lap', seated: true, tilt: 0.2, roll: k.rs(0.08), sway: 0.6 });
     k.circleCollider(0.4, { h: 1.3 });
   } else if (variant === 'half') {
     // Half-made: a stand with the straw body lashed, no head yet; the dress is folded on the stand, the face waits on a stump.
@@ -290,7 +299,7 @@ export function effigyHead(o = {}) {
   addHead(k, { y: 0.72, tilt: k.rs(0.12), turn: k.rs(0.4), roll: k.rs(0.1), hair: 0.55 + k.r(0, 0.4), frozen, ice: frozen, hairCount: 34, burn: o.variant === 'burnt' ? 1 : 0 });
   twine(k, 0.62, 0.052, RED[0], 0.011);
   k.pop();
-  if (!o.indoor) k.mound(0.3, 0.06, 0.25, { pos: [0, 0.93, 0], jseed: 2 });
+  if (!o.indoor) k.mound(0.26, 0.05, 0.22, { pos: [0, 0.855, -0.01], jseed: 2 });
   k.pop();
   k.circleCollider(0.15, { h: 1.0 });
   k.ud.align = 0.3;

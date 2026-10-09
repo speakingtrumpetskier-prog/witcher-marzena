@@ -29,7 +29,7 @@ function label(text, x, y, z, scene) {
 }
 
 export function groundHeight(x, z) {
-  return Math.sin(x * 0.11) * 0.06 + Math.cos(z * 0.09 + x * 0.05) * 0.07 + Math.sin((x + z) * 0.31) * 0.012;
+  return Math.sin(x * 0.11) * 0.02 + Math.cos(z * 0.09 + x * 0.05) * 0.025 + Math.sin((x + z) * 0.31) * 0.006;
 }
 
 export async function init(G) {

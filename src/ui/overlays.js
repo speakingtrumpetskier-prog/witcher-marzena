@@ -11,8 +11,8 @@ import { displayName } from './content.js';
 const THREAD_PATH = 'M2 7 C 38 2, 84 10, 140 5 S 232 3, 298 6';
 
 const NOTIFY_ICON = {
-  journal: ICON.quill, quest: ICON.quill, location: ICON.diamond, coin: ICON.coin, item: ICON.flask,
-  note: ICON.scroll, save: ICON.knot, info: ICON.info,
+  journal: ICON.quill, quest: ICON.knot, location: ICON.diamond, coin: ICON.coin, item: ICON.flask,
+  note: ICON.scroll, save: ICON.knot, time: ICON.moon, info: ICON.info,
 };
 
 export class Overlays {
@@ -66,7 +66,26 @@ export class Overlays {
     this.cardBox = h('div', { class: 'mz-card-box' }, this.cardTitle, h('div', { class: 'mz-card-line' }, this.cardThread, this.cardKnot), this.cardSub);
     this.cardLayer.append(this.cardBox);
 
-    this.root.append(this.lbLayer, this.scrimLayer, this.barkLayer, this.subLayer, this.promptLayer, this.noteLayer, this.fadeLayer, this.cardLayer);
+    // Place banner (left) and control hints (bottom left).
+    this.bannerLayer = L('mz-bannerlayer');
+    this.bannerEl = h('div', { class: 'mz-banner' });
+    this.bannerLayer.append(this.bannerEl);
+    this.hintLayer = L('mz-hintlayer');
+    this.hintEl = h('div', { class: 'mz-hints' });
+    this.hintLayer.append(this.hintEl);
+    this._bannerToken = 0;
+    this._hintTimer = 0;
+
+    // Hold-to-skip ring for cutscenes (bottom right).
+    this.skipFg = svg('<svg viewBox="0 0 34 34"><circle class="bg" cx="17" cy="17" r="13"/><circle class="fg" cx="17" cy="17" r="13"/></svg>');
+    this.skipEl = h('div', { class: 'mz-skip' }, this.skipFg, h('span', null, 'Hold Space to skip'));
+    this.skipArc = this.skipFg.querySelector('circle.fg');
+    this.skipLayer = L('mz-skiplayer');
+    this.skipLayer.append(this.skipEl);
+
+    this.root.append(this.lbLayer, this.scrimLayer, this.barkLayer, this.subLayer, this.promptLayer, this.noteLayer, this.fadeLayer, this.cardLayer, this.skipLayer);
+    this.root.insertBefore(this.bannerLayer, this.noteLayer);
+    this.root.insertBefore(this.hintLayer, this.noteLayer);
 
     this.barks = [];
     this._subToken = 0;
@@ -74,13 +93,15 @@ export class Overlays {
     this._lastNotify = new Map();
     this._promptKey = null;
     this._fadeTimer = 0;
+    this._cardToken = 0;
   }
 
   // ---- Subtitles -------------------------------------------------------------------------
   // subtitle(speaker, text, seconds) or subtitle(text). subtitle(null) hides. Returns a Promise
   // that resolves when the line has gone (timeout or replaced).
-  subtitle(speaker, text, seconds) {
+  subtitle(speaker, text, seconds, opts) {
     if (arguments.length === 1 && speaker != null) { text = speaker; speaker = null; }
+    if (opts?.italic && text) text = `*${String(text).replace(/\*/g, '')}*`;
     if (text == null || text === '') { this.hideSubtitle(); return Promise.resolve(); }
     const token = ++this._subToken;
     clearTimeout(this._subTimer);
@@ -104,6 +125,8 @@ export class Overlays {
       }
     });
   }
+
+  clearSubtitle() { this.hideSubtitle(); }
 
   hideSubtitle() {
     clearTimeout(this._subTimer);
@@ -271,7 +294,9 @@ export class Overlays {
   // ---- Title card -------------------------------------------------------------------------
   // titleCard(title, sub) -> Promise resolved when it has faded out.
   async titleCard(title, sub = '', opts = {}) {
+    if (typeof opts === 'number') opts = { hold: Math.max(0.8, opts - 3.8) };
     const hold = opts.hold ?? 3.4;
+    const token = ++this._cardToken;
     this.cardTitle.textContent = title;
     this.cardSub.textContent = sub || '';
     this.cardBox.classList.toggle('no-sub', !sub);
@@ -279,10 +304,60 @@ export class Overlays {
     void this.cardLayer.offsetWidth;
     this.cardLayer.classList.add('on');
     await wait(500);
+    if (token !== this._cardToken) return;
     this.cardLayer.classList.add('draw');
     await wait((1.6 + hold) * 1000);
+    if (token !== this._cardToken) return;
     this.cardLayer.classList.add('off');
     await wait(1700);
+    if (token !== this._cardToken) return;
     this.cardLayer.classList.remove('on', 'draw', 'off');
+  }
+
+  // Cut the card short (a skipped cutscene).
+  hideTitleCard() {
+    const t = ++this._cardToken;
+    this.cardLayer.classList.add('off');
+    setTimeout(() => { if (t === this._cardToken) this.cardLayer.classList.remove('on', 'draw', 'off'); }, 1700);
+  }
+
+  // ---- Place banner: the name of the area you just entered ---------------------------------
+  async banner(name, sub = '', opts = {}) {
+    if (!name) return;
+    const hold = opts.hold ?? 3.4;
+    const token = ++this._bannerToken;
+    const thread = svg(`<svg viewBox="0 0 300 12" preserveAspectRatio="none" aria-hidden="true"><path d="${THREAD_PATH}" pathLength="1"/></svg>`, 'thread');
+    clear(this.bannerEl).append(h('div', { class: 'name' }, name), h('div', { class: 'line' }, thread), sub ? h('div', { class: 'sub' }, sub) : null);
+    this.bannerEl.classList.remove('on', 'draw', 'off');
+    void this.bannerEl.offsetWidth;
+    this.bannerEl.classList.add('on');
+    await wait(400);
+    if (token !== this._bannerToken) return;
+    this.bannerEl.classList.add('draw');
+    await wait(hold * 1000);
+    if (token !== this._bannerToken) return;
+    this.bannerEl.classList.add('off');
+    await wait(1600);
+    if (token === this._bannerToken) this.bannerEl.classList.remove('on', 'draw', 'off');
+  }
+
+  // ---- Control hints (tutorial): hint([['LMB', 'Light attack'], ['Space', 'Dodge']], 9), hint(null) clears
+  hint(items, seconds = 9) {
+    clearTimeout(this._hintTimer);
+    if (!items || !items.length) { this.hintEl.classList.remove('on'); return; }
+    clear(this.hintEl);
+    for (const it of items) {
+      const [key, label] = Array.isArray(it) ? it : [it.key, it.label];
+      this.hintEl.append(h('div', { class: 'row' }, h('span', { class: 'mz-key' + (String(key).length > 2 ? ' wide' : '') }, key), h('span', { class: 'lab' }, label)));
+    }
+    this.hintEl.classList.add('on');
+    if (Number.isFinite(seconds)) this._hintTimer = setTimeout(() => this.hintEl.classList.remove('on'), seconds * 1000);
+  }
+
+  // p in 0..1 shows the ring filling, null hides it.
+  skipRing(p) {
+    if (p == null) { this.skipEl.classList.remove('on'); return; }
+    this.skipEl.classList.add('on');
+    this.skipArc.style.strokeDashoffset = (81.7 * (1 - Math.max(0, Math.min(1, p)))).toFixed(1);
   }
 }

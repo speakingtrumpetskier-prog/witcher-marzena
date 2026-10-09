@@ -86,15 +86,17 @@ export function stove(kit, x, y, z, yaw, o = {}) {
     kit.stone.box(0, h + 0.1, 0, w + 0.15, 0.18, d + 0.15, scaleC(wash, 0.9), { uv: [2, 2] });
     // Mouth: dark arch with embers inside, facing +z.
     const mz = d / 2 + 0.005;
-    kit.stone.box(0, 0.68, mz, 0.72, 0.62, 0.012, scaleC(PAL.iron, GAIN * 0.5), { uv: [1, 1] });
-    kit.ember.quad([-0.28, 0.42, mz + 0.012], [0.28, 0.42, mz + 0.012], [0.25, 0.8, mz + 0.012], [-0.25, 0.8, mz + 0.012], new THREE.Color(2.6, 1.0, 0.3), [[0, 0], [1, 0], [1, 1], [0, 1]]);
-    kit.ember.quad([-0.22, 0.3, mz + 0.011], [0.22, 0.3, mz + 0.011], [0.28, 0.42, mz + 0.011], [-0.28, 0.42, mz + 0.011], new THREE.Color(1.6, 0.5, 0.12), [[0, 0], [1, 0], [1, 1], [0, 1]]);
+    kit.stone.box(0, 0.68, mz, 0.72, 0.62, 0.012, scaleC(PAL.iron, GAIN * (o.cold ? 0.3 : 0.5)), { uv: [1, 1] });
+    if (!o.cold) {
+      kit.ember.quad([-0.28, 0.42, mz + 0.012], [0.28, 0.42, mz + 0.012], [0.25, 0.8, mz + 0.012], [-0.25, 0.8, mz + 0.012], new THREE.Color(2.6, 1.0, 0.3), [[0, 0], [1, 0], [1, 1], [0, 1]]);
+      kit.ember.quad([-0.22, 0.3, mz + 0.011], [0.22, 0.3, mz + 0.011], [0.28, 0.42, mz + 0.011], [-0.28, 0.42, mz + 0.011], new THREE.Color(1.6, 0.5, 0.12), [[0, 0], [1, 0], [1, 1], [0, 1]]);
+    }
     // Sleeping ledge on top.
     kit.wood.box(0, h + 0.22, 0, w - 0.1, 0.06, d - 0.1, plank(kit, 0.9), { grain: 'x' });
   });
   const c = Math.cos(yaw), s = Math.sin(yaw);
   const px = x + 0 * c + (d / 2 + 0.3) * s, pz = z - 0 * s + (d / 2 + 0.3) * c;
-  kit.light(px, y + 0.8, pz, { color: 0xff8a30, intensity: 1.4, radius: 9, kind: 'hearth' });
+  if (!o.cold) kit.light(px, y + 0.8, pz, { color: 0xff8a30, intensity: 1.4, radius: 9, kind: 'hearth' });
   kit.anchor(o.name || 'hearth', px, y + 0.7, pz);
   kit.box(x, z, w / 2, d / 2, yaw);
 }

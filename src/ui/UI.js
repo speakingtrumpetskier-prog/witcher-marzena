@@ -14,7 +14,10 @@
 //   choices(list, { timer, decisive }) -> Promise<index>, readNote(note) -> Promise,
 //   hold(text, seconds, window) -> Promise<boolean>, openJournal(), openMap(), openPause(),
 //   title() -> Promise<'new' | 'continue'>, credits() -> Promise, hud.show()/hide().
-// Extras: registerNotes(map), registerBestiary(list), openSettings(), closeAll(), isOpen().
+// Extras: registerNotes(map), registerBestiary(list), openSettings(), closeAll(), isOpen(),
+//   clearSubtitle(), hideTitleCard(), skipRing(p), banner(name, sub), hint([[key, label]], seconds).
+// Events emitted: ui:open, ui:close ({ name }), title:open, title:close. Listened: discover, inventory,
+//   note, location:enter, game:ready.
 import './ui.css';
 import './book.css';
 import './menus.css';
@@ -42,7 +45,9 @@ class UI {
       document.body.appendChild(this.root);
     }
     if (G.shot) this.root.classList.add('mz-shot');
+    if (G.quality === 'low') this.root.classList.add('q-low');
     this.keyStack = [];
+    this.screens = [];
     this.menuDepth = 0;
     this.menuOpen = false;
     this.titleActive = false;
@@ -71,6 +76,11 @@ class UI {
     this._wireEvents();
   }
 
+  // Optional UI sounds; unknown names or a missing audio module are ignored.
+  sfx(name, opts) {
+    try { this.G.audio?.sfx?.(name, opts); } catch { /* optional */ }
+  }
+
   // ---- key dispatch ------------------------------------------------------------------------
   pushKeys(handler) { this.keyStack.push(handler); }
   popKeys(handler) {
@@ -90,7 +100,7 @@ class UI {
       }
       return;
     }
-    if (e.repeat || this.titleActive || this.G.input?.context !== 'game') return;
+    if (e.repeat || this.titleActive || this.G.input?.context !== 'game' || this.G.story?.busy) return;
     if (e.code === 'KeyJ') { this.openJournal(); e.preventDefault(); } else if (e.code === 'KeyM') { this.openMap(); e.preventDefault(); } else if (e.code === 'Escape') { this.openPause(); e.preventDefault(); }
   }
 
@@ -132,9 +142,11 @@ class UI {
     this._ctx = null;
     this.menuOpen = false;
     if (c) {
-      if (G.input) G.input.context = c.context;
+      // Only undo what we did: if a story flow already moved the context on, leave it alone, and
+      // never hand back 'ui' (the title screen opens while the flow holds the context at 'ui').
+      if (G.input && G.input.context === 'ui') G.input.context = c.context === 'ui' ? 'game' : c.context;
       if (G.time) G.time.frozen = c.frozen;
-      if (c.locked && c.context === 'game') this.restoreLock();
+      if (c.locked && G.input?.context === 'game') this.restoreLock();
     }
     G.events.emit('ui:close', { name });
   }
@@ -156,10 +168,14 @@ class UI {
   openScreen({ name, el, onKey, swallow = false, onClose, contextual = true }) {
     el.classList.add('mz-modal');
     this.root.appendChild(el);
+    // The screen below (pause under journal, title under settings) steps out of sight.
+    const below = this.screens[this.screens.length - 1];
+    below?.el.classList.add('under');
     const handler = { onKey: onKey || (() => false), swallow };
     this.pushKeys(handler);
     if (contextual) this.enterMenu(name);
     requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add('on')));
+    if (name !== 'title' && name !== 'credits') this.sfx(name === 'note' || name === 'journal' ? 'page_turn' : 'ui_open', { volume: 0.5 });
     let resolve;
     const closed = new Promise((r) => { resolve = r; });
     const scr = {
@@ -167,15 +183,20 @@ class UI {
       close: () => {
         if (!scr.open) return closed;
         scr.open = false;
+        const si = this.screens.indexOf(scr);
+        if (si >= 0) this.screens.splice(si, 1);
+        this.screens[this.screens.length - 1]?.el.classList.remove('under');
         this.popKeys(handler);
         el.classList.remove('on');
         el.classList.add('leaving');
         if (contextual) this.exitMenu(name);
+        if (name !== 'title' && name !== 'credits') this.sfx('ui_close', { volume: 0.4 });
         try { onClose?.(); } catch (err) { console.error(err); }
         setTimeout(() => { el.remove(); resolve(); }, 420);
         return closed;
       },
     };
+    this.screens.push(scr);
     return scr;
   }
 
@@ -184,7 +205,13 @@ class UI {
     const G = this.G;
     G.events.on('discover', ({ id }) => {
       const loc = LOC[id];
-      if (loc?.map) this.overlays.notify(`New location: ${loc.name}`, 'location');
+      if (!loc?.map) return;
+      this.overlays.notify(`New location: ${loc.name}`, 'location');
+      const now = performance.now();
+      if (now - (this._lastStinger || -1e9) > 3000) {
+        this._lastStinger = now;
+        try { G.audio?.stinger?.('discover'); } catch { /* optional */ }
+      }
     });
     G.events.on('inventory', ({ item, n }) => {
       if (n > 0 && item === 'coins') this.overlays.notify(`+${n} grosze`, 'coin');
@@ -194,17 +221,39 @@ class UI {
       const n = this.noteInfo(id);
       if (n) this.overlays.notify(`Note: ${n.title}`, 'note');
     });
+    // Entering a named place: a quiet banner, once per place every two minutes, never over a scene.
+    this._seenPlace = new Map();
+    G.events.on('location:enter', (p) => {
+      const loc = LOC[p?.id] || p?.loc || p || {};
+      const name = loc.name || p?.name;
+      if (!name || (p?.id && LOC[p.id] && !LOC[p.id].map && p.id !== 'village')) return;
+      const now = performance.now();
+      if (now - (this._seenPlace.get(name) ?? -1e9) < 120000) return;
+      if (this.menuOpen || this.overlays.lbOn || G.story?.busy || G.input?.context !== 'game') return;
+      this._seenPlace.set(name, now);
+      this.overlays.banner(name, p?.sub || '');
+    });
     G.events.on('game:ready', () => this.settings.apply());
   }
 
   // ---- content registries ------------------------------------------------------------------
+  // Notes the story passes inline ({ id, title, text }) are kept in the save so the Notes tab can
+  // still show them after a reload.
   noteInfo(idOrObj) {
     if (!idOrObj) return null;
+    const saved = (id) => this.G.state?.data?.uiNotes?.[id] || null;
     if (typeof idOrObj === 'object') {
-      const base = idOrObj.id ? this.notes[idOrObj.id] || this.notes[`note_${idOrObj.id}`] : null;
+      const id = idOrObj.id;
+      const base = id ? this.notes[id] || this.notes[`note_${id}`] || saved(id) : null;
       return { ...(base || {}), ...idOrObj };
     }
-    return this.notes[idOrObj] || this.notes[`note_${idOrObj}`] || null;
+    return this.notes[idOrObj] || this.notes[`note_${idOrObj}`] || saved(idOrObj) || null;
+  }
+
+  rememberNote(info) {
+    const d = this.G.state?.data;
+    if (!d || !info?.id || !info.text || this.notes[info.id] || this.notes[`note_${info.id}`]) return;
+    (d.uiNotes ||= {})[info.id] = { title: info.title, text: info.text, kind: info.kind, where: info.where, sign: info.sign };
   }
 
   // ---- screens -----------------------------------------------------------------------------
@@ -238,6 +287,12 @@ export async function init(G) {
   const o = ui.overlays;
   G.ui = {
     subtitle: (...a) => o.subtitle(...a),
+    clearSubtitle: () => o.clearSubtitle(),
+    hideTitleCard: () => o.hideTitleCard(),
+    skipRing: (p) => o.skipRing(p),
+    banner: (...a) => o.banner(...a),
+    hint: (...a) => o.hint(...a),
+    drivesTitleCamera: true,
     bark: (...a) => o.bark(...a),
     notify: (...a) => o.notify(...a),
     prompt: (...a) => o.prompt(...a),

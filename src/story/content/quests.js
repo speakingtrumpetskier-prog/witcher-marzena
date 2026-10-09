@@ -131,7 +131,7 @@ const QUESTS = {
       {
         id: 'climb', objective: 'Climb the drowned tower', marker: 'bellTower',
         journal: 'The bell tower of Old Marzena. Stairs inside, rotten, iced.',
-        reach: { x: 120, z: -150, r: 5 },
+        reach: { x: 120, z: -150, r: 5 }, done: (S) => !!S.flag('lair_seen'),
         debug: { day: 1, time: 23, weather: 'clear', at: [112, -138, 2.6] },
       },
       {

@@ -52,8 +52,8 @@ float mzFbm3(vec2 p) {
 vec3 mzSnowAlbedo(vec3 wp) {
   float n = mzFbm3(wp.xz * 0.11);
   float m = mzVNoise(wp.xz * 0.9 + 3.3);
-  vec3 fresh = vec3(0.88, 0.9, 0.94);
-  vec3 packed = vec3(0.78, 0.81, 0.86);
+  vec3 fresh = vec3(0.83, 0.85, 0.89);
+  vec3 packed = vec3(0.72, 0.75, 0.8);
   return mix(packed, fresh, smoothstep(0.3, 0.7, n) * 0.75 + m * 0.25);
 }
 

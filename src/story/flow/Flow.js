@@ -62,7 +62,8 @@ export class Flow {
 
   update() {
     if (!this.zones.size) return;
-    const busy = this.story.busy;
+    // Nothing triggers under the title, menus, dialogue or cutscenes (unless a zone says always).
+    const busy = this.story.busy || (this.G.input && this.G.input.context !== 'game');
     const p = this.playerPos();
     for (const z of [...this.zones.values()]) {
       if (busy && !z.always) continue;

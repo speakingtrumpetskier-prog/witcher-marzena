@@ -123,10 +123,19 @@ export class GeoBuilder {
   }
 }
 
+// Ring heights for a trunk: buried start, a ring near the ground (so base snow has a short
+// gradient), then evenly up to yTop.
+export function trunkHeights(n, yTop) {
+  const ys = [-0.4, 0.8];
+  for (let i = 2; i < n; i++) ys.push(0.8 + (yTop - 0.8) * ((i - 1) / (n - 2)));
+  return ys;
+}
+
 // ---------------------------------------------------------------------------------------------
 // Tube: a swept ring along a polyline. `pts` are [x,y,z]; `radius(i, t)` and `color(i, t, k)` give
 // per ring values (k = side index). Rings share vertices around, 2 tris per side per segment.
 // opts: sides, cap (close the end with a small disc), snowFn(ny) vertex snow from the normal,
+//       snowRing [a, b]: snow on the first rings (drift against the trunk base),
 //       flex(t) wind flex weight, phase, uv (true: u around 0..1, v = meters along, else uv stays 0),
 //       uvScale, jitter (radius noise 0..1), rng
 export function tube(b, pts, radius, color, opts = {}) {
@@ -167,7 +176,7 @@ export function tube(b, pts, radius, color, opts = {}) {
       const nx = ux * ca + vx * sa, ny = uy * ca + vy * sa, nz = uz * ca + vz * sa;
       const rr = rad * jv[kk];
       const col = color(i, t, kk);
-      const snow = opts.snowFn ? opts.snowFn(ny, t) : 0;
+      const snow = opts.snowFn ? opts.snowFn(ny, t) : (opts.snowRing ? (opts.snowRing[i] ?? 0) : 0);
       ring.push(b.v(pts[i][0] + nx * rr, pts[i][1] + ny * rr, pts[i][2] + nz * rr, nx, ny, nz, col,
         opts.uv ? k / sides : 0, opts.uv ? vAcc * (opts.uvScale || 1) : 0.5, snow, opts.flex ? opts.flex(t) : 0, opts.phase || 0));
     }

@@ -11,7 +11,8 @@ export function logHouse(opts = {}) {
   const size = opts.size ?? 'medium';
   const [w0, d0] = SIZES[size] || SIZES.medium;
   const w = opts.w ?? w0, d = opts.d ?? d0;
-  const floors = opts.floors ?? 1;
+  const gallery = !!opts.gallery;
+  const floors = opts.floors ?? (gallery ? 2 : 1);
   const shutters = opts.shutters ?? kit.pick(['blue', 'blue', 'red', 'cream']);
   const porch = opts.porch ?? false;
   const doorS = opts.doorS ?? (porch ? 0 : kit.pick([-1, 1]) * w * 0.17);
@@ -22,7 +23,9 @@ export function logHouse(opts = {}) {
   const frontSlots = [];
   for (let s = -wf / 2 + 0.5; s <= wf / 2 - 0.5; s += 1.9) frontSlots.push(s);
   for (const s of frontSlots) if (Math.abs(s - doorS) > 1.5) windows.push({ wall: 'front', s, y: 1.05 });
-  if (floors > 1) for (const s of [-w * 0.2, w * 0.2]) windows.push({ wall: 'front', s, y: 0.95, level: 1 });
+  if (floors > 1 && !gallery) for (const s of [-w * 0.2, w * 0.2]) windows.push({ wall: 'front', s, y: 0.95, level: 1 });
+  const doors = [{ wall: 'front', s: doorS, leaf: opts.doorLeaf ?? 'closed', id: 'front' }];
+  if (gallery) doors.push({ wall: 'front', s: w * 0.0, y: 2.88 + 0.0, level: 1, leaf: 'closed', id: 'upper', step: false, h: 1.85, lanternSide: 1 });
   // Side walls.
   const nSide = d > 6 ? 2 : 1;
   for (const wall of ['left', 'right']) {
@@ -36,7 +39,8 @@ export function logHouse(opts = {}) {
   const paint = opts.paint ?? kit.pick([PAL.red, PAL.blueFaded, PAL.ochre]);
   const spec = {
     w, d, courses: opts.courses ?? 8, storeys: floors, shutters, paint,
-    doors: [{ wall: 'front', s: doorS, leaf: opts.doorLeaf ?? 'closed', id: 'front' }],
+    doors,
+    gallery: gallery ? { wall: 'front', s: 0, w: Math.min(4.6, w - 0.8), depth: 1.5, level: 1, stairs: 1 } : null,
     windows,
     chimney: opts.chimney === false ? null : { wall: 'back', s: kit.rs() * 0.4, w: 1.5 },
     porch: hasPorch ? { wall: 'front', s: doorS, w: Math.min(3.4, w - 0.6), depth: 1.9, benches: true, doorS } : null,

@@ -148,13 +148,17 @@ const KINDS = {
   pulse: { key: () => ['pulse', renderPulse] },
 };
 
+// Loudness calibration per kind (measured with scripts/render-audio.mjs --only inst) so that a
+// part level means roughly the same loudness on every instrument.
+const CAL = { zither: 2.4, box: 2.0, bell: 1.8, frame: 1.4, war: 1.3, pulse: 1.2 };
+
 export class Sampler {
   constructor(eng, kind, o = {}) {
     this.eng = eng;
     this.ctx = eng.ctx;
     this.kind = kind;
     this.def = KINDS[kind];
-    this.level = o.level ?? 0.5;
+    this.level = (o.level ?? 0.5) * (CAL[kind] ?? 1);
     this.out = this.ctx.createGain();
     this.n = 0;
     this.r = eng.rngFor(`sampler:${kind}`);

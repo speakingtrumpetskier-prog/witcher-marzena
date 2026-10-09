@@ -63,3 +63,24 @@ export function vowelAt(type, vowel, f0, scaleF = 1) {
     return [ff, bw, Math.pow(10, g / 20)];
   });
 }
+
+// Estimated output level of a formant bank for a glottal source at f0 (harmonics k^-tilt), from
+// the bandpass magnitudes plus the low warmth path. Used to keep loudness steady across vowels
+// and pitches (a closed "m" or "u" would otherwise be far louder than an open "a" because its
+// first formant sits on the fundamental).
+export function bankLevel(fm, f0, warmth = 0.3, bwScale = 1, tilt = 1.25) {
+  let e = 0;
+  const h1c = Math.min(900, f0 * 1.7);
+  for (let k = 1; k * f0 < 9000 && k <= 40; k++) {
+    const f = k * f0, a = Math.pow(k, -tilt);
+    let re = 0;
+    fm.forEach(([ff, bw, g], i) => {
+      const Q = ff / (bw * bwScale);
+      const x = Q * (f / ff - ff / f);
+      re += (i % 2 ? -1 : 1) * g / Math.sqrt(1 + x * x);
+    });
+    re += warmth / Math.sqrt(1 + Math.pow(f / h1c, 4));
+    e += a * a * re * re;
+  }
+  return Math.sqrt(e);
+}

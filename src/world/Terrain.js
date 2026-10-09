@@ -18,6 +18,7 @@ import * as THREE from 'three';
 import { terrainUniforms, TERRAIN_SAMPLE_GLSL } from './terrain/terrainGLSL.js';
 import { createTerrainMaterials } from './terrain/terrainMaterial.js';
 import { computeHeight } from './heightfield.js';
+import { noiseTextures } from './terrain/noiseTextures.js';
 
 const PATCH = 32; // cells per patch side
 const ROOT_HALF = 6400; // quadtree root covers [-6400, 6400]; 800 m nodes align with the near grid
@@ -199,6 +200,8 @@ class CDLOD {
     this.frustum = new THREE.Frustum();
     this.box = new THREE.Box3();
     this.cam = new THREE.Vector3();
+    this.pv = new THREE.Matrix4();
+    this.near = 0;
   }
 
   boxDist2(b) {
@@ -209,7 +212,7 @@ class CDLOD {
     return dx * dx + dy * dy + dz * dz;
   }
 
-  addPatch(L, x0, z0) {
+  addPatch(L, x0, z0, shadowOnly) {
     if (this.count >= MAX_PATCHES) return;
     const k = this.count++;
     const sp = this.baseCell * 2 ** L;
@@ -217,50 +220,59 @@ class CDLOD {
     this.data[k * 4] = x0;
     this.data[k * 4 + 1] = z0;
     this.data[k * 4 + 2] = sp;
-    this.data[k * 4 + 3] = L;
+    this.data[k * 4 + 3] = L + (shadowOnly ? 16 : 0);
     const dx = x0 + half - this.cam.x, dz = z0 + half - this.cam.z;
-    this.dist[k] = dx * dx + dz * dz;
+    this.dist[k] = (shadowOnly ? -1e9 : 0) + dx * dx + dz * dz;
   }
 
-  node(L, ci, cj) {
+  // CDLOD selection. Nodes outside the view but within KEEP_NEAR are kept as shadow-only
+  // patches (the color pass collapses them in the vertex shader).
+  node(L, ci, cj, parentVis) {
     const size = 100 * 2 ** L;
     const x0 = -ROOT_HALF + ci * size, z0 = -ROOT_HALF + cj * size;
-    if (x0 >= DATA_HALF || x0 + size <= -DATA_HALF || z0 >= DATA_HALF || z0 + size <= -DATA_HALF) return true;
+    if (x0 >= DATA_HALF || x0 + size <= -DATA_HALF || z0 >= DATA_HALF || z0 + size <= -DATA_HALF) { this.retKeep = false; return false; }
     const lv = this.mm[L + 1];
     const o = cj * lv.n + ci;
     const b = this.box;
     b.min.set(x0, lv.min[o], z0);
     b.max.set(x0 + size, lv.max[o], z0 + size);
     const d2 = this.boxDist2(b);
+    const vis = parentVis && this.frustum.intersectsBox(b);
+    const keep = vis || d2 <= KEEP_NEAR * KEEP_NEAR;
+    this.retKeep = keep;
+    this.retVis = vis;
     if (d2 > this.range2[L]) return false;
-    if (d2 > KEEP_NEAR * KEEP_NEAR && !this.frustum.intersectsBox(b)) return true;
+    if (!keep) return true;
     const hs = size / 2;
     if (L === 0 || d2 > this.range2[L - 1]) {
-      this.addPatch(L, x0, z0); this.addPatch(L, x0 + hs, z0);
-      this.addPatch(L, x0, z0 + hs); this.addPatch(L, x0 + hs, z0 + hs);
+      this.addPatch(L, x0, z0, !vis); this.addPatch(L, x0 + hs, z0, !vis);
+      this.addPatch(L, x0, z0 + hs, !vis); this.addPatch(L, x0 + hs, z0 + hs, !vis);
       return true;
     }
     for (let q = 0; q < 4; q++) {
       const cx = ci * 2 + (q & 1), cz = cj * 2 + (q >> 1);
-      if (!this.node(L - 1, cx, cz)) this.addPatch(L, -ROOT_HALF + cx * hs, -ROOT_HALF + cz * hs);
+      if (!this.node(L - 1, cx, cz, vis) && this.retKeep) this.addPatch(L, -ROOT_HALF + cx * hs, -ROOT_HALF + cz * hs, !this.retVis);
     }
     return true;
   }
 
-  select(camera) {
+  // Returns the patch count. Order: shadow-only patches, then visible ones front to back.
+  // `this.near` = length of the prefix within `shadowR` meters, all the shadow map needs.
+  select(camera, shadowR = 250) {
     camera.updateMatrixWorld();
     this.cam.setFromMatrixPosition(camera.matrixWorld);
-    const m = new THREE.Matrix4().multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
-    this.frustum.setFromProjectionMatrix(m);
+    this.frustum.setFromProjectionMatrix(this.pv.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse));
     this.count = 0;
-    this.node(LEVELS - 1, 0, 0);
-    // Front-to-back so the GPU rejects hidden mountains early.
+    this.node(LEVELS - 1, 0, 0, true);
     const n = this.count;
     for (let i = 0; i < n; i++) this.order[i] = i;
     const ord = this.order.subarray(0, n), dist = this.dist;
     ord.sort((a, b) => dist[a] - dist[b]);
+    const sr2 = shadowR * shadowR;
+    this.near = 0;
     for (let i = 0; i < n; i++) {
       const s = ord[i] * 4;
+      if (dist[ord[i]] < sr2) this.near = i + 1;
       this.sorted[i * 4] = this.data[s];
       this.sorted[i * 4 + 1] = this.data[s + 1];
       this.sorted[i * 4 + 2] = this.data[s + 2];
@@ -291,8 +303,11 @@ export async function init(G) {
     far: { half: far.half, res: far.res, cell: far.cell },
   };
   const uniforms = terrainUniforms(textures);
+  const nz = noiseTextures();
+  uniforms.uMzNoise = { value: nz.smooth };
+  uniforms.uMzWhite = { value: nz.white };
   const q = G.quality;
-  const r0 = q === 'high' ? 170 : q === 'medium' ? 140 : 110;
+  const r0 = q === 'high' ? 140 : q === 'medium' ? 115 : 90;
   uniforms.uMzMorph = { value: [] };
   for (let L = 0; L < LEVELS; L++) {
     const end = r0 * 2 ** L, start = end * 0.72;
@@ -319,8 +334,20 @@ export async function init(G) {
   const trisPerPatch = PATCH * PATCH * 2;
   const stats = { patches: 0, triangles: 0, buildMs: 0, waitMs: tWait, gridMs: W.buildMs };
 
+  // Shadow pass: only the nearest patches (first in the front-to-back order) can land in the
+  // sun's shadow frustum, so draw just those there.
+  let shadowCount = 0, mainCount = 0;
+  mesh.onBeforeShadow = () => { geo.instanceCount = shadowCount; };
+  mesh.onBeforeRender = () => { geo.instanceCount = mainCount; };
+  const shadowReach = () => {
+    const sc = G.atmosphere?.sun?.shadow?.camera;
+    if (!sc) return 250;
+    return Math.max(Math.abs(sc.left), Math.abs(sc.right), Math.abs(sc.top), Math.abs(sc.bottom)) * 1.6 + 60;
+  };
   const update = () => {
-    const n = lod.select(G.camera);
+    const n = lod.select(G.camera, shadowReach());
+    mainCount = n;
+    shadowCount = lod.near;
     inst.array.set(lod.sorted.subarray(0, n * 4));
     inst.clearUpdateRanges();
     inst.addUpdateRange(0, n * 4);
@@ -328,7 +355,10 @@ export async function init(G) {
     geo.instanceCount = n;
     uniforms.uMzLodCam.value.copy(lod.cam);
     stats.patches = n;
-    stats.triangles = n * trisPerPatch;
+    stats.shadowPatches = lod.near;
+    let vis = 0;
+    for (let i = 0; i < n; i++) if (lod.sorted[i * 4 + 3] < 16) vis++;
+    stats.triangles = vis * trisPerPatch;
   };
   update();
   // Before the camera-dependent passes, after any camera mover (rig 80, atmosphere 90).

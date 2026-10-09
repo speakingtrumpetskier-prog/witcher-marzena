@@ -47,7 +47,7 @@ export async function init(G) {
   key.castShadow = shadows;
   const size = G.quality === 'high' ? 2048 : 1024;
   key.shadow.mapSize.set(size, size);
-  key.shadow.bias = -0.00025;
+  key.shadow.bias = -0.0001;
   key.shadow.normalBias = 0.035;
   key.shadow.radius = 1.6;
   // Far cascade: a black light that only carries a coarse shadow map (see shadowCascade.js).
@@ -56,7 +56,7 @@ export async function init(G) {
   far.name = 'keyFarCascade';
   far.castShadow = shadows && CASCADE_OK;
   far.shadow.mapSize.set(size, size);
-  far.shadow.bias = -0.0003;
+  far.shadow.bias = -0.00012;
   far.shadow.normalBias = 0.8;
   far.shadow.radius = FAR_MARKER_RADIUS;
   far.shadow.autoUpdate = false;
@@ -175,7 +175,7 @@ export async function init(G) {
     key.shadow.radius = useSun ? 1.6 : 3.5;
     if (shadows) updateShadowFrustum(dt);
     else { key.position.copy(G.camera.position).addScaledVector(shadowDir, 500); key.target.position.copy(G.camera.position); key.target.updateMatrixWorld(); }
-    U.uSunColor.value.copy(look.key).multiplyScalar(keyI / 6);
+    U.uSunColor.value.copy(look.key).multiplyScalar(keyI / 18);
 
     // Night and window light.
     const night = h >= 12 ? smoothstep(17.2, 18.5, h) : 1 - smoothstep(5.5, 7.0, h);
@@ -187,22 +187,24 @@ export async function init(G) {
     const aur = (G.sky?.aurora || 0) * night;
 
     // Ambient: the sky environment map does most of the work; the hemisphere adds the warm snow
-    // bounce from below and keeps materials sane when the sky module is absent.
+    // bounce from below and a little sky fill (values are radiance, hence the factor pi). Without
+    // the sky module it carries the whole sky.
     const hasEnv = !!G.scene.environment;
     hemi.color.copy(look.hemiSky);
-    if (aur > 0) hemi.color.lerp(AURORA_TINT, aur * 0.25);
+    if (!hasEnv) hemi.color.add(tmp.copy(look.zen).multiplyScalar(0.75)).add(tmp.copy(look.hor).multiplyScalar(0.25));
+    if (aur > 0) hemi.color.add(tmp.copy(AURORA_TINT).multiplyScalar(aur * 0.012));
     hemi.groundColor.copy(look.hemiGround);
-    let ambI = look.hemiI * (hasEnv ? 0.45 : 1.6);
-    if (o && o.ambientMul !== undefined) ambI *= lerp(1, o.ambientMul, ok);
-    hemi.intensity = ambI;
-    G.scene.environmentIntensity = o && o.ambientMul !== undefined ? lerp(1, o.ambientMul, ok) : 1;
+    let ambMul = 1;
+    if (o && o.ambientMul !== undefined) ambMul = lerp(1, o.ambientMul, ok);
+    hemi.intensity = Math.PI * ambMul;
+    G.scene.environmentIntensity = ambMul;
 
     // Fog.
     let fogMul = 1;
     if (o && o.fogMul !== undefined) fogMul = lerp(1, o.fogMul, ok);
-    U.uFogColor.value.copy(look.fog).multiplyScalar(look.fogI);
-    if (aur > 0) U.uFogColor.value.lerp(tmp.copy(AURORA_TINT).multiplyScalar(look.fogI * 0.9), aur * 0.12);
-    U.uFogSunColor.value.copy(look.fogSun).multiplyScalar(look.fogI * 1.25);
+    U.uFogColor.value.copy(look.fog);
+    if (aur > 0) U.uFogColor.value.add(tmp.copy(AURORA_TINT).multiplyScalar(aur * 0.004));
+    U.uFogSunColor.value.copy(look.fogSun);
     if (o && o.fogColor) {
       U.uFogColor.value.lerp(o.fogColor, ok);
       U.uFogSunColor.value.lerp(o.fogColor, ok);
@@ -211,7 +213,7 @@ export async function init(G) {
     U.uFogHeightFalloff.value = W.fogFalloff;
     U.uFogBaseHeight.value = 0;
     U.uFogSunPower.value = 9;
-    U.uFogSunWide.value = 0.4 * (1 - W.overcast * 0.8);
+    U.uFogSunWide.value = 0.32 * (1 - W.overcast * 0.8);
     U.uFogHaze.value.set(W.haze * fogMul, W.hazeFalloff);
     // A thin natural mist on the ice at dawn, even in clear weather.
     const dawnMist = smoothstep(5.0, 6.5, h) * (1 - smoothstep(8.5, 10.5, h)) * 0.004;
@@ -228,7 +230,7 @@ export async function init(G) {
     gr.gain.copy(look.gain);
     gr.sat = look.sat;
     gr.contrast = 1.0 + 0.06 * (1 - W.overcast) - 0.1 * W.fogWhite;
-    gr.tint.setRGB(1, 1, 1);
+    gr.tint.copy(look.tint);
     gr.vignette = 0.3 + 0.1 * night;
     gr.grain = 0.025 + 0.02 * night;
     if (o) {
@@ -241,6 +243,6 @@ export async function init(G) {
       }
     }
     G.renderer.toneMappingExposure = gr.exposure;
-    A.lightLevel = clamp((keyI * Math.max(A.keyDir.y, 0) + look.hemiI) * gr.exposure * 0.5, 0, 1);
+    A.lightLevel = clamp((keyI * Math.max(A.keyDir.y, 0) / Math.PI + look.zen.g + look.hor.g) * gr.exposure * 0.6, 0, 1);
   }, ORDER.atmosphere);
 }

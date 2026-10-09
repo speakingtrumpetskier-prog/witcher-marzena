@@ -80,5 +80,15 @@ function resolveLook(spec, M) {
     look.rigOpts.cape = { cols: 3, len: outfit.cape.length * M.H * 0.55, top: M.shoulderY + 0.01, width: M.shoulderX * 0.7, depth: M.chestD * 1.2 };
   }
   if (outfit.swords) look.rigOpts.sheaths = true;
+  if (look.hair.style === 'pigtails') {
+    const k = M.headK;
+    const hp = (x) => new THREE.Vector3(x * 0.072 * k, M.headPivotY + 0.035 * k, -0.035 * k);
+    look.rigOpts.tails = [
+      { name: 'pigL', parent: 'head', at: hp(1), len: 0.16 * M.k },
+      { name: 'pigR', parent: 'head', at: hp(-1), len: 0.16 * M.k },
+    ];
+  }
+  const hatT = spec.hat?.type;
+  if (hatT === 'scarf' || hatT === 'kerchief' || hatT === 'hood' || (hatT === 'knit' && (spec.hat.low ?? 1) > 0.5)) look.hideEars = true;
   return look;
 }

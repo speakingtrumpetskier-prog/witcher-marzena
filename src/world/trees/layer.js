@@ -20,7 +20,7 @@ const _e = new THREE.Euler();
 // i + 1 (centre of the fade band), bands[i] its half width. The last LOD of a kind without an
 // impostor fades out over `fadeOut` meters ending at ends[last].
 const GROUPS = {
-  tree: { ends: [44, 140, 380], bands: [10, 24, 48] },
+  tree: { ends: [34, 110, 330], bands: [8, 20, 40] },
   bush: { ends: [30, 120], bands: [8, 0], fadeOut: 30 },
   deadwood: { ends: [38, 115], bands: [8, 0], fadeOut: 28 },
   ground: { ends: [20, 58], bands: [5, 0], fadeOut: 16 },
@@ -51,7 +51,7 @@ export class VegLayer {
     this.quality = opts.quality || 'high';
     this.qs = { low: 0.62, medium: 0.82, high: 1 }[this.quality] || 1;
     this.shadowLods = this.quality === 'low' ? 0 : this.quality === 'medium' ? 1 : 2;
-    this.circle = opts.circle ?? 24; // all-around radius kept in LOD 0 for shadows
+    this.circle = opts.circle ?? 18; // all-around radius kept in LOD 0 for shadows
     this.hasImpostorsFor = opts.hasImpostor ?? ((k) => k.impostor);
     this.nKinds = kinds.length;
     this.dirty = true;

@@ -37,6 +37,11 @@ export class Hud {
     this._capKey = '';
     this._build(root);
     this._rebuildLocs();
+    // Cache the strip half-width so no layout read happens per frame (ResizeObserver updates it).
+    this._half = 280;
+    if (typeof ResizeObserver !== 'undefined') {
+      new ResizeObserver(() => { this._half = (this.strip.clientWidth || 560) / 2; }).observe(this.strip);
+    }
   }
 
   _build(root) {
@@ -217,7 +222,7 @@ export class Hud {
     setStyle(this.tape, 'transform', `translate3d(${(-(TURN + heading * PX)).toFixed(1)}px,0,0)`);
 
     const pp = G.player?.position || cam.position;
-    const half = (this.strip.clientWidth || 560) / 2;
+    const half = this._half;
     let best = null, bestAbs = 1e9;
     for (const m of this._markers.values()) {
       const dx = m.x - pp.x, dz = m.z - pp.z;

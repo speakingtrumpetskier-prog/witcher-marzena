@@ -20,6 +20,7 @@ export function smithy(opts = {}) {
     atticWindow: false,
   });
   const hw = info.hw, hd = info.hd, y = 0.0;
+  kit.indoor(true);
   // Hard-packed floor with soot and scale.
   kit.stone.box(0, -0.05, 0, w - 0.2, 0.1, d - 0.2, scaleC(0x4a443e, GAIN * 0.75), { uv: [3, 3] });
   kit.walk.floors.push({ y: 0, polygon: [[-hw + 0.1, -hd + 0.1], [hw - 0.1, -hd + 0.1], [hw - 0.1, hd - 0.1], [-hw + 0.1, hd - 0.1]] });
@@ -80,6 +81,7 @@ export function smithy(opts = {}) {
   barrel(kit, -hw + 0.7, y, 0.8, 0.9, 0.35); kit.circle(-hw + 0.7, 0.8, 0.35);
   lantern(kit, 1.8, 2.3, 1.8, { intensity: 0.9 });
   void firewoodStack;
+  kit.indoor(false);
   // The roof beams over the open front and the corner posts are in cabin(); add a hanging sign: a hammer.
   kit.frame(-hw - 0.55, 2.55, hd + 0.1, 0, () => {
     kit.metal.box(0.3, 0, 0, 0.7, 0.04, 0.04, scaleC(PAL.iron, GAIN * 0.8), {});

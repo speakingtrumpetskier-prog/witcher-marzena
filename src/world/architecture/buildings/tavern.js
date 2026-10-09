@@ -50,6 +50,7 @@ export function tavern(opts = {}) {
   kit.anchor('sign', sx, 2.4, sz + 0.6);
 
   // ---- interior ----
+  kit.indoor(true);
   const y = fy;
   // Fireplace on the back wall, under the chimney (back-wall s = -2.0 is local x = +2.0).
   fireplace(kit, 2.0, y, -hd + r * 0.9, 0, { w: 2.5, d: 1.0, h: 2.8, name: 'hearth' });
@@ -98,6 +99,7 @@ export function tavern(opts = {}) {
   kit.light(0, cy, 0.5, { color: 0xffb060, intensity: 1.3, radius: 10, kind: 'lantern' });
   lantern(kit, -hw + 0.5, 2.3, 1.5, { intensity: 0.9 });
   lantern(kit, hw - 0.5, 2.3, -1.5, { intensity: 0.9 });
+  kit.indoor(false);
   // Anchors for NPC placement.
   kit.anchor('bar', bx, y, bz + 0.8);
   kit.anchor('keeper', bx + 0.4, y, bz - 0.7);

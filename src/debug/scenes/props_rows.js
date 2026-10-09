@@ -25,4 +25,35 @@ export const ROWS = [
       ['musicBox', { seed: 1 }], ['birdCarving', { seed: 1 }], ['toys', { seed: 1 }], ['snowman', { seed: 1 }],
     ],
   },
+  {
+    name: 'fishing',
+    items: [
+      ['dryingRack', { seed: 1 }], ['fishBasket', { seed: 1 }], ['fishString', { seed: 1 }], ['net', { seed: 1 }], ['net', { seed: 2, variant: 'heap' }], ['boat', { seed: 1 }], ['boat', { seed: 2, variant: 'overturned' }],
+      ['iceFishingHole', { seed: 1, rod: true }], ['iceFishingHole', { seed: 2 }], ['fishingStool', { seed: 1 }], ['fishingStool', { seed: 2, variant: 'bucket' }], ['windbreak', { seed: 1 }],
+      ['tent', { seed: 1, variant: 'aframe' }], ['tent', { seed: 2, variant: 'cone' }],
+    ],
+  },
+  {
+    name: 'effigy',
+    items: [
+      ['effigy', { seed: 1, variant: 'pole' }], ['effigy', { seed: 2, variant: 'standing' }], ['effigy', { seed: 3, variant: 'hung' }], ['effigy', { seed: 4, variant: 'seated' }],
+      ['effigy', { seed: 5, variant: 'half' }], ['effigy', { seed: 6, variant: 'burnt' }], ['effigy', { seed: 7, variant: 'frozen' }], ['effigy', { seed: 8, variant: 'burning' }],
+      ['effigyHead', { seed: 1 }], ['effigyHead', { seed: 2 }], ['effigyHead', { seed: 3, variant: 'frozen' }], ['strawPile', { seed: 2 }],
+    ],
+  },
+  {
+    name: 'ritual',
+    items: [
+      ['ribbonPole', { seed: 1 }], ['ribbonPole', { seed: 2 }], ['offering', { seed: 1, variant: 'bowl' }], ['offering', { seed: 2, variant: 'candle' }], ['gravePostSmall', { seed: 1 }], ['gravePostSmall', { seed: 2, variant: 'redThread' }],
+      ['bones', { seed: 1 }], ['skull', { seed: 1, variant: 'wolf' }], ['skull', { seed: 2, variant: 'human' }], ['skull', { seed: 3, variant: 'cow' }], ['signpost', { seed: 1 }],
+      ['horseHead', { seed: 1 }], ['roofFinial', { seed: 1 }], ['dogKennel', { seed: 1 }], ['chickenCoop', { seed: 1 }], ['beehive', { seed: 1, variant: 'log' }], ['beehive', { seed: 2, variant: 'skep' }],
+    ],
+  },
+  {
+    name: 'misc',
+    items: [
+      ['rockSmall', { seed: 1 }], ['rockSmall', { seed: 2, variant: 'cluster' }], ['rockSmall', { seed: 3, variant: 'flat' }], ['barrelStack', { seed: 1, variant: 'pyramid' }], ['barrelStack', { seed: 2, variant: 'standing' }],
+      ['crateStack', { seed: 1 }], ['laundryLine', { seed: 1 }], ['icicles', { seed: 1 }], ['brazier', { seed: 1 }], ['brazier', { seed: 2, variant: 'tall' }], ['torch', { seed: 1 }],
+    ],
+  },
 ];

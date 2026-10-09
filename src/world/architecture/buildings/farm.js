@@ -183,6 +183,7 @@ export function banya(opts = {}) {
     porch: { wall: 'front', s: -0.9, w: 2.4, depth: 1.5, benches: true, doorS: -0.9, hHigh: 2.7, hLow: 2.15, paint: PAL.ochre },
   });
   const hw = info.hw, hd = info.hd, y = 0.05;
+  kit.indoor(true);
   // Stove of stones with a glowing mouth, back wall under the chimney.
   kit.frame(0, y, -hd + r + 0.75, 0, () => {
     for (let i = 0; i < 24; i++) {
@@ -205,6 +206,7 @@ export function banya(opts = {}) {
   barrel(kit, -hw + 0.6, y, hd - 0.7, 0.7, 0.3); kit.circle(-hw + 0.6, hd - 0.7, 0.3);
   stool(kit, -hw + 0.7, y, 0.4, 0.3, 0.35, 0.2);
   lantern(kit, -1.2, 2.0, 0.5, { intensity: 0.6, radius: 5 });
+  kit.indoor(false);
   // Steam: from the chimney and low from the door, so it can be seen in the cold.
   const door = info.doorRecs[0];
   kit.anchor('steam', door.x, 1.6, door.z + 0.2);
@@ -225,6 +227,7 @@ export function workshop(opts = {}) {
     atticLit: true,
   });
   const hw = info.hw, hd = info.hd, y = 0.0;
+  kit.indoor(true);
   // Beaten earth floor, scattered with straw.
   kit.stone.box(0, -0.06, 0, w - 0.2, 0.12, d - 0.2, mixC(0x6b6256, 0x5a5348, 0.5).multiplyScalar(GAIN * 0.9), { uv: [3, 3] });
   kit.walk.floors.push({ y: 0.0, polygon: [[-hw + 0.1, -hd + 0.1], [hw - 0.1, -hd + 0.1], [hw - 0.1, hd - 0.1], [-hw + 0.1, hd - 0.1]] });
@@ -271,6 +274,7 @@ export function workshop(opts = {}) {
   barrel(kit, hw - 0.7, y, 2.8, 0.9, 0.35); kit.circle(hw - 0.7, 2.8, 0.35);
   sack(kit, -hw + 0.7, y, 3.0, 0.3, 1.0);
   lantern(kit, 0, yb - 0.1, 0.5, { intensity: 1.0, radius: 9 });
+  kit.indoor(false);
   kit.anchor('bench', 2.4, y + 0.86, 0.9);
   kit.anchor('door', 0, 0, hd + 1.2);
   kit.anchor('doorInside', 0, y, hd - 1.5);

@@ -15,7 +15,8 @@ export async function build(G, ctx) {
     let x = 0;
     const objs = [];
     const labels = [];
-    for (const [name, o] of row.items) {
+    const pick = G.params.get('pick') ? G.params.get('pick').split(',').map(Number) : null;
+    for (const [name, o] of row.items.filter((_, ii) => !pick || pick.includes(ii))) {
       const g = props.make(name, o);
       const b = g.userData.bounds;
       const w = Math.max(1.4, b.max.x - b.min.x + (o && o.gap != null ? o.gap : 0.8));
@@ -58,4 +59,5 @@ export async function build(G, ctx) {
     G.camera.lookAt(c);
   }
   G.catalogCount = all.length;
+  G.catalogObjects = all;
 }

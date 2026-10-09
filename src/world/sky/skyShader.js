@@ -211,10 +211,17 @@ void main() {
 
   // Gradient: rich zenith blue down to a horizon built from the fog in-scatter color, so the
   // sky meets fogged terrain without a seam.
+  // Three stops (horizon, pale middle, zenith) so warm sunset horizons pass through pale gold
+  // into blue instead of mixing through lavender.
   vec3 fogL = mzFogInscatter(rd);
   vec3 hor = mix(uHorizon, fogL, 0.7);
-  vec3 sky = mix(hor, uZenith, pow(yy, 0.5));
-  sky *= 1.0 + 0.15 * exp(-yy * 18.0);
+  float t = pow(yy, 0.4);
+  float hl = dot(hor, vec3(0.3, 0.5, 0.2));
+  vec3 mid = mix(vec3(hl) * vec3(0.96, 1.0, 1.06), uZenith, 0.45);
+  mid = mix(mid, hor, 0.25);
+  vec3 sky = mix(hor, mid, smoothstep(0.0, 0.5, t));
+  sky = mix(sky, uZenith, smoothstep(0.35, 1.0, t));
+  sky *= 1.0 + 0.12 * exp(-yy * 18.0);
 
   // Warm horizon on the sun side, Mie glow around the sun.
   vec2 rxz = normalize(rd.xz + 1e-5);

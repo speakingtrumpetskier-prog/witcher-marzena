@@ -1,9 +1,10 @@
 // UI gallery: fakes G.player, G.quests and G.state data and opens one UI element over a simple
 // 3D backdrop so each can be screenshotted.
 //
-//   ?scene=ui&show=hud|subtitle|choices|journal|map|note|title|hold|credits|pause|settings|card|barks|all
+//   ?scene=ui&show=hud|subtitle|choices|journal|map|note|title|hold|credits|pause|settings|card|banner|barks|all
 //   &backdrop=day|dusk|night     which backdrop (default depends on show)
-//   &real=1                      load the real world modules instead of the fake backdrop
+//   &real=1|full|0               real=1 loads terrain, sky and ice, full adds trees, locations and weather,
+//                                0 forces the fake backdrop (title defaults to real=1)
 //   journal: &tab=quests|notes|bestiary &quest=main_straw &index=2 &all=1 (unlock every beast)
 //   note:    &note=note_trapper     map: &zoom=2.4 &center=x,z
 //   choices: &decisive=1 &timer=12  hold: &holdsim=0.7 (seconds of simulated E)
@@ -18,11 +19,15 @@ import { ROADS } from '../../world/layout.js';
 
 const P = new URLSearchParams(location.search);
 const SHOW = P.get('show') || 'hud';
-const REAL = P.has('real') || SHOW === 'title';
+// real=1 loads the light real world (terrain, sky, ice); real=full adds weather, trees and locations.
+const REAL = (P.has('real') && P.get('real') !== '0') || (SHOW === 'title' && P.get('real') !== '0');
+const FULL = P.get('real') === 'full';
 
 export const needsWorld = true;
 export const modules = REAL
-  ? ['atmosphere', 'sky', 'terrain', 'water', 'rocks', 'weather', 'vegetation', 'locations', 'ui', 'postfx']
+  ? (FULL
+    ? ['atmosphere', 'sky', 'terrain', 'water', 'rocks', 'weather', 'vegetation', 'locations', 'ui', 'postfx']
+    : ['atmosphere', 'sky', 'terrain', 'water', 'ui', 'postfx'])
   : ['ui'];
 
 // ---------------------------------------------------------------------------------------------
@@ -273,6 +278,14 @@ export async function init(G) {
     // face north-north-east so the compass shows the ritual site and the bell tower
     G.camera.lookAt(18, 5, -40);
     G.cameraOwner = 'shot';
+    // The backdrop is static: stop drawing it after a few frames so software rendering does not
+    // starve the page (the canvas keeps its last image, shots stay fast and stable).
+    if (!P.has('nofreeze')) {
+      let frames = 0;
+      G.addSystem('ui-gallery-freeze', () => {
+        if (++frames === 8) G.renderer.render = () => {};
+      }, 200);
+    }
   }
   const ui = G.uiImpl;
   if (SHOW === 'map' && ui) G.readyGates.push(ui.mapView.prepare());
@@ -358,7 +371,12 @@ async function run(G, ui) {
       U.openSettings();
       break;
     case 'card':
-      U.titleCard('MARZENA', 'A tale of the long winter');
+      U.titleCard('MARZENA', 'A tale of the long winter', { hold: 60 });
+      break;
+    case 'banner':
+      U.hud.show();
+      U.banner('Marzena', 'The south shore', { hold: 600 });
+      U.hint([['LMB', 'Light attack'], ['RMB', 'Heavy attack'], ['Space', 'Dodge'], ['Q', 'Cast sign']], 60);
       break;
     case 'barks':
       U.bark('Zbyszek', 'Wipe your boots. Or don’t. Nobody does.', { x: -2, y: 2.4, z: 1 });

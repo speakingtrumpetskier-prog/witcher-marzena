@@ -64,6 +64,7 @@ export function longhouse(opts = {}) {
   }
 
   // ---- interior ----
+  kit.indoor(true);
   // Planked partition between the hall and the private room.
   const pzP = -2.0;
   const wallCol = () => mixC(PAL.plank, PAL.plankDark, kit.rand() * 0.5).multiplyScalar(GAIN * kit.r(0.85, 1.1));
@@ -171,6 +172,7 @@ export function longhouse(opts = {}) {
     lantern(kit, -2.0, cy + 1.9, -3.8, { intensity: 1.0, radius: 8 });
     kit.walk.floors.push({ y: cy, polygon: [[cx0, cz0], [cx1, cz0], [cx1, cz1], [cx0, cz1]], tag: 'cellar' });
   }
+  kit.indoor(false);
   kit.anchor('door', info.doorRecs[0].x, 0, info.doorRecs[0].z);
   kit.anchor('doorInside', 0, y, hd - 1.4);
   return kit.finish({ info });

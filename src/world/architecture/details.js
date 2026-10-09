@@ -36,6 +36,26 @@ export function snowPillow(kit, cx, cy, cz, rx, ry, rz, o = {}) {
   });
 }
 
+// Irregular frost patch lying flat on a floor or ledge (kit.ice, melts with the snow cover).
+export function icePatch(kit, cx, cy, cz, rx, rz, o = {}) {
+  const nu = 3, nv = 12;
+  const rows = [], base = [];
+  const ph = kit.rand() * 9;
+  for (let i = 0; i <= nu; i++) {
+    const t = 1 - i / nu; // rim -> center
+    const row = [], br = [];
+    for (let j = 0; j <= nv; j++) {
+      const b = (j / nv) * Math.PI * 2;
+      const k = 0.65 + 0.7 * kit.n2(Math.cos(b) * 1.6 + ph, Math.sin(b) * 1.6 + ph * 0.3);
+      const x = cx + Math.cos(b) * rx * k * t, z = cz + Math.sin(b) * rz * k * t;
+      row.push([x, cy + (o.h ?? 0.035) * (1 - t * t) + (kit.n2(x * 5, z * 5) - 0.5) * 0.01, z]);
+      br.push([x, cy, z]);
+    }
+    rows.push(row); base.push(br);
+  }
+  kit.ice.grid(rows, C(PAL.ice), { uv: [1, 1], baseFn: (i, j) => base[i][j], colorFn: (i, j, p) => mixC(PAL.ice, 0xffffff, 0.35 + 0.4 * kit.n2(p.x * 3, p.z * 3)) });
+}
+
 // ---------- chimney ----------
 // Stone stack against a wall. Local frame: x along the wall, z outward from the wall plane (use
 // inside kit.frame). Returns the smoke anchor height.

@@ -45,17 +45,19 @@ export class Journal {
     let objs = [];
     try { objs = G.quests?.objectives?.() || []; } catch { objs = []; }
     const list = [];
+    const defOrder = Object.keys(G.quests?.defs || {});
     for (const id of Object.keys(recs)) {
       const rec = recs[id] || {};
       const fb = QUEST_FALLBACK[id] || {};
-      let title = null;
-      try { title = G.quests?.title?.(id) ?? G.quests?.defs?.[id]?.title ?? G.quests?.def?.(id)?.title ?? G.quests?.get?.(id)?.title; } catch { title = null; }
-      const kind = fb.kind || (/^side/.test(id) ? 'side' : 'main');
+      let def = null;
+      try { def = G.quests?.def?.(id) ?? G.quests?.defs?.[id] ?? null; } catch { def = null; }
+      const title = def?.title ?? null;
+      const kind = def?.kind || fb.kind || (/^side/.test(id) ? 'side' : 'main');
       const log = (rec.log || []).map((e) => (typeof e === 'string' ? { text: e } : { text: e.text ?? e.t ?? e.entry ?? '', day: e.day, hours: e.hours })).filter((e) => e.text);
-      const obj = objs.find((o) => o.questId === id);
+      const mine = objs.filter((o) => o.questId === id).map((o) => o.text).filter(Boolean);
       list.push({
-        id, title: title || fb.title || pretty(id), kind, order: fb.order ?? 50,
-        state: rec.failed ? 'failed' : rec.done ? 'done' : 'active', stage: rec.stage, log, objective: obj?.text || null,
+        id, title: title || fb.title || pretty(id), kind, order: defOrder.includes(id) ? defOrder.indexOf(id) : fb.order ?? 50,
+        state: rec.failed ? 'failed' : rec.done ? 'done' : 'active', stage: rec.stage, log, objectives: rec.done || rec.failed ? [] : mine,
       });
     }
     list.sort((a, b) => (a.kind === b.kind ? a.order - b.order : a.kind === 'main' ? -1 : 1));
@@ -135,8 +137,11 @@ export class Journal {
     else if (this.tab === 'notes') this._notes();
     else this._bestiary();
     this._hint();
-    const sc = this.right.querySelector('.jr-scroll');
-    if (sc) sc.scrollTop = this.tab === 'quests' ? 1e5 : 0;
+    // Quests read newest-last, so start scrolled to the bottom. Before the screen is attached there is
+    // no layout, so this also runs once on the next frame.
+    const down = () => { const sc = this.right.querySelector('.jr-scroll'); if (sc) sc.scrollTop = this.tab === 'quests' ? 1e5 : 0; };
+    down();
+    requestAnimationFrame(down);
   }
 
   _tabs() {
@@ -212,8 +217,8 @@ export class Journal {
     });
     if (!q.log.length) entries.append(this._empty('Not yet written.'));
     scroll.append(entries);
-    if (q.state === 'active' && q.objective) {
-      scroll.append(h('div', { class: 'jr-now' }, h('span', { class: 'lab' }, 'Now'), h('p', null, q.objective)));
+    if (q.state === 'active' && q.objectives.length) {
+      scroll.append(h('div', { class: 'jr-now' }, h('span', { class: 'lab' }, 'Now'), ...q.objectives.map((t) => h('p', null, t))));
     }
     this.right.append(scroll);
   }
@@ -243,7 +248,7 @@ export class Journal {
     if (n.kind === 'drawing') {
       const c = h('canvas', { class: 'jr-sketch', width: 640, height: 440 });
       drawSketch(c, 'ice_lady', 5);
-      body.append(c);
+      this.left.append(h('div', { class: 'jr-sketchbox' }, c));
     }
     String(n.text || '').split('\n').filter((l) => l.trim()).forEach((l) => body.append(h('div', { class: 'jr-entry latest' }, h('p', null, markup(l)))));
     if (n.sign) body.append(h('div', { class: 'jr-sign' }, n.sign));
@@ -273,8 +278,8 @@ export class Journal {
     }
     const c = h('canvas', { class: 'jr-sketch', width: 640, height: 440 });
     drawSketch(c, b.sketch, 3);
+    this.left.append(h('div', { class: 'jr-sketchbox' }, c));
     this.right.append(h('div', { class: 'jr-qhead' }, h('div', { class: 'sub' }, b.sub), h('h2', null, b.name), h('div', { class: 'rule' }, svg(ICON.knot))));
-    scroll.append(c);
     const body = h('div', { class: 'jr-entries' });
     b.text.forEach((p) => body.append(h('div', { class: 'jr-entry latest' }, h('p', null, markup(p)))));
     scroll.append(body);
@@ -290,6 +295,7 @@ export class Journal {
   setTab(k) {
     if (k === this.tab) return;
     this.tab = k;
+    this.ui.sfx('page_turn', { volume: 0.4 });
     this.render();
   }
 
@@ -307,6 +313,7 @@ export class Journal {
     const n = this._count();
     if (!n) return;
     this.sel[this.tab] = (this.sel[this.tab] + d + n) % n;
+    this.ui.sfx('ui_hover', { volume: 0.35 });
     this.render();
   }
 

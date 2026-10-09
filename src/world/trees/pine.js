@@ -1,7 +1,7 @@
 // Scots pine: tall straight trunk (grey and fissured below, orange and flaky above) carrying a flat,
 // irregular crown of cloud-pruned needle pads on bent limbs. Owner: vegetation builder.
 // lod 0: limbs and domed pads (about 700 tris), lod 1: pads only (about 180), lod 2: flat discs (about 50).
-import { GeoBuilder, rng, rgb, mixRGB, tube, frond, softBall } from './geo.js';
+import { GeoBuilder, rng, rgb, mixRGB, tube, frond, softBall, trunkHeights } from './geo.js';
 
 export const PINE_VARIANTS = [
   { id: 'pine_a', seed: 1101, H: 22, base: 0.62, pads: 9, spread: 4.6, lean: 0.4, wind: 0.0, bend: 0.5 },
@@ -16,7 +16,7 @@ const PAL = {
   limb: rgb('#a0623a'),
   needleDark: rgb('#1f3a33'),
   needleLight: rgb('#3f6350'),
-  needleWarm: rgb('#59744a'),
+  needleWarm: rgb('#4f7048'),
 };
 
 // A needle pad: a rosette of short needle fronds radiating from the limb tip (flat, slightly
@@ -56,11 +56,7 @@ export function buildPine(v, lod = 0) {
   const sides = [8, 5, 4][lod];
   const nRings = lod === 0 ? 14 : lod === 1 ? 6 : 3;
   const pts = [];
-  for (let i = 0; i < nRings; i++) {
-    const t = i / (nRings - 1);
-    const y = -0.4 + (H * 0.985 + 0.4) * t;
-    pts.push([tx(y), y, tz(y)]);
-  }
+  for (const y of trunkHeights(nRings, H * 0.985)) pts.push([tx(y), y, tz(y)]);
   const rad0 = 0.14 + H * 0.0095;
   const trunkV0 = b.vcount;
   tube(b, pts, (i, t) => (rad0 * Math.pow(1 - t, 0.75) + 0.03) * (1 + 0.6 * Math.exp(-(pts[i][1] + 0.4) / 0.8)),
@@ -70,7 +66,7 @@ export function buildPine(v, lod = 0) {
       const c = mixRGB(base, PAL.barkHigh, hh);
       const n = 0.82 + 0.3 * Math.abs(Math.sin(i * 2.3 + k * 1.9 + v.seed));
       return [c[0] * n, c[1] * n, c[2] * n];
-    }, { sides, rng: r, jitter: lod === 0 ? 0.3 : 0 });
+    }, { sides, rng: r, jitter: lod === 0 ? 0.3 : 0, snowRing: [0.95, 0.25] });
   b.tint(trunkV0, (x, y) => 0.6 + 0.4 * Math.min(1, (y + 0.4) / 2.5));
 
   const padV0 = b.vcount;

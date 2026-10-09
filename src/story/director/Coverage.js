@@ -16,7 +16,6 @@
 // subject gets look room toward whoever they talk to; camera height splits the difference
 // between a child and an adult so neither shot looks straight down or up a nostril.
 import * as THREE from 'three';
-import { CINE_ASPECT } from './Overlay.js';
 
 const UP = new THREE.Vector3(0, 1, 0);
 const DEG = Math.PI / 180;
@@ -148,8 +147,8 @@ export class Coverage {
     const mid = new THREE.Vector3().addVectors(_a, _b).multiplyScalar(0.5);
     const eyeY = (ea.y + eb.y) / 2;
     const fr = this.frac();
-    const va = fr < 1 ? CINE_ASPECT : this.aspect();
-    const W = wide ? Math.max(sep * 3.4, 6.2) : Math.max(sep * 2.25, 3.1);
+    const va = this.aspect() / fr;
+    const W = wide ? Math.max(sep * 3.2, 5.4) : Math.max(sep * 2.25, 3.1);
     const H = W / va;
     const visDeg = wide ? 34 : 30;
     const D = H / 2 / Math.tan((visDeg * DEG) / 2);
@@ -174,17 +173,19 @@ export class Coverage {
     const u = new THREE.Vector3(_a.x - _b.x, 0, _a.z - _b.z);
     if (u.lengthSq() < 1e-6) u.copy(this.u);
     u.normalize();
-    const back = 0.82, lat = 0.5 + (L.isChild && !S.isChild ? -0.08 : 0);
+    // Close behind and well off the listener's shoulder: their head and shoulder sit at the
+    // frame edge, the subject on the far third.
+    const back = 0.74, lat = 0.72 + (L.isChild && !S.isChild ? -0.1 : 0);
     const pos = _b.clone().addScaledVector(u, -back).addScaledVector(this.n, lat);
-    // Between the two eye lines, never below the listener's shoulder.
-    pos.y = Math.max(eL.y * 0.5 + eS.y * 0.5 - 0.02, _b.y + L.height * 0.8);
+    // Between the two eye lines, a touch under the listener's eyes, never below their shoulder.
+    pos.y = Math.max(Math.min(eL.y * 0.5 + eS.y * 0.5, eL.y - 0.06), _b.y + L.height * 0.78);
     const look = eS.clone();
     this._unblock(pos, look);
     const dist = pos.distanceTo(look);
     const fr = this.frac();
-    const nx = this._lookRoom(pos, look, _a, _b, 0.27);
+    const nx = this._lookRoom(pos, look, _a, _b, 0.3);
     return {
-      pos, look, fov: this.fovFor(0.98, dist), frame: [nx, fr * 0.33],
+      pos, look, fov: this.fovFor(1.0, dist), frame: [nx, fr * 0.33],
       label: `ots ${S.id}`, size: 2, subject: S,
     };
   }
@@ -199,6 +200,13 @@ export class Coverage {
     u.normalize();
     // Rotate from the eyeline toward the camera side of the line.
     const dir = u.clone().multiplyScalar(Math.cos(theta)).addScaledVector(this.n, Math.sin(theta)).normalize();
+    // Someone not (yet) facing their partner: swing round toward where the face actually is, so a
+    // close-up never lands on the back of a head. Stays on the camera side of the line.
+    const f = S.forward(new THREE.Vector3());
+    if (f.dot(dir) < 0.35) {
+      const side = f.dot(this.n) >= 0 ? 1 : -1;
+      dir.copy(f).multiplyScalar(0.8).addScaledVector(this.n, 0.6 * side).normalize();
+    }
     const pos = eS.clone().addScaledVector(dir, dist);
     const eT = T.eye(new THREE.Vector3());
     // A child looked at by an adult: camera a touch higher, and the other way round.

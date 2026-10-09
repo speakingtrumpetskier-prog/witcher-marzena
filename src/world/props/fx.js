@@ -190,7 +190,7 @@ void main() {
     float day = smoothstep(-0.04, 0.22, uSunDir.y);
     float fs = pow(max(dot(rd, uSunDir), 0.0), 3.0);
     vec3 amb = uFogColor * 0.95;
-    vec3 sun = uSunColor * day * (0.55 + 0.9 * fs);
+    vec3 sun = uSunColor * 5.0 * day * (0.55 + 0.9 * fs);
     vec3 lit = vColor.rgb * (amb * 0.8 + sun * t.r * 0.9);
     // Warmth from the fire or windows below (young particles), visible mostly in the dark.
     float vis = 1.0 - 0.75 * day;

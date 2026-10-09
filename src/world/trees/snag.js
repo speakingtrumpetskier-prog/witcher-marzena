@@ -1,7 +1,7 @@
 // Dead standing trees: weathered grey snags, snapped trunks and a twisted leaning limb tree.
 // Ravens like these. Owner: vegetation builder.
 // lod 0: trunk, limbs and twigs; lod 1: trunk and limbs; lod 2: trunk and a few stubs.
-import { GeoBuilder, rng, rgb, mixRGB, tube } from './geo.js';
+import { GeoBuilder, rng, rgb, mixRGB, tube, trunkHeights } from './geo.js';
 
 export const SNAG_VARIANTS = [
   { id: 'snag_a', seed: 3101, H: 17, r0: 0.3, kind: 'spruce', branches: 16, top: 0.93, lean: 0.5 },
@@ -28,11 +28,7 @@ export function buildSnag(v, lod = 0) {
   const nRings = lod === 0 ? 12 : lod === 1 ? 6 : 3;
   const yTop = H * v.top;
   const pts = [];
-  for (let i = 0; i < nRings; i++) {
-    const t = i / (nRings - 1);
-    const y = -0.4 + (yTop + 0.4) * t;
-    pts.push([tx(y), y, tz(y)]);
-  }
+  for (const y of trunkHeights(nRings, yTop)) pts.push([tx(y), y, tz(y)]);
   const col = (i, t, k) => {
     const c = mixRGB(PAL.grey, PAL.silver, 0.5 + 0.5 * Math.sin(k * 2.1 + i * 1.3));
     const d = mixRGB(c, PAL.dark, Math.max(0, 0.6 - t * 1.5));
@@ -40,7 +36,7 @@ export function buildSnag(v, lod = 0) {
     return [d[0] * n, d[1] * n, d[2] * n];
   };
   tube(b, pts, (i, t) => (v.r0 * Math.pow(1 - t * 0.85, 0.85) + 0.03) * (1 + 0.6 * Math.exp(-(pts[i][1] + 0.4) / 0.8)), col,
-    { sides, rng: r, jitter: lod === 0 ? 0.3 : 0.1, snowFn: (ny) => (ny > 0.9 ? 0.5 : 0), flex: (t) => t * 0.2, cap: true, capColor: PAL.raw, capSnow: 1.0 });
+    { sides, rng: r, jitter: lod === 0 ? 0.3 : 0.1, snowFn: (ny, t) => (t < 0.06 ? 0.9 * (1 - t / 0.06) : ny > 0.9 ? 0.5 : 0), flex: (t) => t * 0.2, cap: true, capColor: PAL.raw, capSnow: 1.0 });
 
   // broken top: splinters sticking up
   if (v.kind === 'broken' || v.kind === 'twisted') {

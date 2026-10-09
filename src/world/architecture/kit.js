@@ -35,13 +35,13 @@ export function makeValueNoise(seed) {
 
 // Multiplier applied to hex wood tones so the vertex color reads as the intended final tone
 // after being multiplied with the (mean ~0.8) texture.
-export const GAIN = 1.28;
+export const GAIN = 0.95;
 export const wc = (hex, k = 1) => scaleC(hex, GAIN * k);
 
 // Shared palette (DESIGN 5.1). Hex values are final-look targets.
 export const PAL = {
-  logDark: 0x372d26, logMid: 0x5a4e43, logWeathered: 0x645a50, logSilver: 0x8a857b, logNew: 0x8a6a46,
-  plank: 0x6c6054, plankDark: 0x40372f,
+  logDark: 0x332c27, logMid: 0x544c45, logWeathered: 0x5e5650, logSilver: 0x847f78, logNew: 0x7c6446,
+  plank: 0x645b52, plankDark: 0x3c352f,
   shingle: 0x6e6256, shingleDark: 0x3d342d,
   stone: 0x8c8a85, stoneDark: 0x5c5a58, stoneWarm: 0x9a9084,
   blue: 0x3e5a78, blueFaded: 0x5a748c, red: 0x9a2e22, redFaded: 0x8a4a3a, ochre: 0xb08a4a, cream: 0xc2b498,
@@ -73,9 +73,14 @@ export class Kit {
     this.mats = getMaterials();
     // Darken things that touch the ground (dirt, wet wood), a cheap contact shadow.
     const groundShade = (x, y) => (y > 0.7 ? 1 : y < -0.05 ? 0.6 : 0.6 + 0.4 * ((y + 0.05) / 0.75));
-    this.wood = new MB('wood', { uv: [1, 3], shade: groundShade });
+    this._wood = new MB('wood', { uv: [1, 3], shade: groundShade });
+    this._woodIn = new MB('woodIn', { uv: [1, 3] });
+    this._stone = new MB('stone', { uv: [2, 2], shade: groundShade });
+    this._stoneIn = new MB('stoneIn', { uv: [2, 2] });
+    this.wood = this._wood;
+    this.stone = this._stone;
+    this.rock = new MB('rock', { uv: [3, 3], shade: groundShade });
     this.shingle = new MB('shingle', { uv: [1.2, 1.2] });
-    this.stone = new MB('stone', { uv: [2, 2], shade: groundShade });
     this.straw = new MB('straw', { uv: [1.5, 1.5] });
     this.snow = new MB('snow', { base: true, uv: [2, 2] });
     this.ice = new MB('ice', { base: true, uv: [2, 2] });
@@ -93,6 +98,8 @@ export class Kit {
     this.interior = false;
     this.footprint = null; // {hw, hd} local half extents for foundations and snow skirts
     this.skirtExclude = []; // local boxes {x, z, hw, hd, yaw} where place.js keeps the snow skirt away
+    this.skirt = true; // place.js banks a snow skirt along the walls unless this is false
+    this.noFoundation = false; // true for stilted / free-standing structures
     this.mergeIce = true; // icicles share the snow draw call unless a building wants glossy ice
     this.mergeMetal = true; // iron bits share the wood draw call unless a building wants real metal
   }
@@ -104,7 +111,42 @@ export class Kit {
   chance(p) { return this.rand() < p; }
 
   get mbs() {
-    return [this.wood, this.shingle, this.stone, this.straw, this.snow, this.ice, this.glow, this.ember, this.metal, this.cloth];
+    return [this._wood, this._woodIn, this.shingle, this._stone, this._stoneIn, this.rock, this.straw, this.snow, this.ice, this.glow, this.ember, this.metal, this.cloth];
+  }
+
+  // Record current vertex counts of every builder, so shear() can bend only what was added since.
+  mark() { return this.mbs.map((mb) => mb.count); }
+
+  // Lean everything added since mark(): above y0, x and z shift linearly (plus a touch of bow) so the
+  // base stays put and the top leans. Cheap way to give towers and huts a crooked, aged stance.
+  shear(marks, y0, kx, kz, bow = 0.0) {
+    this.mbs.forEach((mb, k) => {
+      const from = marks[k];
+      const n = mb.count;
+      for (let i = from; i < n; i++) {
+        const dy = mb.p[i * 3 + 1] - y0;
+        if (dy <= 0) continue;
+        const f = dy * (1 + bow * dy);
+        mb.p[i * 3] += kx * f; mb.p[i * 3 + 2] += kz * f;
+        if (mb.b) {
+          const dyb = mb.b[i * 3 + 1] - y0;
+          if (dyb > 0) { const fb = dyb * (1 + bow * dyb); mb.b[i * 3] += kx * fb; mb.b[i * 3 + 2] += kz * fb; }
+        }
+      }
+    });
+  }
+
+  // Switch wood / stone to the interior twins (no snow dusting on floors and furniture) and back.
+  indoor(on) {
+    this.wood = on ? this._woodIn : this._wood;
+    this.stone = on ? this._stoneIn : this._stone;
+  }
+
+  // Run fn with wood / stone pointing at the interior twins.
+  indoors(fn) {
+    const w = this.wood, s = this.stone;
+    this.wood = this._woodIn; this.stone = this._stoneIn;
+    try { fn(this); } finally { this.wood = w; this.stone = s; }
   }
 
   // Run fn inside a translated / rotated frame applied to every material builder at once
@@ -131,20 +173,22 @@ export class Kit {
   // ----- output -----
   stats() {
     let tris = 0, calls = 0;
-    for (const k of ['wood', 'shingle', 'stone', 'straw', 'snow', 'ice', 'glow', 'ember', 'metal', 'cloth']) {
-      if (!this[k].empty) { calls++; tris += this[k].i.length / 3; }
+    for (const mb of this.mbs) {
+      if (!mb.empty) { calls++; tris += mb.i.length / 3; }
     }
+    for (const o of this.extra) o.traverse((c) => { if (c.isMesh) { calls++; tris += c.geometry.index.count / 3; } });
     return { calls, triangles: tris };
   }
 
   // Build meshes into a Group. `extraMeshes` such as door leaves are appended as-is.
   finish(extra = {}) {
     if (this.mergeIce) appendMB(this.snow, this.ice);
-    if (this.mergeMetal) appendMB(this.wood, this.metal);
+    if (this.mergeMetal) appendMB(this._wood, this.metal);
     const group = new THREE.Group();
     group.name = this.name;
-    for (const key of ['wood', 'shingle', 'stone', 'straw', 'snow', 'ice', 'glow', 'ember', 'metal', 'cloth']) {
-      const geo = this[key].build();
+    const parts = { wood: this._wood, woodIn: this._woodIn, shingle: this.shingle, stone: this._stone, stoneIn: this._stoneIn, rock: this.rock, straw: this.straw, snow: this.snow, ice: this.ice, glow: this.glow, ember: this.ember, metal: this.metal, cloth: this.cloth };
+    for (const key of Object.keys(parts)) {
+      const geo = parts[key].build();
       if (!geo) continue;
       const mesh = new THREE.Mesh(geo, this.mats[key]);
       mesh.name = `${this.name}:${key}`;
@@ -163,6 +207,9 @@ export class Kit {
       walk: this.walk,
       objects: this.objects,
       footprint: this.footprint,
+      skirtExclude: this.skirtExclude,
+      skirt: this.skirt,
+      noFoundation: this.noFoundation,
       stats: this.stats(),
       ...extra,
     };

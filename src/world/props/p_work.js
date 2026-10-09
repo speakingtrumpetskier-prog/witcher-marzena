@@ -385,3 +385,73 @@ export function skinFrame(o = {}) {
   k.ud.align = 0;
   return k.build();
 }
+
+export function wheelbarrow(o = {}) {
+  const k = new Kit('wheelbarrow', o);
+  const variant = o.variant || k.pick(['snow', 'firewood', 'empty', 'straw']);
+  k.push({ yaw: o.yaw || 0, rot: [0.05, 0, k.rs(0.03)] });
+  const wood = k.pick(WOOD);
+  // Tray: floor, two flared sides, front and back boards.
+  k.box('planks', 0.5, 0.025, 0.78, { pos: [0, 0.42, 0.05], tint: wood, jitter: 0.004, rot: [0.05, 0, 0] });
+  for (const sx of [-1, 1]) k.box('planks', 0.025, 0.24, 0.8, { pos: [sx * 0.31, 0.54, 0.05], rot: [0, 0, sx * 0.4], tint: k.pick(WOOD), jitter: 0.004, grain: 'z' });
+  k.box('planks', 0.6, 0.22, 0.025, { pos: [0, 0.54, 0.46], rot: [-0.35, 0, 0], tint: wood, jitter: 0.004 });
+  k.box('planks', 0.6, 0.2, 0.025, { pos: [0, 0.53, -0.36], rot: [0.2, 0, 0], tint: wood, jitter: 0.004 });
+  // Long handles forward to the axle, legs at the back, front wheel.
+  for (const sx of [-1, 1]) {
+    k.cyl('wood', 0.022, 0.028, 1.6, { pos: [sx * 0.24, 0.4, 0.0], rot: [Math.PI / 2 - 0.12, 0, 0], radial: 6, tint: 0xa89684, cap: 'logEnd', jitter: 0.004 });
+    k.cyl('wood', 0.025, 0.03, 0.42, { pos: [sx * 0.24, 0.2, -0.38], rot: [0.12, 0, 0], radial: 5, tint: 0x9a8a78, cap: 'logEnd' });
+  }
+  k.with({ pos: [0, 0.22, 0.78], rot: [0, 0, Math.PI / 2] }, () => wheelFlat(k, 0.22, 0.05, 6, k.pick(WOOD)));
+  k.cyl('iron', 0.012, 0.012, 0.5, { pos: [0, 0.22, 0.78], rot: [0, 0, Math.PI / 2], radial: 5, tint: 0x4a4a4e, cap: null });
+  if (variant === 'firewood') {
+    for (let i = 0; i < 6; i++) k.log(0.05, 0.5, { lie: 'x', pos: [k.rs(0.1), 0.52 + (i % 2) * 0.09, -0.15 + Math.floor(i / 2) * 0.22], radial: 6, tint: k.pick([0xffffff, 0xd8cdc0]) });
+  } else if (variant === 'straw') {
+    k.blob('straw', 0.3, { pos: [0, 0.6, 0.05], scale: [1, 0.55, 1.35], detail: 2, tint: 0xe6d8a4 });
+  } else if (variant === 'snow') {
+    k.blob('snowMound', 0.3, { pos: [0, 0.56, 0.05], scale: [1.1, 0.55, 1.5], detail: 2, tint: 0xf4f6fa, grime: 0.05, var: 0.03 });
+  }
+  if (!o.indoor && variant !== 'snow') k.mound(0.55, 0.06, 0.8, { pos: [0, variant === 'empty' ? 0.55 : 0.68, 0.05], jseed: 3 });
+  k.pop();
+  k.boxCollider(0.45, 0.95, { z: 0.15, h: 0.8 });
+  k.ud.align = 0.2;
+  return k.build();
+}
+
+// Tools leaning together against a wall (wall behind, at -Z): pitchfork, rake, twig broom.
+export function tools(o = {}) {
+  const k = new Kit('tools', o);
+  k.push({ yaw: o.yaw || 0 });
+  const lean = -0.2;
+  // A handle of length len leaning by th about X; at(s) is the point s meters up the handle.
+  const tool = (x, len, th, rz, tint, head) => {
+    k.cyl('wood', 0.016, 0.02, len, { pos: [x, (len / 2) * Math.cos(th), 0], rot: [th, 0, rz], radial: 5, tint, jitter: 0.003, cap: null });
+    const s = head.at;
+    k.with({ pos: [x, s * Math.cos(th), (s - len / 2) * Math.sin(th)], rot: [th, 0, rz] }, head.fn);
+  };
+  tool(-0.3, 1.75, lean, 0.03, 0xc8b8a0, {
+    at: 1.72,
+    fn: () => {
+      k.box('iron', 0.2, 0.03, 0.02, { pos: [0, 0.0, 0], tint: 0x5a5a60, grime: 0 });
+      for (const sx of [-1, 0, 1]) k.box('iron', 0.016, 0.3, 0.014, { pos: [sx * 0.085, 0.15, 0], tint: 0x5a5a60, taper: [0.4, 1], grime: 0 });
+    },
+  });
+  tool(0.0, 1.7, lean - 0.03, -0.02, 0xd0c0a8, {
+    at: 1.68,
+    fn: () => {
+      k.box('wood', 0.46, 0.04, 0.04, { pos: [0, 0.0, 0], tint: 0xb8a690 });
+      for (let i = 0; i < 8; i++) k.box('wood', 0.014, 0.12, 0.014, { pos: [-0.2 + i * 0.057, -0.06, 0], tint: 0xa89684, grime: 0.1 });
+    },
+  });
+  tool(0.34, 1.45, lean + 0.04, 0.05, 0xc0b09a, {
+    at: 0.3,
+    fn: () => {
+      k.cyl('straw', 0.025, 0.1, 0.5, { pos: [0, 0.0, 0], radial: 8, tint: 0x8a7050, jitter: 0.012, cap: null, var: 0.2, grime: 0 });
+      for (const y of [0.18, 0.05]) k.torus('rope', 0.05 + (0.18 - y) * 0.2, 0.01, { pos: [0, y, 0], rot: [Math.PI / 2, 0, 0], tint: 0xb89c6c, seg: 8, rseg: 3 });
+    },
+  });
+  if (!o.indoor) k.mound(0.9, 0.06, 0.25, { pos: [0, 0, 0.02], jseed: 2 });
+  k.pop();
+  k.circleCollider(0.55, { h: 1.7 });
+  k.ud.align = 0;
+  return k.build();
+}

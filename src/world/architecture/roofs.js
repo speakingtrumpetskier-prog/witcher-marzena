@@ -135,13 +135,15 @@ export function slab(kit, E0, E1, R0, R1, o = {}) {
       c.multiplyScalar(k);
       if (q > 0.80) c.lerp(C(0xb8946a).clone().multiplyScalar(0.8), 0.55 * smooth(0.8, 0.9, q)); // repaired patch, fresh wood
       else if (q < 0.16) c.lerp(C(PAL.moss).clone().multiplyScalar(0.8), 0.5 * smooth(0.16, 0.05, q));
+      if (q2 > 0.9 && kit.n2(p.x * 1.3 + 90, p.z * 1.3) > 0.55) c.multiplyScalar(0.3); // a missing shingle: dark boards showing
       if (i === 0) c.multiplyScalar(0.85);
       return c;
     },
   });
-  // Underside boards.
+  // Underside boards (coarse: only the interior ever sees them).
   const uCol = o.undersideCol ?? scaleC(PAL.plankDark, GAIN * 1.1);
-  kit.wood.grid(U, uCol, { flip: up, uv: [1, 3], uo: kit.rand(), vo: kit.rand() });
+  const Uc = [U[0], U[U.length - 1]].map((row) => row.filter((_, j) => j % 3 === 0 || j === row.length - 1));
+  kit.wood.grid(Uc, uCol, { flip: up, uv: [1, 3], uo: kit.rand(), vo: kit.rand() });
   // Edge strips.
   const edge = o.edgeCol ?? scaleC(PAL.shingleDark, GAIN * 1.6);
   const strip = (a0, a1, b1, b0, out, mb, col) => {
@@ -215,7 +217,8 @@ export function gableRoof(kit, o) {
   const mkSlab = (sgn) => slab(kit,
     V3(sgn * X, topY(sgn * X, -Z), -Z), V3(sgn * X, topY(sgn * X, Z), Z),
     V3(0, topY(0, -Z), -Z), V3(0, topY(0, Z), Z), slabOpts);
-  const Lslab = mkSlab(-1), Rslab = mkSlab(1);
+  const ruin = o.ruin || null;
+  const Lslab = ruin?.leftGone ? null : mkSlab(-1), Rslab = mkSlab(1);
 
   // Ridge log following the sag, protruding past both gables.
   const rp = [];
@@ -231,8 +234,8 @@ export function gableRoof(kit, o) {
   // Snow blanket over both slopes, one grid across the ridge.
   if (snowAmt > 0) {
     const P = [], T = [];
-    const rowsL = Lslab.P, rowsR = Rslab.P;
-    const stackRows = [...rowsL, ...rowsR.slice(0, -1).reverse()];
+    const rowsR = Rslab.P;
+    const stackRows = Lslab ? [...Lslab.P, ...rowsR.slice(0, -1).reverse()] : [...rowsR].reverse();
     for (let i = 0; i < stackRows.length; i++) {
       const rowP = [], rowT = [];
       for (let j = 0; j < stackRows[i].length; j++) {
@@ -256,6 +259,7 @@ export function gableRoof(kit, o) {
     // Icicles under the eave lips.
     const ice = [];
     for (const sgn of [-1, 1]) {
+      if (ruin?.leftGone && sgn < 0) continue;
       let z = -Z + 0.2 + kit.rand() * 0.3;
       while (z < Z - 0.15) {
         const jt = (z + Z) / (2 * Z);
@@ -273,6 +277,7 @@ export function gableRoof(kit, o) {
   // Rafter tails under the eaves.
   const tailCol = scaleC(PAL.logDark, GAIN * 1.3);
   for (const sgn of [-1, 1]) {
+    if (ruin?.leftGone && sgn < 0) continue;
     for (let z = -Z + 0.5; z < Z - 0.3; z += 0.85 + kit.rand() * 0.1) {
       const ex = sgn * X;
       kit.wood.at(ex - sgn * 0.1, topY(ex, z) - th / cos - 0.07, z, 0, (m) => {
@@ -284,9 +289,9 @@ export function gableRoof(kit, o) {
   // Bargeboards, crossed horse heads and a sun roundel on each gable.
   if (o.ornament !== false) {
     const paint = o.paint ?? kit.pick([PAL.red, PAL.blueFaded, PAL.ochre]);
-    const gz = o.gz ?? hd + 0.14;
+    const gz = o.gz ?? hd + 0.07;
     kit.wood.at(0, 0, 0, 0, () => gableOrnament(kit, { X, Z, gz, topY, th, cos, sin, pitch, paint, sun: o.sun }));
-    kit.wood.at(0, 0, 0, Math.PI, () => gableOrnament(kit, { X, Z, gz: hd + 0.14, topY, th, cos, sin, pitch, paint, sun: o.sun }));
+    kit.wood.at(0, 0, 0, Math.PI, () => gableOrnament(kit, { X, Z, gz, topY, th, cos, sin, pitch, paint, sun: o.sun }));
   }
   return { topY, X, Z, pitch, ridgeY: topY(0, 0), cos, sin, tan, th };
 }
@@ -299,7 +304,7 @@ function gableOrnament(kit, { X, Z, gz, topY, th, cos, sin, pitch, paint, sun })
   const depth = 0.05;
   const z0 = Z + 0.012;
   const L = X / cos + 0.05; // along-slope length to the apex
-  const ext = 0.6; // beyond the apex
+  const ext = 0.7; // beyond the apex
   const kind = kit.pick(['saw', 'scallop', 'leaf']);
   const lowY = topY(X, Z) - th / cos - 0.17;
   for (const sgn of [-1, 1]) {
@@ -314,9 +319,9 @@ function gableOrnament(kit, { X, Z, gz, topY, th, cos, sin, pitch, paint, sun })
     }, 0, pitch);
     // Horse head at the tip, overlapping the board end.
     const dx = -sgn * cos, dy = sin;
-    const tipX = sgn * X + dx * (L + ext - 0.14), tipY = lowY + dy * (L + ext - 0.14) + 0.02;
+    const tipX = sgn * X + dx * (L + ext - 0.18), tipY = lowY + dy * (L + ext - 0.18) + 0.02;
     kit.wood.at(tipX, tipY, oz, yaw, (m) => {
-      m.extrude(horseHeadShape(0.66), depth, scaleC(PAL.plank, GAIN * 0.8), { uv: [1, 3] });
+      m.extrude(horseHeadShape(0.9), depth, scaleC(PAL.plank, GAIN * 0.8), { uv: [1, 3] });
     }, 0, 0.12);
   }
   // Sun roundel on the gable wall under the peak.

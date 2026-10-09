@@ -407,3 +407,38 @@ export function snowman(o = {}) {
   k.ud.align = 0.6;
   return k.build();
 }
+
+export function jug(o = {}) {
+  const k = new Kit('jug', o);
+  const tall = k.chance(0.5);
+  const r = 0.09 + k.rs(0.01), h = tall ? 0.32 : 0.24;
+  k.push({ yaw: k.r(0, TAU), rot: o.tipped ? [0, 0, 1.4] : [0, 0, 0], pos: o.tipped ? [0, r * 1.05, 0] : [0, 0, 0] });
+  k.lathe('clay', [[0.001, 0], [r * 0.7, 0.004], [r * 1.05, h * 0.3], [r * 0.95, h * 0.62], [r * 0.5, h * 0.88], [r * 0.52, h], [r * 0.62, h + 0.02]], { radial: 11, tint: k.pick([0xffffff, 0xd8c0a8, 0xb89a80]), uRepeat: 2 });
+  const pts = [];
+  for (let i = 0; i <= 6; i++) { const a = (i / 6) * Math.PI; pts.push([Math.sin(a) * 0.003 + r * 0.55 + Math.sin(a) * r * 0.45, h * 0.82 - (1 - Math.cos(a)) * h * 0.3, 0]); }
+  k.tube('clay', pts, 0.012, { radial: 5, tint: 0xc8a888 });
+  if (!o.indoor && !o.tipped) k.mound(r * 1.0, 0.025, r * 1.0, { pos: [0, h + 0.015, 0], jseed: 1 });
+  k.pop();
+  k.circleCollider(r * 1.1, { h });
+  k.ud.align = 0.4;
+  return k.build();
+}
+
+// Bundles of drying herbs hung from a rod (origin at the rod, bunches hang down).
+export function herbs(o = {}) {
+  const k = new Kit('herbs', Object.assign({ indoor: true }, o));
+  const n = o.count || 6;
+  const W = n * 0.16 + 0.1;
+  k.push({ yaw: o.yaw || 0 });
+  k.cyl('wood', 0.012, 0.012, W + 0.1, { pos: [0, 0, 0], rot: [0, 0, Math.PI / 2], radial: 5, tint: 0x8a7a68, cap: null });
+  for (let i = 0; i < n; i++) {
+    const x = -W / 2 + 0.1 + i * 0.16;
+    const len = k.r(0.22, 0.4);
+    k.tube('rope', [[x, 0, 0], [x, -0.07, 0]], 0.004, { radial: 3, tint: 0xb89c6c });
+    k.cyl('straw', 0.01, 0.06, len, { pos: [x, -0.07 - len / 2, 0], radial: 7, tint: k.pick([0x8a9a68, 0x9a9a6a, 0xb0a070, 0x7a8a5a, 0xa87850]), jitter: 0.012, cap: null, var: 0.25, grime: 0 });
+    k.torus('rope', 0.022, 0.006, { pos: [x, -0.1, 0], rot: [Math.PI / 2, 0, 0], tint: 0xb89c6c, seg: 6, rseg: 3 });
+  }
+  k.pop();
+  k.ud.align = 0;
+  return k.build();
+}

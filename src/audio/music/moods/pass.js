@@ -8,7 +8,7 @@ export default {
   name: 'pass',
   tempo: 54,
   beats: 3,
-  level: 1,
+  level: 0.44,
   parts: {
     wind: P.wind({ level: 0.55, verb: 0.45 }),
     throat: P.throat(),

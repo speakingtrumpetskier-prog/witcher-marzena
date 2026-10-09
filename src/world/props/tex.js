@@ -134,11 +134,11 @@ function genWood(seed, planks) {
     const crack = sstep(0.035, 0.0, Math.abs(crackN - 0.5)) * sstep(0.45, 0.62, vn(u * 4, vv * 2, 4, 2, seed + 17));
     const grain = ring * 0.55 + fibre * 0.3 + fibre2 * 0.15;
     // Warm brown with silvered weathering.
-    let r = lerp(0.50, 0.30, grain) + boardTint * 0.4;
-    let g = lerp(0.41, 0.24, grain) + boardTint * 0.34;
-    let b = lerp(0.33, 0.19, grain) + boardTint * 0.28;
-    const silver = sstep(0.42, 0.72, wear) * 0.6;
-    r = lerp(r, 0.50, silver); g = lerp(g, 0.49, silver); b = lerp(b, 0.47, silver);
+    let r = lerp(0.40, 0.23, grain) + boardTint * 0.34;
+    let g = lerp(0.32, 0.18, grain) + boardTint * 0.28;
+    let b = lerp(0.25, 0.145, grain) + boardTint * 0.22;
+    const silver = sstep(0.42, 0.72, wear) * 0.55;
+    r = lerp(r, 0.40, silver); g = lerp(g, 0.39, silver); b = lerp(b, 0.37, silver);
     const dark = Math.max(crack * 0.85, knotDark * 0.5, seam * 0.8);
     r *= 1 - dark * 0.75; g *= 1 - dark * 0.75; b *= 1 - dark * 0.7;
     o.r = r; o.g = g; o.b = b;

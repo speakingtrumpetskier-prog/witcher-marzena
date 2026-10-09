@@ -9,7 +9,7 @@
 // at the end), g (grace pitch to start on), bend [[beats, midi], ...], vib (vibrato amount),
 // vowel 'a e i o u m', c consonant, breath (audible inhale before), trem, scrape, dbl.
 import { mtof } from '../dsp.js';
-import { vowelAt } from './formants.js';
+import { vowelAt, bankLevel } from './formants.js';
 
 const semis = (s) => Math.pow(2, s / 12);
 
@@ -118,6 +118,12 @@ class FormantBank {
     this.h1 = inst.bq('lowpass', 400, 0.7);
     this.h1g = inst.g(warmth);
     this.in.connect(this.h1); this.h1.connect(this.h1g); this.h1g.connect(this.out);
+    this.warmth = warmth;
+    // Loudness compensation across vowels and pitches (see bankLevel).
+    this.norm = inst.g(1);
+    this.final = this.norm;
+    this.out.connect(this.norm);
+    this.ref = bankLevel(vowelAt(type, 'a', 330, scale), 330, warmth, bw);
     this.vowel = 'a';
   }
   set(vowel, t, f0, tc = 0.03) {
@@ -130,6 +136,9 @@ class FormantBank {
       gn.gain.setTargetAtTime((i % 2 ? -1 : 1) * gl, t, tc);
     }
     this.h1.frequency.setTargetAtTime(Math.min(900, f0 * 1.7), t, tc);
+    const lvl = bankLevel(fm, f0, this.warmth, this.bwScale);
+    // Mostly (not fully) compensated: a little natural vowel color in loudness is kept.
+    this.norm.gain.setTargetAtTime(Math.min(4, Math.pow(this.ref / Math.max(1e-6, lvl), 0.85)), t, tc);
     if (vowel !== 'm') this.vowel = vowel;
   }
 }
@@ -139,7 +148,8 @@ export class Singer extends Live {
   constructor(eng, o = {}) {
     super(eng);
     this.type = o.type || 'white';
-    this.level = o.level ?? 0.5;
+    // Calibrated so a singer at level L sits with a fiddle at level L (render-audio inst tests).
+    this.level = (o.level ?? 0.5) * 1.8;
     this.vibMax = o.vibDepth ?? 40;
     this.vibMin = o.vibMin ?? 5;
     this.attack = o.attack ?? 0.035;
@@ -168,7 +178,7 @@ export class Singer extends Live {
     this.breath.connect(this.bank.in);
     this.post = this.bq('lowpass', o.lp ?? 6000, 0.6);
     this.amp = this.g(0);
-    this.chain(this.bank.out, this.post, this.amp, this.out);
+    this.chain(this.bank.final, this.post, this.amp, this.out);
     // Consonant noise and inhales bypass the amp envelope.
     this.fricBp = this.bq('bandpass', 4000, 1.6);
     this.fric = this.g(0);
@@ -211,7 +221,7 @@ export class Singer extends Live {
     if (ev.breath && !legato) {
       const b0 = this.at(t - 0.42);
       this.inhale.gain.setTargetAtTime(this.level * 0.09 * (ev.v ?? 0.8), b0, 0.09);
-      this.inhale.gain.setTargetAtTime(0, t - 0.08, 0.03);
+      this.inhale.gain.setTargetAtTime(0, this.at(t - 0.08), 0.03);
     }
     let vt = t, at = t;
     if (ev.c && !(legato && ev.c === 'none')) {
@@ -249,10 +259,10 @@ export class Singer extends Live {
     this.tied = !!ev.tie;
     if (!ev.tie) {
       if (ev.fall) {
-        fp.setTargetAtTime(f * semis(-ev.fall), end - 0.05, ev.fallTc ?? 0.13);
-        vd.setTargetAtTime(0, end - 0.06, 0.05);
+        fp.setTargetAtTime(f * semis(-ev.fall), this.at(end - 0.05), ev.fallTc ?? 0.13);
+        vd.setTargetAtTime(0, this.at(end - 0.06), 0.05);
         amp.setTargetAtTime(0, end + 0.03, ev.rel ?? 0.11);
-      } else amp.setTargetAtTime(0, end - 0.02, ev.rel ?? this.release);
+      } else amp.setTargetAtTime(0, this.at(end - 0.02), ev.rel ?? this.release);
       this.busy = end + 0.2;
     } else this.busy = end;
     this.f0 = f;
@@ -278,7 +288,7 @@ export class Choir extends Live {
       const bank = new FormantBank(this, this.type, { bw: o.bw ?? 1.6, warmth: o.warmth ?? 0.3, scale: 0.95 + (b / Math.max(1, nb - 1)) * 0.09 });
       const br = this.g(o.breath ?? 0.03);
       this.chain(this.noise, br, bank.in);
-      bank.out.connect(this.post);
+      bank.final.connect(this.post);
       bank.set('a', this.ctx.currentTime, 220, 0.001);
       this.banks.push(bank);
     }
@@ -349,8 +359,8 @@ export class Choir extends Live {
       const legato = s.tied;
       if (ts < s.busy && !legato) this.cancel(ts, [fp, amp, vd]);
       if (k && k.voice < 0.9) {
-        s.voicing.gain.setTargetAtTime(k.voice, t0 + late, 0.01);
-        s.voicing.gain.setTargetAtTime(1, t0 + late + k.dur, 0.012);
+        s.voicing.gain.setTargetAtTime(k.voice, this.at(t0 + late), 0.01);
+        s.voicing.gain.setTargetAtTime(1, this.at(t0 + late + k.dur), 0.012);
       }
       if (legato) fp.setTargetAtTime(f, ts, ev.slide ? 0.09 : 0.03);
       else if ((ev.scoop || s.scoopy > 0.7) && !ev.tight) {
@@ -368,9 +378,9 @@ export class Choir extends Live {
       s.tied = !!ev.tie;
       if (!ev.tie) {
         if (ev.fall) {
-          fp.setTargetAtTime(f * semis(-ev.fall * s.r.range(0.7, 1.2)), end - 0.05, 0.15);
+          fp.setTargetAtTime(f * semis(-ev.fall * s.r.range(0.7, 1.2)), this.at(end - 0.05), 0.15);
           amp.setTargetAtTime(0, end + 0.02, 0.12);
-        } else amp.setTargetAtTime(0, end - 0.02, ev.rel ?? 0.12);
+        } else amp.setTargetAtTime(0, this.at(end - 0.02), ev.rel ?? 0.12);
         s.busy = end + 0.2;
       } else s.busy = end;
     }
@@ -382,7 +392,7 @@ export class Choir extends Live {
 export class Fiddle extends Live {
   constructor(eng, o = {}) {
     super(eng);
-    this.level = o.level ?? 0.32;
+    this.level = (o.level ?? 0.32) * 0.85;
     this.src = this.osc(wave(eng, 'fiddle'), 440);
     this.voicing = this.g(1);
     this.src.connect(this.voicing);
@@ -447,9 +457,9 @@ export class Fiddle extends Live {
     const end = t + dur;
     this.tied = !!ev.tie;
     if (!ev.tie) {
-      if (ev.fall) fp.setTargetAtTime(f * semis(-ev.fall), end - 0.08, 0.1);
-      amp.setTargetAtTime(0, end - 0.02, ev.stacc ? 0.02 : ev.rel ?? 0.07);
-      this.bow.gain.setTargetAtTime(0, end - 0.02, 0.03);
+      if (ev.fall) fp.setTargetAtTime(f * semis(-ev.fall), this.at(end - 0.08), 0.1);
+      amp.setTargetAtTime(0, this.at(end - 0.02), ev.stacc ? 0.02 : ev.rel ?? 0.07);
+      this.bow.gain.setTargetAtTime(0, this.at(end - 0.02), 0.03);
       this.dblAmp.gain.setTargetAtTime(0, end, 0.06);
       this.busy = end + 0.15;
     } else this.busy = end;
@@ -518,8 +528,8 @@ export class Flute extends Live {
     const end = t + dur;
     this.tied = !!ev.tie;
     if (!ev.tie) {
-      if (ev.fall) fp.setTargetAtTime(f * semis(-ev.fall), end - 0.06, 0.08);
-      amp.setTargetAtTime(0, end - 0.02, ev.rel ?? 0.06);
+      if (ev.fall) fp.setTargetAtTime(f * semis(-ev.fall), this.at(end - 0.06), 0.08);
+      amp.setTargetAtTime(0, this.at(end - 0.02), ev.rel ?? 0.06);
       this.br.gain.setTargetAtTime(0, end, 0.04);
       this.hiss.gain.setTargetAtTime(0, end, 0.04);
       this.busy = end + 0.15;
@@ -622,7 +632,7 @@ export class Gurdy extends Live {
     const end = t + dur;
     this.tied = !!ev.tie;
     if (!ev.tie) {
-      mg.setTargetAtTime(0, end - 0.015, ev.rel ?? 0.03);
+      mg.setTargetAtTime(0, this.at(end - 0.015), ev.rel ?? 0.03);
       this.busy = end + 0.1;
     } else this.busy = end;
   }
@@ -659,7 +669,7 @@ export class WindTone extends Live {
       if (p == null) { gn.gain.setTargetAtTime(0, t, tc); return; }
       bp.frequency.setTargetAtTime(mtof(p), t, Math.min(tc, 1.5));
       bp.Q.setTargetAtTime(ev.q ?? 45, t, 0.5);
-      gn.gain.setTargetAtTime(this.level * (ev.v ?? 0.6) * (i === 0 ? 2.2 : 1.6), t, tc);
+      gn.gain.setTargetAtTime(this.level * (ev.v ?? 0.6) * (i === 0 ? 12 : 9), t, tc);
     });
     this.body.gain.setTargetAtTime(this.level * (ev.body ?? 0.15), t, tc);
     this.bodyBp.frequency.setTargetAtTime(ev.bodyF ?? 420, t, tc);

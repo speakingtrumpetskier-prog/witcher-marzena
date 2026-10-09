@@ -16,7 +16,7 @@ import { EXCLUSIONS, exclusionDistance } from './exclusions.js';
 import { createKinds } from './trees/kinds.js';
 import { VegLayer } from './trees/layer.js';
 import { bakeImpostors, ImpostorLayer } from './trees/impostor.js';
-import { placeVegetation, GroundGenerator } from './trees/placement.js';
+import { placeVegetation, placeFarRing, GroundGenerator } from './trees/placement.js';
 import { lodUniform, setLod } from './trees/materials.js';
 
 const GROUND_CELL = 16;
@@ -24,13 +24,12 @@ const GROUND_CELL = 16;
 export async function init(G) {
   const t0 = performance.now();
   const q = G.quality;
-  const qs = { low: 0.62, medium: 0.82, high: 1 }[q] ?? 1;
   const all = createKinds();
   const treeKinds = all.filter((k) => k.group !== 'ground');
   const groundKinds = all.filter((k) => k.group === 'ground');
   const tKinds = performance.now();
 
-  const atlas = bakeImpostors(G, treeKinds);
+  const atlas = await bakeImpostors(G, treeKinds);
   const tBake = performance.now();
 
   const placed = await placeVegetation(G, treeKinds);
@@ -63,9 +62,10 @@ export async function init(G) {
   const impIn = treeCfg.lods[treeCfg.lods.length - 1].hi;
   const impU = lodUniform();
   setLod(impU, impIn[0], impIn[1], null, null);
-  let impCount = placed.far.length;
+  placed.far = [];
+  let impCount = 0;
   trees.forEachAlive((k) => { if (k.impostor) impCount++; });
-  const imp = new ImpostorLayer(atlas, impU, [impIn[0] - 6, 6000], impCount + 64);
+  const imp = new ImpostorLayer(atlas, impU, [impIn[0] - 6, 6000], impCount + 70000);
   let impDirty = true;
   const rebuildImpostors = () => {
     imp.begin();
@@ -147,6 +147,28 @@ export async function init(G) {
     layers: { trees, ground, impostors: imp },
     kinds: all,
     placement: placed.stats,
+    // Vegetation only: draw calls and triangles submitted by the last layer update (shadow pass excluded)
+    drawStats() {
+      let calls = 0, tris = 0;
+      const perSpecies = {};
+      for (const layer of [trees, ground]) {
+        for (const [ki, e] of (layer.meshes || []).entries()) {
+          if (!e) continue;
+          for (const l of e.lods) {
+            for (const m of l.parts) {
+              if (!m.visible || m.count === 0) continue;
+              calls++;
+              const t = m.count * (m.geometry.index.count / 3);
+              tris += t;
+              const sp = layer.kinds[ki].species;
+              perSpecies[sp] = (perSpecies[sp] || 0) + t;
+            }
+          }
+        }
+      }
+      if (imp.mesh.visible) { calls++; tris += imp.mesh.count * 2; perSpecies.impostors = imp.mesh.count * 2; }
+      return { calls, tris: Math.round(tris), perSpecies, impostors: imp.mesh.count };
+    },
     report() {
       const info = G.renderer.info.render;
       const counts = {};
@@ -185,5 +207,15 @@ export async function init(G) {
     firstUpdate = false;
   }, ORDER.atmosphere + 5);
 
+  // The far ring needs the terrain builder's far height grid, which keeps computing in the
+  // background; place it when that lands (shots wait for it so they never miss the far forest).
+  const farJob = placeFarRing(G, treeKinds).then((far) => {
+    placed.far = far;
+    for (const c of cleared) for (const f of far) if (!f.dead && Math.hypot(f.x - c.x, f.z - c.z) < c.r + 2) f.dead = true;
+    impDirty = true;
+    api.placement.far = far.length;
+  }).catch((e) => { console.warn('[vegetation] far ring failed', e); });
+  if (G.shot && G.readyGates) G.readyGates.push(farJob);
+  api.farReady = farJob;
   G.events.emit('vegetation:ready', { ms: performance.now() - t0 });
 }

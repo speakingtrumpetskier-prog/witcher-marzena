@@ -55,18 +55,15 @@ export async function init(G) {
       return G.dialogue.start(id, { actors: { vesna: cast.vesna, hanka: cast.hanka }, ...opts });
     },
     async cutscene(id = '_sample') {
-      // The sample spawns its own Hanka; hide ours so there is one of her.
       ensureCast();
-      cast.hanka?.root && (cast.hanka.root.visible = false);
-      const r = await G.cutscenes.play(id);
-      if (cast.hanka?.root) cast.hanka.root.visible = true;
-      return r;
+      return G.cutscenes.play(id, { actors: { vesna: cast.vesna, hanka: cast.hanka } });
     },
     senses() { return setupSenses(G); },
     sheet: (kind, o) => sheet(G, api, kind, o),
   };
   window.__story = api;
 
+  liteStage(G);
   ensureCast();
   if (G.shot && !G.params.get('cam')) idleView();
   const play = G.params.get('play');
@@ -78,6 +75,44 @@ export async function init(G) {
       else if (play.startsWith('dialogue:')) api.dialogue(play.slice(9));
       else if (play.startsWith('cutscene:')) api.cutscene(play.slice(9));
     });
+  }
+}
+
+// Cheap stand-ins when the scene runs with only=story,ui (fast iteration in the harness):
+// a local snowy ground patch around the shore stage and the ice camp, plus a sun and sky light.
+function liteStage(G) {
+  if (!G.terrain) {
+    const mk = (cx, cz, size, n) => {
+      const geo = new THREE.PlaneGeometry(size, size, n, n);
+      geo.rotateX(-Math.PI / 2);
+      const pos = geo.attributes.position;
+      const col = new Float32Array(pos.count * 3);
+      for (let i = 0; i < pos.count; i++) {
+        const x = pos.getX(i) + cx, z = pos.getZ(i) + cz;
+        const lake = G.world.isLake(x, z);
+        pos.setXYZ(i, x, G.world.heightAt(x, z), z);
+        const c = lake ? [0.66, 0.78, 0.86] : [0.93, 0.94, 0.96];
+        col.set(c, i * 3);
+      }
+      geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
+      geo.computeVertexNormals();
+      const m = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.85 }));
+      m.receiveShadow = true;
+      G.scene.add(m);
+    };
+    mk(62, 64, 220, 110);
+    mk(-62, 2, 160, 64);
+    G.scene.background = new THREE.Color(0x9fb3c8);
+  }
+  if (!G.atmosphere) {
+    G.scene.add(new THREE.HemisphereLight(0xc8d8ff, 0x6a5a4a, 1.3));
+    const sun = new THREE.DirectionalLight(0xffd9b0, 2.6);
+    sun.position.set(40, 30, 110);
+    sun.target.position.set(62, 0, 62);
+    sun.castShadow = true;
+    sun.shadow.mapSize.set(1024, 1024);
+    Object.assign(sun.shadow.camera, { left: -20, right: 20, top: 20, bottom: -20, near: 1, far: 200 });
+    G.scene.add(sun, sun.target);
   }
 }
 
@@ -117,21 +152,25 @@ function setupSenses(G) {
 
 // Plays a dialogue or cutscene and builds a contact sheet: one tile per camera setup, drawn
 // with the letterbox and the subtitle of the moment, then shows it full screen for capture.
-async function sheet(G, api, kind = 'dialogue', { cols = 4, rows = 4, settle = 0.45, page = 0 } = {}) {
+async function sheet(G, api, kind = 'dialogue', { cols = 4, rows = 4, settle = 0.45, page = 0, every = 0 } = {}) {
   const ui = G.story.ui;
   const src = G.renderer.domElement;
   const tiles = [];
+  const TW = Math.floor(window.innerWidth / cols), TH = Math.floor((TW * 9) / 16);
   let sub = '';
   const origSub = ui.subtitle;
   ui.subtitle = (name, text, s, o) => { sub = (name ? `${name}: ` : '') + text; origSub(name, text, s, o); };
   const origClear = ui.clearSubtitle;
   ui.clearSubtitle = () => { sub = ''; origClear(); };
-  let pending = null;
-  G.story.cam.onShot = (info) => { pending = { info, t: G.clock.elapsed }; };
+  let pending = null, lastInfo = null, lastT = 0;
+  G.story.cam.onShot = (info) => { pending = { info, t: G.clock.elapsed }; lastInfo = info; };
   const off = G.addSystem('story-sheet', () => {
+    // Long moves (cranes, follows) also get a tile every `every` seconds.
+    if (!pending && every > 0 && lastInfo && G.clock.elapsed - lastT > every) pending = { info: { label: `${lastInfo.label} +` }, t: -1e9 };
     if (!pending || G.clock.elapsed - pending.t < settle) return;
+    lastT = G.clock.elapsed;
     const c = document.createElement('canvas');
-    c.width = 400; c.height = 225;
+    c.width = TW; c.height = TH;
     const g = c.getContext('2d');
     g.drawImage(src, 0, 0, c.width, c.height);
     const frac = ui.letterboxed ? ui.cinemaFrac() : 1;
@@ -139,13 +178,13 @@ async function sheet(G, api, kind = 'dialogue', { cols = 4, rows = 4, settle = 0
     g.fillStyle = '#000';
     g.fillRect(0, 0, c.width, bar);
     g.fillRect(0, c.height - bar, c.width, bar);
-    g.font = '12px Georgia, serif';
+    g.font = `${Math.round(TW / 34)}px Georgia, serif`;
     g.fillStyle = '#e9e1d2';
     g.textAlign = 'center';
-    if (sub) g.fillText(sub.length > 66 ? `${sub.slice(0, 64)}...` : sub, c.width / 2, c.height - Math.max(6, bar * 0.35));
+    if (sub) g.fillText(sub.length > 70 ? `${sub.slice(0, 68)}...` : sub, c.width / 2, c.height - Math.max(5, bar * 0.32));
     g.textAlign = 'left';
     g.fillStyle = '#ffcf96';
-    g.font = '11px monospace';
+    g.font = `${Math.round(TW / 36)}px monospace`;
     g.fillText(`${tiles.length + 1} ${pending.info.label || ''}`, 6, Math.max(14, bar - 4));
     tiles.push(c);
     pending = null;
@@ -163,17 +202,18 @@ async function sheet(G, api, kind = 'dialogue', { cols = 4, rows = 4, settle = 0
   const per = cols * rows;
   const list = tiles.slice(page * per, page * per + per);
   const out = document.createElement('canvas');
-  out.width = cols * 400;
-  out.height = rows * 225;
+  out.width = cols * TW;
+  out.height = rows * TH;
   const g = out.getContext('2d');
   g.fillStyle = '#111';
   g.fillRect(0, 0, out.width, out.height);
-  list.forEach((t, i) => g.drawImage(t, (i % cols) * 400, Math.floor(i / cols) * 225));
+  list.forEach((t, i) => g.drawImage(t, (i % cols) * TW, Math.floor(i / cols) * TH));
   g.strokeStyle = '#000';
-  for (let i = 1; i < cols; i++) { g.beginPath(); g.moveTo(i * 400, 0); g.lineTo(i * 400, out.height); g.stroke(); }
-  for (let j = 1; j < rows; j++) { g.beginPath(); g.moveTo(0, j * 225); g.lineTo(out.width, j * 225); g.stroke(); }
+  for (let i = 1; i < cols; i++) { g.beginPath(); g.moveTo(i * TW, 0); g.lineTo(i * TW, out.height); g.stroke(); }
+  for (let j = 1; j < rows; j++) { g.beginPath(); g.moveTo(0, j * TH); g.lineTo(out.width, j * TH); g.stroke(); }
   const img = document.createElement('img');
   img.src = out.toDataURL('image/png');
+  window.__storySheetURL = img.src;
   Object.assign(img.style, { position: 'fixed', left: '0', top: '0', width: '100vw', height: '100vh', zIndex: 9999, objectFit: 'contain', background: '#111' });
   document.body.appendChild(img);
   await new Promise((r) => { img.onload = r; setTimeout(r, 500); });

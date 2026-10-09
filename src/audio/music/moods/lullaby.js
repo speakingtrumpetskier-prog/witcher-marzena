@@ -8,7 +8,7 @@ export default {
   name: 'lullaby',
   tempo: 40,
   beats: 3,
-  level: 1,
+  level: 0.62,
   parts: {
     voice: P.hum({ level: 0.42 }),
     box: P.box({ level: 0.24 }),

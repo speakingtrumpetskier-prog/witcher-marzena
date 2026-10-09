@@ -5,7 +5,7 @@
 //
 //   createDrift(G) -> { mesh, update(dt, t) }  (strength from G.weather.params.drift and wind)
 import * as THREE from 'three';
-import { FOG_PARS_FRAGMENT, FOG_UNIFORM_NAMES } from '../../render/fogChunk.js';
+import { FOG_PARS_FRAGMENT, fogUniforms } from '../../render/fogChunk.js';
 import { getNoiseTexture } from './noiseTex.js';
 
 const LAYERS = [0.06, 0.32, 0.8];
@@ -105,7 +105,7 @@ export function createDrift(G) {
     uKey: { value: new THREE.Color(0.4, 0.35, 0.3) },
     uTime: U.uTime,
   };
-  for (const n of FOG_UNIFORM_NAMES) uniforms[n] = U[n];
+  Object.assign(uniforms, fogUniforms());
   const material = new THREE.ShaderMaterial({
     name: 'mz-drift',
     uniforms,
@@ -160,7 +160,7 @@ export function createDrift(G) {
     const A = G.atmosphere;
     if (A?.look) {
       const L = A.look;
-      uniforms.uAmb.value.copy(L.hor).multiplyScalar(L.skyI * 0.75);
+      uniforms.uAmb.value.copy(L.hor).multiplyScalar(0.75);
       uniforms.uKey.value.copy(A.keyColor).multiplyScalar(A.keyIntensity * 0.07 * Math.max(A.keyDir.y, 0.1));
     }
   };

@@ -204,7 +204,7 @@ export function birds(S, part, t0, beats, r, { mode = 'major', v = 0.45, density
 export const harmonyOf = (mode, bar) => HARMONY[mode][bar % 16];
 
 // Zither patterns over a list of chord symbols (one per bar). Returns end beat.
-export function zither(S, part, t0, chords, r, { pattern = 'oompah', v = 0.55, beats = 3, low = 38, high = 57 } = {}) {
+export function zither(S, part, t0, chords, r, { pattern = 'oompah', v = 0.55, beats = 3, low = 38, high = 60 } = {}) {
   chords.forEach((sym, b) => {
     const t = t0 + b * beats;
     const [a, z] = Array.isArray(sym) ? sym : [sym, sym];

@@ -63,17 +63,23 @@ export function logWall(kit, f, o) {
     }
     if (L / 2 + ovB > cur + 0.1) segs.push([cur, L / 2 + ovB]);
     const col = logTone(kit, k, N, o.style);
-    for (const [sa, sb] of segs) {
+    for (let si = 0; si < segs.length; si++) {
+      const [sa, sb] = segs[si];
+      if (o.dropLog && o.dropLog(k, (sa + sb) / 2, sb - sa)) continue;
       const len = sb - sa;
       const rr = r * (0.93 + kit.rand() * 0.15);
       const taper = kit.rs() * 0.07;
       const yA = yc + kit.rs() * 0.012, yB = yc + kit.rs() * 0.012;
       const bow = [0, -0.012 - kit.rand() * 0.014 * Math.min(1, len / 3), kit.rs() * 0.01];
       const c = col.clone().multiplyScalar(0.94 + kit.rand() * 0.12);
+      if (k < 3 && o.moss !== false && kit.chance(0.18)) c.lerp(C(PAL.moss).clone().multiplyScalar(GAIN * 0.75), 0.3);
+      const nsd = kit.rand() * 40;
       mb.at(f.x, 0, f.z, f.yaw, (m) => {
         m.tube([sa, yA, kit.rs() * 0.016], [sb, yB, kit.rs() * 0.016], rr * (1 + taper), rr * (1 - taper), c, {
-          seg: 10, lenSeg: len > 3.2 ? 3 : len > 1.1 ? 2 : 1, bow, uo: kit.rand(), vo: kit.rand(), ao: 0.36,
+          seg: 10, lenSeg: len > 2.6 ? 2 : 1, bow, uo: kit.rand(), vo: kit.rand(), ao: 0.36,
           endCol: mixC(c, 0xb9a687, 0.5), wobble: 0.02, ph: kit.rand() * 6,
+          capDetailA: si === 0 ? 2 : 1, capDetailB: si === segs.length - 1 ? 2 : 1,
+          rim: (t) => 0.9 + 0.2 * kit.n2(nsd + t * len * 1.2, k * 2.7 + 0.5),
         });
       });
     }
@@ -145,7 +151,7 @@ export function logGable(kit, f, o) {
     const len = half * 2;
     mb.at(f.x, 0, f.z, f.yaw, (m) => {
       m.tube([-half, y, kit.rs() * 0.01], [half, y, kit.rs() * 0.01], r * (0.93 + kit.rand() * 0.12), r * (0.93 + kit.rand() * 0.12), col, {
-        seg: 10, lenSeg: len > 3 ? 3 : 2, bow: [0, -0.01, 0], uo: kit.rand(), vo: kit.rand(), ao: 0.34, endCol: mixC(col, 0xc4a478, 0.45),
+        seg: 10, lenSeg: len > 3 ? 2 : 1, bow: [0, -0.01, 0], uo: kit.rand(), vo: kit.rand(), ao: 0.34, endCol: mixC(col, 0xc4a478, 0.45),
       });
     });
     if (k > 20) break;
@@ -185,6 +191,7 @@ export function floorBoards(kit, x0, z0, x1, z1, y, o = {}) {
 // Wall-frame segments of colliders around door gaps. gaps: [{s0, s1}] in wall frame.
 export function wallColliders(kit, f, r, gaps, o = {}) {
   const t = o.t ?? r * 1.05;
+  gaps = [...gaps].sort((a, b) => a.s0 - b.s0);
   const pts = [-f.L / 2 - r, ...gaps.flatMap((g) => [g.s0, g.s1]), f.L / 2 + r];
   for (let i = 0; i < pts.length; i += 2) {
     const a = pts[i], b = pts[i + 1];

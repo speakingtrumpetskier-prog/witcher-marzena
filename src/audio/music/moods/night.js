@@ -8,7 +8,7 @@ export default {
   name: 'night',
   tempo: 50,
   beats: 3,
-  level: 1,
+  level: 0.5,
   parts: {
     throat: P.throat({ level: 0.42 }),
     voice: P.voiceFar({ level: 0.28, lp: 2200, verb: 0.85 }),

@@ -15,7 +15,7 @@ export default {
   name: 'reveal',
   tempo: 66,
   beats: 3,
-  level: 1,
+  level: 0.8,
   parts: {
     voice: P.voice({ level: 0.46 }),
     gurdy: P.gurdy(),

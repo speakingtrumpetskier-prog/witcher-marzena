@@ -65,10 +65,12 @@ export class PropBatch {
     const seed = Number.isFinite(o.seed) ? Math.floor(o.seed) : hash2(h.x, h.z) % this.variants;
     h.seed = seed;
     const extra = o.opts || {};
-    const key = `${h.name}|${seed}|${o.indoor ? 'i' : 'o'}|${JSON.stringify(extra)}`;
+    const key = `${h.name}|${seed}|${o.indoor == null ? 'd' : o.indoor ? 'i' : 'o'}|${JSON.stringify(extra)}`;
     let t = this.templates.get(key);
     if (!t) {
-      t = make(h.name, { ...extra, seed, indoor: !!o.indoor, fx: false });
+      const opts = { ...extra, seed, fx: false };
+      if (o.indoor != null) opts.indoor = !!o.indoor;
+      t = make(h.name, opts);
       this.templates.set(key, t);
     }
     return t;

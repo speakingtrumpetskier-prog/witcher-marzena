@@ -6,7 +6,7 @@
 //
 //   createSnowfall(G) -> { mesh, update(dt, t), density }  (density follows G.weather.params)
 import * as THREE from 'three';
-import { FOG_PARS_FRAGMENT, FOG_UNIFORM_NAMES } from '../../render/fogChunk.js';
+import { FOG_PARS_FRAGMENT, fogUniforms } from '../../render/fogChunk.js';
 import { rng } from '../../core/util.js';
 
 const VERT = /* glsl */ `
@@ -99,7 +99,6 @@ void main() {
 `;
 
 export function createSnowfall(G) {
-  const U = G.uniforms;
   const MAX = G.quality === 'high' ? 20000 : G.quality === 'medium' ? 11000 : 5000;
   const BOX = 36;
   const geo = new THREE.InstancedBufferGeometry();
@@ -126,7 +125,7 @@ export function createSnowfall(G) {
     uKeyDir: { value: new THREE.Vector3(0, 1, 0) },
     uOpacity: { value: 0.9 },
   };
-  for (const n of FOG_UNIFORM_NAMES) uniforms[n] = U[n];
+  Object.assign(uniforms, fogUniforms());
   const material = new THREE.ShaderMaterial({
     name: 'mz-snowfall',
     uniforms,
@@ -172,9 +171,9 @@ export function createSnowfall(G) {
     const A = G.atmosphere;
     if (A?.look) {
       const L = A.look;
-      uniforms.uAmb.value.copy(L.hor).multiplyScalar(L.skyI * 0.55).add(tmpC.copy(L.zen).multiplyScalar(L.skyI * 0.45));
+      uniforms.uAmb.value.copy(L.hor).multiplyScalar(0.55).add(tmpC.copy(L.zen).multiplyScalar(0.45));
       uniforms.uAmb.value.multiplyScalar(0.95);
-      uniforms.uKey.value.copy(A.keyColor).multiplyScalar(A.keyIntensity * 0.12);
+      uniforms.uKey.value.copy(A.keyColor).multiplyScalar(A.keyIntensity * 0.1);
       uniforms.uKeyDir.value.copy(A.keyDir);
     }
   };

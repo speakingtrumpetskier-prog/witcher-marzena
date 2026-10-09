@@ -19,7 +19,7 @@ export default {
   name: 'tense',
   tempo: 72,
   beats: 3,
-  level: 1,
+  level: 1.35,
   parts: {
     pulse: P.pulse({ level: 0.55 }),
     fiddle: P.fiddle({ level: 0.2, verb: 0.5, pan: -0.3 }),

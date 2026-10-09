@@ -3,10 +3,12 @@
 //
 //   ?scene=trees&cam=0,6,40&look=0,6,0&hour=13
 //   &sp=spruce,pine     only these species (spruce, sapling, pine, birch, snag, bush, ground, log, reed)
-//   &rows=0,1,2,3       LOD rows to show (3 = billboard impostor)
+//   &rows=0,1,2,3       LOD rows to show (3 = billboard impostors, two views per kind)
 //   &spring=1           uSpring 1, &snow=0 for the thawed look
 import * as THREE from 'three';
 import { createKinds } from '../../world/trees/kinds.js';
+import { bakeImpostors, ImpostorLayer } from '../../world/trees/impostor.js';
+import { lodUniform, setLod } from '../../world/trees/materials.js';
 
 export const modules = ['atmosphere', 'sky', 'postfx'];
 
@@ -30,6 +32,7 @@ export async function init(G) {
   if (sp.length) kinds = kinds.filter((k) => sp.includes(k.species) || sp.includes(k.id));
   const group = new THREE.Group();
   G.scene.add(group);
+  G.vegGallery = { kinds, group };
   let x = 0;
   const xs = [];
   for (const k of kinds) {
@@ -54,9 +57,26 @@ export async function init(G) {
       }
     });
   });
+  if (rows.includes(3)) {
+    // row 3: the far billboard impostors baked from LOD 0 (z = -3 * 26 when mixed with other rows)
+    const imps = kinds.filter((k) => k.impostor);
+    const atlas = await bakeImpostors(G, imps);
+    const u = lodUniform();
+    setLod(u, -2, -1, null, null);
+    const layer = new ImpostorLayer(atlas, u, [0, 9999], imps.length * 2 + 4);
+    layer.begin();
+    const zi = rows.indexOf(3);
+    kinds.forEach((k, i) => {
+      if (!k.impostor) return;
+      layer.push(k, xs[i] - total / 2 - 1.2, 0, -zi * 26, 1, 1, 1, 1, 1, 0);
+      layer.push(k, xs[i] - total / 2 + 1.2, 0, -zi * 26, 1, 1, 1, 1, 1, 1);
+    });
+    layer.end();
+    G.scene.add(layer.mesh);
+    G.vegGallery.atlas = atlas;
+  }
   const sh = G.atmosphere?.sun?.shadow;
   if (sh) { sh.bias = -0.0004; sh.normalBias = 0.06; }
   G.camera.position.set(0, 8, 46);
   G.camera.lookAt(0, 9, 0);
-  G.vegGallery = { kinds, group };
 }

@@ -5,13 +5,15 @@
 //   lod 1: fewer, wider fronds
 //   lod 2: stacked scalloped cones
 // Snow is baked as the vertex attribute aSnow (tops of the branch layers) and scaled by uSnowCover.
-import { GeoBuilder, rng, rgb, mixRGB, tube, frond, softBall } from './geo.js';
+import { GeoBuilder, rng, rgb, mixRGB, tube, frond, softBall, trunkHeights } from './geo.js';
 
 export const SPRUCE_VARIANTS = [
-  { id: 'spruce_a', seed: 101, H: 27, maxR: 3.7, tiers: 16, base: 0.12, droop: 0.34, taper: 0.95, snow: 1.0, hue: 0.0, lean: 0.35, dead: 4 },
-  { id: 'spruce_b', seed: 202, H: 21, maxR: 4.7, tiers: 14, base: 0.08, droop: 0.30, taper: 0.85, snow: 0.95, hue: 0.5, lean: 0.25, dead: 2 },
-  { id: 'spruce_c', seed: 303, H: 31, maxR: 3.4, tiers: 17, base: 0.2, droop: 0.38, taper: 1.05, snow: 0.9, hue: -0.4, lean: 0.9, dead: 7, gaps: 0.2 },
-  { id: 'spruce_d', seed: 404, H: 14, maxR: 3.2, tiers: 12, base: 0.03, droop: 0.28, taper: 0.9, snow: 1.0, hue: 0.2, lean: 0.2, dead: 0 },
+  { id: 'spruce_a', seed: 101, H: 27, maxR: 3.7, tiers: 15, base: 0.12, droop: 0.34, taper: 0.95, snow: 1.0, hue: 0.0, lean: 0.35, dead: 4 },
+  { id: 'spruce_b', seed: 202, H: 21, maxR: 4.7, tiers: 13, base: 0.08, droop: 0.30, taper: 0.85, snow: 0.95, hue: 0.5, lean: 0.25, dead: 2 },
+  { id: 'spruce_c', seed: 303, H: 31, maxR: 3.4, tiers: 16, base: 0.2, droop: 0.38, taper: 1.05, snow: 0.9, hue: -0.4, lean: 0.9, dead: 7, gaps: 0.2 },
+  { id: 'spruce_d', seed: 404, H: 14, maxR: 3.2, tiers: 11, base: 0.03, droop: 0.28, taper: 0.9, snow: 1.0, hue: 0.2, lean: 0.2, dead: 0 },
+  { id: 'spruce_e', seed: 707, H: 24, maxR: 4.3, tiers: 13, base: 0.07, droop: 0.42, taper: 0.8, snow: 1.0, hue: -0.2, lean: 0.5, dead: 3 },
+  { id: 'spruce_f', seed: 808, H: 29, maxR: 2.9, tiers: 15, base: 0.24, droop: 0.32, taper: 1.1, snow: 0.95, hue: 0.3, lean: 0.4, dead: 6 },
 ];
 
 export const SAPLING_VARIANTS = [
@@ -20,10 +22,10 @@ export const SAPLING_VARIANTS = [
 ];
 
 const PAL = {
-  dark: rgb('#1d3f2c'),
-  light: rgb('#3d6e47'),
-  warm: rgb('#56803f'),
-  under: rgb('#122a1d'),
+  dark: rgb('#1a3a2e'),
+  light: rgb('#356354'),
+  warm: rgb('#4a7549'),
+  under: rgb('#10261f'),
   bark: rgb('#4a3a2e'),
   barkLight: rgb('#6b5646'),
   dead: rgb('#6a5e50'),
@@ -53,14 +55,10 @@ export function buildSpruce(v, lod = 0) {
   const nRings = lod === 0 ? 10 : lod === 1 ? 5 : 3;
   const pts = [];
   const rad0 = Math.max(0.1, H * 0.0125) * (v.sapling ? 0.8 : 1);
-  for (let i = 0; i < nRings; i++) {
-    const t = i / (nRings - 1);
-    const y = -0.4 + (H * 0.99 + 0.4) * t;
-    pts.push([tx(y), y, tz(y)]);
-  }
+  for (const y of trunkHeights(nRings, H * 0.99)) pts.push([tx(y), y, tz(y)]);
   const trunkV0 = b.vcount;
   tube(b, pts, (i, t) => (rad0 * Math.pow(1 - t, 0.9) + 0.02) * (1 + 0.65 * Math.exp(-(pts[i][1] + 0.4) / 0.9)),
-    (i) => mixRGB(PAL.bark, PAL.barkLight, 0.3 + 0.4 * Math.sin(i * 1.7 + v.seed)), { sides, rng: r, jitter: lod === 0 ? 0.25 : 0 });
+    (i) => mixRGB(PAL.bark, PAL.barkLight, 0.3 + 0.4 * Math.sin(i * 1.7 + v.seed)), { sides, rng: r, jitter: lod === 0 ? 0.25 : 0, snowRing: [0.95, 0.25] });
   b.tint(trunkV0, (x, y) => 0.55 + 0.45 * Math.min(1, Math.max(0, (y + 0.4) / (H * 0.25))));
 
   // ---------------- dead lower branches (stubs) ----------------
@@ -81,8 +79,8 @@ export function buildSpruce(v, lod = 0) {
   const foliageV0 = b.vcount;
   const foliageT0 = b.tcount;
   const ang0 = r() * 6.28;
-  const nbBase = v.sapling ? 6 : 10;
-  const sRowsHi = [0, 0.3, 0.6, 0.85, 1.0];
+  const nbBase = v.sapling ? 6 : 9;
+  const sRowsHi = [0, 0.33, 0.66, 0.9, 1.0];
   const sRowsMid = [0, 0.38, 0.72, 1.0];
   const sRowsLo = [0, 0.55, 1.0];
   const crownR = (f) => v.maxR * (0.72 + 0.28 * Math.min(1, f / 0.1)) * Math.pow(1 - f, v.taper) + 0.35;
@@ -128,7 +126,7 @@ export function buildSpruce(v, lod = 0) {
         const ox = tx(y), oz = tz(y);
         const phase = r() * 6.28;
         frond(b, { x: ox, y, z: oz }, th, L, W, droop, rise, {
-          rng: r, sRows: lod === 0 ? (f < 0.45 ? sRowsHi : sRowsMid) : sRowsLo, jag: lod === 0 ? 0.3 : 0.15, col: [dark, light], shade,
+          rng: r, sRows: lod === 0 ? (f < 0.3 ? sRowsHi : sRowsMid) : sRowsLo, jag: lod === 0 ? 0.3 : 0.15, col: [dark, light], shade,
           snow: v.snow * (0.95 + r() * 0.1), sag: 0.42 + 0.15 * (1 - f), tipLift: f > 0.4 ? L * 0.1 * r() : 0, phase,
           r0: 0.14,
         });
@@ -149,16 +147,16 @@ export function buildSpruce(v, lod = 0) {
         }
       }
     }
-    // leader: a spike of upward needle tufts at the very top
+    // leader: a slim dark spike with a few short upward needle tufts, snow dusted
     const topPos = [tx(H * 0.99), H * 0.97, tz(H * 0.99)];
-    const nTop = lod === 0 ? 6 : 4;
+    const nTop = lod === 0 ? 5 : 3;
     for (let i = 0; i < nTop; i++) {
       const th = ang0 + i * (Math.PI * 2 / nTop) + r();
-      frond(b, { x: topPos[0], y: topPos[1] - 0.8, z: topPos[2] }, th, 0.8 + r() * 0.5, 0.24, 0.05, 1.6, {
-        rng: r, sRows: [0, 0.5, 1], col: [PAL.dark, PAL.warm], shade: 1.1, snow: 0.55, r0: 0.04, phase: r() * 6.28, sag: 0.2,
+      frond(b, { x: topPos[0], y: topPos[1] - 0.9, z: topPos[2] }, th, 0.55 + r() * 0.35, 0.13, 0.04, 1.9, {
+        rng: r, sRows: [0, 0.5, 1], col: [PAL.dark, mixRGB(PAL.dark, PAL.light, 0.5)], shade: 0.95, snow: 0.7, r0: 0.04, phase: r() * 6.28, sag: 0.2,
       });
     }
-    tube(b, [[topPos[0], topPos[1] - 0.6, topPos[2]], [topPos[0], H * 1.03, topPos[2]]], (k, t) => 0.04 * (1 - t) + 0.006, () => PAL.warm, { sides: 3, rng: r, flex: (t) => t });
+    tube(b, [[topPos[0], topPos[1] - 0.9, topPos[2]], [topPos[0], H * 1.03, topPos[2]]], (k, t) => 0.035 * (1 - t) + 0.005, () => PAL.dark, { sides: 3, rng: r, flex: (t) => t });
   } else {
     // ---------- lod 2: scalloped cones ----------
     const nCone = 9;
@@ -169,8 +167,8 @@ export function buildSpruce(v, lod = 0) {
       const rim = 9;
       const rot = r() * 6.28;
       const apexY = y + R * (0.5 + 0.2 * f) + (topY - baseY) / nCone * 0.5;
-      const dark = PAL.dark, light = mixRGB(PAL.light, PAL.warm, 0.4 + f * 0.3);
-      const shade = 0.85 + 0.25 * f;
+      const dark = PAL.dark, light = mixRGB(PAL.light, PAL.warm, 0.3 + f * 0.3);
+      const shade = 0.72 + 0.2 * f;
       const apex = b.v(tx(apexY), apexY, tz(apexY), 0, 1, 0, [dark[0] * shade, dark[1] * shade, dark[2] * shade], 0, 0.1, v.snow * 0.8, 0.2, 0);
       const ids = [];
       for (let j = 0; j < rim; j++) {

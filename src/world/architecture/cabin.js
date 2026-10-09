@@ -12,8 +12,11 @@ import { PAL, GAIN } from './kit.js';
 import { gableRoof } from './roofs.js';
 import { WALLS, wallFrame, toLocal, logWall, plinth, plankGable, logGable, floorBoards, wallColliders } from './walls.js';
 import { opening, windowUnit, doorUnit } from './openings.js';
-import { chimney, porch, leanTo } from './details.js';
+import { chimney, porch, leanTo, railing, stairs } from './details.js';
+import { shedRoof } from './roofs.js';
 import { ceiling } from './furnish.js';
+
+const V3 = (x, y, z) => new THREE.Vector3(x, y, z);
 
 const DEFAULT = {
   w: 6.4, d: 5.4, courses: 8, storeys: 1, r: 0.2, pitch: 0.86, oe: 0.78, og: 0.58,
@@ -42,6 +45,7 @@ export function cabin(kit, spec) {
 
 function cabinInner(kit, spec) {
   const s = { ...DEFAULT, ...spec };
+  const mk0 = kit.mark();
   const hw = s.w / 2, hd = s.d / 2, r = s.r;
   const P = 2 * r * 0.9; // vertical pitch of courses
   const N = s.courses * s.storeys;
@@ -59,7 +63,7 @@ function cabinInner(kit, spec) {
   const open = { front: [], back: [], left: [], right: [] };
   const doorGaps = { front: [], back: [], left: [], right: [] };
   for (const d of s.doors) {
-    const op = opening(d.s, 0.04, d.w ?? 1.05, d.h ?? 1.95);
+    const op = opening(d.s, (d.y ?? 0) + 0.04, d.w ?? 1.05, d.h ?? 1.95);
     open[d.wall].push(op);
     doorGaps[d.wall].push({ s0: op.s0 + 0.03, s1: op.s1 - 0.03 });
   }
@@ -75,12 +79,13 @@ function cabinInner(kit, spec) {
     if (isOpen(wall)) { openWall(kit, f, hw, hd, r, yFrontTop, yEave, wall); continue; }
     logWall(kit, f, {
       courses: N, r, pitch: P, y0: 0, yOff: f.side ? P * 0.5 : 0, openings: open[wall], style: s.style,
+      dropLog: s.dropLog ? (k, sm, len) => s.dropLog(wall, k, sm, len) : null,
     });
   }
 
   // ----- roof -----
   const roof = gableRoof(kit, {
-    hw, hd, yE: yEave, pitch: s.pitch, oe: s.oe, og: s.og, snow: s.snow, paint: s.paint, gz: hd + 0.14, ...s.roofOpts,
+    hw, hd, yE: yEave, pitch: s.pitch, oe: s.oe, og: s.og, snow: s.snow, paint: s.paint, gz: hd + 0.07, ...s.roofOpts,
   });
   out.roof = roof;
   const under = (ax) => yEave - 0.08 + (hw - ax) * tan;
@@ -115,8 +120,29 @@ function cabinInner(kit, spec) {
     const f = wallFrame(d.wall, hw, hd);
     out.doorRecs.push(doorUnit(kit, f, {
       r, leaf: d.leaf ?? 'closed', s: d.s, w: d.w ?? 1.05, h: d.h ?? 1.95, casing: d.casing, hingeLeft: d.hingeLeft,
-      id: d.id, step: d.step, openState: d.openState, openAngle: d.openAngle,
+      id: d.id, step: d.step, openState: d.openState, openAngle: d.openAngle, y: d.y,
     }));
+  }
+
+  // ----- a lantern on a bracket beside the first door (warm at dusk) -----
+  if (s.doorLantern !== false && out.doorRecs.length) {
+    const d0 = s.doors.find((d) => !isOpen(d.wall) && (d.leaf ?? 'closed') !== 'open');
+    if (d0) {
+      const f = wallFrame(d0.wall, hw, hd);
+      const side = d0.lanternSide ?? (d0.hingeLeft ? 1 : -1);
+      const ls = d0.s + side * ((d0.w ?? 1.05) / 2 + 0.55);
+      const ly = (d0.h ?? 1.95) - 0.1;
+      kit.frame(f.x, 0, f.z, f.yaw, () => {
+        const iron = scaleC(PAL.iron, GAIN * 0.7);
+        kit.metal.box(ls, ly + 0.22, r + 0.12, 0.03, 0.03, 0.26, iron, {});
+        kit.metal.box(ls, ly + 0.1, r + 0.24, 0.02, 0.2, 0.02, iron, {});
+        kit.metal.box(ls, ly - 0.02, r + 0.24, 0.17, 0.025, 0.17, iron, {});
+        kit.metal.box(ls, ly + 0.2, r + 0.24, 0.19, 0.025, 0.19, iron, {});
+        kit.glow.box(ls, ly + 0.09, r + 0.24, 0.12, 0.16, 0.12, new THREE.Color(1, 0.86, 0.62), { uv: [40, 40], uo: 0.5, vo: 0.5 });
+      });
+      const lp = toLocal(f, ls, ly + 0.1, r + 0.5);
+      kit.light(lp[0], lp[1], lp[2], { color: 0xffb060, intensity: 0.7, radius: 6, kind: 'lantern' });
+    }
   }
 
   // ----- colliders -----
@@ -167,9 +193,61 @@ function cabinInner(kit, spec) {
     kit.box(lc[0], lc[2], (l.len ?? 3) / 2, (l.depth ?? 1.4) / 2, f.yaw);
   }
 
+  // ----- upper gallery (balcony) with an outside stair -----
+  if (s.gallery) {
+    const g = s.gallery;
+    const wall = g.wall ?? 'front';
+    const f = wallFrame(wall, hw, hd);
+    const gy = (g.level ?? 1) * storeyH + 0.04;
+    const gw = g.w ?? Math.min(s.w - 0.8, 4.4), gd = g.depth ?? 1.4, gs = g.s ?? 0;
+    const col = mixC(PAL.logDark, PAL.logWeathered, 0.4).multiplyScalar(GAIN);
+    kit.frame(f.x, 0, f.z, f.yaw, () => {
+      // Joist logs poking through the wall, deck boards on top.
+      const nj = Math.max(3, Math.round(gw / 0.9));
+      for (let i = 0; i < nj; i++) {
+        const jx = gs - gw / 2 + 0.2 + ((gw - 0.4) * i) / (nj - 1);
+        kit.wood.tube([jx, gy - 0.2, -0.4], [jx + kit.rs() * 0.02, gy - 0.2 + kit.rs() * 0.02, r + gd + 0.12], 0.075, 0.07, col, { seg: 6, lenSeg: 2, ao: 0.25, uo: kit.rand() });
+      }
+      const nb = Math.round(gd / 0.2);
+      for (let i = 0; i < nb; i++) {
+        const c = mixC(PAL.plank, PAL.plankDark, kit.rand() * 0.55).multiplyScalar(GAIN * kit.r(0.85, 1.1));
+        kit.wood.box(gs, gy - 0.05, r + (i + 0.5) * (gd / nb), gw, 0.06, gd / nb - 0.012, c, { grain: 'x', top: scaleC(c, 1.08), uv: [1, 3] });
+      }
+      // Posts down to the ground, brackets, front beam.
+      for (const sx of [-1, 1]) {
+        const px = gs + sx * (gw / 2 - 0.1);
+        kit.wood.tube([px, -0.35, r + gd + 0.05], [px + kit.rs() * 0.02, gy + 2.15, r + gd + 0.05], 0.1, 0.09, col, { seg: 7, lenSeg: 4, ao: 0.28, wobble: 0.02, ph: kit.rand() * 5, uo: kit.rand() });
+        kit.wood.tube([px, gy - 0.9, r + gd + 0.05], [px, gy - 0.25, r + 0.1], 0.06, 0.06, col, { seg: 5, lenSeg: 1, ao: 0.2 });
+      }
+      kit.wood.tube([gs - gw / 2 - 0.1, gy + 2.1, r + gd + 0.05], [gs + gw / 2 + 0.1, gy + 2.1, r + gd + 0.05], 0.09, 0.09, col, { seg: 7, lenSeg: 3, ao: 0.28, bow: [0, -0.015, 0] });
+      // Roof over the gallery.
+      shedRoof(kit, V3(gs - gw / 2 - 0.2, gy + 3.1, r - 0.02), V3(gs + gw / 2 + 0.2, gy + 3.1, r - 0.02), V3(gs - gw / 2 - 0.2, gy + 2.2, r + gd + 0.45), V3(gs + gw / 2 + 0.2, gy + 2.2, r + gd + 0.45), { th: 0.08, snow: 0.22, pitch: Math.atan2(0.9, gd + 0.45), nu: 4, jag: 0.16 });
+    });
+    // Railing on the three open sides; the stair side has a gap.
+    const stairSide = g.stairs ?? 1;
+    const wx0 = gs - gw / 2 + 0.1, wx1 = gs + gw / 2 - 0.1, zo = r + gd - 0.02;
+    kit.frame(f.x, 0, f.z, f.yaw, () => {
+      railing(kit, wx0, zo, wx1, zo, gy, { h: 0.95 });
+      railing(kit, wx0, r + 0.05, wx0, zo, gy, { h: 0.95 });
+      railing(kit, wx1, r + 0.05, wx1, zo, gy, { h: 0.95 });
+    });
+    {
+      // The stair is placed in building coordinates so its walk ramp metadata is correct.
+      const n = 13, rise2 = gy / n, run2 = 0.28;
+      const sp = toLocal(f, gs + stairSide * (gw / 2 + 0.55), 0, r + gd + n * run2 - 0.3);
+      stairs(kit, sp[0], 0, sp[2], f.yaw + Math.PI, { width: 0.95, steps: n, rise: rise2, run: run2, rails: true, col });
+    }
+    const corner = (sx, sz) => { const c = toLocal(f, sx, 0, sz); return [c[0], c[2]]; };
+    kit.walk.floors.push({ y: gy, polygon: [corner(gs - gw / 2, r), corner(gs + gw / 2, r), corner(gs + gw / 2, r + gd), corner(gs - gw / 2, r + gd)], tag: 'gallery' });
+    const gc = toLocal(f, gs, 0, r + gd / 2);
+    kit.skirtExclude.push({ x: gc[0], z: gc[2], hw: gw / 2 + 1.5, hd: gd / 2 + 4.2, yaw: f.yaw });
+    kit.anchor('gallery', ...toLocal(f, gs, gy, r + gd * 0.6));
+  }
+
   // ----- interior -----
   if (s.interior) {
     kit.interior = true;
+    kit.indoor(true);
     if (s.floor === 'boards') floorBoards(kit, -hw + 0.05, -hd + 0.05, hw - 0.05, hd - 0.05, 0.05, { holes: s.floorHoles });
     kit.walk.floors.push({ y: 0.05, polygon: [[-hw + 0.1, -hd + 0.1], [hw - 0.1, -hd + 0.1], [hw - 0.1, hd - 0.1], [-hw + 0.1, hd - 0.1]] });
     if (s.ceiling) ceiling(kit, -hw + 0.05, -hd + 0.05, hw - 0.05, hd - 0.05, s.ceilingY ?? (yEave - 0.35));
@@ -180,6 +258,10 @@ function cabinInner(kit, spec) {
       }
     }
   }
+  kit.indoor(false);
+  // Old timber settles: lean everything above head height a little, differently for every house.
+  const lean = s.lean ?? 1;
+  if (lean > 0) kit.shear(mk0, 1.2, (kit.rand() - 0.5) * 0.02 * lean, (kit.rand() - 0.5) * 0.014 * lean, 0.0);
   return out;
 }
 
@@ -211,16 +293,16 @@ function openWall(kit, f, hw, hd, r, yFrontTop, yEave, wall) {
 // A small lit window high in a gable (rectangular attic window with a painted frame).
 function atticWindow(kit, f, sx, y, shutters, lit = true) {
   kit.frame(f.x, 0, f.z, f.yaw, () => {
-    const z = 0.1 + 0.03;
+    const z = 0.088;
     const w = 0.5, h = 0.6;
     const g = lit ? kit.r(0.75, 1.0) : 0.1;
     const c = lit ? new THREE.Color(g, g * 0.9, g * 0.75) : new THREE.Color(g, g, g);
     kit.glow.quad([sx - w / 2, y, z], [sx + w / 2, y, z], [sx + w / 2, y + h, z], [sx - w / 2, y + h, z], c, [[0, 0], [1, 0], [1, 1], [0, 1]]);
     const col = scaleC(shutters === 'red' ? PAL.red : PAL.blueFaded, GAIN * 0.9);
-    kit.wood.box(sx, y - 0.04, z + 0.02, w + 0.2, 0.08, 0.07, col, { grain: 'x' });
-    kit.wood.box(sx, y + h + 0.04, z + 0.02, w + 0.2, 0.08, 0.07, col, { grain: 'x' });
-    kit.wood.box(sx - w / 2 - 0.04, y + h / 2, z + 0.02, 0.08, h + 0.16, 0.07, col, { grain: 'y' });
-    kit.wood.box(sx + w / 2 + 0.04, y + h / 2, z + 0.02, 0.08, h + 0.16, 0.07, col, { grain: 'y' });
+    kit.wood.box(sx, y - 0.04, z + 0.015, w + 0.2, 0.08, 0.05, col, { grain: 'x' });
+    kit.wood.box(sx, y + h + 0.04, z + 0.015, w + 0.2, 0.08, 0.05, col, { grain: 'x' });
+    kit.wood.box(sx - w / 2 - 0.04, y + h / 2, z + 0.015, 0.08, h + 0.16, 0.05, col, { grain: 'y' });
+    kit.wood.box(sx + w / 2 + 0.04, y + h / 2, z + 0.015, 0.08, h + 0.16, 0.05, col, { grain: 'y' });
   });
   if (lit) {
     const p = toLocal(f, sx, y + 0.3, 0.7);

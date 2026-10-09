@@ -25,11 +25,13 @@ export default async function sample(d) {
 
   // 2. The walk, tracked from her right side.
   const walking = d.walk(vesna, STOP[0], STOP[1]);
-  await d.follow(vesna, [1.5, 1.45, 1.6], d.head(vesna), 4.2, { lag: 2.5, fov: 40 });
+  await d.follow(vesna, [1.5, 1.45, 1.6], d.head(vesna), 4.2, { lag: 2.5, fov: 40, frame: [0.12, 0.2] });
   await walking;
+  // Hanka turns from the ice to face her.
   d.face(vesna, hanka);
+  d.face(hanka, vesna);
   d.lookAt(vesna, hanka);
-  await d.wait(0.3);
+  await d.wait(0.8);
 
   // 3. Two lines, shot and reverse shot.
   d.cut(d.ots(hanka, vesna));

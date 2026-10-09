@@ -161,7 +161,7 @@ const sgnpow = (x, p) => Math.sign(x) * Math.pow(Math.abs(x), p);
 export function tube(mb, o) {
   const seg = o.seg || 12;
   const th0 = o.th0 ?? 0, th1 = o.th1 ?? Math.PI * 2;
-  const full = Math.abs(th1 - th0 - Math.PI * 2) < 1e-6;
+  const full = !o.open && Math.abs(th1 - th0 - Math.PI * 2) < 1e-6;
   const mat = o.mat;
   const rows = [];
   let vacc = 0;
@@ -171,8 +171,9 @@ export function tube(mb, o) {
   for (let ri = 0; ri < o.rings.length; ri++) {
     const R = o.rings[ri];
     const pts = [];
+    const r0 = R.th0 ?? th0, r1 = R.th1 ?? th1;
     for (let j = 0; j <= seg; j++) {
-      const th = th0 + (th1 - th0) * (j / seg);
+      const th = r0 + (r1 - r0) * (j / seg);
       const ce = Math.cos(th), se = Math.sin(th);
       const ex = R.n ? 2 / R.n : 1;
       const mul = R.r ? R.r(th, ri) : 1;
@@ -253,7 +254,7 @@ export function tube(mb, o) {
         dir.addScaledVector(R.a.clone().cross(R.b).normalize(), -dir.dot(R.a.clone().cross(R.b).normalize()));
         dir.normalize();
         const q2 = q.clone().addScaledVector(dir, -inset);
-        const th = th0 + (th1 - th0) * (j / seg);
+        const th = ringPoints[ri][j].th;
         const w = o.weights(ri, th, q);
         const fl = o.float ? o.float(ri, th, q) : null;
         row.push(mb.vert(q2, o.inner.color || lineMat.color, j / seg * lineMat.tileU, ri * 0.3, lineMat, w, fl));

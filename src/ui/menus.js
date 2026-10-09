@@ -8,12 +8,12 @@ import { VOLUME_KEYS } from './settings.js';
 const dayPart = (hr) => (hr < 5 ? 'night' : hr < 9 ? 'morning' : hr < 12 ? 'forenoon' : hr < 17 ? 'afternoon' : hr < 20 ? 'evening' : 'night');
 
 // Generic vertical menu list with a selection marker, keyboard and mouse.
-export function menuList(items, { onSelect } = {}) {
+export function menuList(items, { onSelect, sfx } = {}) {
   const el = h('nav', { class: 'mz-menu' });
   let sel = Math.max(0, items.findIndex((i) => !i.disabled));
   const rows = items.map((it, i) => {
     const r = h('button', { class: 'mz-mi' + (it.disabled ? ' dis' : ''), type: 'button', tabindex: '-1' }, svg(ICON.knot, 'mk'), h('span', { class: 'lab' }, it.label));
-    r.addEventListener('mouseenter', () => { if (!it.disabled) { sel = i; paint(); } });
+    r.addEventListener('mouseenter', () => { if (!it.disabled && sel !== i) { sel = i; paint(); sfx?.('ui_hover'); } });
     r.addEventListener('click', () => choose(i));
     el.appendChild(r);
     return r;
@@ -22,6 +22,7 @@ export function menuList(items, { onSelect } = {}) {
   function choose(i) {
     const it = items[i];
     if (it.disabled) { rows[i].classList.remove('shake'); void rows[i].offsetWidth; rows[i].classList.add('shake'); return; }
+    sfx?.('ui_select');
     onSelect?.(it, i);
   }
   function move(d) {
@@ -30,6 +31,7 @@ export function menuList(items, { onSelect } = {}) {
     for (let k = 0; k < n; k++) { i = (i + d + n) % n; if (!items[i].disabled) break; }
     sel = i;
     paint();
+    sfx?.('ui_hover');
   }
   paint();
   return {
@@ -90,14 +92,14 @@ export class Menus {
         { id: 'settings', label: 'Settings' },
         { id: 'save', label: this._saved ? 'Saved' : 'Save' },
         { id: 'quit', label: 'Quit to Title' },
-      ], { onSelect: (it) => act(it.id) });
+      ], { onSelect: (it) => act(it.id), sfx: (n) => ui.sfx(n, { volume: 0.45 }) });
       body.appendChild(list.el);
       updateFoot();
     };
     const showConfirm = () => {
       confirming = true;
       clear(body);
-      list = menuList([{ id: 'stay', label: 'Stay' }, { id: 'leave', label: 'Leave the valley' }], { onSelect: (it) => act(it.id) });
+      list = menuList([{ id: 'stay', label: 'Stay' }, { id: 'leave', label: 'Leave the valley' }], { onSelect: (it) => act(it.id), sfx: (n) => ui.sfx(n, { volume: 0.45 }) });
       body.append(h('p', { class: 'mz-confirm' }, 'Return to the title? What is not saved is lost.'), list.el);
     };
     const save = () => {
@@ -108,7 +110,7 @@ export class Menus {
       };
       if (p?.position) extra.player = { x: p.position.x, y: p.position.y, z: p.position.z, yaw: p.yaw ?? 0 };
       let ok = false;
-      try { ok = G.story?.save ? (G.story.save(), true) : G.state?.save?.(extra); } catch { ok = false; }
+      try { ok = G.story?.save ? G.story.save() !== false : !!G.state?.save?.(extra); } catch { ok = false; }
       ui.overlays.notify(ok ? 'Game saved' : 'Could not save', ok ? 'save' : 'info');
       this._saved = ok;
       setTimeout(() => { this._saved = false; if (this.pause?.open && !confirming) showList(); }, 2200);

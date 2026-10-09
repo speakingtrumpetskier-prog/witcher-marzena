@@ -12,8 +12,8 @@
 //   G.senses.pulse()         send a pulse ring out from the player now
 // Clue extras: `cutscene` (echo: cutscene id to play), `line` (a Vesna subtitle after examining).
 // Emits 'senses:on', 'senses:off', 'clue:examine' { id }.
-// Highlight: uses G.postfx.addHighlight(object, color) / removeHighlight(object) when PostFX
-// provides them, otherwise pulses the clue mesh emissive in orange (turquoise for echoes).
+// Highlight: G.postfx.markClue(object, on) (the PostFX clue layer) for clues; echo objects and
+// scenes without PostFX get an emissive pulse on the clue mesh (orange, turquoise for echoes).
 import * as THREE from 'three';
 import { ORDER } from '../core/G.js';
 import { damp } from '../core/util.js';
@@ -196,6 +196,7 @@ export async function init(G) {
   let level = 0;
   let active = false;
   let forced = null;
+  let hum = null;
   const pulseU = { value: 0 };
   const group = new THREE.Group();
   group.name = 'senses';
@@ -237,6 +238,49 @@ export async function init(G) {
     return out;
   }
 
+  // PostFX draws the warm clue glow after its senses grade for objects on SENSES_LAYER, rendered
+  // with an override material. So each trail gets a "mask twin" whose geometry already has the
+  // right shape (boot prints, two heel grooves): invisible in the normal pass, orange in senses.
+  const senseLayer = () => (Number.isInteger(G.postfx?.SENSES_LAYER) ? G.postfx.SENSES_LAYER : null);
+  function addTwin(owner, obj) {
+    const L = senseLayer();
+    if (L == null) { obj.geometry.dispose(); obj.material.dispose(); return; }
+    obj.layers.set(L);
+    obj.frustumCulled = false;
+    group.add(obj);
+    owner.objects.push(obj);
+    (owner.twins ||= []).push(obj);
+  }
+  const twinMat = () => new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide });
+
+  // A boot print outline: forefoot and heel, toe toward +Z once laid flat.
+  function footprintShapeGeometry() {
+    const toe = new THREE.Shape().absellipse(0, -0.055, 0.052, 0.088, 0, Math.PI * 2, false, 0);
+    const heel = new THREE.Shape().absellipse(0.004, 0.098, 0.04, 0.046, 0, Math.PI * 2, false, 0);
+    const geo = new THREE.ShapeGeometry([toe, heel], 10);
+    geo.rotateX(-Math.PI / 2);
+    return geo;
+  }
+
+  // Strip of quads `width` wide offset sideways from a resampled path, draped on the ground.
+  function stripGeometry(steps, offset, width, skip) {
+    const pos = [], idx = [];
+    const n = steps.length;
+    steps.forEach((st, i) => {
+      const prev = steps[Math.max(0, i - 1)], next = steps[Math.min(n - 1, i + 1)];
+      const yaw = Math.atan2(next.x - prev.x, next.z - prev.z) || st.yaw;
+      const cx = Math.cos(yaw), cz = -Math.sin(yaw);
+      const a = offset - width / 2, b = offset + width / 2;
+      const x0 = st.x + cx * a, z0 = st.z + cz * a, x1 = st.x + cx * b, z1 = st.z + cz * b;
+      pos.push(x0, ground(x0, z0) + 0.035, z0, x1, ground(x1, z1) + 0.035, z1);
+      if (i < n - 1 && !(skip && skip(i))) { const k = i * 2; idx.push(k, k + 2, k + 1, k + 1, k + 2, k + 3); }
+    });
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    geo.setIndex(idx);
+    return geo;
+  }
+
   function buildTrail(tr) {
     const kind = tr.kind || 'footprints';
     const color = COLORS[kind] || COLORS.footprints;
@@ -274,6 +318,9 @@ export async function init(G) {
       mesh.renderOrder = 5;
       group.add(mesh);
       tr.objects.push(mesh);
+      const twin = new THREE.InstancedMesh(footprintShapeGeometry(), twinMat(), steps.length);
+      twin.instanceMatrix.array.set(mesh.instanceMatrix.array);
+      addTwin(tr, twin);
     }
 
     if (kind === 'drag') {
@@ -302,6 +349,10 @@ export async function init(G) {
       mesh.renderOrder = 5;
       group.add(mesh);
       tr.objects.push(mesh);
+      // Two heel grooves, broken here and there like the ribbon shader's.
+      const broken = (i) => Math.sin(i * 0.23 + 3) + Math.sin(i * 0.71) > 1.55;
+      const off = w * 0.19;
+      for (const o of [-off, off]) addTwin(tr, new THREE.Mesh(stripGeometry(steps, o, 0.06, broken), twinMat()));
     }
 
     // Drifting motes along every trail (dense and red for scent).
@@ -349,6 +400,13 @@ export async function init(G) {
     ring.renderOrder = 5;
     group.add(ring);
     cl.objects = [ring];
+    if (!echo) {
+      const rg = new THREE.RingGeometry(0.42, 0.5, 40);
+      rg.rotateX(-Math.PI / 2);
+      const twin = new THREE.Mesh(rg, twinMat());
+      twin.position.copy(ring.position);
+      addTwin(cl, twin);
+    }
     if (echo) {
       const n = 40;
       const mp = new Float32Array(n * 3), seeds = new Float32Array(n);
@@ -376,6 +434,12 @@ export async function init(G) {
     if (!cl.object) return;
     const color = cl.kind === 'echo' ? COLORS.echo : COLORS.clue;
     const pf = G.postfx;
+    // PostFX clue layer: glows warm orange whenever uSenses > 0, so mark it while it counts.
+    if (cl.kind !== 'echo' && typeof pf?.markClue === 'function') {
+      const on = k > 0.02;
+      if (on !== !!cl.hl) { pf.markClue(cl.object, on); cl.hl = on; }
+      return;
+    }
     if (pf && typeof pf.addHighlight === 'function') {
       if (k > 0.02 && !cl.hl) { pf.addHighlight(cl.object, color); cl.hl = true; }
       else if (k <= 0.02 && cl.hl) { pf.removeHighlight?.(cl.object); cl.hl = false; }
@@ -418,7 +482,6 @@ export async function init(G) {
   async function examine(cl) {
     const pc = G.player?.character;
     try { pc?.play?.('crouch_examine', { loop: false, fade: 0.25 }); } catch { /* optional */ }
-    G.audio?.sfx?.(cl.kind === 'echo' ? 'senses_echo' : 'clue', { pos: cl.pos });
     if (cl.kind === 'echo') G.audio?.stinger?.('echo');
     if (cl.cutscene && G.cutscenes?.has?.(cl.cutscene)) await G.cutscenes.play(cl.cutscene);
     if (cl.onExamine) await cl.onExamine(cl);
@@ -457,7 +520,6 @@ export async function init(G) {
       const cl = clues.get(id);
       if (!cl) return;
       setHighlight(cl, 0);
-      if (cl.hl) G.postfx?.removeHighlight?.(cl.object);
       disposeObjects(cl.objects);
       if (cl.interactId != null) G.interact?.remove?.(cl.interactId);
       clues.delete(id);
@@ -500,7 +562,15 @@ export async function init(G) {
       if (!want && level < 0.003) level = 0;
       active = want && level > 0.35;
       if (active !== wasActive) {
-        if (active) { api.pulse(); G.audio?.sfx?.('senses_on'); }
+        if (active) {
+          api.pulse();
+          G.audio?.sfx?.('senses_on');
+          try { hum = G.audio?.loop?.('senses_hum', { volume: 0.5 }) || null; } catch { hum = null; }
+        } else {
+          G.audio?.sfx?.('senses_off');
+          hum?.stop?.();
+          hum = null;
+        }
         G.events.emit(active ? 'senses:on' : 'senses:off', {});
       }
       // Cutscenes may animate uSenses themselves; only write it while senses are in play.
@@ -510,11 +580,13 @@ export async function init(G) {
       for (const tr of trails.values()) {
         const en = tr.enabled ? !!tr.enabled() : true;
         tr.reveal.value = damp(tr.reveal.value, en ? 1 : 0, 3, dt);
+        if (tr.twins) for (const t of tr.twins) t.visible = tr.reveal.value > 0.5;
       }
       const pp = U.uPlayerPos.value;
       for (const cl of clues.values()) {
         const en = (cl.enabled ? !!cl.enabled() : true) && !cl.examined;
         cl.reveal.value = damp(cl.reveal.value, en ? 1 : 0, 4, dt);
+        if (cl.twins) for (const t of cl.twins) t.visible = cl.reveal.value > 0.5;
         const d = Math.hypot(cl.pos.x - pp.x, cl.pos.z - pp.z);
         if (en && active && d < REVEAL_RANGE && !cl.revealed) { cl.revealed = true; G.events.emit('clue:reveal', { id: cl.id }); }
         // Revealed clues keep a faint glow so they can still be found after letting go.

@@ -1,8 +1,10 @@
 // Shared materials for the architecture kit. One instance of each, reused by every building,
 // so the whole village costs a handful of shader programs.
 //
+//   woodIn / stoneIn  interior twins of wood and stone without snow dusting
 //   wood     logs, boards, beams, shutters, carved boards (vertex colors tint and paint it)
 //   shingle  roof shingles (slab tops and edges)
+//   rock     monolithic stone: idols, menhirs, boulders
 //   stone    foundations, chimneys, towers, idols
 //   straw    thatch and loose hay
 //   snow     the soft snow layers (own geometry), melts with uSnowCover via the snowBase attribute
@@ -43,17 +45,32 @@ export function getMaterials() {
   });
   wood.userData.snow = { amount: 0.75, threshold: 0.88 };
 
+  // Interior twins: same look, no snow dusting (floors and furniture must stay clean).
+  const woodIn = new THREE.MeshStandardMaterial({
+    map: woodT, bumpMap: woodT, bumpScale: 1.6, vertexColors: true, roughness: 0.93, metalness: 0,
+  });
+
   const shT = TEX.shingle();
   const shingle = new THREE.MeshStandardMaterial({
     map: shT, bumpMap: shT, bumpScale: 2.0, vertexColors: true, roughness: 0.95, metalness: 0,
   });
   shingle.userData.snow = { amount: 0.7, threshold: 0.55 };
 
+  const rkT = TEX.rock();
+  const rock = new THREE.MeshStandardMaterial({
+    map: rkT, bumpMap: rkT, bumpScale: 2.2, vertexColors: true, roughness: 0.95, metalness: 0,
+  });
+  rock.userData.snow = { amount: 0.85, threshold: 0.6 };
+
   const stT = TEX.stone();
   const stone = new THREE.MeshStandardMaterial({
-    map: stT, bumpMap: stT, bumpScale: 3.0, vertexColors: true, roughness: 0.96, metalness: 0,
+    map: stT, bumpMap: stT, bumpScale: 1.8, vertexColors: true, roughness: 0.96, metalness: 0,
   });
   stone.userData.snow = { amount: 0.85, threshold: 0.6 };
+
+  const stoneIn = new THREE.MeshStandardMaterial({
+    map: stT, bumpMap: stT, bumpScale: 3.0, vertexColors: true, roughness: 0.96, metalness: 0,
+  });
 
   const straw = new THREE.MeshStandardMaterial({
     map: TEX.straw(), vertexColors: true, roughness: 1, metalness: 0, side: THREE.DoubleSide,
@@ -105,11 +122,10 @@ export function getMaterials() {
   const cloth = new THREE.MeshStandardMaterial({
     map: TEX.cloth(), vertexColors: true, roughness: 1, metalness: 0, side: THREE.DoubleSide,
   });
-  cloth.userData.snow = { amount: 0.6, threshold: 0.7 };
 
-  mats = { wood, shingle, stone, straw, snow, ice, glow, ember, metal, cloth };
+  mats = { wood, woodIn, shingle, stone, stoneIn, rock, straw, snow, ice, glow, ember, metal, cloth };
   return mats;
 }
 
 // Which materials receive shadows / cast them.
-export const CASTS = { wood: true, shingle: true, stone: true, straw: true, snow: false, ice: false, glow: false, ember: false, metal: true, cloth: true };
+export const CASTS = { rock: true, wood: true, woodIn: true, stoneIn: true, shingle: true, stone: true, straw: true, snow: false, ice: false, glow: false, ember: false, metal: true, cloth: true };

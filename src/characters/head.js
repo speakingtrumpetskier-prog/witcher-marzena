@@ -101,7 +101,7 @@ function makeSculpt(FP) {
   const stomY = 0.0105 - (fl - 1) * 0.02;
   const chinY = -0.0185 - (fl - 1) * 0.03;
   const lf = FP.lipFull, lw = FP.lipW;
-  const gonL = V(0.051 * jw, 0.008 + (1 - FP.jawSq) * 0.004, -0.004);
+  const gonL = V(0.045 * jw, 0.008 + (1 - FP.jawSq) * 0.004, -0.002);
   const chinPL = V(0.011 * FP.chinW, chinY - 0.002, 0.079 + FP.chin * 0.004);
   const browH = 0.0075 + FP.brow * 0.004;
   const cheekS = 0.75 + FP.cheek * 0.5;
@@ -116,10 +116,10 @@ function makeSculpt(FP) {
     d = smax(d, -sdEll(ax, y, z, 0.081 * cw, 0.096, 0.052, 0.012, 0.028, 0.026), 0.01);
     // midface, zygomatic arches, jaw body, jawline, ramus, chin
     d = smin(d, sdEll(x, y, z, 0, 0.045, 0.034, 0.061, 0.056 * fl, 0.06), 0.03);
-    d = smin(d, sdCone(ax, y, z, V(0.045, 0.053, 0.06), V(0.063, 0.05, 0.004), 0.009, 0.008), 0.02);
-    d = smin(d, sdEll(x, y, z, 0, 0.013, 0.04, 0.05 * jw, 0.031 * fl, 0.05), 0.025);
+    d = smin(d, sdCone(ax, y, z, V(0.045, 0.054, 0.06), V(0.061, 0.052, 0.006), 0.0065, 0.006), 0.026);
+    d = smin(d, sdEll(x, y, z, 0, 0.014, 0.04, 0.046 * jw, 0.031 * fl, 0.05), 0.026);
     d = smin(d, sdCone(ax, y, z, gonL, chinPL, 0.011 + FP.jawSq * 0.002, 0.012), 0.018);
-    d = smin(d, sdCone(ax, y, z, V(0.048 * jw, 0.033, -0.008), gonL, 0.01, 0.011), 0.016);
+    d = smin(d, sdCone(ax, y, z, V(0.047 * jw, 0.036, -0.008), gonL, 0.01, 0.011), 0.018);
     d = smin(d, sdEll(x, y, z, 0, chinY, 0.085 + FP.chin * 0.004, 0.015 * FP.chinW, 0.013, 0.011), 0.01);
     // cheekbones and cheek fat
     d = smin(d, sdEll(ax, y, z, 0.043, 0.053, 0.07, 0.016 * cheekS, 0.0095 * cheekS, 0.014), 0.012);
@@ -373,6 +373,10 @@ export function buildHead(mb, rig, FP, look) {
   };
   info.scale = scale;
   info.pivot = pivot;
+  info.cast = cast;
+  info.grad = grad;
+  info.sdf = sdf;
+  info.skinWeights = (pl) => weightsAt(pl, pl.y < S.stomY ? kStom + 1 : kStom - 1, 0);
 
   buildEyes(mb, rig, FP, S, scale, pivot, info.uvOf);
   buildMouthInside(mb, FP, S, scale, pivot);
@@ -464,8 +468,8 @@ function buildEyes(mb, rig, FP, S, sc, pivot, uvOf) {
           const edge = 1 - Math.pow(Math.abs(u), 6);
           const w = r > nR ? edge : (r / nR) ** 1.3 * edge;
           let shade = 1;
-          if (r === nR) shade = upper ? 0.55 : 0.8;
-          if (r > nR) shade = upper ? 0.25 : 0.5;
+          if (r === nR) shade = upper ? 0.72 : 0.86;
+          if (r > nR) shade = upper ? 0.42 : 0.6;
           const [tu, tv] = uvOf(toLocal(ph, Math.max(-0.5, Math.min(0.6, ps)), rl + 0.002));
           row.push(mb.vert(toWorld(pl), new THREE.Color(shade, shade * 0.93, shade * 0.92), tu, tv, lidMat, [[bone, w], ['head', 1 - w]]));
         }
@@ -719,6 +723,13 @@ export function paintFace(canvas, info, FP, look) {
   g.stroke();
   // eyebrows: short strokes along an arc, thick at the inner end
   const browC = col(FP.browColor);
+  for (const s of [1, -1]) {
+    for (let i = 0; i <= 8; i++) {
+      const t = i / 8;
+      const [px, py] = P(s * lerp(0.013, 0.048, t), 0.0905 + Math.sin(t * Math.PI * 0.85) * 0.004 * (0.6 + FP.browArch) - t * 0.002, 0.094 - t * 0.016);
+      blot(px, py, (7 - t * 3) * sz * FP.browThick, browC, 0.22, 1.4, 0.7);
+    }
+  }
   for (const s of [1, -1]) {
     const nStroke = Math.round(70 * FP.browThick * sz);
     for (let i = 0; i < nStroke; i++) {

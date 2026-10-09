@@ -177,7 +177,7 @@ export function boat(o = {}) {
     const rowN = (strakes * 2 + 1) * 2;
     for (let i = 0; i < N; i++) for (let j = 0; j < strakes * 2; j++) for (const side of [0, 1]) {
       const a = i * rowN + j * 2 + side, b = a + rowN, c = a + 2, d = b + 2;
-      if (side === 0) { idx.push(a, b, c, b, d, c); } else { idx.push(a, c, b, b, c, d); }
+      if (side === 0) { idx.push(a, c, b, b, c, d); } else { idx.push(a, b, c, b, d, c); }
     }
     const g = new THREE.BufferGeometry();
     g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));

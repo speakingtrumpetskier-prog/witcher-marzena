@@ -2,7 +2,7 @@
 // docs/ARCHITECTURE.md "Dialogue"; the sample is content/dialogues/_sample.js).
 //
 //   const { end, picks } = await G.dialogue.start('hanka_first', opts)
-//   opts: { actors: { id: Character | Actor }, at, noStage, speed, autopick, camera, letterbox }
+//   opts: { actors: { id: Character | Actor }, noStage, walkIn, speed, autopick, camera, letterbox }
 //   G.dialogue.active       true while one runs        G.dialogue.current -> { id, node }
 //   G.dialogue.has(id)      a content file exists       G.dialogue.ids() -> [ids]
 //   G.dialogue.autopick     debug: [indexes] | 'first' | (node, items) => index, used when set
@@ -100,7 +100,17 @@ export class Dialogue {
       const given = opts.actors?.[aid];
       let a = null;
       if (given) a = given instanceof Actor ? given : stage.get(aid, { character: given });
-      else a = stage.get(aid, { at: opts.spawnAt?.[aid] });
+      else {
+        const fresh = !stage.has(aid);
+        a = stage.get(aid, { at: opts.spawnAt?.[aid] });
+        // Somebody we had to conjure (no NPC of that id): put them in front of Vesna.
+        const v = actors.get('vesna');
+        if (a && fresh && a.owned && !opts.spawnAt?.[aid] && v) {
+          const p = v.pos(new THREE.Vector3()).addScaledVector(v.forward(new THREE.Vector3()), 1.4 + actors.size * 0.3);
+          a.setPosition(p.x, p.z);
+          a.face(v, { instant: true });
+        }
+      }
       if (a) actors.set(aid, a);
       return a;
     };
@@ -125,7 +135,7 @@ export class Dialogue {
     if (useCam) cam.take();
 
     // Staging: keep people where they stand, nudge to a conversational distance, face each other.
-    if (!opts.noStage && vesna && primary !== vesna) this._stage(vesna, primary, npcs);
+    if (!opts.noStage && vesna && primary !== vesna) this._stage(vesna, primary, npcs, !!opts.walkIn);
     const cov = new Coverage(G, ui);
     if (vesna && primary !== vesna) cov.setup(vesna, primary);
     else if (npcs.length >= 2) cov.setup(npcs[0], npcs[1]);
@@ -198,20 +208,22 @@ export class Dialogue {
     return { end: endNode, picks };
   }
 
-  _stage(vesna, npc, npcs) {
+  // Under the opening cut, snap Vesna to a conversational distance and turn both to face each
+  // other (the cut hides the adjustment). opts.walkIn walks her there instead.
+  _stage(vesna, npc, npcs, walkIn = false) {
     const G = this.G;
     const vp = vesna.pos(new THREE.Vector3()), np = npc.pos(new THREE.Vector3());
     const d = Math.hypot(vp.x - np.x, vp.z - np.z);
-    if (d < 1.05 || d > 2.0) {
+    if (d < 1.05 || d > 1.9) {
       const dx = d > 1e-3 ? (vp.x - np.x) / d : 0, dz = d > 1e-3 ? (vp.z - np.z) / d : 1;
       const target = new THREE.Vector3(np.x + dx * 1.4, vp.y, np.z + dz * 1.4);
       G.physics?.resolve?.(target, 0.35);
-      if (d < 6 && typeof vesna.c.walkTo === 'function') {
+      if (walkIn && d < 6 && typeof vesna.c.walkTo === 'function') {
         vesna.walkTo(target.x, target.z, { speed: 1.3 }).then(() => vesna.face(npc));
       } else vesna.setPosition(target.x, target.z);
     }
-    vesna.face(npc);
-    npc.face(vesna);
+    vesna.face(npc, { instant: !walkIn });
+    npc.face(vesna, { instant: !walkIn });
     for (const o of npcs) if (o !== npc) o.face(vesna);
     for (const a of [vesna, ...npcs]) a.lookAt(a === vesna ? npc : vesna);
   }
@@ -262,11 +274,18 @@ export class Dialogue {
       else if (want === 'close') shot = cov.close(spk, mainListener);
       else if (want === 'ots') shot = cov.ots(spk);
       else {
+        const last = dir.last;
         if (dir.axisChanged) { shot = cov.two({ wide: false }); dir.axisChanged = false; }
-        else if (dir.lineIndex === 1 && dir.last?.size === 0) shot = dir.last; // keep the establishing shot
-        else if (strong && dir.sinceClose >= 2 && dir.lineIndex > 1) shot = cov.close(spk, mainListener);
+        // Let the establishing shot carry the first line.
+        else if (dir.lineIndex === 1 && last?.size === 0) shot = last;
+        // A charged line on a face we are already close on: stay there.
+        else if (strong && sameSubject && last?.size === 4) shot = last;
+        else if (strong && dir.lineIndex > 1 && (dir.sinceClose >= 2 || charge >= 2.4)) shot = cov.close(spk, mainListener);
+        // Every so often, breathe with a two-shot on a long, calm line.
         else if (dir.sinceWide >= 7 && dur > 3 && !strong) shot = cov.two({ wide: false });
-        else if (sameSubject && dir.last?.size >= 2 && dir.last.size < 4) shot = dur > 3.2 ? cov.single(spk, mainListener) : dir.last;
+        // Same speaker again: hold the setup, or move to a clean single for a longer line.
+        else if (sameSubject && last?.size === 2) shot = dur > 3.2 ? cov.single(spk, mainListener) : last;
+        else if (sameSubject && last?.size === 3) shot = last;
         else shot = cov.ots(spk);
       }
       this._applyShot(shot, dur, dir);
@@ -346,9 +365,10 @@ export class Dialogue {
       cam.shot({ to: dr.to, lookTo: dr.lookTo, fovTo: dr.fovTo, dur: dur + 1, ease: 'sine', label: shot.label });
     } else {
       const sameSubject = prev && prev.subject && prev.subject === shot.subject;
-      const small = prev && Coverage.angleBetween(prev, shot) < 30 && Math.abs((prev.size ?? 0) - (shot.size ?? 0)) <= 2;
-      if (sameSubject && small && !isReaction) {
-        // A cut under 30 degrees on the same face jumps; a slow dolly reads as intent.
+      const pushIn = prev && shot.size > prev.size && Coverage.angleBetween(prev, shot) < 30;
+      if (sameSubject && pushIn && !isReaction) {
+        // A cut under 30 degrees on the same face jumps; pushing in reads as intent.
+        // Pulling back (and anything else) cuts.
         cam.shot({
           to: shot.pos, look: cam.look.clone(), lookTo: shot.look, fov: cam.fov, fovTo: shot.fov,
           frame: [...cam.frame], frameTo: shot.frame, dur: Math.min(1.6, dur), ease: 'inOut', label: `${shot.label} (dolly)`,
@@ -376,6 +396,11 @@ export class Dialogue {
       avail.push({ c, i, key, text: typeof c.t === 'function' ? c.t(S) : c.t, decisive: !!(c.decisive || node.decisive), exit: !!c.exit, seen: !!seen[key] });
     });
     if (!avail.length) return null;
+    ui.clearSubtitle();
+    // Inside a cutscene a skip stops at a choice, and cannot start while one is open.
+    const cs = G.cutscenes;
+    if (cs?.skipping) cs._stopSkip();
+    if (cs?.active) cs._choiceOpen = true;
 
     // Hold on the other face while Vesna decides (decisive: a slow push into a close-up).
     if (useCam && primary && primary !== vesna) {
@@ -400,6 +425,7 @@ export class Dialogue {
       const items = avail.map((a) => ({ text: a.text, t: a.text, decisive: a.decisive, exit: a.exit, seen: a.seen }));
       index = await ui.choices(items, { timer: node.timer || 0, decisive: !!node.decisive });
     }
+    if (cs?.active) cs._choiceOpen = false;
     dir.afterDecisive = !!node.decisive;
 
     if (index == null || index < 0 || index >= avail.length) {

@@ -37,7 +37,7 @@ export class Choices {
 
     const timer = Number(opts.timer) > 0 ? Number(opts.timer) : 0;
     const rows = items.map((o, i) => {
-      const row = h('div', { class: 'mz-ch' + (o.disabled ? ' dis' : '') },
+      const row = h('div', { class: 'mz-ch' + (o.disabled ? ' dis' : '') + (o.seen ? ' seen' : '') },
         h('span', { class: 'num' }, String(i + 1)),
         o.decisive ? svg(ICON.knot, 'knot') : null,
         h('span', { class: 't' }, markup(o.t)));
@@ -79,7 +79,7 @@ export class Choices {
     if (c.done || c.items[i].disabled || i === c.sel) return;
     c.sel = i;
     this._paint(c);
-    try { this.G.audio?.sfx?.('ui_move'); } catch { /* optional */ }
+    this.ui.sfx('ui_hover', { volume: 0.4 });
   }
 
   _move(c, d) {
@@ -97,6 +97,7 @@ export class Choices {
     if (performance.now() - c.openedAt < 220) return; // ignore the key that dismissed the last line
     c.sel = i;
     this._paint(c);
+    this.ui.sfx('ui_select', { volume: 0.6 });
     this._finish(c, i, false);
   }
 

@@ -63,7 +63,7 @@ export function placeBuilding(G, b, x, z, yaw = 0, opts = {}) {
   const mats = getMaterials();
 
   // ----- foundation: stone ring from -0.5 down to the lowest ground under the footprint -----
-  const fnd = opts.foundation !== false && fp && snap;
+  const fnd = opts.foundation !== false && fp && snap && !b.noFoundation;
   if (fnd && y0 - minH > 0.6) {
     const mb = new MB('foundation', { uv: [2, 2] });
     const depth = y0 - minH + 0.3;

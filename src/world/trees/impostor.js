@@ -13,22 +13,30 @@ import { U } from '../../render/Uniforms.js';
 
 const TW = 128, TH = 256, COLS = 8;
 
-export function bakeImpostors(G, kinds) {
+export async function bakeImpostors(G, kinds, opts = {}) {
+  const snowBake = opts.snow ?? 0.62; // a little less snow than the meshes so far forests keep dark green mass
   const imp = kinds.filter((k) => k.impostor);
   const nTiles = imp.length * 2;
   const rows = Math.max(1, Math.ceil(nTiles / COLS));
   const W = COLS * TW, H = rows * TH;
   const R = G.renderer;
 
-  const mkRT = () => {
+  // Each tile is rendered into a small multisampled target and then copied into the atlas with a
+  // textured quad. (Rendering tile after tile straight into one big multisampled atlas resolves the
+  // whole atlas after every call, which is extremely slow on software GL.)
+  const tileRT = new THREE.WebGLRenderTarget(TW, TH, {
+    colorSpace: THREE.SRGBColorSpace, depthBuffer: true, samples: 4, generateMipmaps: false,
+    minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter,
+  });
+  const mkAtlas = () => {
     const rt = new THREE.WebGLRenderTarget(W, H, {
-      colorSpace: THREE.SRGBColorSpace, depthBuffer: true, samples: 4,
-      minFilter: THREE.LinearMipmapLinearFilter, magFilter: THREE.LinearFilter, generateMipmaps: true,
+      colorSpace: THREE.SRGBColorSpace, depthBuffer: false, generateMipmaps: true,
+      minFilter: THREE.LinearMipmapLinearFilter, magFilter: THREE.LinearFilter,
     });
     rt.texture.anisotropy = 4;
     return rt;
   };
-  const rtA = mkRT(), rtB = mkRT();
+  const rtA = mkAtlas(), rtB = mkAtlas();
 
   // frames
   imp.forEach((k, i) => {
@@ -48,6 +56,12 @@ export function bakeImpostors(G, kinds) {
   cam.position.set(0, 0, 150);
   cam.lookAt(0, 0, 0);
 
+  // copy pass: one quad textured with the tile, written without blending so alpha is copied
+  const copyMat = new THREE.MeshBasicMaterial({ map: tileRT.texture, blending: THREE.NoBlending, depthTest: false, depthWrite: false, toneMapped: false, fog: false });
+  const copyScene = new THREE.Scene();
+  const copyCam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+  copyScene.add(new THREE.Mesh(new THREE.PlaneGeometry(2, 2), copyMat));
+
   // save renderer + uniform state
   const prevRT = R.getRenderTarget();
   const prevAuto = R.autoClear;
@@ -59,16 +73,17 @@ export function bakeImpostors(G, kinds) {
   U.uSunDir.value.set(0, -1, 0);
   U.uWind.value.z = 0; U.uWind.value.w = 0;
   R.autoClear = true;
-  R.setClearColor(0x61705f, 0);
 
-  const run = (rt, snow, spring) => {
+  let yieldT = performance.now();
+  const maybeYield = async () => {
+    if (performance.now() - yieldT > 20) { await new Promise((r) => setTimeout(r, 0)); yieldT = performance.now(); }
+  };
+  const run = async (rt, snow, spring) => {
     U.uSnowCover.value = snow; U.uSpring.value = spring;
+    R.setClearColor(0x61705f, 0);
     R.setRenderTarget(rt);
-    rt.scissorTest = false;
-    rt.viewport.set(0, 0, W, H);
     R.clear();
-    rt.scissorTest = true;
-    imp.forEach((k, i) => {
+    for (const k of imp) {
       const meshes = k.lods[0].parts.map((p) => new THREE.Mesh(p.geometry, p.material));
       const holder = new THREE.Group();
       meshes.forEach((m) => holder.add(m));
@@ -79,16 +94,26 @@ export function bakeImpostors(G, kinds) {
         const tile = k.imp.tile[v];
         const tx = (tile % COLS) * TW, ty = Math.floor(tile / COLS) * TH;
         holder.rotation.y = v * Math.PI * 0.5 + 0.35;
+        R.setRenderTarget(tileRT);
+        R.setClearColor(0x61705f, 0);
+        R.autoClear = true;
+        R.render(scene, cam);
+        // copy into the atlas tile
         rt.viewport.set(tx, ty, TW, TH);
         rt.scissor.set(tx, ty, TW, TH);
-        R.render(scene, cam);
+        rt.scissorTest = true;
+        R.setRenderTarget(rt);
+        R.autoClear = false;
+        R.render(copyScene, copyCam);
+        await maybeYield();
+        R.setClearColor(0x61705f, 0);
       }
       scene.remove(holder);
-    });
+    }
   };
   try {
-    run(rtA, 1, 0);
-    run(rtB, 0, 1);
+    await run(rtA, snowBake, 0);
+    await run(rtB, 0, 1);
   } finally {
     R.setRenderTarget(prevRT);
     R.autoClear = prevAuto;
@@ -96,6 +121,8 @@ export function bakeImpostors(G, kinds) {
     U.uSunDir.value.copy(prevSun);
     U.uWind.value.copy(prevWind);
     U.uSnowCover.value = prevSnow; U.uSpring.value = prevSpring;
+    tileRT.dispose();
+    copyMat.dispose();
   }
   return { atlasA: rtA.texture, atlasB: rtB.texture, cols: COLS, rows, rts: [rtA, rtB] };
 }
@@ -189,6 +216,7 @@ export function createImpostorMaterial(atlas, lodU, range) {
       float mzThaw = max(1.0 - uSnowCover, uSpring);
       vec4 mzB = texture2D(uAtlasB, vMapUv);
       diffuseColor = mix(diffuseColor, vec4(diffuse, opacity) * mzB, mzThaw);
+      diffuseColor.rgb *= 0.8;
     }
     ${FADE_F}`);
     shader.fragmentShader = shader.fragmentShader.replace('#include <normal_fragment_begin>', '#include <normal_fragment_begin>\n  normal = normalize(vec3(0.0, 0.5, 0.86));');

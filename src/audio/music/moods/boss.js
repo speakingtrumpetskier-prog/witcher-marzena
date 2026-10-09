@@ -28,7 +28,7 @@ export default {
   name: 'boss',
   tempo: 288,
   beats: 7,
-  level: 1,
+  level: 0.9,
   fadeIn: 0.4,
   parts: {
     gurdy: P.gurdy({ level: 0.3, lp: 4200 }),

@@ -210,7 +210,7 @@ export function stone() {
   const d = img.data;
   const r = rng(909);
   // Feature points on a jittered periodic grid (cells wider than tall: laid courses).
-  const NX = 8, NY = 10;
+  const NX = 6, NY = 8;
   const pts = [];
   for (let j = 0; j < NY; j++) {
     for (let i = 0; i < NX; i++) {
@@ -236,11 +236,11 @@ export function stone() {
         }
       }
       const edge = f2 - f1;
-      const mortar = clamp01(1 - edge / 7);
-      const bevel = clamp01(edge / 26);
-      const grain = pn2(x / 5, y / 5) * 0.22 + pn(x / 9, y / 9) * 0.18;
-      let l = best.tone * (0.62 + grain) * (0.72 + bevel * 0.38);
-      l = l * (1 - mortar * 0.7);
+      const mortar = clamp01(1 - edge / 6);
+      const bevel = clamp01(edge / 30);
+      const grain = pn2(x / 4, y / 4) * 0.3 + pn(x / 9, y / 9) * 0.22 + pn2(x / 1.7 + 3, y / 1.7) * 0.12;
+      let l = best.tone * (0.6 + grain) * (0.84 + bevel * 0.2);
+      l = l * (1 - mortar * 0.5);
       const warm = best.hue;
       let rr = l * (warm < 0.3 ? 1.02 : warm < 0.7 ? 0.96 : 0.9);
       let gg = l * (warm < 0.3 ? 0.98 : warm < 0.7 ? 0.97 : 0.95);
@@ -254,6 +254,50 @@ export function stone() {
   ctx.putImageData(img, 0, 0);
   cache.stone = finish(cv);
   return cache.stone;
+}
+
+// Monolithic rock (idols, menhirs, boulders): fine grain, mineral speckle, rain streaks, hairline cracks.
+export function rock() {
+  if (cache.rock) return cache.rock;
+  const S = 512;
+  const cv = makeCanvas(S, S);
+  const ctx = cv.getContext('2d');
+  const img = ctx.createImageData(S, S);
+  const d = img.data;
+  const n1 = makePNoise(61, 6, 6), n2 = makePNoise(62, 18, 18), n3 = makePNoise(63, 64, 64), n4 = makePNoise(64, 160, 160), nv = makePNoise(65, 40, 3);
+  for (let y = 0; y < S; y++) {
+    for (let x = 0; x < S; x++) {
+      const u = x / S, v = y / S;
+      let l = 0.6 + (n1(u * 6, v * 6) - 0.5) * 0.3 + (n2(u * 18, v * 18) - 0.5) * 0.22 + (n3(u * 64, v * 64) - 0.5) * 0.16 + (n4(u * 160, v * 160) - 0.5) * 0.14;
+      // Rain streaks: tall, narrow, darker.
+      const st = nv(u * 40, v * 3);
+      if (st > 0.66) l *= 1 - (st - 0.66) * 0.9;
+      // Mineral flecks.
+      const fleck = n4(u * 160 + 9, v * 160 + 3);
+      if (fleck > 0.86) l += 0.14;
+      else if (fleck < 0.1) l -= 0.12;
+      l = clamp01(l + 0.1);
+      const w = n1(u * 6 + 3, v * 6 + 8);
+      const i = (y * S + x) * 4;
+      d[i] = clamp01(l * (0.98 + w * 0.06)) * 255;
+      d[i + 1] = clamp01(l * (0.97 + (1 - w) * 0.03)) * 255;
+      d[i + 2] = clamp01(l * (0.95 + (1 - w) * 0.07)) * 255;
+      d[i + 3] = 255;
+    }
+  }
+  ctx.putImageData(img, 0, 0);
+  const r = rng(404);
+  ctx.lineCap = 'round';
+  for (let k = 0; k < 10; k++) {
+    let x = r() * S, y = r() * S;
+    ctx.strokeStyle = `rgba(20,18,16,${0.35 + r() * 0.3})`;
+    ctx.lineWidth = 0.8 + r() * 1.2;
+    ctx.beginPath(); ctx.moveTo(x, y);
+    for (let i = 0; i < 8; i++) { x += (r() - 0.5) * 40; y += (r() - 0.35) * 40; ctx.lineTo(((x % S) + S) % S, ((y % S) + S) % S); }
+    ctx.stroke();
+  }
+  cache.rock = finish(cv);
+  return cache.rock;
 }
 
 export function straw() {

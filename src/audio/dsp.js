@@ -349,11 +349,11 @@ export function glottal(sr, n, f0, r, { open = 0.55, close = 0.3, jitter = 0.006
   const fixed = typeof f0 === 'number';
   const jit = wander(n, sr, 18, r);
   const shim = wander(n, sr, 25, r);
-  let p = 0, prevFlow = 0, cyc = 0, rough1 = 1;
+  let p = 0, prevFlow = 0, rough1 = 1;
   for (let i = 0; i < n; i++) {
     const f = (fixed ? f0 : f0(i / sr)) * (1 + jitter * jit[i]);
     p += f / sr;
-    if (p >= 1) { p -= 1; cyc++; rough1 = 1 - rough * r(); }
+    if (p >= 1) { p -= 1; rough1 = 1 - rough * r(); }
     let flow;
     if (p < open) flow = 0.5 * (1 - Math.cos((Math.PI * p) / open));
     else if (p < open + close) flow = Math.cos((Math.PI / 2) * ((p - open) / close));

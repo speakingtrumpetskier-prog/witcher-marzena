@@ -48,10 +48,15 @@ export class Mixer {
       this.verbs[kind] = { conv, ret };
     }
 
-    // Music.
+    // Music. A gentle bus EQ: synthesized folk instruments pile up around 300 Hz (fundamentals
+    // of the fiddle, voice and zither chords), so dip that a little and lift the presence.
     this.music = g(this.vol.music);
     this.musicDuck = g(1);
-    this.music.connect(this.musicDuck);
+    const eq = (type, f, q, gain) => { const b = ctx.createBiquadFilter(); b.type = type; b.frequency.value = f; b.Q.value = q; b.gain.value = gain; return b; };
+    this.musicEq = [eq('peaking', 300, 0.9, -2.5), eq('highshelf', 3500, 0.7, 2)];
+    this.music.connect(this.musicEq[0]);
+    this.musicEq[0].connect(this.musicEq[1]);
+    this.musicEq[1].connect(this.musicDuck);
     this.musicDuck.connect(this.master);
     this.moodIn = g(1);
     this.moodDuck = g(1);

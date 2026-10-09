@@ -36,6 +36,8 @@ uniform vec4 uMzFar;
 
 float mzTexH(highp sampler2D t, vec4 inf, vec2 xz) {
   vec2 f = clamp((xz + inf.x) * inf.z, vec2(0.0), vec2(inf.y - 1.0001));
+  vec2 rf = floor(f + 0.5);
+  if (all(lessThan(abs(f - rf), vec2(1e-3)))) return texelFetch(t, ivec2(rf), 0).r;
   vec2 i = floor(f);
   vec2 tt = f - i;
   ivec2 ii = ivec2(i);
@@ -64,9 +66,10 @@ vec4 mzDecodeN(vec4 t, out float large) {
 vec4 mzTerrainNormal(vec2 xz, out float large) {
   vec2 a = abs(xz);
   float m = max(a.x, a.y);
-  vec4 tf = texture(uMzFarN, mzTexUV(uMzFar, xz));
-  if (m >= uMzNear.x) return mzDecodeN(tf, large);
+  if (m >= uMzNear.x) return mzDecodeN(texture(uMzFarN, mzTexUV(uMzFar, xz)), large);
   vec4 tn = texture(uMzNearN, mzTexUV(uMzNear, xz));
+  if (m < uMzNear.x - 40.0) return mzDecodeN(tn, large);
+  vec4 tf = texture(uMzFarN, mzTexUV(uMzFar, xz));
   float w = smoothstep(uMzNear.x - 40.0, uMzNear.x, m);
   vec4 r = mzDecodeN(mix(tn, tf, w), large);
   r.xyz = normalize(r.xyz);

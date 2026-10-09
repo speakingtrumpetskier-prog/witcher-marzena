@@ -129,25 +129,26 @@ export async function init(G) {
     const sunY = U.uSunDir.value.y;
 
     if (look) {
-      uniforms.uZenith.value.copy(look.zen).multiplyScalar(look.skyI);
-      uniforms.uHorizon.value.copy(look.hor).multiplyScalar(look.skyI);
+      uniforms.uZenith.value.copy(look.zen);
+      uniforms.uHorizon.value.copy(look.hor);
       uniforms.uGlowColor.value.copy(look.glow);
-      uniforms.uGlowI.value = look.glowI * look.skyI;
+      uniforms.uGlowI.value = 1;
       // The disk stays blinding even at sunset (bloom), but reddens with the key light color.
-      uniforms.uSunDisk.value.copy(A.sunLightColor).multiplyScalar(14 + 22 * smoothstep(0.0, 0.35, sunY));
-      // Lit cloud tops follow the key light; shaded undersides follow the sky ambient.
-      _c.copy(A.keyColor).multiplyScalar(A.keyIntensity * 0.13);
-      _c2.copy(look.hemiSky).multiplyScalar(look.hemiI * 0.28);
-      uniforms.uCloudLit.value.copy(_c).add(_c2).add(_c.copy(look.zen).multiplyScalar(look.skyI * 0.25));
-      uniforms.uCloudShade.value.copy(look.hor).multiplyScalar(look.skyI * 0.55).add(_c.copy(look.zen).multiplyScalar(look.skyI * 0.35));
-      // Overcast decks are lit evenly from above: their color is the overcast sky color itself.
-      _c.copy(look.ovc).multiplyScalar(look.ovcI);
-      uniforms.uCloudShade.value.lerp(_c, W ? W.overcast : 0);
-      uniforms.uCloudLit.value.lerp(_c.multiplyScalar(1.15), (W ? W.overcast : 0) * 0.7);
+      uniforms.uSunDisk.value.copy(A.sunLightColor).multiplyScalar(30 + 40 * smoothstep(0.0, 0.35, sunY));
+      // Lit cloud tops follow the key light; shaded undersides follow the sky.
+      _c.copy(A.keyColor).multiplyScalar(A.keyIntensity * 0.1);
+      uniforms.uCloudLit.value.copy(_c).add(_c2.copy(look.zen).multiplyScalar(0.5)).add(_c2.copy(look.hor).multiplyScalar(0.3));
+      uniforms.uCloudShade.value.copy(look.hor).multiplyScalar(0.55).add(_c.copy(look.zen).multiplyScalar(0.45));
+      // Overcast decks are lit evenly from above: their color is the overcast sky itself.
+      const ovc = W ? W.overcast : 0;
+      uniforms.uCloudShade.value.lerp(look.zen, ovc);
+      uniforms.uCloudLit.value.lerp(_c.copy(look.zen).multiplyScalar(1.12), ovc * 0.8);
       // Sunlit snow below, for the environment map (snow albedo ~0.85).
       _c.copy(A.keyColor).multiplyScalar(A.keyIntensity * Math.max(A.keyDir.y, 0) / Math.PI);
-      _c2.copy(look.hor).multiplyScalar(look.skyI * 0.55).add(_c2.copy(look.zen).multiplyScalar(look.skyI * 0.45));
-      uniforms.uGroundColor.value.copy(_c).add(_c2).multiplyScalar(0.85);
+      _c2.copy(look.hor).multiplyScalar(0.55).add(_c2.copy(look.zen).multiplyScalar(0.45));
+      // Kept dim on purpose: three reads diffuse light from a very wide filtered lobe, so a bright
+      // ground leaks into upward-facing surfaces. The hemisphere light carries the snow bounce.
+      uniforms.uGroundColor.value.copy(_c).add(_c2).add(look.hemiSky).multiplyScalar(0.85 * 0.35);
       uniforms.uMoonDir.value.copy(A.moonDir);
       uniforms.uMoonPhase.value = A.moonPhase;
     }
@@ -155,7 +156,7 @@ export async function init(G) {
     const moonUp = smoothstep(-0.02, 0.04, uniforms.uMoonDir.value.y);
     uniforms.uMoonVis.value = moonUp;
     // Moon disk radiance: bright at night (exposure is high), a pale ghost in daylight.
-    _c.setRGB(0.95, 0.97, 1.0).multiplyScalar(0.11 + 0.06 * night);
+    _c.setRGB(0.95, 0.97, 1.0).multiplyScalar(0.17);
     uniforms.uMoonColor.value.copy(_c);
 
     const cover = W ? W.cover : 0.2;
@@ -171,7 +172,7 @@ export async function init(G) {
     const autoTarget = night * clearness * (W ? W.aurora : 1);
     const target = typeof sky.auroraOverride === 'number' ? sky.auroraOverride : autoTarget;
     sky.aurora = G.shot ? target : damp(sky.aurora, target, 0.15, dt);
-    uniforms.uAurora.value = sky.aurora * 0.16;
+    uniforms.uAurora.value = sky.aurora * 0.45;
     uniforms.uAuroraTime.value += dt * (G.shot ? 0 : 1);
     if (G.shot && uniforms.uAuroraTime.value === 0) uniforms.uAuroraTime.value = 37;
 

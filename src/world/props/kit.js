@@ -485,6 +485,13 @@ export class Kit {
       depth, bevelEnabled: !!o.bevel, bevelThickness: o.bevel || 0, bevelSize: o.bevel || 0, bevelSegments: 1, curveSegments: o.curve || 6,
     });
     g.translate(0, 0, -depth / 2);
+    if (o.warp) {
+      const p = g.attributes.position;
+      for (let i = 0; i < p.count; i++) {
+        const d = o.warp(p.getX(i), p.getY(i), p.getZ(i));
+        if (d) p.setXYZ(i, p.getX(i) + d[0], p.getY(i) + d[1], p.getZ(i) + d[2]);
+      }
+    }
     const tile = o.tile || MAT_INFO[mat].tile;
     if (o.uvFit) {
       const [x0, y0, fw, fh] = o.uvFit;

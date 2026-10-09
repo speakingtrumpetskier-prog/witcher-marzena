@@ -153,10 +153,11 @@ export function makePuppet(G, preset = 'villager') {
       legs[1].rotation.x = -Math.sin(state.phase) * swing;
       // Poses.
       const t = performance.now() / 1000;
-      let lA = { x: Math.sin(state.phase) * swing * 0.8 * -1, z: 0.12 }, rA = { x: -Math.sin(state.phase) * swing * 0.8 * -1, z: -0.12 };
+      // L arm sits at -X: outward is -z; R arm at +X: outward is +z.
+      let lA = { x: -Math.sin(state.phase) * swing * 0.8, z: -0.1 }, rA = { x: Math.sin(state.phase) * swing * 0.8, z: 0.1 };
       let lE = 0.15, rE = 0.15, crouch = 0, nodP = 0, shakeY = 0;
-      if (state.pose === 'cross_arms') { lA = { x: -0.5, z: -0.5 }; rA = { x: -0.5, z: 0.5 }; lE = 1.9; rE = 1.9; }
-      if (state.pose === 'hands_hips') { lA = { x: 0.1, z: 0.7 }; rA = { x: 0.1, z: -0.7 }; lE = 1.5; rE = 1.5; }
+      if (state.pose === 'cross_arms') { lA = { x: -0.45, z: 0.3 }; rA = { x: -0.5, z: -0.3 }; lE = 1.75; rE = 1.85; }
+      if (state.pose === 'hands_hips') { lA = { x: 0.15, z: -0.6 }; rA = { x: 0.15, z: 0.6 }; lE = 1.5; rE = 1.5; }
       if (state.pose === 'kneel_idle' || state.pose === 'sit_ground') crouch = 0.45;
       const os = state.oneShot;
       if (os) {
@@ -165,9 +166,9 @@ export function makePuppet(G, preset = 'villager') {
         const env = Math.sin(Math.min(1, k / 1.2) * Math.PI);
         if (os === 'nod') nodP = Math.sin(k * 11) * 0.22 * env;
         if (os === 'shake_head') shakeY = Math.sin(k * 12) * 0.3 * env;
-        if (os === 'shrug') { lA = { x: -0.2, z: 0.35 * env }; rA = { x: -0.2, z: -0.35 * env }; lE = rE = 1.2 * env; }
+        if (os === 'shrug') { lA = { x: -0.2, z: -0.35 * env }; rA = { x: -0.2, z: 0.35 * env }; lE = rE = 1.2 * env; }
         if (os === 'point') { rA = { x: -1.4 * env, z: -0.1 }; rE = 0.1; }
-        if (os === 'wave') { rA = { x: -0.3, z: -2.4 * env }; rE = 0.6 + Math.sin(k * 10) * 0.4 * env; }
+        if (os === 'wave') { rA = { x: -0.3, z: 2.4 * env }; rE = 0.6 + Math.sin(k * 10) * 0.4 * env; }
         if (os === 'beckon') { rA = { x: -1.0 * env, z: -0.1 }; rE = 0.6 + Math.sin(k * 9) * 0.6 * env; }
         if (/^talk_/.test(os)) { const side = os === 'talk_2' ? lA : rA; side.x = -0.9 * env; side.z *= 1; if (os === 'talk_2') lE = 1.3 * env; else rE = 1.3 * env; }
         if (os === 'crouch_examine' || os === 'kneel') crouch = 0.42 * env;

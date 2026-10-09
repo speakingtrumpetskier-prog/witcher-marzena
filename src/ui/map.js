@@ -19,6 +19,8 @@ import { lakeSDF } from '../world/heightfield.js';
 
 const HALF = 640;           // map covers [-640, 640] on both axes
 const SPAN = HALF * 2;
+// The chart shows the habitable part of the valley: all of x, and z from the north cliffs to the pass.
+const ZMIN = -430, ZMAX = 640, SPANZ = ZMAX - ZMIN, ZMID = (ZMIN + ZMAX) / 2;
 const CELL = 30;            // trail cell size, meters
 const CELLS = Math.ceil(SPAN / CELL);
 const INK = '#2a1e14';
@@ -139,7 +141,7 @@ export class MapView {
     this.island = null;
     this.veil = null;
     this.veilKey = '';
-    this.cx = 0; this.cz = 0; this.scale = 0.5; this.fit = 0.5;
+    this.cx = 0; this.cz = 0; this.scale = 0.5; this.fit = 0.5; this.cover = 0.5;
     this.dirty = true;
     this._trackT = 0;
     this._lastCell = -1;
@@ -164,7 +166,9 @@ export class MapView {
   }
 
   async _buildBase() {
-    const G = this.G, W = G.world, N = this.N;
+    const G = this.G, W = G.world;
+    if (!W.grid) this.N = 320; // no cached height grid (scene without terrain): keep the chart cheap
+    const N = this.N;
     const tStart = performance.now();
     const cell = SPAN / N;
     const slice = async () => new Promise((r) => setTimeout(r, 0));
@@ -246,7 +250,8 @@ export class MapView {
 
     // Forest: positions only here (drawn as vector pines at the current zoom), plus a soft green
     // wash in the raster so woods read as areas even when zoomed far out.
-    const treeAt = G.vegetation?.treeAt ? (x, z) => { try { return !!G.vegetation.treeAt(x, z, 5); } catch { return false; } } : null;
+    // With real vegetation, the glyphs sit on actual trunks; otherwise a noise heuristic stands in.
+    const realTree = G.vegetation?.treeAt ? (x, z, r) => { try { return G.vegetation.treeAt(x, z, r); } catch { return null; } } : null;
     const segs = [];
     for (const rd of ROADS) for (let i = 0; i < rd.pts.length - 1; i++) segs.push([rd.pts[i][0], rd.pts[i][1], rd.pts[i + 1][0], rd.pts[i + 1][1], rd.width * 0.5 + 5]);
     const roadNear = (x, z) => {
@@ -267,19 +272,26 @@ export class MapView {
     const sample = async (spacing, seed) => {
       const rf = rng(seed);
       const out = [];
+      const seen = new Set();
       for (let wz = -HALF + spacing; wz < HALF - spacing; wz += spacing) {
         for (let wx = -HALF + spacing; wx < HALF - spacing; wx += spacing) {
+          if (realTree) {
+            const t = realTree(wx, wz, spacing * 0.72);
+            if (!t) continue;
+            const tx = t.x ?? wx, tz = t.z ?? wz;
+            const key = `${Math.round(tx * 2)}|${Math.round(tz * 2)}`;
+            if (seen.has(key)) continue;
+            seen.add(key);
+            out.push(tx, tz);
+            continue;
+          }
           const x = wx + (rf() - 0.5) * spacing * 0.8, z = wz + (rf() - 0.5) * spacing * 0.8;
           const [hc, sl] = hAt(x, z);
           if (hc < 0.8 || hc > 150 || sl > 0.55) continue;
           if (lakeSDF(x, z) < 6) continue;
           if (Math.hypot(x - village.x, z - village.z) < 88) continue;
-          let tree;
-          if (treeAt) tree = treeAt(x, z);
-          else {
-            const n = noise.fbm2(x * 0.0052 + 3, z * 0.0052 - 8, 3);
-            tree = n > -0.22 + (hc / 150) * 0.4 && noise.noise2(x * 0.05, z * 0.05) > -0.5;
-          }
+          const n = noise.fbm2(x * 0.0052 + 3, z * 0.0052 - 8, 3);
+          const tree = n > -0.22 + (hc / 150) * 0.4 && noise.noise2(x * 0.05, z * 0.05) > -0.5;
           if (!tree || roadNear(x, z) || locNear(x, z)) continue;
           out.push(x, z);
         }
@@ -289,10 +301,17 @@ export class MapView {
     };
     this.treesA = await sample(9, 131);
     this.treesB = await sample(4.5, 977);
-    ctx.fillStyle = 'rgba(104,116,78,0.085)';
-    for (let i = 0; i < this.treesA.length; i += 2) {
-      ctx.beginPath(); ctx.arc((this.treesA[i] + HALF) / cell, (this.treesA[i + 1] + HALF) / cell, 8 * (N / 1024), 0, 7); ctx.fill();
-    }
+    // one soft blob sprite, stamped per tree (accumulates into a smooth wash, no visible discs)
+    const blob = document.createElement('canvas');
+    const bs = Math.round(26 * (N / 1024));
+    blob.width = blob.height = bs;
+    const bc = blob.getContext('2d');
+    const bg = bc.createRadialGradient(bs / 2, bs / 2, 0, bs / 2, bs / 2, bs / 2);
+    bg.addColorStop(0, 'rgba(98,112,74,0.16)');
+    bg.addColorStop(1, 'rgba(98,112,74,0)');
+    bc.fillStyle = bg;
+    bc.fillRect(0, 0, bs, bs);
+    for (let i = 0; i < this.treesA.length; i += 2) ctx.drawImage(blob, (this.treesA[i] + HALF) / cell - bs / 2, (this.treesA[i + 1] + HALF) / cell - bs / 2);
 
     // Edge burn so the sheet reads aged.
     const eg = ctx.createRadialGradient(N / 2, N / 2, N * 0.42, N / 2, N / 2, N * 0.74);
@@ -438,9 +457,9 @@ export class MapView {
       h('div', { class: 'sub' }, 'Dzwonne, the valley of'), h('h2', null, 'Bellmere'), h('div', { class: 'rule' }, svg(ICON.knot)));
     const lg = (icon, text) => h('div', { class: 'lg' }, icon, h('span', null, text));
     this.legend = h('div', { class: 'mz-map-legend' },
-      lg(svg('<svg viewBox="0 0 24 24"><path d="M12 3l6 17-6-4-6 4z" fill="#2a1e14" stroke="#e9dcb8" stroke-width="1.2"/></svg>'), 'You'),
-      lg(svg('<svg viewBox="0 0 24 24"><path d="M12 2.6 20.6 12 12 21.4 3.4 12z" fill="#9a2e22" stroke="#2a1e14" stroke-width="1.2"/></svg>'), 'Objective'),
-      lg(svg('<svg viewBox="0 0 24 24" fill="none" stroke="#2a1e14" stroke-width="1.4" stroke-linecap="round"><path d="M3 18C8 18 8 8 13 8s5 10 8 10" stroke-dasharray="1 3.4"/></svg>'), 'Road'));
+      lg(svg('<svg viewBox="0 0 24 24"><path d="M12 3l6 17-6-4-6 4z" fill="#ece6da" stroke="#0b0d12" stroke-width="1"/></svg>'), 'You'),
+      lg(svg('<svg viewBox="0 0 24 24"><path d="M12 2.6 20.6 12 12 21.4 3.4 12z" fill="#a8362a" stroke="#ece6da" stroke-width="1.2"/></svg>'), 'Objective'),
+      lg(svg('<svg viewBox="0 0 24 24" fill="none" stroke="#ece6da" stroke-width="1.8" stroke-linecap="round"><path d="M3 18C8 18 8 8 13 8s5 10 8 10" stroke-dasharray="0.1 3.6"/></svg>'), 'Road'));
     this.hintEl = h('div', { class: 'mz-map-hint' }, h('span', { class: 'k' }, 'Drag'), ' Move', h('i'), h('span', { class: 'k' }, 'Wheel'), ' Zoom', h('i'), h('span', { class: 'k' }, 'Space'), ' Centre', h('i'), h('span', { class: 'k' }, 'M'), ' Close');
     const sheet = h('div', { class: 'mz-map-sheet' }, paper, h('div', { class: 'grain', style: { backgroundImage: `url(${grainURL()})` } }), this.canvas, this.cartouche, this.status);
     sheet.style.clipPath = tornClip(11, 34, 0.7);
@@ -464,7 +483,7 @@ export class MapView {
     this.margin = Math.round(Math.min(this.cw, this.ch) * 0.045) + 6;
     this.fit = Math.min(this.cw - this.margin * 2, this.ch - this.margin * 2) / SPAN;
     // Never show blank paper beyond the chart: the smallest zoom covers the whole frame.
-    this.cover = Math.max(this.cw - this.margin * 2, this.ch - this.margin * 2) / SPAN;
+    this.cover = Math.max((this.cw - this.margin * 2) / SPAN, (this.ch - this.margin * 2) / SPANZ);
     this.minScale = this.cover;
     this.maxScale = this.cover * 6;
     if (this.scale) this._clampView();
@@ -474,7 +493,7 @@ export class MapView {
   _resetView(opts) {
     const pp = this.G.player?.position;
     const z = opts.zoom ?? 1.0;
-    if (opts.center) { this.cx = opts.center[0]; this.cz = opts.center[1]; } else if (pp) { this.cx = pp.x; this.cz = pp.z; } else { this.cx = 0; this.cz = 0; }
+    if (opts.center) { this.cx = opts.center[0]; this.cz = opts.center[1]; } else if (pp && z > 1.01) { this.cx = pp.x; this.cz = pp.z; } else { this.cx = 0; this.cz = ZMID; }
     this.scale = this.cover * z;
     this._clampView();
   }
@@ -482,9 +501,9 @@ export class MapView {
   _clampView() {
     this.scale = Math.max(this.minScale, Math.min(this.maxScale, this.scale));
     const vw = (this.cw - this.margin * 2) / this.scale, vh = (this.ch - this.margin * 2) / this.scale;
-    const lx = Math.max(0, (SPAN - vw) / 2), lz = Math.max(0, (SPAN - vh) / 2);
+    const lx = Math.max(0, (SPAN - vw) / 2), lz = Math.max(0, (SPANZ - vh) / 2);
     this.cx = Math.max(-lx, Math.min(lx, this.cx));
-    this.cz = Math.max(-lz, Math.min(lz, this.cz));
+    this.cz = Math.max(ZMID - lz, Math.min(ZMID + lz, this.cz));
   }
 
   _pointer() {
@@ -809,7 +828,7 @@ export class MapView {
 
   _drawRose(ctx) {
     const r = Math.min(46, Math.min(this.cw, this.ch) * 0.075);
-    const X = this.cw - this.margin - r - 22, Y = this.margin + r + 26;
+    const X = this.cw - this.margin - r - 22, Y = this.ch - this.margin - r - 26;
     ctx.save();
     ctx.translate(X, Y);
     ctx.lineJoin = 'round';

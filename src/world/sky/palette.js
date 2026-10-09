@@ -1,74 +1,90 @@
 // Time-of-day look for clear weather, as keyframes over the 24 hour clock, plus the weather
-// modifiers. Colors are written as sRGB hex for readability and converted to linear here.
-// Intensities are relative radiance; exposure maps them to the screen (see PostFX grade).
+// modifiers. Values are linear scene radiance at the key's exposure, calibrated backwards from
+// target display colors through the ACES curve used in PostFX (e.g. sunlit noon snow #F3F1EC,
+// snow in shadow #8FA6C4, golden-hour sky #4F7FC0, night sky #141A33, moonlit snow #4A5D85).
 //
 //   samplePalette(hours, out)  fills `out` (from createLook()) with the blended clear look.
 //   applyWeather(look, w)      bends a look toward overcast, snow, blizzard or fog from the
 //                              blended weather parameters (Weather.js `params`).
+//
+// Fields: key (key light chromaticity, sRGB hex) and keyI (its intensity: the sun by day, the
+// moon by night). zen/hor: sky zenith and horizon. fog/fogSun: fog in-scatter away from and
+// toward the sun. glow: sky glow around the sun. hemiSky/hemiGround: extra ambient radiance from
+// above (sky) and below (snow bounce). ovc: overcast deck radiance. exp: exposure. Grade (display
+// space): lift (shadow tint, hex), gain (highlight tint, hex), sat, tint (white balance).
 import * as THREE from 'three';
 
-// key: key light (sun by day, moon by night). zen/hor: sky gradient. fog/fogSun: fog color away
-// from and toward the sun. hemiSky/hemiGround: ambient. glow: sky glow around the sun.
-// lift/gain: grade (display space), sat: saturation, exp: exposure. ovc: overcast deck color.
+const NIGHT = {
+  key: '#8fb0ff', keyI: 0.3,
+  zen: [0.0055, 0.0085, 0.021], hor: [0.010, 0.014, 0.030],
+  fog: [0.011, 0.015, 0.031], fogSun: [0.012, 0.016, 0.032], glow: [0, 0, 0],
+  hemiSky: [0.006, 0.008, 0.013], hemiGround: [0.012, 0.016, 0.026], ovc: [0.006, 0.007, 0.010],
+  exp: 2.6, lift: '#0b1636', gain: '#d6e2ff', sat: 0.86, tint: [0.95, 1.0, 1.07],
+};
+
 const KEYS = [
-  { h: 0.0, key: '#7f9cff', keyI: 0.16, zen: '#060b1e', hor: '#1a2647', skyI: 0.05, fog: '#1c2848', fogSun: '#1c2848', fogI: 0.052,
-    hemiSky: '#3a5aa8', hemiGround: '#2a3a60', hemiI: 0.10, glow: '#20305a', glowI: 0.0,
-    exp: 2.9, lift: '#0a1430', gain: '#d8e4ff', sat: 0.82, ovc: '#202838', ovcI: 0.05 },
-  { h: 5.2, key: '#7f9cff', keyI: 0.14, zen: '#060b1e', hor: '#1a2647', skyI: 0.05, fog: '#1c2848', fogSun: '#22305a', fogI: 0.052,
-    hemiSky: '#3a5aa8', hemiGround: '#2a3a60', hemiI: 0.10, glow: '#20305a', glowI: 0.0,
-    exp: 2.9, lift: '#0a1430', gain: '#d8e4ff', sat: 0.82, ovc: '#202838', ovcI: 0.05 },
-  { h: 6.2, key: '#8fa4e8', keyI: 0.06, zen: '#14245a', hor: '#5a6a9a', skyI: 0.16, fog: '#56648e', fogSun: '#b48aa0', fogI: 0.15,
-    hemiSky: '#5a78c0', hemiGround: '#5a6488', hemiI: 0.22, glow: '#c88aa0', glowI: 0.12,
-    exp: 2.2, lift: '#0a1230', gain: '#e8e4ff', sat: 0.9, ovc: '#3a4256', ovcI: 0.12 },
-  { h: 6.9, key: '#ff9a62', keyI: 0.9, zen: '#2a4688', hor: '#c9a6b0', skyI: 0.42, fog: '#8a90b8', fogSun: '#ffb48a', fogI: 0.40,
-    hemiSky: '#6c8ad0', hemiGround: '#b89a96', hemiI: 0.42, glow: '#ff9a6a', glowI: 0.6,
-    exp: 1.55, lift: '#101838', gain: '#fff0e4', sat: 1.0, ovc: '#5a6070', ovcI: 0.28 },
-  { h: 8.0, key: '#ffc28a', keyI: 4.2, zen: '#3466b8', hor: '#c8cfe0', skyI: 0.62, fog: '#a4b0cc', fogSun: '#ffd6a8', fogI: 0.58,
-    hemiSky: '#6e92dc', hemiGround: '#d8c4b0', hemiI: 0.62, glow: '#ffc890', glowI: 0.75,
-    exp: 1.08, lift: '#0c1430', gain: '#fff6ec', sat: 1.04, ovc: '#7c8492', ovcI: 0.48 },
-  { h: 10.0, key: '#ffe4c8', keyI: 5.6, zen: '#2e64c0', hor: '#cdd8ea', skyI: 0.72, fog: '#b0bed6', fogSun: '#fbe6cc', fogI: 0.68,
-    hemiSky: '#6c96e0', hemiGround: '#e4dcd0', hemiI: 0.70, glow: '#fff0dc', glowI: 0.65,
-    exp: 0.98, lift: '#0a1430', gain: '#fffaf2', sat: 1.04, ovc: '#8c94a2', ovcI: 0.6 },
-  { h: 12.0, key: '#fff0dc', keyI: 6.0, zen: '#2a62c4', hor: '#d2dcec', skyI: 0.76, fog: '#b4c2da', fogSun: '#f8ead6', fogI: 0.72,
-    hemiSky: '#6a96e2', hemiGround: '#e8e2d8', hemiI: 0.72, glow: '#fff4e4', glowI: 0.6,
-    exp: 0.96, lift: '#0a1430', gain: '#fffaf4', sat: 1.04, ovc: '#9098a6', ovcI: 0.64 },
-  { h: 14.0, key: '#ffe2c0', keyI: 5.6, zen: '#2c60c0', hor: '#d0d6e6', skyI: 0.72, fog: '#b0bcd6', fogSun: '#fce2c4', fogI: 0.68,
-    hemiSky: '#6a92e0', hemiGround: '#e6dccc', hemiI: 0.70, glow: '#ffe8cc', glowI: 0.7,
-    exp: 0.98, lift: '#0a1430', gain: '#fff8ee', sat: 1.05, ovc: '#8a90a0', ovcI: 0.6 },
-  { h: 15.3, key: '#ffc488', keyI: 5.2, zen: '#3060b8', hor: '#d8cfd8', skyI: 0.66, fog: '#a6b0d0', fogSun: '#ffd09a', fogI: 0.62,
-    hemiSky: '#6a8ada', hemiGround: '#e8ccb0', hemiI: 0.62, glow: '#ffc080', glowI: 1.0,
-    exp: 1.02, lift: '#0c1434', gain: '#fff0dc', sat: 1.1, ovc: '#827e8a', ovcI: 0.52 },
-  { h: 16.2, key: '#ffa25a', keyI: 4.6, zen: '#2c50a4', hor: '#e2bca8', skyI: 0.56, fog: '#9aa0c8', fogSun: '#ffb46c', fogI: 0.54,
-    hemiSky: '#6a80cc', hemiGround: '#e8b890', hemiI: 0.52, glow: '#ff9a50', glowI: 1.35,
-    exp: 1.12, lift: '#101438', gain: '#ffe8d0', sat: 1.16, ovc: '#76707c', ovcI: 0.42 },
-  { h: 16.75, key: '#ff7a3c', keyI: 2.8, zen: '#26438e', hor: '#e8a088', skyI: 0.44, fog: '#8c8cb8', fogSun: '#ff9a58', fogI: 0.44,
-    hemiSky: '#6474bc', hemiGround: '#d89c80', hemiI: 0.42, glow: '#ff7a40', glowI: 1.5,
-    exp: 1.3, lift: '#121438', gain: '#ffe0c8', sat: 1.18, ovc: '#6a626e', ovcI: 0.34 },
-  { h: 17.15, key: '#ff6a40', keyI: 0.25, zen: '#1e3678', hor: '#c08aa0', skyI: 0.3, fog: '#6e74a6', fogSun: '#e88a70', fogI: 0.30,
-    hemiSky: '#5a6cb8', hemiGround: '#8a7a9a', hemiI: 0.32, glow: '#e8805a', glowI: 0.9,
-    exp: 1.6, lift: '#101438', gain: '#ffe4dc', sat: 1.12, ovc: '#4e4c5a', ovcI: 0.24 },
-  { h: 17.7, key: '#8fa4e8', keyI: 0.03, zen: '#142660', hor: '#4e5e96', skyI: 0.17, fog: '#465488', fogSun: '#8c6c8c', fogI: 0.17,
-    hemiSky: '#4a66b8', hemiGround: '#4a5684', hemiI: 0.22, glow: '#a0708a', glowI: 0.35,
-    exp: 2.1, lift: '#0a1234', gain: '#e4e6ff', sat: 1.0, ovc: '#353a4c', ovcI: 0.14 },
-  { h: 18.6, key: '#7f9cff', keyI: 0.12, zen: '#08102a', hor: '#1e2c52', skyI: 0.07, fog: '#20305a', fogSun: '#263460', fogI: 0.07,
-    hemiSky: '#3a5aa8', hemiGround: '#2c3c64', hemiI: 0.12, glow: '#283860', glowI: 0.05,
-    exp: 2.7, lift: '#0a1430', gain: '#d8e4ff', sat: 0.86, ovc: '#22283a', ovcI: 0.06 },
-  { h: 20.0, key: '#7f9cff', keyI: 0.16, zen: '#060b1e', hor: '#1a2647', skyI: 0.05, fog: '#1c2848', fogSun: '#1c2848', fogI: 0.052,
-    hemiSky: '#3a5aa8', hemiGround: '#2a3a60', hemiI: 0.10, glow: '#20305a', glowI: 0.0,
-    exp: 2.9, lift: '#0a1430', gain: '#d8e4ff', sat: 0.82, ovc: '#202838', ovcI: 0.05 },
+  { h: 0.0, ...NIGHT },
+  { h: 5.0, ...NIGHT },
+  { h: 6.2, key: '#8fa4e8', keyI: 0.12,
+    zen: [0.010, 0.020, 0.062], hor: [0.034, 0.038, 0.072], fog: [0.034, 0.039, 0.072], fogSun: [0.075, 0.05, 0.07], glow: [0.06, 0.035, 0.045],
+    hemiSky: [0.004, 0.006, 0.012], hemiGround: [0.010, 0.012, 0.020], ovc: [0.020, 0.022, 0.030],
+    exp: 2.0, lift: '#0b1434', gain: '#e8e6ff', sat: 0.95, tint: [0.97, 1.0, 1.05] },
+  { h: 6.95, key: '#ff8a5a', keyI: 4,
+    zen: [0.03, 0.06, 0.17], hor: [0.15, 0.13, 0.17], fog: [0.13, 0.13, 0.19], fogSun: [0.65, 0.32, 0.2], glow: [0.75, 0.36, 0.24],
+    hemiSky: [0.012, 0.016, 0.03], hemiGround: [0.04, 0.035, 0.045], ovc: [0.09, 0.09, 0.11],
+    exp: 1.4, lift: '#101438', gain: '#ffe8e0', sat: 1.05, tint: [1.03, 1.0, 0.98] },
+  { h: 8.0, key: '#ffb880', keyI: 15,
+    zen: [0.06, 0.15, 0.44], hor: [0.36, 0.38, 0.52], fog: [0.32, 0.36, 0.54], fogSun: [1.3, 0.85, 0.55], glow: [1.0, 0.6, 0.4],
+    hemiSky: [0.025, 0.035, 0.065], hemiGround: [0.26, 0.21, 0.17], ovc: [0.42, 0.44, 0.5],
+    exp: 0.78, lift: '#0e1638', gain: '#fff0e6', sat: 1.06, tint: [1.02, 1.0, 0.97] },
+  { h: 10.0, key: '#ffe6c4', keyI: 17.5,
+    zen: [0.07, 0.19, 0.52], hor: [0.42, 0.5, 0.7], fog: [0.40, 0.48, 0.70], fogSun: [1.05, 0.95, 0.82], glow: [0.8, 0.72, 0.6],
+    hemiSky: [0.03, 0.045, 0.08], hemiGround: [0.42, 0.40, 0.37], ovc: [0.66, 0.70, 0.79],
+    exp: 0.72, lift: '#0c1636', gain: '#fff8f0', sat: 1.06, tint: [1.0, 1.0, 1.0] },
+  { h: 12.0, key: '#ffeccc', keyI: 18,
+    zen: [0.07, 0.19, 0.53], hor: [0.43, 0.52, 0.72], fog: [0.41, 0.50, 0.72], fogSun: [1.0, 0.96, 0.88], glow: [0.8, 0.75, 0.66],
+    hemiSky: [0.03, 0.045, 0.08], hemiGround: [0.45, 0.43, 0.40], ovc: [0.72, 0.77, 0.86],
+    exp: 0.7, lift: '#0c1636', gain: '#fffaf4', sat: 1.06, tint: [1.0, 1.0, 1.0] },
+  { h: 14.0, key: '#ffe2bc', keyI: 17.5,
+    zen: [0.07, 0.185, 0.52], hor: [0.42, 0.5, 0.7], fog: [0.40, 0.48, 0.70], fogSun: [1.1, 0.95, 0.78], glow: [0.85, 0.72, 0.55],
+    hemiSky: [0.03, 0.045, 0.08], hemiGround: [0.42, 0.39, 0.35], ovc: [0.66, 0.70, 0.78],
+    exp: 0.72, lift: '#0c1636', gain: '#fff6ec', sat: 1.07, tint: [1.01, 1.0, 0.99] },
+  { h: 15.3, key: '#ffbe66', keyI: 17,
+    zen: [0.07, 0.18, 0.50], hor: [0.36, 0.44, 0.62], fog: [0.34, 0.42, 0.62], fogSun: [1.1, 0.78, 0.42], glow: [0.9, 0.6, 0.3],
+    hemiSky: [0.03, 0.04, 0.07], hemiGround: [0.34, 0.27, 0.19], ovc: [0.50, 0.50, 0.56],
+    exp: 0.7, lift: '#0e1636', gain: '#fff2e2', sat: 1.1, tint: [1.03, 1.0, 0.93] },
+  { h: 16.2, key: '#ffaa4c', keyI: 17,
+    zen: [0.06, 0.15, 0.42], hor: [0.32, 0.36, 0.50], fog: [0.30, 0.36, 0.55], fogSun: [1.2, 0.68, 0.28], glow: [1.0, 0.55, 0.22],
+    hemiSky: [0.025, 0.035, 0.06], hemiGround: [0.25, 0.18, 0.12], ovc: [0.36, 0.35, 0.40],
+    exp: 0.76, lift: '#101638', gain: '#ffeedd', sat: 1.14, tint: [1.04, 1.0, 0.91] },
+  { h: 16.75, key: '#ff9440', keyI: 15,
+    zen: [0.04, 0.09, 0.27], hor: [0.25, 0.25, 0.32], fog: [0.22, 0.24, 0.36], fogSun: [1.0, 0.46, 0.17], glow: [1.0, 0.45, 0.15],
+    hemiSky: [0.02, 0.028, 0.05], hemiGround: [0.12, 0.08, 0.06], ovc: [0.22, 0.21, 0.25],
+    exp: 0.98, lift: '#121640', gain: '#ffe8d0', sat: 1.15, tint: [1.05, 1.0, 0.94] },
+  { h: 17.15, key: '#ff6a38', keyI: 2,
+    zen: [0.025, 0.05, 0.15], hor: [0.12, 0.10, 0.14], fog: [0.10, 0.10, 0.16], fogSun: [0.6, 0.25, 0.1], glow: [0.7, 0.3, 0.1],
+    hemiSky: [0.01, 0.014, 0.03], hemiGround: [0.03, 0.025, 0.035], ovc: [0.10, 0.10, 0.12],
+    exp: 1.45, lift: '#101438', gain: '#ffe6d8', sat: 1.1, tint: [1.04, 1.0, 0.97] },
+  { h: 17.7, key: '#8fa4e8', keyI: 0,
+    zen: [0.012, 0.025, 0.075], hor: [0.03, 0.04, 0.08], fog: [0.03, 0.038, 0.075], fogSun: [0.07, 0.045, 0.06], glow: [0.08, 0.04, 0.03],
+    hemiSky: [0.004, 0.006, 0.012], hemiGround: [0.010, 0.012, 0.022], ovc: [0.025, 0.027, 0.034],
+    exp: 1.9, lift: '#0c1636', gain: '#eaeaff', sat: 1.0, tint: [0.97, 1.0, 1.05] },
+  { h: 18.6, ...NIGHT, exp: 2.4, hor: [0.012, 0.016, 0.033], fog: [0.013, 0.017, 0.034] },
+  { h: 20.0, ...NIGHT },
 ];
 
-const COLOR_FIELDS = ['key', 'zen', 'hor', 'fog', 'fogSun', 'hemiSky', 'hemiGround', 'glow', 'lift', 'gain', 'ovc'];
-const NUM_FIELDS = ['keyI', 'skyI', 'fogI', 'hemiI', 'glowI', 'exp', 'sat', 'ovcI'];
+const HEX_FIELDS = ['key', 'lift', 'gain'];
+const VEC_FIELDS = ['zen', 'hor', 'fog', 'fogSun', 'glow', 'hemiSky', 'hemiGround', 'ovc', 'tint'];
+const COLOR_FIELDS = [...HEX_FIELDS, ...VEC_FIELDS];
+const NUM_FIELDS = ['keyI', 'exp', 'sat'];
 
-// Pre-convert to linear colors once.
 const PREP = KEYS.map((k) => {
   const o = { h: k.h };
-  for (const f of COLOR_FIELDS) o[f] = new THREE.Color(k[f]);
+  for (const f of HEX_FIELDS) o[f] = new THREE.Color(k[f]);
+  for (const f of VEC_FIELDS) o[f] = new THREE.Color().setRGB(k[f][0], k[f][1], k[f][2]);
   for (const f of NUM_FIELDS) o[f] = k[f];
   return o;
 });
-// Wrap: append the first key at +24 h.
 PREP.push({ ...PREP[0], h: 24 });
 
 export function createLook() {
@@ -91,48 +107,39 @@ export function samplePalette(hours, out) {
   return out;
 }
 
-const _grey = new THREE.Color();
 const _c = new THREE.Color();
+const _g = new THREE.Color();
+const COLD = new THREE.Color(0.94, 0.98, 1.06);
 
-function toGrey(c, amount, tint) {
-  const l = c.r * 0.3 + c.g * 0.55 + c.b * 0.15;
-  _grey.setRGB(l * tint.r, l * tint.g, l * tint.b);
-  c.lerp(_grey, amount);
+function towardGrey(c, amount, tint = COLD) {
+  const l = c.r * 0.25 + c.g * 0.6 + c.b * 0.15;
+  _g.setRGB(l * tint.r, l * tint.g, l * tint.b);
+  c.lerp(_g, amount);
 }
 
-const COLD_GREY = new THREE.Color(0.86, 0.93, 1.06);
-const FOG_WHITE = new THREE.Color(0.94, 0.97, 1.03);
-
-// Weather bends the clear look. `w` fields (all blended by Weather.js):
-//   overcast 0..1 (cloud deck), sunVis 0..1 (direct light), fogWhite 0..1 (milky air),
-//   dim 0..1 (overall darkening of heavy snow), satMul.
+// Weather bends the clear look. `w` fields (blended by Weather.js): overcast 0..1 (cloud deck),
+// sunVis 0..1 (direct light kept), fogWhite 0..1 (milky air), dim 0..1 (heavy snow darkening),
+// satMul (saturation).
 export function applyWeather(look, w) {
   const ov = w.overcast;
-  // Direct light: the deck hides the sun; keep a whisper so forms still read.
   look.keyI *= w.sunVis;
-  // Sky turns into a flat deck. The deck brightness follows the time of day.
-  _c.copy(look.ovc).multiplyScalar(look.ovcI / Math.max(look.skyI, 1e-3));
-  look.zen.lerp(_c, ov);
-  look.hor.lerp(_c.multiplyScalar(1.12), ov);
-  look.glowI *= 1 - ov * 0.85;
-  // Fog: under a deck the horizon is a soft grey; no warm sun side.
-  const fogTarget = _c.copy(look.ovc).multiplyScalar(look.ovcI * 1.1 / Math.max(look.fogI, 1e-3));
-  look.fog.lerp(fogTarget, ov * 0.85);
-  look.fogSun.lerp(look.fog, ov * 0.8);
-  toGrey(look.fog, ov * 0.35, COLD_GREY);
-  toGrey(look.fogSun, ov * 0.35, COLD_GREY);
+  // Under a deck the sky is the deck: flat, cold grey, brightness following the time of day.
+  const deck = _c.copy(look.ovc).multiplyScalar(1 - 0.45 * w.dim);
+  look.zen.lerp(deck, ov);
+  look.hor.lerp(deck, ov);
+  look.glow.multiplyScalar(1 - ov * 0.85);
+  look.fog.lerp(deck, ov * 0.9);
+  look.fogSun.lerp(look.fog, ov * 0.85);
   if (w.fogWhite > 0) {
-    toGrey(look.fog, w.fogWhite * 0.6, FOG_WHITE);
-    toGrey(look.fogSun, w.fogWhite * 0.5, FOG_WHITE);
+    towardGrey(look.fog, w.fogWhite * 0.7);
+    towardGrey(look.fogSun, w.fogWhite * 0.6);
   }
-  // Ambient becomes more even (diffuse sky from all around) and slightly brighter to compensate
-  // for the missing sun, as snow-covered overcast days are bright but flat.
-  _c.copy(look.hemiSky).lerp(look.ovc, 0.5);
-  toGrey(_c, 0.5, COLD_GREY);
-  look.hemiSky.lerp(_c, ov * 0.85);
-  look.hemiGround.lerp(look.hemiSky, ov * 0.6);
-  look.hemiI *= 1 + ov * 0.9 * (1 - w.dim * 0.5);
+  // Ambient follows the deck (the environment map is rebuilt from it); a little extra fill keeps
+  // forms readable in flat light.
+  look.hemiSky.lerp(_c.copy(look.ovc).multiplyScalar(0.12), ov);
+  look.hemiGround.lerp(_c.copy(look.ovc).multiplyScalar(0.35), ov);
   look.sat *= w.satMul;
-  look.exp *= 1 + ov * 0.12 + w.dim * 0.15;
-  look.gain.lerp(_c.setRGB(0.94, 0.97, 1.0), ov * 0.6);
+  look.exp *= 1 + ov * 0.1 + w.dim * 0.25;
+  look.tint.lerp(_g.setRGB(0.98, 1.0, 1.03), ov * 0.7);
+  look.gain.lerp(_g.setRGB(0.93, 0.96, 1.0), ov * 0.6);
 }

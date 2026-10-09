@@ -22,10 +22,10 @@ export default {
   name: 'procession',
   tempo: 58,
   beats: 3,
-  level: 1,
+  level: 1.4,
   parts: {
-    choirF: P.choirF({ singers: 8, level: 0.15, loose: 1.1, pan: -0.15, verb: 0.42 }),
-    choirM: P.choirM({ singers: 5, level: 0.19, loose: 1.2, pan: 0.18, verb: 0.42 }),
+    choirF: P.choirF({ singers: 8, level: 0.22, loose: 1.1, pan: -0.15, verb: 0.42 }),
+    choirM: P.choirM({ singers: 5, level: 0.27, loose: 1.2, pan: 0.18, verb: 0.42 }),
     war: P.war({ level: 0.5, verb: 0.35 }),
     voice: P.voice({ level: 0.4, verb: 0.45, pan: 0.05 }),
     gurdy: P.gurdy({ level: 0.16, pan: 0.3 }),

@@ -49,17 +49,17 @@ export class Credits {
     this.y = window.innerHeight + 40;
     this.state = 'roll';
     this._measure();
+    this._remeasure = 0;
     this.promise = new Promise((resolve) => { this._resolve = resolve; });
     return this.promise;
   }
 
+  // offsetTop forces layout, so this is exact as soon as the element is in the DOM; it is repeated
+  // every few seconds in case web fonts arrive late and change the line heights.
   _measure() {
-    requestAnimationFrame(() => {
-      const vh = window.innerHeight;
-      const lastMid = this.last.offsetTop + this.last.offsetHeight / 2;
-      this.endY = vh / 2 - lastMid;
-      this.y = vh + 40;
-    });
+    const vh = window.innerHeight;
+    const lastMid = this.last.offsetTop + this.last.offsetHeight / 2;
+    this.endY = vh / 2 - lastMid;
   }
 
   _skip() {
@@ -71,6 +71,8 @@ export class Credits {
   update(dt) {
     if (!this.active || this.endY == null) return;
     this.t += dt;
+    this._remeasure += dt;
+    if (this._remeasure > 3) { this._remeasure = 0; this._measure(); }
     if (this.state === 'roll') {
       this.y -= SPEED * dt;
       if (this.y <= this.endY) { this.y = this.endY; this.state = 'hold'; this.hold = 0; this.last.classList.add('lit'); }

@@ -30,7 +30,9 @@ export class NoteView {
     if (!info) info = { title: '', text: String(note ?? '') };
     const kind = TONES[info.kind] ? info.kind : 'letter';
     const regId = typeof note === 'string' ? (ui.notes[note] ? note : ui.notes[`note_${note}`] ? `note_${note}` : null) : (note?.id ?? null);
-    if (regId && !note?.preview) { try { this.G.state?.readNote?.(regId); } catch { /* optional */ } }
+    if (regId && !note?.preview) {
+      try { ui.rememberNote({ ...info, id: regId }); this.G.state?.readNote?.(regId); } catch { /* optional */ }
+    }
 
     const seed = hashString(info.title || info.text || 'x') % 997;
     const paper = paperCanvas(300, 400, { seed, tone: TONES[kind], edge: 0.9, stain: kind === 'scrawl' ? 0.4 : 1 });

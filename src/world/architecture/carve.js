@@ -77,9 +77,9 @@ export function boardShape(len, h, kind = 'saw', period = 0.34) {
     shape.lineTo(0, h);
     shape.closePath();
     // Small round openings above the pattern.
-    for (let i = 0; i < n; i++) {
+    for (let i = 0; i < n; i += 2) {
       const cx = i * step + step * 0.5;
-      if (h > 0.2) shape.holes.push(circlePath(cx, h * 0.72, h * 0.1, 7));
+      if (h > 0.2) shape.holes.push(circlePath(cx, h * 0.72, h * 0.1, 5));
     }
   }
   return shape;

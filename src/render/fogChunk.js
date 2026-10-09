@@ -11,8 +11,10 @@
 // side and a tight bright lobe around the sun itself. The sky dome evaluates exactly the same
 // functions for an "infinite" ray, so distant terrain dissolves into the sky horizon seamlessly.
 //
-// Custom ShaderMaterials: include FOG_PARS_FRAGMENT, set `fog: true`, merge the uniforms named
-// in FOG_UNIFORM_NAMES from G.uniforms, and call `mzApplyFog(color, worldPos)`.
+// Custom ShaderMaterials: include FOG_PARS_FRAGMENT, set `fog: true`, spread `fogUniforms()`
+// into the material uniforms (shared fog uniforms plus the fogColor/fogDensity entries three
+// writes every frame for fog materials), write `vFogWorldPos` in the vertex shader (or ignore
+// it) and call `mzApplyFog(color, worldPos)` in the fragment shader.
 // Extra uniforms this module registers on the shared uniform object (written by Atmosphere):
 //   uFogHaze       vec2  (density per meter at y = 0, height falloff per meter)
 //   uFogLayer      vec4  (density per meter, top height, top softness, top noise amplitude)
@@ -150,3 +152,10 @@ export const FOG_UNIFORM_NAMES = [
   'uFogColor', 'uFogSunColor', 'uSunDir', 'uFogDensity', 'uFogHeightFalloff', 'uFogBaseHeight', 'uFogSunPower',
   'uFogHaze', 'uFogLayer', 'uFogLayerArea', 'uFogSunWide', 'uFogTime',
 ];
+
+// Uniforms for a custom fogged ShaderMaterial: { ...fogUniforms(), ...yours }.
+export function fogUniforms() {
+  const out = THREE.UniformsUtils.clone(THREE.UniformsLib.fog);
+  for (const n of FOG_UNIFORM_NAMES) out[n] = U[n];
+  return out;
+}

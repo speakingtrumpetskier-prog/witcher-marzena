@@ -3,9 +3,11 @@
 // Drives the camera itself (G.cameraOwner = 'title') in a slow drift over the frozen lake toward the
 // drowned bell tower at dusk, and restores the previous owner and field of view when it closes.
 // The first click or key calls G.audio.unlock() (browsers need a gesture) and starts the quiet
-// 'night' mood unless opts.mood === false. After a choice the screen fades to black and resolves;
-// the black is lifted again after a second unless opts.keepBlack is set (a cutscene that wants to
-// open on black should pass keepBlack and call G.ui.fade('clear') itself).
+// 'night' mood unless opts.mood === false. A choice resolves the promise at once (the story flow
+// then fades to black and loads); the screen keeps drifting under that fade and removes itself
+// opts.linger ms later (default 1500). It never lifts a fade itself.
+// Options: hour (set the clock, the story flow already does), weather, startAt (seconds into the
+// drift), fov, mood.
 import * as THREE from 'three';
 import { h, svg } from './dom.js';
 import { ICON } from './icons.js';
@@ -40,9 +42,10 @@ export class Title {
     };
     G.cameraOwner = 'title';
     if (G.camera && opts.fov !== false) { G.camera.fov = opts.fov ?? 40; G.camera.updateProjectionMatrix(); }
-    // Dusk over the valley, held still while the title is up.
-    if (opts.hour !== false) { try { G.time?.setHours(opts.hour ?? 16.9); } catch { /* optional */ } }
-    try { G.weather?.set?.('clear', 1.5); } catch { /* optional */ }
+    // The story flow sets the dusk clock and clear weather before calling us; the gallery asks for it.
+    if (opts.hour != null) { try { G.time?.setHours(opts.hour); } catch { /* optional */ } }
+    if (opts.weather) { try { G.weather?.set?.(opts.weather, 0); } catch { /* optional */ } }
+    this.titleFov = G.camera?.fov;
     G.events.emit('title:open', {});
 
     const hasSave = !!G.state?.hasSave?.();
@@ -54,7 +57,7 @@ export class Title {
       { id: 'new', label: 'New Game' },
       { id: 'continue', label: 'Continue', disabled: !hasSave },
       { id: 'settings', label: 'Settings' },
-    ], { onSelect: (it) => this._choose(it.id) });
+    ], { onSelect: (it) => this._choose(it.id), sfx: (n) => ui.sfx(n, { volume: 0.4 }) });
     this.menu = menu;
     const foot = h('div', { class: 'foot' }, h('span', null, 'Built from code'), h('i'), h('span', null, G.quality ? `${G.quality} quality` : ''));
     const cover = h('div', { class: 'cover' });
@@ -88,17 +91,18 @@ export class Title {
     this._busy = true;
     const G = this.G, ui = this.ui;
     this.el.classList.add('leaving');
-    await ui.overlays.fade('black', 1.1);
+    G.events.emit('title:close', { choice: id });
+    // Resolve at once: the story flow fades to black and loads while we keep the camera drifting.
+    // The screen itself goes away a moment later, under that black.
+    this._resolve(id);
+    await new Promise((r) => setTimeout(r, this.opts.linger ?? 1500));
     this.scr.close();
     this._unlockCleanup?.();
     this.active = false;
     ui.titleActive = false;
-    G.cameraOwner = this.prev.owner === 'title' ? 'rig' : this.prev.owner;
-    if (G.camera && this.prev.fov) { G.camera.fov = this.prev.fov; G.camera.updateProjectionMatrix(); }
-    G.events.emit('title:close', { choice: id });
+    if (G.cameraOwner === 'title') G.cameraOwner = this.prev.owner === 'title' ? 'rig' : this.prev.owner;
+    if (G.camera && this.prev.fov && G.camera.fov === this.titleFov) { G.camera.fov = this.prev.fov; G.camera.updateProjectionMatrix(); }
     this._busy = false;
-    this._resolve(id);
-    if (!this.opts.keepBlack) setTimeout(() => ui.overlays.fade('clear', 1.6), 1000);
   }
 
   // Camera drift: a slow ping-pong along a gentle arc over the ice, always looking at the tower.

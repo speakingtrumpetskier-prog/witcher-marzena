@@ -1,7 +1,7 @@
 // Cutscene director (G.cutscenes). Scripts: src/story/content/cutscenes/<id>.js exporting
 // `default async function (d) {}` (see content/cutscenes/_sample.js and ARCHITECTURE.md).
 //
-//   const { skipped, picks } = await G.cutscenes.play('c2_valley', { skippable: true })
+//   const { skipped, picks } = await G.cutscenes.play('c2_valley', { skippable: true, actors: { id: character } })
 //   G.cutscenes.active  G.cutscenes.id  G.cutscenes.has(id)  G.cutscenes.ids()
 //   G.cutscenes.register(id, fn)   inline scripts (tests, generated scenes)
 //   G.cutscenes.skip()             same as holding Space for 0.8 s
@@ -124,6 +124,8 @@ export class Cutscenes {
     this.active = true;
     this.id = name;
     this.stage = new ActorStage(G);
+    // Characters the caller already has on stage (not disposed at the end).
+    for (const [aid, c] of Object.entries(opts.actors || {})) if (c) this.stage.get(aid, { character: c });
     this.skipping = false;
     sched.instant = false;
     const d = this._director(name, opts);

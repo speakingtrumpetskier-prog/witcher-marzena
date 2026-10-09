@@ -41,15 +41,15 @@ export function windowUnit(kit, f, o) {
     kit.glow.quad([s + hw, y, 0], [s - hw, y, 0], [s - hw, y + h, 0], [s + hw, y + h, 0], c, [[0, 0], [1, 0], [1, 1], [0, 1]]);
     // Reveal liner boards (inside the log cut) so the opening reads as a framed hole.
     const liner = scaleC(PAL.plankDark, GAIN * 1.2);
-    kit.wood.box(s, y - 0.015, 0, w + 0.06, 0.03, 0.28, liner, { grain: 'x' });
-    kit.wood.box(s, y + h + 0.015, 0, w + 0.06, 0.03, 0.28, liner, { grain: 'x' });
-    kit.wood.box(s - hw - 0.015, y + h / 2, 0, 0.03, h, 0.28, liner, { grain: 'y' });
-    kit.wood.box(s + hw + 0.015, y + h / 2, 0, 0.03, h, 0.28, liner, { grain: 'y' });
+    kit.wood.box(s, y - 0.015, 0, w + 0.06, 0.03, 0.28, liner, { grain: 'x', skip: '-x +x' });
+    kit.wood.box(s, y + h + 0.015, 0, w + 0.06, 0.03, 0.28, liner, { grain: 'x', skip: '-x +x' });
+    kit.wood.box(s - hw - 0.015, y + h / 2, 0, 0.03, h, 0.28, liner, { grain: 'y', skip: '-y +y -x' });
+    kit.wood.box(s + hw + 0.015, y + h / 2, 0, 0.03, h, 0.28, liner, { grain: 'y', skip: '-y +y +x' });
     // Casing boards on the outside.
     const zc = r + 0.0;
     const cw = 0.12;
-    kit.wood.box(s - hw - cw / 2 - 0.01, y + h / 2 + 0.03, zc, cw, h + 0.2, 0.06, casing, { grain: 'y', rz: kit.rs() * 0.006 });
-    kit.wood.box(s + hw + cw / 2 + 0.01, y + h / 2 + 0.03, zc, cw, h + 0.2, 0.06, casing, { grain: 'y', rz: kit.rs() * 0.006 });
+    kit.wood.box(s - hw - cw / 2 - 0.01, y + h / 2 + 0.03, zc, cw, h + 0.2, 0.06, casing, { grain: 'y', rz: kit.rs() * 0.006, skip: '-z' });
+    kit.wood.box(s + hw + cw / 2 + 0.01, y + h / 2 + 0.03, zc, cw, h + 0.2, 0.06, casing, { grain: 'y', rz: kit.rs() * 0.006, skip: '-z' });
     kit.wood.box(s, y - 0.06, zc + 0.04, w + 0.46, 0.06, 0.2, scaleC(casing, 0.85), { grain: 'x', top: scaleC(casing, 1.1) });
     if (o.carved !== false) {
       kit.wood.at(s, y + h + 0.1, zc - 0.015, 0, (m) => {
@@ -76,7 +76,6 @@ export function windowUnit(kit, f, o) {
           // Raised panel frame + a diamond cutout.
           m.box(cx, leafH / 2, 0.022, leafW - 0.1, leafH - 0.12, 0.012, inner, { grain: 'y' });
           m.box(cx, leafH * 0.62, 0.03, 0.09, 0.09, 0.012, scaleC(PAL.plankDark, GAIN * 0.7), { rz: Math.PI / 4 });
-          m.box(cx, leafH * 0.3, 0.03, leafW - 0.06, 0.03, 0.012, scaleC(c1, 0.8), { grain: 'x' });
         });
       }
     }
@@ -121,9 +120,10 @@ export function doorLeaf(kit, mb, w, h, hingeLeft = true, o = {}) {
 export function doorUnit(kit, f, o) {
   const { s, r } = o;
   const w = o.w ?? 1.05, h = o.h ?? 1.95;
+  const dy = o.y ?? 0; // raised doors (onto a gallery) sit this far above the ground floor
   const casing = paintOf(kit, o.casing ?? 'natural');
   const hingeLeft = o.hingeLeft ?? kit.chance(0.5);
-  kit.frame(f.x, 0, f.z, f.yaw, () => {
+  kit.frame(f.x, dy, f.z, f.yaw, () => {
     const hw = w / 2, cw = 0.14;
     const zc = r + 0.0;
     kit.wood.box(s - hw - cw / 2 - 0.01, h / 2 + 0.03, zc, cw, h + 0.12, 0.07, casing, { grain: 'y' });
@@ -145,7 +145,7 @@ export function doorUnit(kit, f, o) {
     }
   });
   const pLocal = toLocal(f, s, 0, r + 0.4);
-  const rec = { x: pLocal[0], z: pLocal[2], yaw: f.yaw, w, h, y: 0, kind: o.leaf === 'object' ? 'leaf' : o.leaf === 'closed' ? 'closed' : 'open', id: o.id || null };
+  const rec = { x: pLocal[0], z: pLocal[2], yaw: f.yaw, w, h, y: dy, kind: o.leaf === 'object' ? 'leaf' : o.leaf === 'closed' ? 'closed' : 'open', id: o.id || null };
   if (o.leaf === 'object') {
     // Separate mesh on a pivot at the hinge so gameplay can swing it.
     const tmp = new MB('door', { uv: [1, 3] });
@@ -155,7 +155,7 @@ export function doorUnit(kit, f, o) {
     mesh.name = 'door-leaf';
     const pivot = new THREE.Group();
     pivot.name = 'door-pivot';
-    const hp = toLocal(f, s + (hingeLeft ? -w / 2 : w / 2), 0.02, -0.02);
+    const hp = toLocal(f, s + (hingeLeft ? -w / 2 : w / 2), dy + 0.02, -0.02);
     pivot.position.set(hp[0], hp[1], hp[2]);
     pivot.add(mesh);
     const openAngle = o.openAngle ?? 1.75;

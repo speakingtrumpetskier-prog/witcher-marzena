@@ -21,9 +21,43 @@ export const ENTRIES = [
   { row: 'houses', id: 'logHouse', make: (n) => buildings.logHouse({ seed: 11 + n }) },
   { row: 'houses', id: 'logHouseSmall', make: (n) => buildings.logHouse({ seed: 21 + n, size: 'small' }) },
   { row: 'houses', id: 'logHousePorch', make: (n) => buildings.logHouse({ seed: 31 + n, porch: true }) },
+  { row: 'houses', id: 'logHouseGallery', make: (n) => buildings.logHouse({ seed: 51 + n, gallery: true, size: 'large' }) },
   { row: 'houses', id: 'logHouseTall', make: (n) => buildings.logHouse({ seed: 41 + n, floors: 2, size: 'large', woodshed: true }) },
   { row: 'big', id: 'tavern', make: () => buildings.tavern({ seed: 5 }) },
   { row: 'big', id: 'longhouse', make: () => buildings.longhouse({ seed: 9 }) },
+  { row: 'big', id: 'smithy', make: () => buildings.smithy({ seed: 21 }) },
+  { row: 'farm', id: 'granary', make: () => buildings.granary({ seed: 3 }) },
+  { row: 'farm', id: 'barn', make: () => buildings.barn({ seed: 4 }) },
+  { row: 'farm', id: 'stable', make: () => buildings.stable({ seed: 6 }) },
+  { row: 'farm', id: 'shed', make: () => buildings.shed({ seed: 8 }) },
+  { row: 'farm', id: 'outhouse', make: () => buildings.outhouse({ seed: 12 }) },
+  { row: 'farm', id: 'boathouse', make: () => buildings.boathouse({ seed: 14 }) },
+  { row: 'farm', id: 'banya', make: () => buildings.banya({ seed: 15 }) },
+  { row: 'farm', id: 'workshop', make: () => buildings.workshop({ seed: 17 }) },
+  { row: 'landmarks', id: 'idol', make: () => buildings.idol({ seed: 31 }) },
+  { row: 'landmarks', id: 'bellTower', make: () => buildings.bellTower({ seed: 77 }) },
+  { row: 'landmarks', id: 'watchtowerRuin', make: () => buildings.watchtowerRuin({ seed: 201 }) },
+  { row: 'landmarks', id: 'stoneCircle', make: () => buildings.stoneCircle({ seed: 71 }) },
+  { row: 'landmarks', id: 'shrine', make: () => buildings.shrine({ seed: 41 }) },
+  { row: 'places', id: 'hankaHouse', make: () => buildings.hankaHouse({ seed: 61 }) },
+  { row: 'places', id: 'fishingHut', make: () => buildings.fishingHut({ seed: 301 }) },
+  { row: 'places', id: 'mill', make: () => buildings.mill({ seed: 311 }) },
+  { row: 'places', id: 'trapperCabin', make: () => buildings.trapperCabin({ seed: 211 }) },
+  { row: 'places', id: 'ruinedBathhouse', make: () => buildings.ruinedBathhouse({ seed: 221 }) },
+  { row: 'places', id: 'charcoalKiln', make: () => buildings.charcoalKiln({ seed: 231 }) },
+  { row: 'small', id: 'waysideShrine', make: () => buildings.waysideShrine({ seed: 51 }) },
+  { row: 'small', id: 'gravePost', make: () => buildings.gravePost({ seed: 61, variant: 'wiesia' }) },
+  { row: 'small', id: 'gravePost2', make: () => buildings.gravePost({ seed: 62, variant: 'son' }) },
+  { row: 'small', id: 'well', make: () => buildings.well({ seed: 81 }) },
+  { row: 'small', id: 'noticeBoard', make: () => buildings.noticeBoard({ seed: 91 }) },
+  { row: 'small', id: 'marketStall', make: () => buildings.marketStall({ seed: 101 }) },
+  { row: 'small', id: 'marketStall2', make: () => buildings.marketStall({ seed: 103 }) },
+  { row: 'lines', id: 'fenceWattle', make: () => buildings.fence({ seed: 111, style: 'wattle', points: [[-6, 0], [-1, 0], [3, 3], [8, 3]] }), flat: true },
+  { row: 'lines', id: 'fenceRail', make: () => buildings.fence({ seed: 112, style: 'rail', points: [[-6, 0], [0, 0], [4, -2], [9, -2]] }), flat: true },
+  { row: 'lines', id: 'palisade', make: () => buildings.palisade({ seed: 121, points: [[-7, 0], [0, 0], [6, 2]] }), flat: true },
+  { row: 'lines', id: 'gate', make: () => buildings.gate({ seed: 131 }) },
+  { row: 'lines', id: 'boardwalk', make: () => buildings.boardwalk({ seed: 141, points: [[-6, 0], [0, 0], [4, 3], [10, 3]], rails: true }), flat: true },
+  { row: 'lines', id: 'bridge', make: () => buildings.bridge({ seed: 151 }) },
 ];
 
 function makeEntries(ids) {
@@ -69,62 +103,81 @@ export async function init(G) {
   const showP = P.get('show') || P.get('only');
   const ids = showP ? showP.split(',').map((s) => s.trim()).filter(Boolean) : null;
   const entries = makeEntries(ids);
-  const placed = [];
-  const rows = new Map();
-  for (const e of entries) {
-    if (!rows.has(e.row)) rows.set(e.row, []);
-    rows.get(e.row).push(e);
-  }
   const cellP = parseFloat(P.get('cell'));
-  let zRow = 0;
   const t0 = performance.now();
   const report = [];
-  for (const [, list] of rows) {
-    let x = 0, rowDepth = 0;
-    const items = [];
-    for (const e of list) {
+  const placed = [];
+  // Build everything first (a failing builder must not take the gallery down).
+  const built = [];
+  for (const e of entries) {
+    try {
       const b = e.make(0);
-      const fp = b.footprint || { hw: 5, hd: 5 };
-      const rad = Math.max(fp.hw, fp.hd) + 4;
-      const cell = Number.isFinite(cellP) ? cellP : rad * 2;
-      items.push({ e, b, cell });
-      rowDepth = Math.max(rowDepth, rad * 2);
+      built.push({ e, b });
+      const parts = [];
+      b.group.traverse((o) => { if (o.isMesh) parts.push(`${o.name.split(':').pop()}=${Math.round(o.geometry.index.count / 3)}`); });
+      report.push(`${e.id}: ${b.stats.calls} calls, ${Math.round(b.stats.triangles)} tris (${parts.join(' ')})`);
+    } catch (err) {
+      console.error(`[architecture gallery] FAIL ${e.id}: ${err.stack || err.message}`);
+      G.errors.push(`architecture ${e.id}: ${err.message}`);
     }
-    const total = items.reduce((a, it) => a + it.cell, 0);
-    x = -total / 2;
-    for (const it of items) {
-      x += it.cell / 2;
-      const px = ids ? 0 : x, pz = ids ? 0 : zRow;
-      const yaw = it.e.yaw ?? 0;
-      placeBuilding(G, it.b, px, pz, yaw, { snap: false, y: 0, foundation: false, skirt: it.e.skirt ?? true });
-      placed.push({ ...it, x: px, z: pz });
-      report.push(`${it.e.id}: ${it.b.stats.calls} calls, ${Math.round(it.b.stats.triangles)} tris`);
-      x += it.cell / 2;
-      if (ids) break;
-    }
+  }
+  // Palette swatches (plain materials in the DESIGN 5.1 colors) to calibrate the kit against the lighting.
+  if (P.get('swatch') === '1') {
+    const sw = [0x6b5a4a, 0x3b2e25, 0xf3f1ec, 0x3e5a78, 0x9a2e22, 0x8fa6c4, 0x8c8a85];
+    sw.forEach((c, i) => {
+      const m = new THREE.Mesh(new THREE.BoxGeometry(1.2, 2.4, 0.3), new THREE.MeshStandardMaterial({ color: c, roughness: 0.9 }));
+      m.position.set(-12 + i * 1.5, 1.2, 12);
+      m.castShadow = m.receiveShadow = true;
+      G.scene.add(m);
+    });
+  }
+  // Layout: rows by kind (overview), or one row for an explicit list.
+  const rows = new Map();
+  for (const it of built) {
+    const key = ids ? 'show' : it.e.row;
+    if (!rows.has(key)) rows.set(key, []);
+    rows.get(key).push(it);
+  }
+  let zRow = 0;
+  for (const [, list] of rows) {
+    const cells = list.map((it) => {
+      const fp = it.b.footprint || { hw: 5, hd: 5 };
+      const rad = Math.max(fp.hw, fp.hd) + 3;
+      return Number.isFinite(cellP) ? cellP : rad * 2;
+    });
+    const rowDepth = Math.max(...list.map((it) => Math.max((it.b.footprint?.hd ?? 5) * 2 + 6, 14)));
+    const total = cells.reduce((a, b) => a + b, 0);
+    let x = -total / 2;
+    list.forEach((it, i) => {
+      x += cells[i] / 2;
+      const p = placeBuilding(G, it.b, x, zRow, it.e.yaw ?? 0, { snap: false, y: 0, foundation: false, skirt: it.e.flat ? false : true });
+      placed.push({ ...it, x, z: zRow, p });
+      x += cells[i] / 2;
+    });
     zRow += rowDepth;
-    if (ids) break;
   }
   console.log('[architecture gallery]', `${(performance.now() - t0).toFixed(0)}ms build`, report.join(' | '));
 
-  // Optional lights from metadata.
+  // Optional point lights from metadata (fires, lanterns, ghost light) for interior shots.
   if (P.get('lights') === '1') {
-    for (const p of placed) {
-      for (const l of p.b.lights) {
-        if (l.kind !== 'hearth' && l.kind !== 'forge' && l.kind !== 'lantern') continue;
-        const pl = new THREE.PointLight(l.color, 12 * l.intensity, l.radius * 1.6, 1.6);
-        pl.position.set(l.wx ?? l.x, l.wy ?? l.y, l.wz ?? l.z);
+    let n = 0;
+    for (const it of placed) {
+      for (const l of it.p.lights) {
+        if (!['hearth', 'forge', 'fire', 'lantern', 'candle', 'ghost'].includes(l.kind) || n >= 14) continue;
+        const pl = new THREE.PointLight(l.color, 14 * l.intensity, l.radius * 1.8, 1.5);
+        pl.position.set(l.x, l.y, l.z);
         G.scene.add(pl);
+        n++;
       }
     }
   }
 
-  // Auto camera for a single entry, or an overview for everything.
+  // Auto camera: close orbit for one entry, a framing of the whole layout otherwise.
   const cam = G.camera;
   const ang = (parseFloat(P.get('ang') ?? '30') * Math.PI) / 180;
   const dist = parseFloat(P.get('dist') ?? '1');
   const hs = parseFloat(P.get('h') ?? '1');
-  if (ids && placed.length) {
+  if (placed.length === 1) {
     const box = new THREE.Box3().setFromObject(placed[0].b.group);
     const size = box.getSize(new THREE.Vector3());
     const ctr = box.getCenter(new THREE.Vector3());
@@ -132,9 +185,14 @@ export async function init(G) {
     cam.position.set(ctr.x + Math.sin(ang) * R, box.min.y + (2.0 + size.y * 0.1) * hs, ctr.z + Math.cos(ang) * R);
     cam.lookAt(ctr.x, box.min.y + size.y * 0.42, ctr.z);
     cam.fov = 45; cam.updateProjectionMatrix();
-  } else {
-    const spanX = Math.max(...placed.map((p) => Math.abs(p.x))) + 12;
-    cam.position.set(0, zRow * 0.55 + 28, zRow * 0.45 + spanX * 0.9 + 30);
-    cam.lookAt(0, 3, zRow * 0.3);
+  } else if (placed.length > 1) {
+    const box = new THREE.Box3();
+    for (const it of placed) box.expandByObject(it.b.group);
+    const size = box.getSize(new THREE.Vector3());
+    const ctr = box.getCenter(new THREE.Vector3());
+    const R = (size.x * 0.52 + size.z * 0.55) * dist + 6;
+    cam.position.set(ctr.x + Math.sin(ang * 0.3) * R * 0.3, box.min.y + 3 + R * 0.3 * hs, ctr.z + R);
+    cam.lookAt(ctr.x, box.min.y + Math.min(size.y * 0.35, 4), ctr.z);
+    cam.fov = 50; cam.updateProjectionMatrix();
   }
 }

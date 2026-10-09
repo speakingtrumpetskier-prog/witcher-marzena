@@ -1,6 +1,6 @@
 // Stingers: short finite scores played over the music on their own bus (the playing mood dips
 // a little under them). All in D so they sit on any mood.
-import { Score, roll, motif, N } from './compose.js';
+import { Score, motif, N } from './compose.js';
 import { P } from './moods/parts.js';
 
 function def(tempo, parts, write, extra = {}) {
@@ -69,8 +69,7 @@ export const STINGER_DEFS = {
   reveal: def(66, {
     war: P.war({ level: 0.62 }), gurdy: P.gurdy({ level: 0.3 }), choirF: P.choirF({ level: 0.17 }), choirM: P.choirM({ level: 0.2 }),
     voice: P.voice({ level: 0.46 }), bell: P.bell({ level: 0.3 }), frame: P.frame({ level: 0.4 }),
-  }, (S, r) => {
-    roll(S, 'frame', -0.01, 0.01, r, { v0: 0.01, v1: 0.01 });
+  }, (S) => {
     S.add('war', 0, 2, null, { v: 1 });
     S.add('bell', 0, 9, N('D3'), { v: 0.7 });
     S.ctl('gurdy', 0, { type: 'drone', p: [38, 45], v: 0.75, fade: 0.05, trompette: 50 });
