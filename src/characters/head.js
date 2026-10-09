@@ -12,7 +12,6 @@ import { M as mat, tube, blob, SPECIAL } from './geom.js';
 import { headLandmarks } from './rig.js';
 
 const V = (x, y, z) => new THREE.Vector3(x, y, z);
-const DBG = typeof location !== 'undefined' ? (new URLSearchParams(location.search).get('mzdbg') || '') : '';
 
 // ---------------------------------------------------------------- SDF primitives
 function sdEll(px, py, pz, cx, cy, cz, rx, ry, rz) {
@@ -432,7 +431,7 @@ export function buildHead(mb, rig, FP, look) {
       const g = SC.grid[gk];
       const p = g.p.clone();
       n.copy(g.n);
-      const ao = DBG.includes('noao') ? 1 : g.ao;
+      const ao = g.ao;
       const hm = scalp(p);
       const isHair = hm.mask > 0.02;
       if (isHair) p.addScaledVector(n, hm.thick * hm.mask);
@@ -444,8 +443,6 @@ export function buildHead(mb, rig, FP, look) {
       const u = j / nAz, v = (dPol[j] !== 0 && Math.abs(i - kStom) < 12 ? polW.inv(pol) : i === kStom ? tStom : polTs[i]) * vUV;
       const wp = p.clone().multiplyScalar(scale).add(pivot);
       const shade = new THREE.Color(ao, ao, ao);
-      if (DBG.includes('carve')) shade.setRGB(1, 1 - g.cv, 1 - g.cv);
-      if (DBG.includes('aoviz')) shade.setRGB(ao ** 3, ao ** 3, ao ** 3);
       const m = isHair && hm.mask > 0.5 ? hairMatD : skinMat;
       const idx = mb.vert(wp, shade, u, v, m, weightsAt(p, i, slit ? 1 : 0));
       row.push(idx);
@@ -500,15 +497,14 @@ export function hairMask(p, h) {
     // Zbyszek: bald crown, fringe around the back and sides
     const crown = smoothstep(0.13, 0.11, p.y) * smoothstep(0.6, 1.5, aa);
     const m = crown * smoothstep(line - 0.004, line + 0.01, p.y);
-    return { mask: m, thick: 0.004 };
+    return { mask: m, thick: 0.0016 };
   }
   if (h.style === 'cropped') {
     return { mask: smoothstep(line - 0.002, line + 0.006, p.y), thick: 0.0025 };
   }
   const m = smoothstep(line - 0.004, line + 0.014, p.y);
-  // volume grows toward the crown and back
-  const thick = (h.thick ?? 0.009) * (0.55 + 0.45 * smoothstep(0.06, 0.16, p.y)) * (1 + 0.25 * smoothstep(1.5, 2.8, aa));
-  return { mask: m, thick };
+  // the grid only carries the painted roots; hair.js builds the volume as a shell over it
+  return { mask: m, thick: 0.0018 };
 }
 
 function buildEyes(mb, rig, FP, S, sc, pivot, uvOf, look) {
@@ -1010,7 +1006,6 @@ export function paintFace(canvas, info, FP, look) {
   }
   // scalp hair painted on the grid region above the hairline
   paintScalp(g, info, look, W, Hh, R, css);
-  if (DBG.includes('flat')) { g.fillStyle = css(skin); g.fillRect(0, 0, W, Hh * 0.8); }
   // irises
   paintIris(g, FP, W, Hh, css, R);
 }

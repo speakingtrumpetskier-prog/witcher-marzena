@@ -1,13 +1,16 @@
 // Hair volume pieces, beards and headwear, built on the sculpted skull (head.js info).
 //
-// Scalp hair itself is part of the head grid (displaced and painted). Here: braids (three
-// helical strands on the braid spring chain), pigtails (tail chains), buns, the ghost's long
-// floating strands (aFloat), beards (shell over the jaw with a mask; full beards hang),
-// hats (fur, knit cap with rolled brim, felt cap), headscarves (tied under the chin or at the
-// nape), hoods up, and Wiesia's crown of frozen straw.
+// The head grid only carries painted roots. Here: the hair mass (a shell off the scalp laid out
+// around a flow pole, the crown whorl for loose hair or the gather point for braids and buns,
+// so the strand texture converges where hair is gathered), hairline cards that break the edge
+// (baby hairs, bangs, temple wisps, nape), braids (three helical strands on spring chains),
+// pigtails, buns, the ghost's floating strands (aFloat), beards (smooth shell plus layered
+// clump cards), hats (fur, knit cap with rolled brim, felt cap), headscarves and hoods, and
+// Wiesia's crown of frozen straw. Hair under headwear is flattened by the hat's cover test.
 import * as THREE from 'three';
 import { M as mat, tube, blob, ribbon, chainWeights, frame } from './geom.js';
 import { col, lerp, smoothstep, rng, noise1, pnoise, clamp } from './util.js';
+import { hairMask } from './head.js';
 
 const V = (x, y, z) => new THREE.Vector3(x, y, z);
 const TAU = Math.PI * 2;
@@ -17,6 +20,13 @@ export function buildHair(mb, rig, look, info) {
   const ctx = { mb, rig, look, info, M: rig.M, k: rig.M.k, sc: info.scale, pivot: info.pivot, R: rng((look.seed || 1) * 13 + 5) };
   const hairMat = mat(col(h.color || '#4a3a2c'), { tile: 'hair', rough: 0.55, fuzz: 0.45, tileU: 3, tileV: 14 });
   ctx.hairMat = hairMat;
+  const hat = look.hat;
+  ctx.hat = hatShape(hat, info);
+  const styled = h.style && !['bald', 'none', 'cropped'].includes(h.style);
+  if (styled) {
+    const shell = buildHairShell(ctx, h);
+    if (shell) buildHairCards(ctx, h, shell);
+  }
   if (h.braid || h.style === 'braid') buildBraid(ctx, h);
   if (h.style === 'pigtails') buildPigtails(ctx, h);
   if (h.style === 'bun' || h.bun) buildBun(ctx, h);
@@ -24,15 +34,225 @@ export function buildHair(mb, rig, look, info) {
   if (h.style === 'long' || h.long) buildBackHair(ctx, h);
   const b = look.beard;
   if (b && b.style !== 'none') buildBeard(ctx, b);
-  const hat = look.hat;
   if (hat) {
     if (hat.type === 'fur') buildFurHat(ctx, hat);
     else if (hat.type === 'knit') buildCap(ctx, hat, true);
     else if (hat.type === 'felt') buildCap(ctx, hat, false);
-    else if (hat.type === 'scarf') buildScarf(ctx, hat, 'chin');
-    else if (hat.type === 'kerchief') buildScarf(ctx, hat, 'nape');
-    else if (hat.type === 'hood') buildScarf(ctx, hat, 'hood');
+    else if (hat.type === 'scarf' || hat.type === 'kerchief' || hat.type === 'hood') buildScarf(ctx, hat);
     else if (hat.type === 'crown') buildCrown(ctx, hat);
+  }
+}
+
+// Headwear shapes shared by the hat builders and the hair under them. cover(p) is how far a
+// skull point (head-local) lies under the hat in meters (> 0 covered, < 0 visible).
+function hatShape(hat, info) {
+  if (!hat) return null;
+  const O = info.O;
+  const t = hat.type;
+  if (t === 'fur') return { cover: (p) => p.y - 0.106 };
+  if (t === 'knit' || t === 'felt') {
+    const knit = t === 'knit';
+    const low = hat.low ?? (knit ? 1 : 0);
+    const front = hat.edge ?? 1.05;
+    const edge = (az) => lerp(front, lerp(1.62, 1.95, low), smoothstep(0.3, 1.6, Math.abs(az))) + (knit ? 0.0 : -0.1);
+    return {
+      edge,
+      cover: (p) => {
+        const d = p.clone().sub(O);
+        return (edge(Math.atan2(d.x, d.z)) - Math.acos(clamp(d.y / d.length(), -1, 1))) * 0.1;
+      },
+    };
+  }
+  if (t === 'scarf' || t === 'kerchief' || t === 'hood') {
+    const mode = t === 'scarf' ? 'chin' : t === 'kerchief' ? 'nape' : 'hood';
+    const fwd = V(0, mode === 'nape' ? 0.1 : -0.22, 1).normalize();
+    const up = V(0, 1, 0).addScaledVector(fwd, -fwd.y).normalize();
+    const side = new THREE.Vector3().crossVectors(up, fwd).normalize();
+    const open = hat.open ?? 0;
+    // face opening: gamma_edge(psi), psi = 0 forehead, PI chin
+    const gE = (psi) => {
+      const c = Math.cos(psi);
+      if (mode === 'nape') return lerp(0.74, 1.6, smoothstep(0.3, -0.6, c)) + open * smoothstep(-0.2, 0.6, c);
+      if (mode === 'hood') return lerp(0.72, 0.98, smoothstep(0.8, -0.8, c)) + open;
+      return lerp(0.6, 0.84, smoothstep(0.9, -0.9, c)) + open;
+    };
+    const gMax = mode === 'nape' ? 2.6 : 3.0;
+    return {
+      mode, fwd, up, side, gE, gMax,
+      cover: (p) => {
+        const d = p.clone().sub(O).normalize();
+        const g = Math.acos(clamp(d.dot(fwd), -1, 1));
+        const psi = Math.atan2(d.dot(side), d.dot(up));
+        return Math.min(g - gE(psi), gMax - g) * 0.1;
+      },
+    };
+  }
+  return null;
+}
+
+// Per style: volume off the scalp (m, reference head), flow pole, groove depth, strand repeats.
+const SHELL = {
+  short: { vol: 0.0085, pole: 'crown', clump: 0.35, tileU: 9 },
+  long: { vol: 0.0095, pole: 'crown', clump: 0.3, tileU: 9 },
+  braid: { vol: 0.0042, pole: 'gather', clump: 0.22, tileU: 12 },
+  bun: { vol: 0.0045, pole: 'gather', clump: 0.22, tileU: 12 },
+  pigtails: { vol: 0.005, pole: 'crown', clump: 0.25, tileU: 10 },
+  fringe: { vol: 0.0045, pole: 'back', clump: 0.35, tileU: 9 },
+  float: { vol: 0.005, pole: 'crown', clump: 0.3, tileU: 10 },
+};
+
+function buildHairShell(ctx, h) {
+  const { mb, info, look } = ctx;
+  const cfg = { ...(SHELL[h.style] || SHELL.short), ...(h.shell || {}) };
+  if (h.thick !== undefined) cfg.vol = h.thick;
+  const det = look.detail ?? 1;
+  const nPhi = det >= 1 ? 40 : 26, nG = det >= 1 ? 12 : 8;
+  const pole = (cfg.pole === 'gather' ? V(0, -0.1, -1) : cfg.pole === 'back' ? V(0, 0.25, -1) : V(0, 1, -0.3)).normalize();
+  const e1 = V(1, 0, 0).addScaledVector(pole, -pole.x).normalize();
+  const e2 = new THREE.Vector3().crossVectors(pole, e1);
+  const dirAt = (phi, gam) => pole.clone().multiplyScalar(Math.cos(gam))
+    .addScaledVector(e1, Math.sin(gam) * Math.cos(phi)).addScaledVector(e2, Math.sin(gam) * Math.sin(phi));
+  const inRegion = (p) => hairMask(p, h).mask > 0.35;
+  // hairline crossing along each meridian from the pole
+  const edges = [];
+  for (let j = 0; j < nPhi; j++) {
+    const phi = (j / nPhi) * TAU;
+    let g = 0.04, lo = 0;
+    if (!inRegion(info.cast(dirAt(phi, g)))) { edges.push(0); continue; }
+    while (g < 3.0 && inRegion(info.cast(dirAt(phi, g)))) { lo = g; g += 0.06; }
+    let a = lo, b = Math.min(g, 3.0);
+    for (let k = 0; k < 7; k++) {
+      const m = (a + b) * 0.5;
+      if (inRegion(info.cast(dirAt(phi, m)))) a = m; else b = m;
+    }
+    edges.push((a + b) * 0.5);
+  }
+  if (!edges.some((e) => e > 0)) return null;
+  for (let it = 0; it < 2; it++) {
+    const e = edges.slice();
+    for (let j = 0; j < nPhi; j++) edges[j] = (e[(j + nPhi - 1) % nPhi] + 2 * e[j] + e[(j + 1) % nPhi]) / 4;
+  }
+  const base = col(h.color || '#4a3a2c');
+  const streak = h.streak ? col(h.streak) : null;
+  const sm = mat(base, { tile: 'hair', rough: 0.5, fuzz: 0.4, tileU: cfg.tileU, tileV: 1 });
+  const seed = (look.seed || 1) % 97;
+  const cover = ctx.hat ? ctx.hat.cover : null;
+  // which meridians carry the streak: those that reach the hairline at the streak azimuth
+  const streakW = edges.map((ge, j) => {
+    if (!streak) return 0;
+    const pe = info.cast(dirAt((j / nPhi) * TAU, ge));
+    if (pe.z < 0.02) return 0;
+    return Math.exp(-(((Math.atan2(pe.x, pe.z) - (h.streakAz ?? 0.32)) / 0.12) ** 2));
+  });
+  const nrm = new THREE.Vector3();
+  const rows = [];
+  for (let i = 0; i <= nG; i++) {
+    const tr = i / nG;
+    const row = [];
+    for (let j = 0; j <= nPhi; j++) {
+      const jj = j % nPhi;
+      const phi = (jj / nPhi) * TAU;
+      const p = info.cast(dirAt(phi, edges[jj] * tr));
+      info.grad(p, nrm);
+      let th = cfg.vol * (0.6 + 0.4 * smoothstep(0.02, 0.14, p.y)) * (1 + cfg.clump * pnoise(phi, 13, tr * 1.5, seed));
+      if (cfg.pole === 'gather') th *= 1 + 0.5 * smoothstep(0.3, 0.0, tr);
+      th = lerp(0.0017, th, smoothstep(1.0, 0.68, tr));
+      if (cover) th = lerp(th, 0.0009, smoothstep(-0.003, 0.008, cover(p)));
+      const q = p.clone().addScaledVector(nrm, th);
+      const tone = (0.82 + 0.26 * pnoise(phi, 31, 0.4, seed + 3) + 0.1 * pnoise(phi, 9, 0, seed + 5)) *
+        lerp(0.8, 1, smoothstep(0, 0.3, tr)) * lerp(1, 0.86, smoothstep(0.85, 1, tr));
+      const c = base.clone().multiplyScalar(tone);
+      if (streak && streakW[jj] > 0.01) c.lerp(streak, streakW[jj] * 0.85 * smoothstep(0.05, 0.3, tr));
+      row.push(mb.vert(toW(ctx, q), c, (j / nPhi) * cfg.tileU, tr * 1.3, sm, [['head', 1]]));
+    }
+    rows.push(row);
+  }
+  for (let i = 0; i < nG; i++) for (let j = 0; j < nPhi; j++) {
+    mb.quad(rows[i][j], rows[i + 1][j], rows[i + 1][j + 1], rows[i][j + 1]);
+  }
+  return { edges, dirAt, nPhi, cover, cfg, base, streak, streakW };
+}
+
+// Tapered cards across the hairline: the root tucks under the shell edge, the tip lies on the
+// skin, so the hairline is broken and soft instead of a hard shell edge.
+function buildHairCards(ctx, h, shell) {
+  const { mb, info, look, R } = ctx;
+  const { edges, dirAt, nPhi, cover, base } = shell;
+  if (h.style === 'float') return;
+  const det = look.detail ?? 1;
+  const pulled = h.style === 'braid' || h.style === 'bun';
+  const lenAt = (az, pe) => {
+    const aa = Math.abs(az);
+    const nape = aa > 2.1 && pe.y < 0.06;
+    if (h.style === 'fringe') return aa < 0.9 ? 0 : nape ? 0.01 + R() * 0.012 : 0.006 + R() * 0.01;
+    if (pulled) {
+      if (aa < 1.0) return 0.003 + R() * 0.005;
+      if (aa < 1.7) return 0.005 + R() * 0.008;
+      return nape ? 0.005 + R() * 0.01 : 0.003 + R() * 0.005;
+    }
+    if (aa < 0.8) return (h.bangs ?? 0.012) * (0.55 + R() * 0.6);
+    if (aa < 1.7) return 0.008 + R() * 0.01;
+    return nape ? 0.014 + R() * 0.018 : 0.008 + R() * 0.01;
+  };
+  const cards = [];
+  const n = Math.round((det >= 1 ? 80 : 36) * (h.cards ?? 1));
+  for (let k = 0; k < n; k++) cards.push({ phi: R() * TAU });
+  // loose strands escaping at the temples (gathered styles)
+  for (let k = 0; k < (h.wisps ?? 0); k++) cards.push({ wisp: true, az: (k % 2 ? 1 : -1) * (0.95 + R() * 0.25) });
+  const nrm = new THREE.Vector3();
+  const edgeAt = (phi) => {
+    const jf = ((phi / TAU) * nPhi + nPhi) % nPhi;
+    const j0 = Math.floor(jf), j1 = (j0 + 1) % nPhi;
+    return lerp(edges[j0], edges[j1], jf - j0);
+  };
+  for (const cd of cards) {
+    let phi = cd.phi;
+    if (cd.wisp) {
+      // find the meridian whose hairline point sits at the wanted azimuth
+      let best = 0, bd = 9;
+      for (let j = 0; j < 64; j++) {
+        const ph = (j / 64) * TAU;
+        const pe = info.cast(dirAt(ph, edgeAt(ph)));
+        if (pe.z < 0) continue;
+        const d = Math.abs(Math.atan2(pe.x, pe.z) - cd.az);
+        if (d < bd) { bd = d; best = ph; }
+      }
+      phi = best;
+    }
+    const ge = edgeAt(phi);
+    if (ge <= 0) continue;
+    const pe = info.cast(dirAt(phi, ge));
+    const az = Math.atan2(pe.x, pe.z);
+    let L = cd.wisp ? 0.05 + R() * 0.03 : lenAt(az, pe);
+    if (L <= 0) continue;
+    // keep bangs and baby hairs off the brows and eyes
+    if (Math.abs(az) < 1.0 && pe.z > 0.03) L = Math.min(L, Math.max(0, (pe.y - 0.1) * 1.1));
+    if (L < 0.002) continue;
+    const r = pe.distanceTo(info.O);
+    const g0 = ge - (0.01 + R() * 0.01) / r, g1 = ge + L / r;
+    const nSeg = L > 0.025 ? 6 : 3;
+    const pts = [], nrms = [], widths = [];
+    let vis = !cover;
+    const w0 = (cd.wisp ? 0.0035 : 0.006 + R() * 0.006) * ctx.sc;
+    for (let s = 0; s <= nSeg; s++) {
+      const t = s / nSeg;
+      const p = info.cast(dirAt(phi, lerp(g0, g1, t)));
+      info.grad(p, nrm);
+      if (cover && t > 0.4 && cover(p) < -0.002) vis = true;
+      const lift = cd.wisp ? lerp(0.0022, 0.004, t) : lerp(0.0024, 0.0006, t);
+      pts.push(toW(ctx, p.clone().addScaledVector(nrm, lift)));
+      nrms.push(nrm.clone());
+      widths.push(w0 * Math.sin(lerp(0.25, 1, Math.min(1, t * 2.5)) * Math.PI * 0.5) * Math.pow(1 - t * 0.92, 0.9));
+    }
+    if (!vis) continue;
+    const sides = pts.map((p, i) => {
+      const a = pts[Math.max(0, i - 1)], b = pts[Math.min(pts.length - 1, i + 1)];
+      return b.clone().sub(a).normalize().cross(nrms[i]).normalize();
+    });
+    const tone = 0.78 + R() * 0.3;
+    const c0 = base.clone().multiplyScalar(tone);
+    ribbon(mb, pts, sides, widths, mat(c0, { tile: 'hair', rough: 0.5, fuzz: 0.4, tileU: 1, tileV: 6 }), () => [['head', 1]],
+      { color: (i) => c0.clone().multiplyScalar(lerp(0.85, 1.08, i / nSeg)) });
   }
 }
 
@@ -282,12 +502,8 @@ function buildFurHat(ctx, hat) {
 function buildCap(ctx, hat, knit) {
   const { mb, k, pivot } = ctx;
   const cm = mat(col(hat.color || '#9a2e22'), { tile: knit ? 'knit' : 'wool', rough: 0.95, fuzz: knit ? 0.6 : 0.4, tileU: 10, tileV: 10 });
-  const low = hat.low ?? (knit ? 1 : 0);
   // edge: forehead in front, over/under the ears, the nape at the back
-  const edge = (az) => {
-    const aa = Math.abs(az);
-    return lerp(1.05, lerp(1.62, 1.95, low), smoothstep(0.3, 1.6, aa)) + (knit ? 0.0 : -0.1);
-  };
+  const edge = ctx.hat.edge;
   const rows = topShell(ctx, {
     nAz: 24, nPol: 9, mat: cm, edge,
     thick: (p, az, pol, t) => 0.012 + (hat.slouch ?? 0.01) * (1 - t) * (knit ? 1 : 0.4),
@@ -318,21 +534,11 @@ function buildCap(ctx, hat, knit) {
 }
 
 // Headscarves and hoods: a shell around the face opening.
-function buildScarf(ctx, hat, mode) {
+function buildScarf(ctx, hat) {
   const { mb, info, k, R } = ctx;
   const S = info.S;
   const sm = mat(col(hat.color || '#7a746a'), { tile: hat.tile || 'wool', rough: 0.92, fuzz: 0.45, tileU: 8, tileV: 8 });
-  const fwd = V(0, mode === 'nape' ? 0.1 : -0.22, 1).normalize();
-  const up = V(0, 1, 0).addScaledVector(fwd, -fwd.y).normalize();
-  const side = new THREE.Vector3().crossVectors(up, fwd).normalize();
-  // face opening: gamma_edge(psi), psi = 0 forehead, PI chin
-  const gE = (psi) => {
-    const c = Math.cos(psi);
-    if (mode === 'nape') return lerp(0.74, 1.6, smoothstep(0.3, -0.6, c));
-    if (mode === 'hood') return lerp(0.72, 0.98, smoothstep(0.8, -0.8, c));
-    return lerp(0.6, 0.84, smoothstep(0.9, -0.9, c)) + (hat.open ?? 0);
-  };
-  const gMax = mode === 'nape' ? 2.6 : 3.0;
+  const { mode, fwd, up, side, gE, gMax } = ctx.hat;
   const nPsi = 28, nG = 12;
   const n = new THREE.Vector3();
   const rows = [];

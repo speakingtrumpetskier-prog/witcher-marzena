@@ -99,8 +99,6 @@ function resolveLook(spec, M) {
   }
   const hatT = spec.hat?.type;
   if (hatT === 'scarf' || hatT === 'kerchief' || hatT === 'hood' || (hatT === 'knit' && (spec.hat.low ?? 1) > 0.5)) look.hideEars = true;
-  // hair is flattened under anything that covers the skull
-  if (hatT && hatT !== 'crown' && hatT !== 'fur') look.hair = { ...look.hair, thick: 0.0015 };
   return look;
 }
 
