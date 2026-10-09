@@ -8,7 +8,7 @@
 //   interiors  the *In material twins (floors, furniture) of each building are separate meshes that are only
 //              drawn within 52 m of the viewer (from afar they sit behind walls); hidden meshes also leave the
 //              shadow passes.
-//   far houses log houses and outbuildings beyond ~110 m from the viewer swap to a box-and-gable proxy
+//   far houses log houses and outbuildings beyond ~125 m (high), 95 (medium), 70 (low) from the viewer swap to a box-and-gable proxy
 //              (snowy roof, dark walls, 30 triangles instead of 15 to 25k). Heroes, huts and linear pieces
 //              always stay detailed. ?lodfar=N changes the distance, ?nolod turns the swap off.
 import * as THREE from 'three';
@@ -34,7 +34,7 @@ function proxyGeometry(rec) {
   const roof = info.roof;
   const X = roof.X, Z = roof.Z;
   const yEaveTop = roof.topY(X, 0) + lift, ridge = roof.ridgeY + lift;
-  const wall = new THREE.Color(0x5e4a3a), shade = new THREE.Color(0x45362b), snow = new THREE.Color(0xe9eef7), under = new THREE.Color(0x4a3a2e);
+  const wall = new THREE.Color(0x40332a), shade = new THREE.Color(0x2e241d), snow = new THREE.Color(0xe9eef7), under = new THREE.Color(0x3a2e25);
   const pos = [], col = [], nor = [];
   const V3 = (x, y, z) => new THREE.Vector3(x, y, z);
   const face = (pts, color) => {
@@ -65,7 +65,7 @@ function proxyGeometry(rec) {
 export function bakeVillage(V) {
   const { G } = V;
   const lodOn = !G.params.has('nolod');
-  const FAR = parseFloat(G.params.get('lodfar') || '110');
+  const FAR = parseFloat(G.params.get('lodfar') || (G.quality === 'low' ? '70' : G.quality === 'medium' ? '95' : '125'));
   const roots = [];
   for (const r of V.placed) {
     const lod = lodOn && (r.meta.house || r.meta.outbuilding) && !r.meta.hero && !!r.b.info?.roof && r.kind !== 'boathouse';
