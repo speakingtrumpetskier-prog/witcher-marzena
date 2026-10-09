@@ -446,6 +446,21 @@ function genClay(seed) {
   });
 }
 
+
+// Coal / embers: near-black with bright orange cracks (used as both map and emissive map).
+function genCoal(seed) {
+  const S = 128;
+  return bake(S, S, (u, v, o) => {
+    const n = fbm(u * 6, v * 6, 6, 6, seed, 4);
+    const crack = sstep(0.09, 0.0, Math.abs(fbm(u * 5, v * 5, 5, 5, seed + 3, 3) - 0.5));
+    const hot = crack * (0.5 + 0.5 * vn(u * 9, v * 9, 9, 9, seed + 5));
+    o.r = 0.07 + n * 0.1 + hot * 1.0;
+    o.g = 0.06 + n * 0.08 + hot * 0.45;
+    o.b = 0.06 + n * 0.06 + hot * 0.1;
+    o.h = n * 0.8;
+  });
+}
+
 // ---------------------------------------------------------------------------------------------
 // Folk textile atlas: 4 x 2 cells of cross-stitch style patterns in 1024 x 512.
 // Cell order: 0 rhomb rug, 1 zigzag kilim, 2 star tapestry, 3 tooth-border runner,
@@ -579,6 +594,7 @@ export const tex = {
   paint: (seed = 16) => memo('paint' + seed, () => genPaint(seed)),
   fish: (seed = 17) => memo('fish' + seed, () => genFish(seed)),
   clay: (seed = 18) => memo('clay' + seed, () => genClay(seed)),
+  coal: (seed = 20) => memo('coal' + seed, () => genCoal(seed)),
   folk: (seed = 19) => memo('folk' + seed, () => genFolk(seed)),
 };
 
