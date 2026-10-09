@@ -533,10 +533,10 @@ export function computeHeight(x, z, info) {
     let mw = ss(1.15, 0.75, me) * ss(-50, -8, sd < 0 ? sd : 0);
     if (sd >= 0) mw = ss(1.15, 0.75, me);
     if (mw > 0) {
-      const n1 = fbm2(x * 0.042 + 1.7, z * 0.042 - 3.1, 3) + 0.3 * noise2(x * 0.12, z * 0.12);
-      const wet = 0.38 * (1 - ss(-12, 70, sd)) - 0.12;
+      const n1 = fbm2(x * 0.07 + 1.7, z * 0.07 - 3.1, 3) + 0.35 * noise2(x * 0.19, z * 0.19);
+      const wet = 0.38 * (1 - ss(-12, 70, sd)) - 0.14;
       const v = n1 + wet;
-      const land = 0.3 + 0.22 * Math.max(0, -v) + 0.06 * noise2(x * 0.3, z * 0.3);
+      const land = 0.16 + 0.2 * Math.max(0, -v) + 0.06 * noise2(x * 0.3, z * 0.3);
       const marshH = mix(land, -0.9 - 0.3 * Math.max(0, v), ss(-0.07, 0.1, v));
       h = mix(h, marshH, mw);
     }

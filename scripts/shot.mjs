@@ -54,7 +54,8 @@ if (!shots.length) {
 let server = null;
 let base = opts.server;
 if (!base) {
-  server = await createServer({ root: ROOT, logLevel: 'error', server: { port: 0, host: '127.0.0.1' } });
+  // No HMR or file watching: other builders edit files concurrently and a reload would land mid-capture.
+  server = await createServer({ root: ROOT, logLevel: 'error', server: { port: 0, host: '127.0.0.1', hmr: false, watch: null } });
   await server.listen();
   const addr = server.httpServer.address();
   base = `http://127.0.0.1:${addr.port}`;

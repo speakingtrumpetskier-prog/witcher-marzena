@@ -47,7 +47,7 @@ export class NoteView {
     const sheet = h('div', { class: `mz-sheet kind-${kind}` }, paper, h('div', { class: 'grain', style: { backgroundImage: `url(${grainURL()})` } }), inner);
     sheet.style.clipPath = tornClip(seed, 28, kind === 'carving' || kind === 'inscription' ? 0.25 : 0.8);
     const hint = h('div', { class: 'mz-sheet-hint' }, h('span', { class: 'mz-key' }, 'E'), h('span', null, 'Close'));
-    const wrap = h('div', { class: 'mz-sheetwrap' }, h('div', { class: 'under-shadow' }), sheet, hint);
+    const wrap = h('div', { class: 'mz-sheetwrap' }, h('div', { class: 'mz-sheetbox' }, h('div', { class: 'under-shadow' }), sheet), hint);
     const el = h('div', { class: 'mz-notemodal' }, wrap);
 
     const born = performance.now();

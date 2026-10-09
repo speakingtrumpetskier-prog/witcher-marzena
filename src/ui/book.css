@@ -29,6 +29,7 @@
   background: radial-gradient(ellipse at center, rgba(7, 9, 13, 0.55), rgba(3, 4, 7, 0.86)); backdrop-filter: blur(4px) saturate(0.85);
 }
 .mz-sheetwrap { position: relative; width: min(580px, 90vw); transform: translateY(14px) rotate(-0.4deg); transition: transform 0.7s var(--mz-ease); }
+.mz-sheetbox { position: relative; }
 .mz-sheetwrap .under-shadow, .mz-map-wrap .under-shadow { position: absolute; inset: 3% 2% 1%; box-shadow: 0 26px 48px rgba(0, 0, 0, 0.7), 0 3px 6px rgba(0, 0, 0, 0.5); pointer-events: none; }
 .mz-modal.on .mz-sheetwrap { transform: rotate(-0.4deg); }
 .mz-sheet { position: relative; color: var(--ink); max-height: 84vh; }
@@ -43,7 +44,7 @@
 .mz-sheet-hint { display: flex; justify-content: center; align-items: center; gap: 10px; margin-top: 22px; font-family: var(--mz-serif); font-size: 15px; letter-spacing: 0.22em; text-transform: uppercase; color: rgba(240, 232, 218, 0.7); filter: none; }
 .mz-sheet-hint .mz-key { height: 24px; min-width: 24px; font-size: 14px; }
 
-.mz-sheet.kind-diary .body p strong { font-style: normal; font-weight: 600; font-size: 0.66em; letter-spacing: 0.22em; text-transform: uppercase; color: var(--ink-red); margin-right: 0.3em; }
+.mz-sheet.kind-diary .body p strong { font-variant-numeric: lining-nums; font-style: normal; font-weight: 600; font-size: 0.66em; letter-spacing: 0.22em; text-transform: uppercase; color: var(--ink-red); margin-right: 0.3em; }
 .mz-sheet.kind-ledger .body p.row { display: flex; align-items: baseline; gap: 8px; font-style: normal; font-weight: 600; margin-bottom: 0.4em; }
 .mz-sheet.kind-ledger .body .lk { font-size: 0.92em; }
 .mz-sheet.kind-ledger .body .dots { flex: 1; border-bottom: 1.5px dotted rgba(42, 30, 20, 0.45); transform: translateY(-4px); }

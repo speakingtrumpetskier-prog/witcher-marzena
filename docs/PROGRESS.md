@@ -15,7 +15,7 @@ catches issues, and fixes them or sends a targeted fix back to the builder. No c
 | 1 | Architecture kit | sonnet | building | 0 | |
 | 1 | Props kit and FX | sonnet | done, reviewed | 1 | 74 props, pooled FX (fire, smoke, steam, sparks, wisps, breath), PropBatch merging; lead fixed the Collision yaw convention both kits worked around |
 | 2 | Player, camera, horse riding | sonnet | waits for characters | | |
-| 2 | UI | sonnet | building | 0 | started early, no dependencies |
+| 2 | UI | sonnet | done, reviewed | 1 | HUD, compass, subtitles, barks, choices, journal, parchment map, notes, pause, settings, title, credits |
 | 2 | Dialogue, cutscene director, quests, interaction, senses, flow | opus (single agent, resumed) | building | 0 | critics on Sonnet after it reports |
 | 2 | NPCs and animals | sonnet | waits for characters | | |
 | 2 | Combat and creatures | sonnet | waits for characters | | |
@@ -23,3 +23,10 @@ catches issues, and fixes them or sends a targeted fix back to the builder. No c
 | 3 | Writing and cutscene scripts | | pending | | |
 
 Model policy (user request): Part Two and later run on Sonnet 5.5, except a single long-running builder may stay on Opus (the story systems builder).
+
+## Polish list (lead, integration pass)
+- UI: distant barks low contrast over grey trees (strengthen shadow/scrim for barks).
+- UI: map lake label BELLMERE collides with the Stone Circle Isle label.
+- UI: retune the title camera path once the village and locations exist.
+- Props: 128 px textures tile at close range; effigies read a little doll-like (bigger straw silhouette, rougher hem).
+- Audio: needs a human listen (voice synthesis is the risk).

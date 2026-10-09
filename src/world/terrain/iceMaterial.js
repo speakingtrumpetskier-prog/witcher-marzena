@@ -54,7 +54,8 @@ const SHADE = /* glsl */ `
   vec3 wp = vMzIceWP;
   vec2 xz = wp.xz;
   float th = mzHeight(xz);
-  float depth = wp.y - th;
+  // Contour jitter below the grid cell size keeps shorelines ragged instead of polygonal.
+  float depth = wp.y - th + (mzNoiseK(xz + 2.0, 1.3).r - 0.5) * 0.22;
   if (depth < 0.05) discard;
   #ifdef MZ_RIVER
     // Trim the ribbon to the channel with a ragged, frosted edge.
