@@ -317,6 +317,19 @@ Director `d`: `setup({ time, weather, music, letterbox })`, `actor(id, { preset,
 Holding Space skips: timed awaits resolve instantly and shots jump, so the script runs to its
 end state; skipping stops at `choice()`.
 
+#### Story systems as built (additions to the contracts above)
+- `G.dialogue.start(id, opts)` returns `{ end, picks: [{ node, i, t }] }`. Options: `actors`, `start` (node), `noStage`, `walkIn`, `camera: false`, `letterbox: false`. Node extras: `t`, `next`, `else` may be functions; `do(S, D)` with `D.actor(id)`; `italic`, `wait`, `react: { id: clip }`. Emits `dialogue:line`. Picked `once` choices persist in `G.state.data.dlg`.
+- `G.cutscenes.play(id | fn, { actors, skippable, letterbox })` returns `{ skipped, picks }`; also `register`, `skip`, `has`. Clock frozen and `weather.auto` off during a cutscene. Point formats: `[x, y, z]`, `{ x, z, h }` (h above ground), an actor, `d.rel(actor, [right, up, forward])`, or a function. Orbit angle 0 is south (+Z). `d.follow(..., 0)` follows until the next camera call. Extras: `d.two`, `d.ots`, `d.close`, `d.single` (dialogue framings), `d.face`, `d.flag`, `d.ghost` (pale turquoise echo look), `d.dialogue`, `d.atmosphere`, `d.end({ player, camera, fadeIn, weatherAuto })`. `d.titleCard(title, sub, dur = 5)`.
+- Quest stage fields: `objective`, `marker`, `journal` (logged on stage start), `log` (logged on completion), parallel `objectives`, `done(S, G)`, `reach`, `sets`, `give`, `debug`. Methods add `next`, `list`, `quiet`.
+- `G.interact.use(id)`, `priority`. `G.senses.force(v)`, `pulse()`; clues take `cutscene` and `line`; emits `clue:examine`, `clue:reveal`.
+- `G.story`: `zone`, `removeZone`, `rest`, `save`, `load`, `newGame`, `continueGame`, `debugStart`, `place`, `busy`. URL: `start=quest:stage`, `sspeed`, `dspeed`, `autopick`, `nostory`.
+- Player contract from the story side: while `setControl(false)` the player must not move the character root; the story copies the actor's position and yaw into `G.player` during scenes and calls `teleport(x, z, yaw)` at scene end.
+
+#### Writer cookbook
+- Dialogue: follow `content/dialogues/_sample.js`; set `cast`; let the camera choose shots and only set `cam: 'close'` for a beat that must be close; decisive nodes use `decisive: true, timer: 12, timeout: '<node>'`.
+- Cutscene: `d.setup({ time, weather, music })`, then `const v = d.player(), h = d.actor('hanka', { at, yaw })`; `d.face` people before close-ups; `d.cut(d.ots(h, v)); await d.say(h, '...')`; walks: `const w = d.walk(...)`, `d.follow(..., 0)`, `await w`; set flags with `d.flag` so a skip reaches the same end state.
+- Echo clue: `G.senses.addClue({ kind: 'echo', pos, cutscene: 'c4_echo' })`.
+
 ### Quests (`G.quests`; src/story/Quests.js, story systems builder)
 Definitions in `src/story/content/quests.js`. API: `start(id, stage?)`, `advance(id, stage)`,
 `complete(id)`, `fail(id)`, `stage(id)`, `isActive(id)`, `track(id)`, `objectives()` (for the

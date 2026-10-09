@@ -14,7 +14,7 @@ import { buildSnag, SNAG_VARIANTS } from './snag.js';
 import { buildJuniper, buildSnowBush, JUNIPER_VARIANTS, SNOWBUSH_VARIANTS } from './bushes.js';
 import { buildLog, buildStump, LOG_VARIANTS, STUMP_VARIANTS } from './deadwood.js';
 import { buildGrass, buildReed, GRASS_VARIANTS, REED_VARIANTS } from './ground.js';
-import { birchAtlas } from './textures.js';
+import { birchAtlas, needleAtlas } from './textures.js';
 
 // builder(lod) returns { parts: [{ geometry, mode, ... }], height, radius, trunkR }
 function makeKind(def, builder, lodCount) {
@@ -36,26 +36,26 @@ function makeKind(def, builder, lodCount) {
         strength: def.windStrength ?? 1,
         height: out.windHeight ?? Math.max(1.2, out.height),
       };
-      const map = p.card ? birchAtlas() : undefined;
-      const alphaTest = p.haze ? 0.03 : p.card ? 0.32 : 0;
+      const map = p.tex === 'needle' ? needleAtlas() : p.card ? birchAtlas() : undefined;
+      const alphaTest = p.haze ? 0.03 : p.tex === 'needle' ? 0.42 : p.card ? 0.32 : 0;
       const material = makeVegMaterial({ mode: p.mode || 'foliage', wind, lod: lu, map, alphaTest, springColor: def.springColor, transparent: !!p.haze });
       const depth = makeDepthMaterial(wind, { map, alphaTest: p.haze ? 0.3 : alphaTest });
-      return { geometry: p.geometry, material, depth, noShadow: !!p.noShadow, leaves: !!p.leaves, mode: p.mode || 'foliage', card: !!p.card, haze: !!p.haze };
+      return { geometry: p.geometry, material, depth, noShadow: !!p.noShadow, leaves: !!p.leaves, mode: p.mode || 'foliage', card: !!p.card, haze: !!p.haze, tex: p.tex || null };
     });
     kind.lods.push({ parts });
   }
   return kind;
 }
 
-const single = (o, mode) => ({ parts: [{ geometry: o.geometry, mode }], height: o.height, radius: o.radius, trunkR: o.trunkR, windHeight: o.windHeight });
+const single = (o, mode, tex = null) => ({ parts: [{ geometry: o.geometry, mode, tex }], height: o.height, radius: o.radius, trunkR: o.trunkR, windHeight: o.windHeight });
 
 export function createKinds() {
   const kinds = [];
   for (const v of SPRUCE_VARIANTS) {
-    kinds.push(makeKind({ id: v.id, species: 'spruce', impostor: true, variant: v }, (l) => single(buildSpruce(v, l), 'foliage'), 3));
+    kinds.push(makeKind({ id: v.id, species: 'spruce', impostor: true, variant: v }, (l) => (l === 0 ? single(buildSpruce(v, l), 'needles', 'needle') : single(buildSpruce(v, l), 'foliage')), 3));
   }
   for (const v of PINE_VARIANTS) {
-    kinds.push(makeKind({ id: v.id, species: 'pine', impostor: true, variant: v }, (l) => single(buildPine(v, l), 'foliage'), 3));
+    kinds.push(makeKind({ id: v.id, species: 'pine', impostor: true, variant: v }, (l) => (l === 0 ? single(buildPine(v, l), 'needles', 'needle') : single(buildPine(v, l), 'foliage')), 3));
   }
   for (const v of BIRCH_VARIANTS) {
     kinds.push(makeKind({ id: v.id, species: 'birch', impostor: true, variant: v }, (l) => buildBirch(v, l), 3));
@@ -64,7 +64,7 @@ export function createKinds() {
     kinds.push(makeKind({ id: v.id, species: 'snag', impostor: true, variant: v }, (l) => single(buildSnag(v, l), 'bark'), 3));
   }
   for (const v of SAPLING_VARIANTS) {
-    kinds.push(makeKind({ id: v.id, species: 'sapling', group: 'bush', variant: v }, (l) => single({ ...buildSpruce(v, l), trunkR: 0 }, 'foliage'), 2));
+    kinds.push(makeKind({ id: v.id, species: 'sapling', group: 'bush', variant: v }, (l) => (l === 0 ? single({ ...buildSpruce(v, l), trunkR: 0 }, 'needles', 'needle') : single({ ...buildSpruce(v, l), trunkR: 0 }, 'foliage')), 2));
   }
   for (const v of JUNIPER_VARIANTS) {
     kinds.push(makeKind({ id: v.id, species: 'juniper', group: 'bush', variant: v }, (l) => single(buildJuniper(v, l), 'foliage'), 2));

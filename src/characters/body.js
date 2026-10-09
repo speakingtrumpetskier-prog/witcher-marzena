@@ -8,7 +8,7 @@
 import * as THREE from 'three';
 import { M as mat, tube, chainWeights, frame } from './geom.js';
 import { armJoints, legJoints } from './rig.js';
-import { col, clamp, lerp, smoothstep, rng, noise1 } from './util.js';
+import { col, clamp, lerp, smoothstep, rng, noise1, pnoise } from './util.js';
 import { buildGear } from './gear.js';
 import { TILE } from './textures.js';
 
@@ -94,7 +94,7 @@ export function torsoWeights(ctx, p) {
 }
 
 function foldNoise(seed, amp) {
-  return (th, y) => 1 + amp * (noise1(th * 3.1 + y * 9.0, seed) * 0.6 + noise1(th * 7.3 - y * 4.0, seed + 5) * 0.4);
+  return (th, y) => 1 + amp * (pnoise(th, 3.1, y * 9.0, seed) * 0.6 + pnoise(th, 7.3, -y * 4.0, seed + 5) * 0.4);
 }
 
 function buildTorso(ctx) {
@@ -204,7 +204,7 @@ function buildSleeves(ctx) {
       const ell = i === 0 ? 0.74 : i === 1 ? 0.84 : 1;
       const c = i <= 1 ? P.c.clone().addScaledVector(f.b, P.r * (1 - ell) * 0.9) : P.c;
       return { c, a: f.a, b: f.b, ra: P.r, rb: P.r * ell, wts: P.w, sv: sOf(P.c),
-        r: (th) => 1 + 0.05 * noise1(th * 2.7 + i * 1.3, s * 3 + 1) + (i === 4 ? 0.06 * Math.max(0, -Math.cos(th)) : 0) };
+        r: (th) => 1 + 0.05 * pnoise(th, 2.7, i * 1.3, s * 3 + 1) + (i === 4 ? 0.06 * Math.max(0, -Math.cos(th)) : 0) };
     });
     tube(mb, {
       rings, seg: ctx.seg(12), mat: gm,
@@ -352,7 +352,7 @@ function buildLegs(ctx) {
         const nxt = legPts[Math.min(i + 1, legPts.length - 1)].c, prv = legPts[Math.max(i - 1, 0)].c;
         const f = frame(prv.clone().sub(nxt), V(0, 0, 1));
         return { c: P.c, a: f.a, b: f.b, ra: P.r * 1.04, rb: P.r, n: 2.1, y: P.c.y,
-          r: (th) => 1 + 0.035 * noise1(th * 3 + i, s * 5 + 2) * (tr.tile === 'linen' ? 2 : 1) };
+          r: (th) => 1 + 0.035 * pnoise(th, 3, i, s * 5 + 2) * (tr.tile === 'linen' ? 2 : 1) };
       });
       const joints = [{ name: 'thigh' + S, s: L.knee.y + 0.0 }, { name: 'shin' + S, s: L.knee.y }];
       tube(mb, {
@@ -396,7 +396,7 @@ function buildBoot(ctx, s, S, L, boots, bootTop) {
     const c = L.ankle.clone().lerp(L.knee, tk);
     const r = lerp(topR, M.calfR * 0.78 + 0.005, smoothstep(0, 1, t));
     rings.push({ c, a: V(0, 0, 1), b: V(1, 0, 0), ra: r * 1.02, rb: r, y,
-      r: (th) => 1 + (boots.wrapped ? 0.04 * Math.sin(th * 2 + i * 2.2) : 0.015 * noise1(th * 4 + i, s)) });
+      r: (th) => 1 + (boots.wrapped ? 0.04 * Math.sin(th * 2 + i * 2.2) : 0.015 * pnoise(th, 4, i, s)) });
   }
   tube(mb, {
     rings, seg: ctx.seg(12), mat: bm,
@@ -494,7 +494,7 @@ function buildSkirts(ctx) {
     };
     const folds = (th, y) => {
       const t = smoothstep(top, hem, y);
-      return 1 + t * (0.05 * Math.sin(th * (g.pleats ?? 9) + noise1(y * 6, 3) * 2) + 0.03 * noise1(th * 5 + y * 3, 7));
+      return 1 + t * (0.05 * Math.sin(th * (g.pleats ?? 9) + noise1(y * 6, 3) * 2) + 0.03 * pnoise(th, 5, y * 3, 7));
     };
     const panels = [];
     if (P.apron) {

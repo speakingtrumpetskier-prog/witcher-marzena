@@ -513,23 +513,25 @@ export async function placeFarRing(G, kinds, opts = {}) {
       const h = hAt(x, z);
       if (h > 405 || h < 1) continue;
       const sl = Math.sqrt((hAt(x + 18, z) - hAt(x - 18, z)) ** 2 + (hAt(x, z + 18) - hAt(x, z - 18)) ** 2) / 36;
-      if (sl > 1.05) continue;
+      if (sl > 0.85) continue;
       const F = macroForest(x, z) * 0.9 + 0.12;
-      let D = smoothstep(0.24, 0.72, F) * (1 - smoothstep(260, 395, h)) * (1 - smoothstep(0.55, 1.0, sl));
+      let D = smoothstep(0.36, 0.62, F) * (1 - smoothstep(220, 340, h)) * (1 - smoothstep(0.45, 0.85, sl));
       D *= 1 - 0.9 * smoothstep(0.3, 0.52, N.fbm2(x / 90 + 5, z / 90 + 9, 2));
-      D *= dens;
+      // coherent canopy masses: no thin tails of isolated trees on open slopes
+      if (D < 0.4) continue;
+      D = Math.min(1, D * 1.3) * dens;
       if (rn() >= D) continue;
       const B = macroBirch(x, z, h);
       const u = rn();
       let ki;
       if (u < 0.1 + 0.2 * smoothstep(90, 250, h)) ki = pickVar(pineIdx, pineIdx.map(() => 1));
-      else if (u < 0.1 + B * 0.5 && B > 0.35 && h < 130) ki = pickVar(birchIdx, birchIdx.map(() => 1));
+      else if (u < 0.1 + B * 0.3 && B > 0.45 && h < 130) ki = pickVar(birchIdx, birchIdx.map(() => 1));
       else ki = pickVar(spruceIdx, [1, 0.9, 0.5, 0.2, 0.7, 0.8]);
       const stunt = lerp(1, 0.4, smoothstep(160, 335, h));
       // one billboard stands for a clump of trees: wider and slightly taller than a single tree
       const s = lerp(0.8, 1.15, rn()) * stunt * 1.1;
       tint(rn, 0.9, 0.3, col);
-      far.push({ k: ki, x, y: h - 1.0 - sl * 3, z, sx: s * (1.35 + rn() * 0.3), sy: s, r: col[0], g: col[1], b: col[2], view: rn() < 0.5 ? 0 : 1 });
+      far.push({ k: ki, x, y: h - 1.0 - sl * 3, z, sx: s * (1.5 + rn() * 0.3), sy: s, r: col[0], g: col[1], b: col[2], view: rn() < 0.5 ? 0 : 1 });
     }
   }
   return far;

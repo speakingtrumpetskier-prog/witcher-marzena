@@ -34,7 +34,37 @@ const toSRGB = (c) => (c <= 0.0031308 ? 12.92 * c : 1.055 * Math.pow(c, 1 / 2.4)
 const LUT = new Float32Array(256);
 for (let i = 0; i < 256; i++) { const c = i / 255; LUT[i] = c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4); }
 
-function rasterTile(parts, fw, fh, yaw, snow, spring, cardData) {
+// Box prefilter of an RGBA image (alpha weighted color) so the bake samples a smooth coverage instead
+// of aliasing single needle strokes when a branch card is minified to a few pixels.
+const _pre = new Map();
+function prefilter(img, f) {
+  const key = img;
+  let m = _pre.get(key);
+  if (!m) _pre.set(key, (m = new Map()));
+  if (m.has(f)) return m.get(f);
+  const w = Math.floor(img.width / f), h = Math.floor(img.height / f);
+  const data = new Uint8ClampedArray(w * h * 4);
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      let r = 0, g = 0, b = 0, a = 0;
+      for (let j = 0; j < f; j++) {
+        for (let i = 0; i < f; i++) {
+          const o = ((y * f + j) * img.width + x * f + i) * 4;
+          const al = img.data[o + 3];
+          r += img.data[o] * al; g += img.data[o + 1] * al; b += img.data[o + 2] * al; a += al;
+        }
+      }
+      const d = (y * w + x) * 4;
+      if (a > 0) { data[d] = r / a; data[d + 1] = g / a; data[d + 2] = b / a; }
+      data[d + 3] = a / (f * f);
+    }
+  }
+  const out = { width: w, height: h, data };
+  m.set(f, out);
+  return out;
+}
+
+function rasterTile(parts, fw, fh, treeH, yaw, snow, spring) {
   const SS = 2, W = TW * SS, H = TH * SS;
   const zbuf = new Float32Array(W * H).fill(-1e9);
   const col = new Float32Array(W * H * 3);
@@ -50,6 +80,8 @@ function rasterTile(parts, fw, fh, yaw, snow, spring, cardData) {
     const idx = g.index.array;
     const foliage = part.mode === 'foliage';
     const isCard = !!part.card;
+    const isNeedle = part.tex === 'needle';
+    const tdata = (isCard || isNeedle) ? prefilter(part.material.map.userData.imageData, isNeedle ? 4 : 2) : null;
     if (part.leaves && grow <= 0.001) continue;
     const n = pos.length / 3;
     const vx = new Float32Array(n), vy = new Float32Array(n), vz = new Float32Array(n), wy = new Float32Array(n);
@@ -83,25 +115,29 @@ function rasterTile(parts, fw, fh, yaw, snow, spring, cardData) {
           let r = w0 * colA[a * 3] + w1 * colA[b * 3] + w2 * colA[c * 3];
           let gg = w0 * colA[a * 3 + 1] + w1 * colA[b * 3 + 1] + w2 * colA[c * 3 + 1];
           let bb = w0 * colA[a * 3 + 2] + w1 * colA[b * 3 + 2] + w2 * colA[c * 3 + 2];
-          if (isCard) {
-            const u = w0 * uvA[a * 2] + w1 * uvA[b * 2] + w2 * uvA[c * 2];
-            const v = w0 * uvA[a * 2 + 1] + w1 * uvA[b * 2 + 1] + w2 * uvA[c * 2 + 1];
-            const tx = Math.min(cardData.width - 1, Math.max(0, Math.floor(u * cardData.width)));
-            const ty = Math.min(cardData.height - 1, Math.max(0, Math.floor((1 - v) * cardData.height)));
-            const to = (ty * cardData.width + tx) * 4;
-            const alpha = cardData.data[to + 3] / 255;
-            if (alpha < (part.haze ? 0.2 : 0.32)) continue;
-            r *= LUT[cardData.data[to]]; gg *= LUT[cardData.data[to + 1]]; bb *= LUT[cardData.data[to + 2]];
-          } else {
-            const u = w0 * uvA[a * 2] + w1 * uvA[b * 2] + w2 * uvA[c * 2];
-            const v = w0 * uvA[a * 2 + 1] + w1 * uvA[b * 2 + 1] + w2 * uvA[c * 2 + 1];
+          const yy = w0 * wy[a] + w1 * wy[b] + w2 * wy[c];
+          const yf = Math.min(1, Math.max(0, yy / treeH));
+          const u = w0 * uvA[a * 2] + w1 * uvA[b * 2] + w2 * uvA[c * 2];
+          const v = w0 * uvA[a * 2 + 1] + w1 * uvA[b * 2 + 1] + w2 * uvA[c * 2 + 1];
+          if (tdata) {
+            const tx = Math.min(tdata.width - 1, Math.max(0, Math.floor(u * tdata.width)));
+            const ty = Math.min(tdata.height - 1, Math.max(0, Math.floor((1 - v) * tdata.height)));
+            const to = (ty * tdata.width + tx) * 4;
+            const alpha = tdata.data[to + 3] / 255;
+            if (alpha < (part.haze ? 0.2 : isNeedle ? 0.3 : 0.25)) continue;
+            r *= LUT[tdata.data[to]]; gg *= LUT[tdata.data[to + 1]]; bb *= LUT[tdata.data[to + 2]];
+          }
+          if (!isCard) {
             const seed = w0 * wA[a * 2 + 1] + w1 * wA[b * 2 + 1] + w2 * wA[c * 2 + 1];
             if (foliage) {
               const tooth = hash2(Math.floor(v * 38), seed * 7.13);
               const tooth2 = hash2(Math.floor(v * 17 + 0.5), seed * 3.7);
               if (Math.abs(u) > 0.86 + 0.26 * tooth + 0.1 * tooth2 - 0.2 * v * v) continue;
             }
-            const sn = (w0 * snowA[a] + w1 * snowA[b] + w2 * snowA[c]) * snow * (front ? 1 : 0);
+            // snow dusted tops, darker skirts: a vertical gradient keeps canopy masses coherent
+            const sn = (w0 * snowA[a] + w1 * snowA[b] + w2 * snowA[c]) * snow * (front ? 1 : 0) * (0.5 + 0.9 * yf);
+            const shadeY = 0.8 + 0.3 * yf;
+            r *= shadeY; gg *= shadeY; bb *= shadeY;
             if (sn > 0.0) {
               const cl = vnoise(px * 0.05, py * 0.05) * 0.65 + vnoise(px * 0.22, py * 0.22) * 0.35;
               const m = sstep(0.3, 0.58, sn + (cl - 0.5) * 0.55);
@@ -148,7 +184,6 @@ export async function bakeImpostors(G, kinds, opts = {}) {
     }
   }
   const t0 = performance.now();
-  let cardData = null;
   imp.forEach((k, i) => {
     let maxXZ = 0, maxY = 0;
     for (const part of k.lods[0].parts) {
@@ -161,16 +196,12 @@ export async function bakeImpostors(G, kinds, opts = {}) {
   });
   for (const k of imp) {
     const parts = k.lods[0].parts;
-    if (!cardData && parts.some((p) => p.card)) {
-      const tex = parts.find((p) => p.card).material.map;
-      cardData = tex.userData.imageData || tex.image.getContext('2d').getImageData(0, 0, tex.image.width, tex.image.height);
-    }
     for (let v = 0; v < 2; v++) {
       const tile = k.imp.tile[v];
       const tx = (tile % COLS) * TW, ty = Math.floor(tile / COLS) * TH;
       const yaw = v * Math.PI * 0.5 + 0.35;
       for (let st = 0; st < 2; st++) {
-        const px = rasterTile(parts, k.imp.fw, k.imp.fh, yaw, st === 0 ? snowBake : 0, st === 0 ? 0 : 1, cardData);
+        const px = rasterTile(parts, k.imp.fw, k.imp.fh, k.height, yaw, st === 0 ? snowBake : 0, st === 0 ? 0 : 1);
         const buf = bufs[st];
         for (let y = 0; y < TH; y++) buf.set(px.subarray(y * TW * 4, (y + 1) * TW * 4), ((ty + y) * W + tx) * 4);
       }
@@ -244,7 +275,10 @@ varying vec3 vVegWPos;
 const FADE_F = /* glsl */ `
 {
   float mzIn = smoothstep(uMzLod.x, uMzLod.y, vVegLodD);
-  float mzD = fract(52.9829189 * fract(dot(gl_FragCoord.xy, vec2(0.06711056, 0.00583715))) + vVegHash);
+  int mzBx = int(mod(gl_FragCoord.x, 4.0));
+  int mzBy = int(mod(gl_FragCoord.y, 4.0));
+  float mzM[16] = float[16](0.0, 8.0, 2.0, 10.0, 12.0, 4.0, 14.0, 6.0, 3.0, 11.0, 1.0, 9.0, 15.0, 7.0, 13.0, 5.0);
+  float mzD = fract((mzM[mzBy * 4 + mzBx] + 0.5) / 16.0 + vVegHash);
   if (mzD >= mzIn) discard;
 }
 `;

@@ -13,7 +13,7 @@ import { G } from '../core/G.js';
 import { MeshBuilder, M as mat, tube, blob, ribbon, frame, SPECIAL } from './geom.js';
 import { createCharacterMaterial } from './material.js';
 import { TILE } from './textures.js';
-import { col, lerp, smoothstep, noise1, rng } from './util.js';
+import { col, lerp, smoothstep, noise1, pnoise, rng } from './util.js';
 
 const V = (x, y, z) => new THREE.Vector3(x, y, z);
 const TAU = Math.PI * 2;
@@ -106,7 +106,7 @@ function buildHorseMesh(rig, look) {
     [0.1, 0.99, 0.35, 0.3], [0.32, 1.02, 0.34, 0.27], [0.5, 1.04, 0.3, 0.23], [0.62, 1.06, 0.22, 0.17], [0.68, 1.08, 0.12, 0.1],
   ];
   const rings = sec.map(([z, y, hh, hw]) => ({ c: V(0, y, z), a: V(0, 1, 0), b: V(-1, 0, 0), ra: hh, rb: hw, n: 2.2, z,
-    r: (th) => 1 + 0.025 * noise1(th * 5 + z * 7, 3) - (Math.cos(th) > 0.8 && z > 0.3 ? 0 : 0) }));
+    r: (th) => 1 + 0.025 * pnoise(th, 5, z * 7, 3) - (Math.cos(th) > 0.8 && z > 0.3 ? 0 : 0) }));
   tube(mb, {
     rings, seg: 20, mat: bodyMat, capStart: true, capEnd: true,
     color: (ri, th, p) => {

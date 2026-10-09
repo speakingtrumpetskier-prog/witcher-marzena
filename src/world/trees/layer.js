@@ -20,11 +20,11 @@ const _e = new THREE.Euler();
 // i + 1 (centre of the fade band), bands[i] its half width. The last LOD of a kind without an
 // impostor fades out over `fadeOut` meters ending at ends[last].
 const GROUPS = {
-  tree: { ends: [22, 100, 290], bands: [5, 14, 30] },
-  bush: { ends: [30, 120], bands: [8, 0], fadeOut: 30 },
-  deadwood: { ends: [38, 115], bands: [8, 0], fadeOut: 28 },
-  ground: { ends: [20, 58], bands: [5, 0], fadeOut: 16 },
-  reed: { ends: [38, 180], bands: [8, 0], fadeOut: 40 },
+  tree: { ends: [22, 100, 290], bands: [2.5, 7, 14] },
+  bush: { ends: [30, 120], bands: [4, 0], fadeOut: 30 },
+  deadwood: { ends: [38, 115], bands: [4, 0], fadeOut: 28 },
+  ground: { ends: [20, 58], bands: [3, 0], fadeOut: 16 },
+  reed: { ends: [38, 180], bands: [4, 0], fadeOut: 40 },
 };
 
 export function composeMatrix(out, o, x, y, z, yaw, sx, sy, tiltX = 0, tiltZ = 0) {

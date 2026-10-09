@@ -6,7 +6,7 @@
 import * as THREE from 'three';
 import { M as mat, tube, blob, ribbon, frame, SPECIAL } from './geom.js';
 import { garmentMat, torsoWeights } from './body.js';
-import { col, lerp, smoothstep, noise1 } from './util.js';
+import { col, lerp, smoothstep, noise1, pnoise } from './util.js';
 import { TILE } from './textures.js';
 
 const V = (x, y, z) => new THREE.Vector3(x, y, z);
@@ -135,7 +135,7 @@ function buildShawl(ctx, sh) {
   tube(mb, {
     rings, seg: 22, mat: gm,
     r: undefined,
-    color: (ri, th) => gm.color.clone().multiplyScalar(0.88 + 0.12 * noise1(th * 6 + ri, 4)),
+    color: (ri, th) => gm.color.clone().multiplyScalar(0.88 + 0.12 * pnoise(th, 6, ri, 4)),
     weights: (ri, th, p) => {
       const ax = Math.abs(p.x), S = p.x >= 0 ? 'L' : 'R';
       const army = smoothstep(M.shoulderX * 0.9, M.shoulderX * 1.3, ax) * smoothstep(0.2, 0.7, rings[ri].t) * 0.6;
@@ -177,7 +177,7 @@ function buildCape(ctx, cp) {
   tube(mb, {
     rings, seg: 18, mat: gm, open: true, th0: 0.5, th1: TAU - 0.5,
     r: undefined,
-    color: (ri, th) => gm.color.clone().multiplyScalar(0.85 + 0.2 * noise1(th * 4 + ri * 0.7, 9)),
+    color: (ri, th) => gm.color.clone().multiplyScalar(0.85 + 0.2 * pnoise(th, 4, ri * 0.7, 9)),
     weights: (ri, th, p) => {
       const t = rings[ri].t;
       if (!n || t < 0.2) {

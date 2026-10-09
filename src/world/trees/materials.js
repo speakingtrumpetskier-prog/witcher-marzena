@@ -74,6 +74,13 @@ varying float vVegSeed;
 varying float vVegH;
 
 float vegHash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+// 4x4 Bayer ordered dither at full resolution: a fixed fine pattern, stable from frame to frame
+float vegBayer(vec2 p) {
+  int bx = int(mod(p.x, 4.0));
+  int by = int(mod(p.y, 4.0));
+  float m[16] = float[16](0.0, 8.0, 2.0, 10.0, 12.0, 4.0, 14.0, 6.0, 3.0, 11.0, 1.0, 9.0, 15.0, 7.0, 13.0, 5.0);
+  return (m[by * 4 + bx] + 0.5) / 16.0;
+}
 float vegNoise(vec2 p) {
   vec2 i = floor(p), f = fract(p);
   f = f * f * (3.0 - 2.0 * f);
@@ -82,10 +89,10 @@ float vegNoise(vec2 p) {
 `;
 
 // One fragment program serves foliage, bark, birch bark and grass: the behaviour is picked by the
-// uniform uVegMode (0 foliage, 1 bark, 2 grass, 3 birch), so a dozen materials share a handful of
+// uniform uVegMode (0 foliage, 1 bark, 2 grass, 3 birch, 4 needles = foliage with a needle map), so a dozen materials share a handful of
 // compiled programs (shader compile time is the slow part on software GL). Cards and leaves
 // (alpha textured) are separate programs because they sample a map.
-const MODE_ID = { foliage: 0, bark: 1, grass: 2, birch: 3 };
+const MODE_ID = { foliage: 0, bark: 1, grass: 2, birch: 3, needles: 4 };
 
 function bodyF(mode, fade) {
   let s = '';
@@ -94,7 +101,7 @@ function bodyF(mode, fade) {
   {
     float mzIn = smoothstep(uMzLod.x, uMzLod.y, vVegLodD);
     float mzOut = smoothstep(uMzLod.z, uMzLod.w, vVegLodD);
-    float mzD = fract(52.9829189 * fract(dot(gl_FragCoord.xy, vec2(0.06711056, 0.00583715))) + vVegHash);
+    float mzD = fract(vegBayer(gl_FragCoord.xy) + vVegHash);
     if (mzD < mzOut || mzD >= mzIn) discard;
   }`;
   }
@@ -127,6 +134,9 @@ function bodyF(mode, fade) {
       diffuseColor.rgb = mix(diffuseColor.rgb, uVegSpring * (0.55 + mzLum * 1.6), uSpring * 0.85);
       mzFront = 1.0;
       mzSnLo = 0.25;
+    } else if (uVegMode > 3.5) {
+      // needle cards: the map carries the needles, add a gentle patchy variation
+      diffuseColor.rgb *= 0.82 + 0.36 * mzN;
     } else {
       // birch bark: white with black horizontal scars, dark and rough at the base
       float mzU = vVegUv.x, mzV = vVegUv.y;

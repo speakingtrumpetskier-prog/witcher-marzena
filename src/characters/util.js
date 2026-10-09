@@ -1,5 +1,6 @@
 // Small shared helpers for the characters module: seeded random, color, easing, math.
-// Public: rng(seed), hashStr(s), col(hex|Color), mixCol, clamp, lerp, smooth, smoothstep, sat, DEG.
+// Public: rng(seed), hashStr(s), col(hex|Color), mixCol, clamp, lerp, smooth, smoothstep, sat, DEG,
+// noise1, pnoise (periodic around a ring), noise3.
 import * as THREE from 'three';
 
 export const DEG = Math.PI / 180;
@@ -66,6 +67,11 @@ export function noise1(x, seed = 0) {
   };
   const u = f * f * (3 - 2 * f);
   return lerp(h(i), h(i + 1), u) * 2 - 1;
+}
+// Periodic noise around a ring: angle th wraps seamlessly at 0 / 2PI (freq ~ features per turn).
+export function pnoise(th, freq, off = 0, seed = 0) {
+  const r = freq / Math.PI;
+  return (noise1(Math.cos(th) * r + off, seed) + noise1(Math.sin(th) * r - off * 0.7 + 11.3, seed + 7)) * 0.5;
 }
 export function noise3(x, y, z, seed = 0) {
   return (noise1(x * 1.0 + y * 3.1 + z * 5.7, seed) + noise1(y * 1.3 - z * 2.3 + x * 0.7, seed + 3) * 0.6) / 1.6;

@@ -1,11 +1,14 @@
 // Norway spruce and young spruce saplings. Owner: vegetation builder.
 //
 // Each variant is built at three levels of detail from the same parameters so silhouettes match:
-//   lod 0: tiers of drooping needle fronds over a dark inner skirt, with hanging sprays
-//   lod 1: fewer, wider fronds
-//   lod 2: stacked scalloped cones
+//   lod 0: many thin drooping tiers of branch cards (alpha tested needle texture with a fringed,
+//          soft silhouette, see textures.js), a dark inner skirt, hanging cards and snow lumps
+//          sitting on the tiers (about 3k triangles)
+//   lod 1: scalloped cone tiers with a ragged rim (about 400 triangles)
+//   lod 2: coarse cone tiers (about 60 triangles)
 // Snow is baked as the vertex attribute aSnow (tops of the branch layers) and scaled by uSnowCover.
-import { GeoBuilder, rng, rgb, mixRGB, tube, frond, softBall, trunkHeights } from './geo.js';
+import { GeoBuilder, rng, rgb, mixRGB, tube, frond, softBall, trunkHeights, snowLump } from './geo.js';
+import { NEEDLE_UV } from './textures.js';
 
 export const SPRUCE_VARIANTS = [
   { id: 'spruce_a', seed: 101, H: 27, maxR: 3.7, tiers: 15, base: 0.12, droop: 0.34, taper: 0.95, snow: 1.0, hue: 0.0, lean: 0.35, dead: 4 },
@@ -22,10 +25,10 @@ export const SAPLING_VARIANTS = [
 ];
 
 const PAL = {
-  dark: rgb('#1a3a2e'),
-  light: rgb('#356354'),
-  warm: rgb('#4a7549'),
-  under: rgb('#10261f'),
+  dark: rgb('#1d3528'),
+  light: rgb('#2d4734'),
+  warm: rgb('#37533f'),
+  under: rgb('#111d17'),
   bark: rgb('#4a3a2e'),
   barkLight: rgb('#6b5646'),
   dead: rgb('#6a5e50'),
@@ -43,7 +46,7 @@ export function buildSpruce(v, lod = 0) {
   const H = v.H;
   const baseY = H * v.base;
   const topY = H * 0.985;
-  const tiers = lod === 0 ? v.tiers : lod === 1 ? Math.max(6, Math.round(v.tiers * 0.6)) : v.tiers;
+  const tiers = lod === 0 ? Math.round(v.tiers * (v.sapling ? 0.9 : 1.45)) : v.tiers;
   const lean = v.lean;
   const phase0 = r() * 6.28;
   // trunk centerline offset as a function of height (gentle S curve)
@@ -56,6 +59,7 @@ export function buildSpruce(v, lod = 0) {
   const pts = [];
   const rad0 = Math.max(0.1, H * 0.0125) * (v.sapling ? 0.8 : 1);
   for (const y of trunkHeights(nRings, H * 0.99)) pts.push([tx(y), y, tz(y)]);
+  if (lod === 0) b.uvOverride = NEEDLE_UV.solid; // textured program: solid parts point at an opaque texel
   const trunkV0 = b.vcount;
   tube(b, pts, (i, t) => (rad0 * Math.pow(1 - t, 0.9) + 0.02) * (1 + 0.65 * Math.exp(-(pts[i][1] + 0.4) / 0.9)),
     (i) => mixRGB(PAL.bark, PAL.barkLight, 0.3 + 0.4 * Math.sin(i * 1.7 + v.seed)), { sides, rng: r, jitter: lod === 0 ? 0.25 : 0, snowRing: [0.95, 0.25] });
@@ -80,9 +84,7 @@ export function buildSpruce(v, lod = 0) {
   const foliageT0 = b.tcount;
   const ang0 = r() * 6.28;
   const nbBase = v.sapling ? 6 : 9;
-  const sRowsHi = [0, 0.33, 0.66, 0.9, 1.0];
-  const sRowsMid = [0, 0.38, 0.72, 1.0];
-  const sRowsLo = [0, 0.55, 1.0];
+  const sRowsMid = [0, 0.34, 0.68, 1.0];
   const crownR = (f) => v.maxR * (0.72 + 0.28 * Math.min(1, f / 0.1)) * Math.pow(1 - f, v.taper) + 0.35;
   const tierY = (f) => baseY + (topY - baseY) * Math.pow(f, 0.96);
 
@@ -104,56 +106,60 @@ export function buildSpruce(v, lod = 0) {
   };
 
   if (lod === 0) {
+    // needle card tints (multiply the texture): vertex colors carry shading and variation only
+    const hue = v.hue;
+    const tintLo = [0.74 * (1 + hue * 0.08), 0.78, 0.78 * (1 - hue * 0.06)];
+    const tintHi = [1.08 * (1 + hue * 0.06), 1.12, 1.1 * (1 - hue * 0.05)];
+    const cardW = (s) => Math.min(1, s / 0.12 + 0.35) * (1 - 0.16 * s * s);
     for (let t = 0; t < tiers; t++) {
       const f = tiers > 1 ? t / (tiers - 1) : 0;
-      const y = tierY(f) + (r() - 0.5) * 0.015 * H;
-      const R = crownR(f);
-      let nb = Math.round(nbBase - (nbBase - 5) * f) - (lod === 1 ? 2 : 0);
-      nb = Math.max(3, nb + (r() < 0.3 ? 1 : 0));
+      const y = tierY(f) + (r() - 0.5) * 0.012 * H;
+      const R = crownR(f) * (1 + 0.14 * (1 - f));
+      let nb = Math.round(nbBase - (nbBase - 5) * f);
+      nb = Math.max(4, nb + (r() < 0.3 ? 1 : 0));
       const tierRot = ang0 + t * 2.399963; // golden angle so tiers interleave
-      const shade = 0.84 + 0.28 * f;
-      const hue = v.hue;
-      const dark = [PAL.dark[0] * (1 + hue * 0.1), PAL.dark[1] * (1 + hue * 0.12), PAL.dark[2] * (1 - hue * 0.1)];
-      const light = mixRGB(PAL.light, PAL.warm, 0.4 + hue * 0.4 + f * 0.25);
-      underlay(y, R, f, lod === 0 ? 8 : 7, lod === 0 ? 0.7 : 0.88);
+      const shade = 0.8 + 0.3 * f;
+      underlay(y, R, f, 8, 0.7);
       for (let i = 0; i < nb; i++) {
         if (v.gaps && r() < v.gaps * (1 - f * 0.5)) continue; // old, ragged tree: missing limbs
         const th = tierRot + (i + (r() - 0.5) * 0.5) * (Math.PI * 2 / nb);
-        const L = R * (0.82 + r() * 0.36);
-        const W = L * (0.4 + r() * 0.12) * (lod === 1 ? 1.35 : 1);
-        const droop = L * v.droop * (1 - 0.55 * f) * (0.85 + r() * 0.3);
-        const rise = (0.1 + 0.5 * f * f) * (0.8 + r() * 0.4);
+        const L = R * (0.88 + r() * 0.34);
+        const W = L * (0.34 + r() * 0.1);
+        // lower limbs are longer and sag under their snow, the top ones point up
+        const droop = L * v.droop * (1.35 - 1.0 * f) * (0.85 + r() * 0.3);
+        const rise = (0.02 + 0.5 * f * f) * (0.8 + r() * 0.4);
         const ox = tx(y), oz = tz(y);
         const phase = r() * 6.28;
         frond(b, { x: ox, y, z: oz }, th, L, W, droop, rise, {
-          rng: r, sRows: lod === 0 ? (f < 0.3 ? sRowsHi : sRowsMid) : sRowsLo, jag: lod === 0 ? 0.3 : 0.15, col: [dark, light], shade,
-          snow: v.snow * (0.95 + r() * 0.1), sag: 0.42 + 0.15 * (1 - f), tipLift: f > 0.4 ? L * 0.1 * r() : 0, phase,
-          r0: 0.14,
+          rng: r, sRows: sRowsMid, jag: 0.1, col: [tintLo, tintHi], shade,
+          snow: v.snow * 0.5, sag: 0.5 + 0.2 * (1 - f), tipLift: f > 0.5 ? L * 0.08 * r() : 0, phase,
+          r0: 0.14, uvRect: NEEDLE_UV.spruce, widthFn: cardW,
         });
-        if (lod === 0 && f < 0.62) {
-          // hanging sprays: the drooping curtains that make Norway spruce read as spruce
-          const hs = [0.5, 0.85];
-          for (let h = 0; h < hs.length; h++) {
-            if (r() < 0.1) continue;
-            const s = hs[h] + (r() - 0.5) * 0.08;
-            const p = spine(ox, y, oz, th, L, droop, rise, s);
-            const ln = L * (0.24 + 0.14 * (1 - f)) * (1 - 0.3 * s);
-            const th2 = th + (r() - 0.5) * 0.9;
-            frond(b, { x: p[0] - Math.cos(th2) * 0.14, y: p[1] - W * 0.22, z: p[2] - Math.sin(th2) * 0.14 }, th2, ln, ln * 0.34, ln * 0.12, -1.25, {
-              rng: r, sRows: [0, 0.5, 1], col: [dark, mixRGB(dark, light, 0.25)], shade: 0.72, snow: 0.3, r0: 0.14, phase,
-              sag: 0.25, jag: 0.3, hint: [Math.cos(th2), 0.2, Math.sin(th2)],
-            });
-          }
+        // snow lump resting on the branch
+        if (!v.sapling && f < 0.88 && r() < 0.45 * (1 - 0.4 * f)) {
+          const sp = 0.4 + r() * 0.25;
+          const p = spine(ox, y, oz, th, L, droop, rise, sp);
+          snowLump(b, p[0], p[1] + 0.02, p[2], W * (0.4 + 0.3 * r()) * (1 - 0.3 * f), 0.12 + 0.14 * (1 - f) + r() * 0.06, r, 6, 0.3, phase);
+        }
+        // a hanging card under the lower branches: the ragged curtain that Norway spruce wears
+        if (!v.sapling && f < 0.58 && r() < 0.5) {
+          const sh = 0.55 + r() * 0.3;
+          const p = spine(ox, y, oz, th, L, droop, rise, sh);
+          const th2 = th + (r() - 0.5) * 0.9;
+          const ln = L * (0.26 + 0.12 * (1 - f));
+          frond(b, { x: p[0] - Math.cos(th2) * 0.14, y: p[1] - W * 0.2, z: p[2] - Math.sin(th2) * 0.14 }, th2, ln, ln * 0.4, ln * 0.12, -1.25, {
+            rng: r, sRows: [0, 0.5, 1], col: [tintLo, [tintHi[0] * 0.85, tintHi[1] * 0.85, tintHi[2] * 0.85]], shade: 0.8, snow: 0.2, r0: 0.14, phase,
+            sag: 0.2, jag: 0.1, hint: [Math.cos(th2), 0.2, Math.sin(th2)], uvRect: NEEDLE_UV.spruce,
+          });
         }
       }
     }
-    // leader: a slim dark spike with a few short upward needle tufts, snow dusted
+    // leader: a slim dark spike with a few short upward needle cards
     const topPos = [tx(H * 0.99), H * 0.97, tz(H * 0.99)];
-    const nTop = lod === 0 ? 5 : 3;
-    for (let i = 0; i < nTop; i++) {
-      const th = ang0 + i * (Math.PI * 2 / nTop) + r();
-      frond(b, { x: topPos[0], y: topPos[1] - 0.9, z: topPos[2] }, th, 0.55 + r() * 0.35, 0.13, 0.04, 1.9, {
-        rng: r, sRows: [0, 0.5, 1], col: [PAL.dark, mixRGB(PAL.dark, PAL.light, 0.5)], shade: 0.95, snow: 0.7, r0: 0.04, phase: r() * 6.28, sag: 0.2,
+    for (let i = 0; i < 4; i++) {
+      const th = ang0 + i * (Math.PI * 2 / 4) + r();
+      frond(b, { x: topPos[0], y: topPos[1] - 0.9, z: topPos[2] }, th, 0.7 + r() * 0.35, 0.22, 0.04, 1.9, {
+        rng: r, sRows: [0, 0.5, 1], col: [tintLo, tintHi], shade: 0.9, snow: 0.55, r0: 0.04, phase: r() * 6.28, sag: 0.2, jag: 0.05, uvRect: NEEDLE_UV.spruce,
       });
     }
     tube(b, [[topPos[0], topPos[1] - 0.9, topPos[2]], [topPos[0], H * 1.03, topPos[2]]], (k, t) => 0.035 * (1 - t) + 0.005, () => PAL.dark, { sides: 3, rng: r, flex: (t) => t });

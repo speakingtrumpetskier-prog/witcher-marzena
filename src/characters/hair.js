@@ -7,7 +7,7 @@
 // nape), hoods up, and Wiesia's crown of frozen straw.
 import * as THREE from 'three';
 import { M as mat, tube, blob, ribbon, chainWeights, frame } from './geom.js';
-import { col, lerp, smoothstep, rng, noise1, clamp } from './util.js';
+import { col, lerp, smoothstep, rng, noise1, pnoise, clamp } from './util.js';
 
 const V = (x, y, z) => new THREE.Vector3(x, y, z);
 const TAU = Math.PI * 2;
@@ -216,6 +216,7 @@ function buildBeard(ctx, b) {
   const bc = col(b.color || '#4a3a2c');
   const bm = mat(bc, { tile: b.style === 'full' ? 'fur' : 'hair', rough: 0.7, fuzz: 0.7, tileU: 6, tileV: 10 });
   const long = b.length ?? (b.style === 'full' ? 0.07 : 0.0);
+  const skinC = col(ctx.look.skin).multiplyScalar(0.42).lerp(bc, 0.35);
   const base = b.style === 'full' ? 0.012 : b.style === 'short' ? 0.0065 : b.style === 'thin' ? 0.0035 : 0.004;
   const mask = (p) => {
     const ax = Math.abs(p.x);
@@ -246,7 +247,9 @@ function buildBeard(ctx, b) {
       const q = p.clone().addScaledVector(n, t);
       if (hang > 0) q.add(V(0, -hang * 0.6, hang * 0.15));
       const shade = 0.75 + 0.25 * m;
-      row.push(mb.vert(toW(ctx, q), bc.clone().multiplyScalar(shade * (0.85 + R() * 0.3)), j / nAz * bm.tileU, i / nPol, bm, info.skinWeights(p)));
+      // the edge fades into stubbled skin instead of ending in a hard geometric step
+      const c = bc.clone().multiplyScalar(shade * (0.85 + R() * 0.3)).lerp(skinC, 1 - smoothstep(0.12, 0.7, m));
+      row.push(mb.vert(toW(ctx, q), c, j / nAz * bm.tileU, i / nPol, bm, info.skinWeights(p)));
     }
     rows.push(row);
   }
@@ -268,10 +271,10 @@ function buildFurHat(ctx, hat) {
     const rx = (0.084 + (hat.wide ?? 0.008)) * (1 - top * top * 0.55) * (1 + 0.04 * Math.sin(t * Math.PI));
     const rz = (0.102 + (hat.wide ?? 0.008)) * (1 - top * top * 0.55);
     rings.push({ c: V(0, y, -0.006 - t * 0.01).multiplyScalar(sc).add(pivot), a: V(0, 0, 1), b: V(1, 0, 0), ra: rz * sc, rb: rx * sc,
-      r: (th) => 1 + 0.035 * noise1(th * 5 + i, 3) });
+      r: (th) => 1 + 0.035 * pnoise(th, 5, i, 3) });
   }
   tube(mb, { rings, seg: 16, mat: fm, capEnd: true, capStart: false,
-    color: (ri, th) => fm.color.clone().multiplyScalar(0.8 + 0.25 * noise1(th * 7 + ri, 5)),
+    color: (ri, th) => fm.color.clone().multiplyScalar(0.8 + 0.25 * pnoise(th, 7, ri, 5)),
     weights: () => [['head', 1]], inner: { inset: 0.006, hem: true } });
   void k;
 }

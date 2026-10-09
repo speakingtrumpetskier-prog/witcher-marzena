@@ -27,6 +27,9 @@ export function mixRGB(a, b, t, out = [0, 0, 0]) {
 export class GeoBuilder {
   constructor() {
     this.p = []; this.n = []; this.c = []; this.uv = []; this.s = []; this.w = []; this.i = [];
+    // When set ([u, v]), every vertex gets this uv instead of the one passed in. Used by textured
+    // geometry: solid parts (trunk, lumps) all point at one opaque texel, only cards carry real uvs.
+    this.uvOverride = null;
   }
 
   get vcount() { return this.p.length / 3; }
@@ -38,7 +41,8 @@ export class GeoBuilder {
     this.p.push(x, y, z);
     this.n.push(nx, ny, nz);
     this.c.push(col[0], col[1], col[2]);
-    this.uv.push(u, vv);
+    if (this.uvOverride) this.uv.push(this.uvOverride[0], this.uvOverride[1]);
+    else this.uv.push(u, vv);
     this.s.push(snow);
     this.w.push(flex, phase);
     return id;
@@ -223,6 +227,12 @@ export function frond(b, o, theta, L, W, droop, rise, opts = {}) {
   const phase = opts.phase ?? 0;
   const jag = opts.jag ?? 0.25;
   const hint = opts.hint || [0, 1, 0];
+  // textured card: map u across and v along into an atlas rectangle, and bypass any uv override
+  const rect = opts.uvRect || null;
+  const prevOverride = b.uvOverride;
+  if (rect) b.uvOverride = null;
+  const uU = (u) => (rect ? rect.u0 + (u + 1) * 0.5 * (rect.u1 - rect.u0) : u);
+  const uV = (sv) => (rect ? rect.v0 + sv * (rect.v1 - rect.v0) : sv);
   // parallel sided feathery frond: ramps in near the trunk, tapers over the last quarter to a point
   const widthFn = opts.widthFn || ((s) => {
     const a = Math.min(1, s / 0.2);
@@ -247,9 +257,9 @@ export function frond(b, o, theta, L, W, droop, rise, opts = {}) {
     const edge = [cc[0] * 1.12, cc[1] * 1.14, cc[2] * 1.05];
     const snC = snow * (s < 0.08 ? 0.5 : (1 - 0.55 * Math.pow(s, 3)));
     const snE = snow * 0.55 * (1 - 0.7 * s);
-    const l = b.v(cx + sx * w * jl, y - droopEdge * jl, cz + sz * w * jl, 0, 1, 0, edge, -1, s, snE, flex, phase);
-    const c = b.v(cx, y, cz, 0, 1, 0, cc, 0, s, snC, flex, phase);
-    const rr = b.v(cx - sx * w * jr, y - droopEdge * jr, cz - sz * w * jr, 0, 1, 0, edge, 1, s, snE, flex, phase);
+    const l = b.v(cx + sx * w * jl, y - droopEdge * jl, cz + sz * w * jl, 0, 1, 0, edge, uU(-1), uV(s), snE, flex, phase);
+    const c = b.v(cx, y, cz, 0, 1, 0, cc, uU(0), uV(s), snC, flex, phase);
+    const rr = b.v(cx - sx * w * jr, y - droopEdge * jr, cz - sz * w * jr, 0, 1, 0, edge, uU(1), uV(s), snE, flex, phase);
     rowsIdx.push([l, c, rr]);
   }
   for (let k = 0; k < rows; k++) {
@@ -260,7 +270,29 @@ export function frond(b, o, theta, L, W, droop, rise, opts = {}) {
     b.triFacing(A[1], A[2], B[2], hint[0], hint[1], hint[2]);
     b.triFacing(A[1], B[2], B[1], hint[0], hint[1], hint[2]);
   }
+  b.uvOverride = prevOverride;
   return rowsIdx;
+}
+
+// A lump of snow sitting on top of a branch: a squat dome (solid geometry, aSnow = 1 everywhere so
+// the shader paints it as snow). `sectors` around, base ring plus a shoulder ring plus the crown.
+export function snowLump(b, x, y, z, R, h, r, sectors = 5, flex = 0.3, phase = 0) {
+  const col = [0.8, 0.84, 0.9];
+  const rot = r() * 6.28;
+  const base = [], shoulder = [];
+  for (let j = 0; j < sectors; j++) {
+    const a = rot + (j / sectors) * Math.PI * 2;
+    const jr = 0.8 + r() * 0.4;
+    base.push(b.v(x + Math.cos(a) * R * jr, y - h * 0.15, z + Math.sin(a) * R * jr, Math.cos(a), 0.3, Math.sin(a), col, 0, 0, 1, flex, phase));
+    shoulder.push(b.v(x + Math.cos(a) * R * 0.62 * jr, y + h * 0.65, z + Math.sin(a) * R * 0.62 * jr, Math.cos(a) * 0.5, 0.9, Math.sin(a) * 0.5, col, 0, 0, 1, flex, phase));
+  }
+  const top = b.v(x, y + h, z, 0, 1, 0, col, 0, 0, 1, flex, phase);
+  for (let j = 0; j < sectors; j++) {
+    const k = (j + 1) % sectors;
+    b.triFacing(top, shoulder[j], shoulder[k], 0, 1, 0);
+    b.triFacing(shoulder[j], base[j], base[k], 0, 1, 0);
+    b.triFacing(shoulder[j], base[k], shoulder[k], 0, 1, 0);
+  }
 }
 
 // Soft normal function for foliage: blends the face normal with a "ball" normal radiating from the

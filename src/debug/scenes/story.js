@@ -1,13 +1,17 @@
 // Story systems gallery: the sample dialogue and cutscene, hunter senses, quests.
-//   ?scene=story                         two actors on the east shore, idle
-//   ?scene=story&play=dialogue           runs content/dialogues/_sample.js
-//   ?scene=story&play=cutscene           runs content/cutscenes/_sample.js
-//   ?scene=story&play=senses             trails, clues and an echo spot on the ice camp
-//   &gp=1 also loads gameplay (player, rig) once those files exist; &full=1 adds vegetation and locations
-// From the harness (contact sheet of every camera setup, drawn with letterbox and subtitle):
-//   node scripts/shot.mjs --w 1600 --h 900 --q "scene=story&dspeed=2&autopick=2,0" \
+//   ?scene=story                         Vesna and Hanka on the east shore, idle
+//   ?scene=story&play=dialogue           runs content/dialogues/_sample.js (also play=dialogue:<id>)
+//   ?scene=story&play=cutscene           runs content/cutscenes/_sample.js (also play=cutscene:<id>)
+//   ?scene=story&play=senses             trails, clues and an echo spot at the ice camp
+//   &gp=1 also loads gameplay once those files exist; &full=1 adds vegetation and locations.
+//   Debug knobs (story/index.js): &sspeed=2 story clock x2, &dspeed=2 lines x2, &autopick=2,0.
+// Contact sheet of every camera setup (drawn with the letterbox and the subtitle of the moment):
+//   node scripts/shot.mjs --w 1280 --h 720 --q "scene=story&only=story,ui,characters&hour=16.3&sspeed=2&fps=30&autopick=2,0" \
 //     --eval "await __story.sheet('dialogue')" --out shots/story/dialogue_sheet.png
-// Uses the real characters when createCharacter exists, placeholder puppets otherwise.
+//   ... --eval "await __story.sheet('cutscene', { settle: 0.6, every: 2.4 })" --out shots/story/cutscene_sheet.png
+// `only=story,ui,characters` swaps the world for a cheap local ground and sun (liteStage) so a
+// sheet renders in minutes; drop `only` for the real world. Uses the real characters when the
+// characters module is loaded, placeholder puppets (story_puppets.js) otherwise.
 import * as THREE from 'three';
 import { makePuppet } from './story_puppets.js';
 import { charactersAvailable, spawnCharacter } from '../../story/director/Actors.js';

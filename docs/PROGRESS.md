@@ -16,7 +16,7 @@ catches issues, and fixes them or sends a targeted fix back to the builder. No c
 | 1 | Props kit and FX | sonnet | done, reviewed | 1 | 74 props, pooled FX (fire, smoke, steam, sparks, wisps, breath), PropBatch merging; lead fixed the Collision yaw convention both kits worked around |
 | 2 | Player, camera, horse riding | sonnet | waits for characters | | |
 | 2 | UI | sonnet | done, reviewed | 1 | HUD, compass, subtitles, barks, choices, journal, parchment map, notes, pause, settings, title, credits |
-| 2 | Dialogue, cutscene director, quests, interaction, senses, flow | opus (single agent, resumed) | building | 0 | critics on Sonnet after it reports |
+| 2 | Dialogue, cutscene director, quests, interaction, senses, flow | opus (single agent) | done, reviewed | 1 | TV-director coverage, skippable cutscenes, all quests, senses trails and echoes, title/new game/continue/rest |
 | 2 | NPCs and animals | sonnet | waits for characters | | |
 | 2 | Combat and creatures | sonnet | waits for characters | | |
 | 3 | Village and wilderness locations | | pending | | |

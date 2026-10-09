@@ -2,6 +2,7 @@
 // irregular crown of cloud-pruned needle pads on bent limbs. Owner: vegetation builder.
 // lod 0: limbs and domed pads (about 700 tris), lod 1: pads only (about 180), lod 2: flat discs (about 50).
 import { GeoBuilder, rng, rgb, mixRGB, tube, frond, softBall, trunkHeights } from './geo.js';
+import { NEEDLE_UV } from './textures.js';
 
 export const PINE_VARIANTS = [
   { id: 'pine_a', seed: 1101, H: 22, base: 0.62, pads: 9, spread: 4.6, lean: 0.4, wind: 0.0, bend: 0.5 },
@@ -10,10 +11,10 @@ export const PINE_VARIANTS = [
 ];
 
 const PAL = {
-  barkLow: rgb('#5a4a3e'),
-  barkMid: rgb('#7b5a45'),
-  barkHigh: rgb('#c0703c'),
-  limb: rgb('#a0623a'),
+  barkLow: rgb('#5a5149'),
+  barkMid: rgb('#6a5646'),
+  barkHigh: rgb('#8a6446'), // muted orange-brown upper bark
+  limb: rgb('#7d5c44'),
   needleDark: rgb('#1f3a33'),
   needleLight: rgb('#3f6350'),
   needleWarm: rgb('#4f7048'),
@@ -22,7 +23,7 @@ const PAL = {
 // A needle pad: a rosette of short needle fronds radiating from the limb tip (flat, slightly
 // upturned, drooping at the rim), a dark core underneath, and a little snow on top.
 function addPad(b, r, cx, cy, cz, R, lod, windPhase, tilt) {
-  const n = lod === 0 ? 8 : 5;
+  const n = lod === 0 ? 7 : 5;
   const rot = r() * 6.28;
   const rows = lod === 0 ? [0, 0.4, 0.75, 1] : [0, 0.6, 1];
   // core: shaded dome under the fronds so the pad is not see-through
@@ -38,10 +39,19 @@ function addPad(b, r, cx, cy, cz, R, lod, windPhase, tilt) {
   for (let i = 0; i < n; i++) {
     const th = rot + (i + (r() - 0.5) * 0.4) * (Math.PI * 2 / n);
     const L = R * (0.85 + r() * 0.4);
-    frond(b, { x: cx, y: cy + R * 0.12, z: cz }, th, L, L * (0.34 + r() * 0.1), L * 0.22, 0.28 + r() * 0.25, {
-      rng: r, sRows: rows, jag: 0.3, col: [PAL.needleDark, mixRGB(PAL.needleLight, PAL.needleWarm, r() * 0.7)],
-      shade: 0.95 + r() * 0.2, snow: 0.38, sag: 0.3, r0: 0.05, phase: windPhase + r(), tipLift: L * 0.12 * r(),
-    });
+    if (lod === 0) {
+      // needle tuft card: the map is a burst of long blue-green needles, so the clump has a soft ragged outline
+      frond(b, { x: cx, y: cy + R * 0.12, z: cz }, th, L * 1.1, L * 0.5, L * 0.2, 0.18 + r() * 0.3, {
+        rng: r, sRows: [0, 0.4, 0.75, 1], jag: 0.08, col: [[0.8, 0.84, 0.84], [1.12, 1.15, 1.08]],
+        shade: 0.95 + r() * 0.2, snow: 0.3, sag: 0.25, r0: 0.05, phase: windPhase + r(), tipLift: L * 0.1 * r(),
+        uvRect: NEEDLE_UV.pine, widthFn: (s) => Math.min(1, s / 0.15 + 0.3),
+      });
+    } else {
+      frond(b, { x: cx, y: cy + R * 0.12, z: cz }, th, L, L * (0.34 + r() * 0.1), L * 0.22, 0.28 + r() * 0.25, {
+        rng: r, sRows: rows, jag: 0.3, col: [PAL.needleDark, mixRGB(PAL.needleLight, PAL.needleWarm, r() * 0.7)],
+        shade: 0.95 + r() * 0.2, snow: 0.38, sag: 0.3, r0: 0.05, phase: windPhase + r(), tipLift: L * 0.12 * r(),
+      });
+    }
   }
 }
 
@@ -58,6 +68,7 @@ export function buildPine(v, lod = 0) {
   const pts = [];
   for (const y of trunkHeights(nRings, H * 0.985)) pts.push([tx(y), y, tz(y)]);
   const rad0 = 0.14 + H * 0.0095;
+  if (lod === 0) b.uvOverride = NEEDLE_UV.solid; // textured program: solid parts point at an opaque texel
   const trunkV0 = b.vcount;
   tube(b, pts, (i, t) => (rad0 * Math.pow(1 - t, 0.75) + 0.03) * (1 + 0.6 * Math.exp(-(pts[i][1] + 0.4) / 0.8)),
     (i, t, k) => {
