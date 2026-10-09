@@ -19,7 +19,7 @@ export const LOC = {
   village: { name: 'Marzena', x: 0, z: 115, r: 100, map: true },
   square: { name: 'Village Square', x: 0, z: 118, r: 16 },
   longhouse: { name: "Reeve's Longhouse", x: 5, z: 90, r: 14 },
-  tavern: { name: 'The Drowned Bell', x: -32, z: 120, r: 11 },
+  tavern: { name: 'The Drowned Bell', x: -34, z: 104, r: 11 },
   smithy: { name: 'Smithy', x: 33, z: 128, r: 9 },
   shrine: { name: 'Shrine', x: -5, z: 168, r: 12 },
   dobra: { name: "Dobra's Workshop", x: -74, z: 152, r: 12 },
@@ -71,7 +71,7 @@ export const ROADS = [
   },
   {
     id: 'village_north', width: 3,
-    pts: [[0, 118], [2, 100], [-6, 80], [-12, 64]],
+    pts: [[0, 118], [-9, 104], [-15, 86], [-16, 66]],
   },
   {
     id: 'village_south', width: 2.5,

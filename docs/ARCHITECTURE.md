@@ -212,16 +212,133 @@ Ambience is automatic from `G.time`, `G.weather`, the camera position, and locat
 village: murmur, dogs, forge; on the ice: groans; forest: wind in pines). SFX names: see the
 list in `src/audio/sfxNames.js` (audio builder creates it; others use those names).
 
-## Phase 2 contracts (gameplay and story; detailed when those builders start)
-- `G.interact.add({ id, pos, radius, label, verb, enabled(), onUse() })` interactables with prompts.
-- `G.senses.addClue({ id, pos, radius, kind: 'clue' | 'trail' | 'echo', object, enabled(), onExamine() })`.
-- `G.dialogue.start(id, { actors }) -> Promise<result>`; dialogue data in `story/content/dialogues/*.js`.
-- `G.cutscenes.play(id) -> Promise`; scripts are async functions over a director API in `story/content/cutscenes/*.js`.
-- `G.quests` stages, objectives, map and compass markers, journal entries.
-- `G.npcs.spawn(def)` with schedules using `G.world.stations`.
-- `G.ui.subtitle(speaker, text, seconds)`, `G.ui.notify(text)`, `G.ui.prompt(text|null)`,
-  `G.ui.letterbox(on)`, `G.ui.fade(to, seconds) -> Promise`, `G.ui.titleCard(title, sub)`,
-  `G.ui.choices(list, { timer }) -> Promise<index>`, `G.ui.readNote(note)`.
+## Phase 2 contracts (gameplay, story systems, UI, NPCs)
+
+### Player (`G.player`, gameplay core builder; src/gameplay/Player.js)
+```js
+G.player.character            // the 'vesna' Character
+G.player.position, G.player.yaw, G.player.velocity
+G.player.health, maxHealth, stamina, maxStamina, warmth (0..1), signEnergy (0..1), sign ('ember'|'gale'|'ward')
+G.player.state                // 'explore' | 'combat' | 'mounted' | 'scripted' | 'dead'
+G.player.swordDrawn
+G.player.setControl(bool)     // false while dialogue/cutscenes run (the director does this)
+G.player.teleport(x, z, yaw)
+G.player.mount(), dismount()  // with Kasza (G.horse)
+G.player.damage(amount, { from, knockback }), heal(n)
+```
+Writes `G.uniforms.uPlayerPos` and `G.atmosphere.shadowFocus` each frame. Footstep SFX by
+`G.world.surfaceAt`. Warmth drains outdoors at night and in snow/blizzard, refills near fire
+anchors (`G.world.fires`, a list of {x, z, r} registered by locations), indoors, in the banya.
+
+### Camera rig (`G.cameraRig`; src/gameplay/CameraRig.js)
+Third person over the right shoulder; modes 'explore' | 'combat' (lock-on framing) | 'mounted'
+| 'interior' (closer); collision via `G.physics.raycast`; `shake(intensity, seconds)`;
+`setTarget(object|null)`; only writes the camera when `G.cameraOwner === 'rig'`.
+
+### Horse (`G.horse`; src/gameplay/Horse.js) wraps `createHorse('kasza')`: call (X) to trot to the
+player from off-screen, mount/dismount, gaits, refuses lake ice, road-follow assist.
+
+### Combat (`G.combat`; src/gameplay/combat/*) and creatures (`G.creatures`; src/gameplay/creatures/*)
+```js
+G.combat.register(enemy)   // enemy: { root, position, radius, height, health, maxHealth, alive, faction, takeHit(hit), ... }
+G.combat.enemies           // live list; G.combat.inCombat (bool), emits combat:start / combat:end / enemy:death
+G.creatures.spawnWolves(x, z, count, opts) -> [wolf]
+G.creatures.spawnEffigy(x, z, opts) -> effigy      // straw marzanny, weak to Ember
+G.creatures.spawnBoss(x, z, opts) -> boss          // phase 3 builder fills it in
+```
+Signs: Ember (fire cone, ignites effigies), Gale (force wave, knockback, breaks ice armor), Ward
+(shield bubble). Hit-stop, shake, particles, sword trails.
+
+### Interaction (`G.interact`; src/gameplay/Interact.js, story systems builder)
+```js
+const id = G.interact.add({
+  id: 'notice_board', pos: Vector3 | (() => Vector3), radius: 2.2,
+  label: 'Notice Board', verb: 'Read',      // Talk | Examine | Read | Take | Rest | Sit | Open | Climb | Use | Leave
+  enabled: () => true, facing: true, sensesOnly: false,
+  onUse: async () => {},                    // may run dialogue or a cutscene
+});
+G.interact.remove(id)
+```
+Shows `G.ui.prompt('[E] Read  Notice Board')` for the best candidate (distance + facing).
+
+### Hunter senses (`G.senses`; src/gameplay/Senses.js, story systems builder)
+```js
+G.senses.addClue({ id, pos, radius: 1.5, kind: 'clue' | 'echo', object, label, enabled, once: true, onExamine: async () => {} })
+G.senses.addTrail({ id, points: [[x, z], ...], kind: 'footprints' | 'drag' | 'scent', enabled })
+G.senses.active
+```
+Hold RMB (sheathed) to activate: ramps `uSenses`, highlights clue objects (via the PostFX
+highlight API), draws trails as glowing decals/particles, clues become interactable.
+
+### Dialogue (`G.dialogue`; src/story/Dialogue.js, story systems builder)
+Data files: `src/story/content/dialogues/<id>.js` exporting default:
+```js
+export default {
+  id: 'hanka_first',
+  cast: ['hanka'],                       // NPC ids (G.npcs) or presets; 'vesna' is always the player
+  start: 'n1',
+  nodes: {
+    n1: { s: 'hanka', t: "You're slower than I hoped.", a: 'cross_arms', next: 'n2' },
+    n2: { s: 'vesna', t: 'Somebody had to be.', next: 'hub' },
+    hub: { choices: [
+      { t: 'Ask about Ola', next: 'ola', once: true, if: (S) => !S.flag('x'), do: (S) => S.set('y') },
+      { t: 'Leave', next: 'bye', exit: true },
+    ] },
+    decide: { decisive: true, timer: 12, timeout: 'blame', choices: [ ... ] },
+    bye: { s: 'hanka', t: 'Go on, then.', end: true, do: (S) => S.set('met_hanka') },
+  },
+};
+```
+Node fields: `s` speaker id ('vesna', NPC id, or 'narrator'), `t` text, `a` animation or
+gesture for the speaker, `cam` ('auto' | 'wide' | 'close' | 'ots'), `look` target id, `dur`
+seconds override, `do(S)` effect (S = G.state), `if(S)` condition (false: jump to `else`),
+`next`, `choices`, `end`. Choice fields: `t`, `next`, `if`, `do`, `once`, `exit`, `decisive`.
+`await G.dialogue.start(id, opts)` runs it: letterbox, player control off, automatic
+shot/reverse-shot framing, speaker gestures, listener reactions, subtitles, choice UI, then restores.
+
+### Cutscenes (`G.cutscenes`; src/story/Cutscene.js, story systems builder)
+Scripts: `src/story/content/cutscenes/<id>.js` exporting `default async function (d) {}`.
+Director `d`: `setup({ time, weather, music, letterbox })`, `actor(id, { preset, at: [x, z], yaw })`,
+`player()`, `horse()`, `place(actor, x, z, yaw)`, `shot({ from, to, look, lookTo, fov, fovTo, dur, ease })`
+(camera move, resolves at end), `cut({ pos, look, fov })`, `follow(actor, offset, look, dur)`,
+`orbit(center, radius, height, fromAngle, toAngle, dur)`, `say(speaker, text, dur?)`, `sub(text, dur)`,
+`wait(s)`, `fade(to, s)`, `letterbox(on)`, `titleCard(title, sub)`, `music(mood)`, `sfx(name, pos)`,
+`weather(state, s)`, `time(h)`, `anim(actor, clip, opts)`, `walk(actor, x, z, opts)`,
+`lookAt(actor, target)`, `choice(options, { timer, default })`, `tween(obj, prop, to, s, ease)`,
+`uniform(name, to, s)`, `postfx(prop, to, s)`, `parallel(...promises)`, `skipping`, `end({ player: { x, z, yaw } })`.
+Holding Space skips: timed awaits resolve instantly and shots jump, so the script runs to its
+end state; skipping stops at `choice()`.
+
+### Quests (`G.quests`; src/story/Quests.js, story systems builder)
+Definitions in `src/story/content/quests.js`. API: `start(id, stage?)`, `advance(id, stage)`,
+`complete(id)`, `fail(id)`, `stage(id)`, `isActive(id)`, `track(id)`, `objectives()` (for the
+compass and map: `{ questId, text, marker: [x, z] | null }`), journal entries appended per stage
+(emits `quest:update`, `G.ui.notify`).
+
+### Triggers and flow (`G.story`; src/story/index.js)
+`G.story.zone({ id, x, z, r, enabled, once, onEnter, onLeave })`, `G.story.rest(toHour)` (fade,
+advance time, heal, autosave), game flow: title screen, New Game (prologue), Continue (load).
+
+### NPCs (`G.npcs`; src/gameplay/npcs/*, NPC builder)
+```js
+G.npcs.spawn({ id: 'hanka', preset: 'hanka', name: 'Hanka', schedule: [{ from: 6, to: 20, at: 'hanka_loom' }, { from: 20, to: 6, at: 'hanka_bed', hidden: true }],
+  barks: 'villager' | [...lines], talk: 'hanka_hub' | (() => Promise) })
+G.npcs.get(id)  // { id, character, def, pause(bool), goTo(stationId|{x,z}), bark(text) }
+G.npcs.populate()  // ambient villagers, children and animals from stations
+```
+Stations: `G.world.stations[id] = { x, z, yaw, anim, kind: 'work' | 'sit' | 'talk' | 'bed' | 'wander', indoor }`.
+Ambient life: walking between stations along roads and paths, pairs chatting, children playing,
+heads turning toward Vesna, barks on proximity (`G.ui.bark(name, text, pos)`), indoors at night
+and in blizzards. Animals: dogs, chickens, goats (one on a roof), a cat, ravens and crows that flee.
+
+### UI (`G.ui`; src/ui/*, UI builder)
+`subtitle(speaker, text, seconds)`, `bark(name, text, worldPos)`, `notify(text, kind)`,
+`prompt(text | null)`, `letterbox(on)`, `fade(to, seconds) -> Promise`, `titleCard(title, sub)`,
+`choices(list, { timer, decisive }) -> Promise<index>`, `readNote(note)`, `hold(text, seconds, window) -> Promise<bool>`,
+`openJournal()`, `openMap()`, `openPause()`, `title() -> Promise<'new' | 'continue'>`, `credits()`,
+`hud.show()/hide()`. HUD reads `G.player` and `G.quests.objectives()` each frame. Compass at
+the top center with objective markers and discovered location icons. Map: parchment rendered
+from `G.world` heights with LOC labels and markers.
 
 ## Event names
 `flag`, `inventory`, `note`, `discover`, `saved`, `loaded`, `reset`, `time:hour`, `time:day`,
