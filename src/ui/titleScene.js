@@ -20,9 +20,11 @@ import { LOC } from '../world/layout.js';
 export const TITLE_SHOT = {
   hour: 15.8,
   fov: 40,
-  cam: new THREE.Vector3(18.7, 1.4, -41),
-  look: new THREE.Vector3(-53.2, 10.1, 28.5),
-  effigy: { x: LOC.ritual.x, z: LOC.ritual.z, yaw: Math.atan2(-0.83, 0.54) },
+  cam: new THREE.Vector3(14.19, 1.25, -36.23),
+  look: new THREE.Vector3(-57.7, 9.5, 33.3),
+  effigy: { x: LOC.ritual.x, z: LOC.ritual.z, yaw: Math.atan2(-0.83, 0.54), scale: 1.12 },
+  // A ribbon pole of our own close on the right, cut by the frame edge: it carries the parallax.
+  pole: { x: 9.92, z: -34.6 },
 };
 
 const ease = (u) => u * u * u * (u * (u * 6 - 15) + 10);
@@ -140,12 +142,17 @@ export class TitleScene {
     try {
       const { props } = await import('../world/props/index.js');
       if (!this.active) return;
-      const e = props.make('effigy', { variant: 'pole', seed: 4 });
+      const e = props.make('effigy', { variant: 'pole', seed: 4, scale: S.effigy.scale });
       e.position.set(S.effigy.x, 0, S.effigy.z);
       e.rotation.y = S.effigy.yaw;
       e.name = 'title-effigy';
       G.scene.add(e);
-      this.effigy = e;
+      const p = props.make('ribbonPole', { seed: 21, height: 3.7, ribbons: 12 });
+      p.position.set(S.pole.x, 0, S.pole.z);
+      p.rotation.y = 1.1;
+      p.name = 'title-pole';
+      G.scene.add(p);
+      this.dressing = [e, p];
     } catch (err) { console.warn('[title] effigy', err); }
 
     this.flock = new Flock(G, 7);
@@ -188,8 +195,8 @@ export class TitleScene {
     if (!this.active) return;
     this.active = false;
     const G = this.G;
-    this.effigy?.removeFromParent();
-    this.effigy = null;
+    for (const o of this.dressing || []) o.removeFromParent();
+    this.dressing = null;
     this.flock?.dispose();
     this.flock = null;
     const W = G.weather;
