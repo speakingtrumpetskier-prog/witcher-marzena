@@ -18,16 +18,20 @@ catches issues, and fixes them or sends a targeted fix back to the builder. No c
 | 2 | UI | sonnet | done, reviewed | 1 | HUD, compass, subtitles, barks, choices, journal, parchment map, notes, pause, settings, title, credits |
 | 2 | Dialogue, cutscene director, quests, interaction, senses, flow | opus (single agent) | done, reviewed | 1 | TV-director coverage, skippable cutscenes, all quests, senses trails and echoes, title/new game/continue/rest |
 | 2 | NPCs and animals | sonnet (worktree) | done, merged | 1 | schedules, A* paths over colliders, pairs chatting, head turns, barks, indoors at night and in blizzards; dogs, hens, goat on a roof, cat, ravens |
-| 2 | Combat, creatures, signs, boss mechanics | sonnet (worktree) | building | 0 | |
+| 2 | Combat, creatures, signs, boss mechanics | sonnet (worktree) | done, merged | 1 | swing resolution, Ember/Gale/Ward, hit-stop, trails, wolf packs with attack tokens, Marzanny that burn and spread fire, sleeping bear, three-phase boss that yields at 25% |
 | 3 | Village composition | sonnet (worktree) | done, merged | 1 | 28 houses + heroes + 11 outbuildings, palisade and gates, stilted huts, boardwalk, graveyard, ~440 props, 177 NPC stations, fires, light pool, smoke, interiors, doors, discovery tracker, story anchors |
-| 3 | Lake set pieces and wilderness nooks | sonnet (worktree) | building | 0 | |
+| 3 | Lake set pieces and wilderness nooks | sonnet (worktree) | done, merged | 1 | 14 locations + 22 roadside vignettes, ritual ring, drowned bell tower feast, dens, ice cave, distance culling; lead added the G.world.floorAt registry (floors.js) |
 | 3 | Dialogue scenes (writer) | sonnet (worktree) | building | 0 | under the STORY.md voice rules |
 | 3 | Cutscenes, endings, the thaw (cinematics) | sonnet (worktree) | building | 0 | |
-| 3 | Story controller: triggers, clues, quests, boss integration, endings, playthrough | sonnet | pending | | after wilderness and combat merge |
+| 3 | Story controller: triggers, clues, quests, boss integration, endings, playthrough | sonnet (worktree) | building | 0 | |
 
 Model policy (user request): Part Two and later run on Sonnet 5.5, except a single long-running builder may stay on Opus (the story systems builder).
 
 ## Polish list (lead, integration pass)
+- Creatures: wolves and Marzanny read pale and flat at night on black ice; one more material pass under real lighting.
+- Combat: Player has no grabbed or stunned state (grab overrides position); lock-on frames the boss's feet; no creature footsteps, bear roar or gust sounds; Weather has no gust() hook.
+- Wilderness: pass drifts show polygon edges; ice cave reads bright and its crystals look like plain shards; belfry table slab reads oversized; bear nest and hunter skeleton simple.
+- Wilderness: G.water has one under-glow slot (boss glow, grab telegraph and the bell tower glow share it).
 - UI: distant barks low contrast over grey trees (strengthen shadow/scrim for barks).
 - UI: map lake label BELLMERE collides with the Stone Circle Isle label.
 - UI: retune the title camera path once the village and locations exist.

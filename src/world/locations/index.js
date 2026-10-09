@@ -43,4 +43,10 @@ export async function init(G) {
       G.errors.push(`location ${name}: ${e.message}`);
     }
   }
+  try {
+    (await import('./floors.js')).installFloors(G);
+  } catch (e) {
+    console.error('[locations] floors', e);
+    G.errors.push(`locations floors: ${e.message}`);
+  }
 }
