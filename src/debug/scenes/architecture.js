@@ -191,7 +191,7 @@ export async function init(G) {
     for (const it of placed) box.expandByObject(it.b.group);
     const size = box.getSize(new THREE.Vector3());
     const ctr = box.getCenter(new THREE.Vector3());
-    const R = (size.x * 0.52 + size.z * 0.55) * dist + 6;
+    const R = (size.x * 0.43 + size.z * 0.43) * dist + 6;
     cam.position.set(ctr.x + Math.sin(ang * 0.3) * R * 0.3, 3 + R * 0.3 * hs, ctr.z + R);
     cam.lookAt(ctr.x, Math.min(size.y * 0.35, 4), ctr.z);
     cam.fov = 50; cam.updateProjectionMatrix();

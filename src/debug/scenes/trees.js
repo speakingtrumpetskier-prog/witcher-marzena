@@ -2,9 +2,9 @@
 // (plus the far billboard impostors), for close inspection.
 //
 //   ?scene=trees&cam=0,6,40&look=0,6,0&hour=13
-//   &sp=spruce,pine     only these species (spruce, sapling, pine, birch, snag, bush, ground, log, reed)
+//   &sp=spruce,pine     only these species or kind ids (spruce sapling pine birch snag juniper snowbush log stump grass reed)
 //   &rows=0,1,2,3       LOD rows to show (3 = billboard impostors, two views per kind)
-//   &spring=1           uSpring 1, &snow=0 for the thawed look
+//   &spring=1           uSpring 1, &snow=0 for the thawed look, &wind=0.8 for a strong wind (use --seq)
 import * as THREE from 'three';
 import { createKinds } from '../../world/trees/kinds.js';
 import { bakeImpostors, ImpostorLayer } from '../../world/trees/impostor.js';
@@ -19,6 +19,8 @@ export async function init(G) {
   const snow = parseFloat(G.params.get('snow'));
   if (Number.isFinite(spring)) G.uniforms.uSpring.value = spring;
   if (Number.isFinite(snow)) G.uniforms.uSnowCover.value = snow;
+  const wind = parseFloat(G.params.get('wind'));
+  if (Number.isFinite(wind)) G.uniforms.uWind.value.set(1, 0.3, wind, wind * 0.6);
 
   const ground = new THREE.Mesh(
     new THREE.PlaneGeometry(600, 400),

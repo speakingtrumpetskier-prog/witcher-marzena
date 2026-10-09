@@ -241,7 +241,7 @@ const TILE_EMB = (m) => TILE.emb(m);
 
 // Hands: palm block, four two-segment fingers and a thumb; gloves recolor, mittens merge fingers.
 function buildHands(ctx) {
-  const { mb, M, k, O, look } = ctx;
+  const { mb, M, O, look } = ctx;
   const h = O.hands || {};
   const glove = h.glove || null;
   // villagers (lower detail) get fused fingers: same silhouette, a third of the triangles

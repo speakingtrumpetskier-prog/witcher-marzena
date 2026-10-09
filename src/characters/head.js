@@ -125,7 +125,7 @@ function makeSculpt(FP) {
     // cheekbones and cheek fat
     d = smin(d, sdEll(ax, y, z, 0.044, 0.053, 0.064, 0.016 * cheekS, 0.0095 * cheekS, 0.013), 0.014);
     if (full > 0) d = smin(d, sdEll(ax, y, z, 0.037, 0.044, 0.07, 0.02, 0.017, 0.012 + full * 0.002), 0.014 + full * 0.006);
-    if (FP.gaunt > 0.4) d = smax(d, -sdEll(ax, y, z, 0.048, 0.026, 0.078, 0.013, 0.013, 0.006), 0.025);
+    if (FP.gaunt > 0.6) d = smax(d, -sdEll(ax, y, z, 0.048, 0.026, 0.078, 0.012, 0.012, 0.005), 0.025);
     // brow ridge
     const bz = 0.087 + FP.brow * 0.004;
     d = smin(d, sdCone(ax, y, z, V(0.011, 0.0935, bz), V(0.046, 0.0955, bz - 0.013), browH, browH * 0.78), 0.014);
@@ -333,7 +333,7 @@ export function buildHead(mb, rig, FP, look) {
       const ps = Math.asin(clamp(q.y / dist, -1, 1));
       const u = a / LS.phM;
       const uc = clamp(u, -1, 1);
-      const out = Math.max(ps - LS.upper(uc), LS.lower(uc) - ps, (Math.abs(u) - 1) * 2.4);
+      const out = Math.max(ps - LS.upper(uc), LS.lower(uc) - ps, (Math.abs(u) - 1) * 4);
       const c = Math.pow(smoothstep(0.42, -0.04, out), 1.5) * smoothstep(-0.25, 0.1, q.z / dist);
       if (c > 0) p.copy(E).addScaledVector(q.normalize(), lerp(dist, S.re - 0.0025, c));
     }
@@ -706,7 +706,7 @@ export function paintFace(canvas, info, FP, look) {
     const [tx, ty] = P(s * 0.06, 0.1, 0.05);
     blot(tx, ty, 30 * sz, skin.clone().lerp(col('#a8a0b8'), 0.4), 0.22);
     const [jx, jy] = P(s * 0.045, 0.01, 0.075);
-    blot(jx, jy, 28 * sz, skin.clone().multiplyScalar(0.86), 0.25);
+    blot(jx, jy, 26 * sz, skin.clone().multiplyScalar(0.9), 0.08);
   }
   // forehead slightly lighter
   const [fx, fy] = P(0, 0.12, 0.09);

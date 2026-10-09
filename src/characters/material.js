@@ -111,7 +111,9 @@ const OUT_FRAG = /* glsl */ `
     outgoingLight += vec3( s * 2.2 + s2 );
   }
   if ( mzSpecial > 2.6 ) outgoingLight += uMzGlow;
-  outgoingLight += uMzRim.rgb * pow( 1.0 - mzNv, uMzRim.a );
+  // ghost rim: strongest on pale surfaces (skin, dress) so dark hair stays dark
+  float mzLum = dot( diffuseColor.rgb, vec3( 0.333 ) );
+  outgoingLight += uMzRim.rgb * pow( 1.0 - mzNv, uMzRim.a ) * ( 0.15 + 0.85 * smoothstep( 0.02, 0.4, mzLum ) );
 }
 `;
 

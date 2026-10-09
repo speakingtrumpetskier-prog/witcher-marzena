@@ -303,7 +303,7 @@ function buildHorseMesh(rig, look) {
     const bandR = (c, ra, rb, bone) => tube(mb, { rings: [{ c: c.clone().add(V(0, 0.012, 0)), a: V(0, 0, 1), b: V(1, 0, 0), ra, rb }, { c: c.clone().add(V(0, -0.012, 0)), a: V(0, 0, 1), b: V(1, 0, 0), ra, rb }], seg: 12, mat: strap, open: true, th0: 0, th1: TAU, weights: () => [[bone, 1]] });
     bandR(V(0, 1.47, 1.3), 0.095, 0.092, 'head');
     const hp = [V(0.1, 1.42, 1.3), V(0.11, 1.62, 1.16), V(0.1, 1.86, 1.02), V(0, 1.93, 0.99), V(-0.1, 1.86, 1.02), V(-0.11, 1.62, 1.16), V(-0.1, 1.42, 1.3)];
-    ribbon(mb, hp, hp.map((p) => V(0, 0, 1).applyAxisAngle(V(1, 0, 0), 0.6)), hp.map(() => 0.025), strap, () => [['head', 1]], { double: true });
+    ribbon(mb, hp, hp.map(() => V(0, 0, 1).applyAxisAngle(V(1, 0, 0), 0.6)), hp.map(() => 0.025), strap, () => [['head', 1]], { double: true });
     for (const sd of [1, -1]) {
       const rp = [V(sd * 0.09, 1.42, 1.32), V(sd * 0.16, 1.3, 1.0), V(sd * 0.17, 1.28, 0.7), V(sd * 0.1, 1.44, 0.42)];
       ribbon(mb, rp, rp.map(() => V(0, 1, 0)), rp.map(() => 0.02), strap, (i) => (i < 1 ? [['head', 1]] : i < 2 ? [['head', 0.5], ['neck2', 0.5]] : i < 3 ? [['neck1', 1]] : [['chest', 1]]), { double: true });

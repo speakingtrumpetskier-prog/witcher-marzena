@@ -162,8 +162,8 @@ export async function bakeImpostors(G, kinds, opts = {}) {
   for (const k of imp) {
     const parts = k.lods[0].parts;
     if (!cardData && parts.some((p) => p.card)) {
-      const img = parts.find((p) => p.card).material.map.image;
-      cardData = img.getContext('2d').getImageData(0, 0, img.width, img.height);
+      const tex = parts.find((p) => p.card).material.map;
+      cardData = tex.userData.imageData || tex.image.getContext('2d').getImageData(0, 0, tex.image.width, tex.image.height);
     }
     for (let v = 0; v < 2; v++) {
       const tile = k.imp.tile[v];

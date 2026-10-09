@@ -240,6 +240,8 @@ export class Dialogue {
     if (t.length < 26) s += 0.55;
     if (t.length < 12) s += 0.3;
     if (node.a && !/^talk/.test(node.a)) s += 0.3;
+    // The last line of a scene is its button.
+    if (node.end) s += 0.5;
     const def = ctx.def, nx = typeof node.next === 'string' ? def.nodes[node.next] : null;
     if (nx?.decisive || node.decisive || ctx.dir.afterDecisive) s += 1.4;
     return s;

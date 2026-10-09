@@ -37,6 +37,8 @@ const _q = new THREE.Quaternion();
 const ARM_ANG = 33 * Math.PI / 180;
 const AXIS_L = new THREE.Vector3(Math.sin(ARM_ANG), -Math.cos(ARM_ANG), 0);
 const AXIS_R = new THREE.Vector3(-Math.sin(ARM_ANG), -Math.cos(ARM_ANG), 0);
+const HINGE_L = new THREE.Vector3(Math.cos(ARM_ANG), Math.sin(ARM_ANG), 0);
+const HINGE_R = new THREE.Vector3(Math.cos(ARM_ANG), -Math.sin(ARM_ANG), 0);
 const _qa = new THREE.Quaternion(), _qb = new THREE.Quaternion(), _qc = new THREE.Quaternion();
 const X = new THREE.Vector3(1, 0, 0), Y = new THREE.Vector3(0, 1, 0), Z = new THREE.Vector3(0, 0, 1);
 export function semToQuat(bone, v, out = new THREE.Quaternion()) {
@@ -51,8 +53,16 @@ export function semToQuat(bone, v, out = new THREE.Quaternion()) {
       _e.set(a * D, b * D, c * D, 'YXZ'); return out.setFromEuler(_e);
     case 'shoulder':
       _e.set(b * D, -s * a * D, s * c * D, 'ZYX'); return out.setFromEuler(_e);
-    case 'arm': case 'forearm': {
+    case 'arm': {
       _qa.setFromAxisAngle(X, -a * D);
+      _qb.setFromAxisAngle(Z, s * c * D);
+      _qc.setFromAxisAngle(R ? AXIS_R : AXIS_L, s * b * D);
+      return out.copy(_qa).multiply(_qb).multiply(_qc);
+    }
+    case 'forearm': {
+      // elbow hinge: perpendicular to the bind arm axis, so flexion folds the forearm forward
+      // in the plane of the arm instead of sweeping a cone around X
+      _qa.setFromAxisAngle(R ? HINGE_R : HINGE_L, -a * D);
       _qb.setFromAxisAngle(Z, s * c * D);
       _qc.setFromAxisAngle(R ? AXIS_R : AXIS_L, s * b * D);
       return out.copy(_qa).multiply(_qb).multiply(_qc);

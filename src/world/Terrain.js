@@ -249,8 +249,12 @@ export async function init(G) {
   const tWait = performance.now() - t0;
   const t1 = performance.now();
   if (!far) far = fallbackFar(W);
-  const mask = W.mask || new Uint8Array(W.res * W.res * 4).fill(255);
-  if (!W.mask) for (let i = 0; i < W.res * W.res; i++) { mask[i * 4] = 255; mask[i * 4 + 1] = 0; mask[i * 4 + 2] = 255; mask[i * 4 + 3] = 255; }
+  let mask = W.mask;
+  if (!mask) {
+    // No masks (main-thread fallback without them): no roads, far from lake and river.
+    mask = new Uint8Array(W.res * W.res * 4).fill(255);
+    for (let i = 1; i < mask.length; i += 4) mask[i] = 0;
+  }
 
   const nearCellsPerMeter = 1 / W.cell;
   const [nn, fn] = await Promise.all([W.normals.near, W.normals.far]);

@@ -140,7 +140,7 @@ export function buildSpruce(v, lod = 0) {
             const ln = L * (0.24 + 0.14 * (1 - f)) * (1 - 0.3 * s);
             const th2 = th + (r() - 0.5) * 0.9;
             frond(b, { x: p[0] - Math.cos(th2) * 0.14, y: p[1] - W * 0.22, z: p[2] - Math.sin(th2) * 0.14 }, th2, ln, ln * 0.34, ln * 0.12, -1.25, {
-              rng: r, sRows: [0, 0.5, 1], col: [dark, mixRGB(dark, light, 0.5)], shade: 0.95, snow: 0.35, r0: 0.14, phase,
+              rng: r, sRows: [0, 0.5, 1], col: [dark, mixRGB(dark, light, 0.25)], shade: 0.72, snow: 0.3, r0: 0.14, phase,
               sag: 0.25, jag: 0.3, hint: [Math.cos(th2), 0.2, Math.sin(th2)],
             });
           }

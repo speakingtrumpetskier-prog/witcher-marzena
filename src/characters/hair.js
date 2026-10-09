@@ -185,7 +185,7 @@ function buildBackHair(ctx, h) {
 function buildFloatHair(ctx, h) {
   const { mb, info, k, R } = ctx;
   const base = col(h.color || '#24201e');
-  const n = h.strands ?? 46;
+  const n = h.strands ?? 70;
   for (let i = 0; i < n; i++) {
     const az = Math.PI + (R() * 2 - 1) * 2.3;
     const pol = 0.35 + R() * 1.25;
@@ -202,7 +202,7 @@ function buildFloatHair(ctx, h) {
       const t = s / nSeg;
       const q = p0.clone().addScaledVector(out, len * t * 0.7).add(V(0, len * (0.25 * t - 0.45 * t * t), 0)).addScaledVector(side, curl * 0.08 * t * t);
       pts.push(toW(ctx, q));
-      widths.push((0.03 - t * 0.022) * k);
+      widths.push((0.017 - t * 0.012) * k);
       sides.push(side);
     }
     ribbon(mb, pts, sides, widths, { ...ctx.hairMat, color: base.clone().multiplyScalar(0.8 + R() * 0.4) },
@@ -277,7 +277,7 @@ function buildFurHat(ctx, hat) {
 }
 
 function buildCap(ctx, hat, knit) {
-  const { mb, k, sc, pivot } = ctx;
+  const { mb, k, pivot } = ctx;
   const cm = mat(col(hat.color || '#9a2e22'), { tile: knit ? 'knit' : 'wool', rough: 0.95, fuzz: knit ? 0.6 : 0.4, tileU: 10, tileV: 10 });
   const low = hat.low ?? (knit ? 1 : 0);
   // edge: forehead in front, over/under the ears, the nape at the back
@@ -384,19 +384,20 @@ function buildCrown(ctx, hat) {
   const straw = col(hat.color || '#d8cfa8');
   const frost = col('#eef6fa');
   const sm = mat(straw, { tile: 'straw', rough: 0.6, fuzz: 0.3, tileU: 1, tileV: 3, special: hat.glow ? 3 : 0 });
-  const n = hat.spikes ?? 26;
+  const n = hat.spikes ?? 40;
   for (let i = 0; i < n; i++) {
-    const az = (i / n) * TAU;
+    const az = (i / n) * TAU + (R() - 0.5) * 0.12;
     const p = info.cast(dirOf(az, 0.62)).multiplyScalar(1.06);
     const out = V(Math.sin(az), 0, Math.cos(az));
-    const dir = out.clone().multiplyScalar(0.35).add(V(0, 1, 0)).normalize();
-    const len = (0.05 + R() * 0.07) * (Math.cos(az) > 0 ? 1.15 : 0.85);
+    const side = V(Math.cos(az), 0, -Math.sin(az));
+    const dir = out.clone().multiplyScalar(0.45 + R() * 0.3).add(V(0, 1, 0)).addScaledVector(side, (R() - 0.5) * 0.5).normalize();
+    const len = (0.035 + R() * R() * 0.11) * (Math.cos(az) > 0 ? 1.15 : 0.8);
     const rings = [];
     for (let s = 0; s <= 3; s++) {
       const t = s / 3;
       const c = toW(ctx, p.clone().addScaledVector(dir, len * t).addScaledVector(out, 0.01 * t * t));
       const f = frame(dir, out);
-      const r = (0.006 - t * 0.0052) * k;
+      const r = (0.0038 - t * 0.0033) * k;
       rings.push({ c, a: f.a, b: f.b, ra: r, rb: r * 0.8 });
     }
     tube(mb, { rings, seg: 4, mat: sm, capEnd: true,

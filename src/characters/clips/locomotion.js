@@ -117,7 +117,7 @@ const GAITS = {
     bobBase: -0.022, bob: 0.014, bobPeak: 0.3, sway: 0.018, yaw: 5, roll: 3, pelvisTilt: 2, lean: 3,
     arm: 13, armBias: 2, armLag: 0.06, armTwist: 0, armOut: 0, elbow: 14, elbowSwing: 12, handFlex: 0, shrug: 0, fist: 18, width: 0.07 },
   run: { D: 2.5, T: 0.7, beta: 0.32, a0: 0.26, hs: 0.1, to: 0.45, psiHs: 8 * D2R, psiTo: 38 * D2R, psiMid: 30 * D2R, lift: 0.26, liftSkew: 0.55, swingShape: 1.3,
-    bobBase: -0.05, bob: 0.03, bobPeak: 0.66, sway: 0.01, yaw: 8, roll: 3, pelvisTilt: 6, lean: 9,
+    bobBase: -0.05, bob: 0.03, bobPeak: 0.66, sway: 0.01, yaw: 8, roll: 3, pelvisTilt: 7, lean: 13,
     arm: 30, armBias: 14, armLag: 0.04, armTwist: 10, armOut: 6, elbow: 82, elbowSwing: 18, handFlex: 6, shrug: 2, fist: 55, width: 0.05 },
   sprint: { D: 3.6, T: 0.6, beta: 0.24, a0: 0.25, hs: 0.06, to: 0.4, psiHs: 4 * D2R, psiTo: 42 * D2R, psiMid: 40 * D2R, lift: 0.38, liftSkew: 0.5, swingShape: 1.4,
     bobBase: -0.055, bob: 0.032, bobPeak: 0.62, sway: 0.008, yaw: 9, roll: 3, pelvisTilt: 9, lean: 16,

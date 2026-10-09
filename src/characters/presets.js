@@ -33,7 +33,7 @@ const CAST = {
     skin: '#d2a78c',
     face: { scar: true, slit: true, iris: '#c8902c', iris2: '#6a3e10', browColor: '#5e5244', jawW: 0.97, jawSq: 0.6, cheek: 0.8, gaunt: 0.35,
       brow: 0.45, noseBridge: 0.35, noseW: 0.95, lipFull: 0.82, blush: 0.3, noseRed: 0.25, wrinkles: 0.28, underEye: 0.45, eyeTilt: 3, lidHeavy: 0.28, fullCheek: 0.15 },
-    hair: { style: 'braid', color: '#b5a88e', streak: '#dcdad4', braidLen: 0.48, thick: 0.007, peak: 0.0 },
+    hair: { style: 'braid', color: '#b5a88e', streak: '#dcdad4', braidLen: 0.48, thick: 0.01, peak: 0.0 },
     outfit: {
       shirt: { color: '#34312e', tile: 'wool' },
       coat: { color: '#38414e', tile: 'wool', length: 0.52, open: 0.42, vent: 0.14, lining: '#26221e', loose: 1.22, placket: true,
@@ -251,17 +251,22 @@ function villager(sex, idx, kind = 'villager') {
     spec.hair.style = R.chance(0.2) ? 'long' : 'short';
     spec.hair.length = 0.1;
     if (!child && R.chance(0.6)) spec.beard = { style: R.pick(['full', 'short', 'short', 'mustache']), color: hairC, length: R.range(0.02, 0.06) };
-    const coatKind = R.int(0, 3);
+    const ck = R();
+    const coatKind = ck < 0.42 ? 0 : ck < 0.78 ? 1 : ck < 0.92 ? 2 : 3;
     if (coatKind === 0) outfit.coat = { color: R.pick(PAL.suede), tile: 'leather', length: R.range(0.45, 0.6), open: R.range(0.1, 0.35), loose: 1.25, lining: R.pick(PAL.cream), liningTile: 'fleece', cuff: { tile: 'fleece', color: R.pick(PAL.cream) } };
     else if (coatKind === 1) outfit.coat = { color: wool(), tile: 'wool', length: R.range(0.4, 0.6), open: R.range(0.15, 0.4), loose: 1.2 };
     else if (coatKind === 2) outfit.vest = { color: R.pick(PAL.cream), tile: 'fleece' };
-    else outfit.shirt.color = R.pick([...PAL.linen, ...PAL.woolGrey]);
+    else outfit.shirt = { color: R.pick([...PAL.woolGrey, ...PAL.woolBrown, ...PAL.fadedBlue]), tile: 'wool' };
     if (outfit.coat && R.chance(0.5)) outfit.collar = { tile: R.chance(0.5) ? 'fleece' : 'fur', color: R.pick([...PAL.cream, '#5a4a3c']), size: 0.03 };
     outfit.belt = R.chance(0.7) ? { color: R.chance(0.3) ? R.pick(PAL.red) : '#3a2a20', h: 0.04, sash: R.chance(0.3), emb: 4 } : null;
-    outfit.trousers = { color: R.pick([...PAL.woolGrey, ...PAL.woolBrown, ...PAL.linen]), tile: R.chance(0.5) ? 'wool' : 'linen', wrapped: false };
+    outfit.trousers = { color: R.pick([...PAL.woolGrey, ...PAL.woolBrown, ...PAL.dark, PAL.linen[3]]), tile: R.chance(0.7) ? 'wool' : 'linen', wrapped: false };
+    if (coatKind === 2) outfit.shirt = { color: R.pick([...PAL.woolBrown, ...PAL.woolGrey, ...PAL.fadedBlue]), tile: 'wool' };
     const wraps = R.chance(0.35);
     outfit.boots = wraps ? { color: R.pick(PAL.linen), tile: 'linen', height: 0.75, wrapped: true, sole: '#8a7a50' } : { color: R.pick(PAL.dark), height: R.range(0.55, 0.85) };
-    spec.hat = R.chance(0.75) ? { type: R.pick(['fur', 'fur', 'knit', 'felt']), color: R.pick([...PAL.dark, '#5a4a3c', ...PAL.woolGrey, ...PAL.cream]) } : null;
+    const hk = R();
+    spec.hat = hk < 0.45 ? { type: 'fur', color: R.pick([...PAL.dark, '#5a4a3c', '#6a5a48', '#3e3630']), height: R.range(0.07, 0.12) }
+      : hk < 0.75 ? { type: 'knit', color: R.pick([...PAL.woolGrey, ...PAL.woolBrown, ...PAL.red, ...PAL.fadedBlue]), low: R.range(0.2, 0.8) }
+        : hk < 0.85 ? { type: 'felt', color: R.pick(['#4a3e34', '#5a4a3c', '#3a322c']) } : null;
     if (R.chance(0.35)) outfit.hands = { mitten: { color: R.pick([...PAL.woolGrey, ...PAL.red, ...PAL.cream]) } };
   }
   if (fisher) {

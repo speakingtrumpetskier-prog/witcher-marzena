@@ -129,7 +129,7 @@ export function buildReed(v, lod = 0) {
       const th = r() * 6.28;
       const L = v.L0 + r() * (v.L1 - v.L0);
       maxL = Math.max(maxL, L);
-      blade(b, Math.cos(th) * 0.08, Math.sin(th) * 0.08, th, L, v.w, 0.5 + r() * 0.3, mixRGB(PAL.reedDark, PAL.green, 0.3), mixRGB(PAL.reedLight, PAL.green, 0.2), { rows: rowsHi, snowBase: 0.6, tipSnow: 0.15 });
+      blade(b, Math.cos(th) * 0.08, Math.sin(th) * 0.08, th, L, v.w, 0.5 + r() * 0.3, mixRGB(PAL.reedDark, PAL.green, 0.3), mixRGB(PAL.reedLight, PAL.green, 0.2), { rows: rowsHi, snowBase: 0.42, tipSnow: 0.1 });
     }
     for (let i = 0; i < v.plumes; i++) {
       const th = r() * 6.28;
@@ -156,7 +156,7 @@ export function buildReed(v, lod = 0) {
     const c0 = mixRGB(PAL.reedDark, PAL.strawMid, r() * 0.7);
     const c1 = mixRGB(PAL.strawMid, PAL.reedLight, 0.3 + r() * 0.7);
     blade(b, Math.cos(th) * 0.12, Math.sin(th) * 0.12, th, broken ? L * 0.55 : L, v.w * (0.8 + r() * 0.4), v.bend * (0.6 + r() * 0.9) * (broken ? 1.8 : 1),
-      c0, broken ? PAL.grey : c1, { rows: rowsHi, snowBase: 0.8, tipSnow: 0.2 });
+      c0, broken ? PAL.grey : c1, { rows: rowsHi, snowBase: 0.5, tipSnow: 0.12 });
   }
   // plumes: tall stalks with feathery heads
   if (lod === 0) {
@@ -164,7 +164,7 @@ export function buildReed(v, lod = 0) {
       const th = r() * 6.28;
       const L = v.L1 * (0.95 + r() * 0.2);
       maxL = Math.max(maxL, L + 0.4);
-      const tp = blade(b, Math.cos(th) * 0.1, Math.sin(th) * 0.1, th, L, 0.012, 0.18, PAL.reedDark, PAL.strawMid, { rows: [0, 0.4, 0.8], snowBase: 0.7 });
+      const tp = blade(b, Math.cos(th) * 0.1, Math.sin(th) * 0.1, th, L, 0.012, 0.18, PAL.reedDark, PAL.strawMid, { rows: [0, 0.4, 0.8], snowBase: 0.45 });
       for (let k = 0; k < 5; k++) {
         const a = (k / 5) * 6.28 + r();
         const len = 0.32 + r() * 0.12;

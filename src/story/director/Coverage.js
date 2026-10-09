@@ -125,6 +125,9 @@ export class Coverage {
     return pos;
   }
 
+  // Shot sizes are relative to the subject: a child's medium shot is a child-sized frame.
+  _scale(S) { return THREE.MathUtils.clamp(S.height / 1.75, 0.72, 1.12); }
+
   _other(subject) {
     if (subject === this.a) return this.b;
     if (subject === this.b) return this.a;
@@ -186,7 +189,7 @@ export class Coverage {
     const fr = this.frac();
     const nx = this._lookRoom(pos, look, _a, _b, 0.3);
     return {
-      pos, look, fov: this.fovFor(1.0, dist), frame: [nx, fr * 0.33],
+      pos, look, fov: this.fovFor(1.0 * this._scale(S), dist), frame: [nx, fr * 0.33],
       label: `ots ${S.id}`, size: 2, subject: S,
     };
   }
@@ -217,7 +220,7 @@ export class Coverage {
     const fr = this.frac();
     const d = pos.distanceTo(look);
     return {
-      pos, look, fov: this.fovFor(height, d), frame: [this._lookRoom(pos, look, _a, _b, nx), fr * 0.33],
+      pos, look, fov: this.fovFor(height * this._scale(S), d), frame: [this._lookRoom(pos, look, _a, _b, nx), fr * 0.33],
       label: `${label} ${S.id}`, size, subject: S,
     };
   }

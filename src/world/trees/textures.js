@@ -56,7 +56,9 @@ export function birchAtlas() {
   const W = 768, H = 256;
   const c = document.createElement('canvas');
   c.width = W; c.height = H;
-  const ctx = c.getContext('2d');
+  // CPU backed canvas: the impostor bake reads its pixels, and a GPU backed canvas readback would
+  // stall behind the GPU process (minutes under software GL)
+  const ctx = c.getContext('2d', { willReadFrequently: true });
   ctx.clearRect(0, 0, W, H);
   const r = rng(77);
   ctx.lineCap = 'round';
@@ -103,6 +105,7 @@ export function birchAtlas() {
   }
   ctx.restore();
   const tex = new THREE.CanvasTexture(c);
+  tex.userData.imageData = ctx.getImageData(0, 0, W, H);
   tex.colorSpace = THREE.SRGBColorSpace;
   tex.anisotropy = 4;
   tex.generateMipmaps = true;

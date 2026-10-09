@@ -2,12 +2,12 @@
 // convincing vertical face (stretched triangles), so these strips follow the exact cliff lines
 // of heightfield.js just in front of the terrain face, displaced into vertical fracture ribs,
 // strata ledges (which catch snow), bulges and deep cracks, rolling over into the cliff top and
-// burying their foot in the talus. A gap is left at the bear den and at the cave behind the falls.
+// burying their foot in the talus. A gap is left at the cave slot behind the falls. (The bear
+// den face at x ~ 150 is continuous until the den entrance exists; see FALLS for the pattern.)
 //
 // buildCliffs(G, material) -> THREE.Group (chunked meshes for frustum culling)
 import * as THREE from 'three';
 import { escarpmentAt, fallsCliff, FALLS } from '../heightfield.js';
-import { LOC } from '../layout.js';
 import { noise } from '../../core/Noise.js';
 
 const ROW = 1.1;
@@ -99,14 +99,12 @@ export function buildCliffs(G, material) {
 
   // North escarpment: main tier and, where present, the upper step.
   const main = [], upper = [];
-  const den = LOC.bearDen;
   for (let x = -470; x <= 452; x += 1.25) {
     const e = escarpmentAt(x);
     const e2 = escarpmentAt(x + 0.5);
     const sl = (e2.zc - e.zc) / 0.5, sl2 = (e2.z2 - e.z2) / 0.5;
     const hgt = e.hgt * e.along;
-    const nearDen = Math.abs(x - den.x) < 6;
-    if (hgt < 6 || nearDen) { main.push(null); } else {
+    if (hgt < 6) { main.push(null); } else {
       const ln = Math.hypot(sl, 1);
       const foot = noise.noise2(x * 0.045, 12.3);
       const yB = W.terrainAt(x, e.zc + 7) - 2.2 + 1.6 * foot, yT = W.terrainAt(x, e.zc - 9);

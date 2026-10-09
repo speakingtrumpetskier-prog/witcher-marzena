@@ -12,7 +12,7 @@ catches issues, and fixes them or sends a targeted fix back to the builder. No c
 | 1 | Characters, animation, horse | opus | building | 0 | |
 | 1 | Audio and music | opus | done, reviewed | 1 | 12 moods, 7 stingers, 68 SFX, auto ambience; no clipping, loudness on target; needs human ears |
 | 1 | Vegetation | sonnet | building | 0 | |
-| 1 | Architecture kit | sonnet | building | 0 | |
+| 1 | Architecture kit | sonnet | done, reviewed | 1 | full catalog incl. enterable tavern, longhouse+cellar, Hanka's house, workshop, walkable bell tower; placeBuilding with foundations, colliders, doors, lights, walk floors |
 | 1 | Props kit and FX | sonnet | done, reviewed | 1 | 74 props, pooled FX (fire, smoke, steam, sparks, wisps, breath), PropBatch merging; lead fixed the Collision yaw convention both kits worked around |
 | 2 | Player, camera, horse riding | sonnet | waits for characters | | |
 | 2 | UI | sonnet | done, reviewed | 1 | HUD, compass, subtitles, barks, choices, journal, parchment map, notes, pause, settings, title, credits |
@@ -30,3 +30,6 @@ Model policy (user request): Part Two and later run on Sonnet 5.5, except a sing
 - UI: retune the title camera path once the village and locations exist.
 - Props: 128 px textures tile at close range; effigies read a little doll-like (bigger straw silhouette, rougher hem).
 - Audio: needs a human listen (voice synthesis is the risk).
+- Architecture: idol faces too blocky (tiki read); sculpt deeper relief, weather it, keep the silhouette.
+- Architecture: bell tower should lean a few degrees and look drowned (ice line stains, broken boards, frost); stone texture cartoonish up close.
+- Architecture: large buildings 21k to 42k tris; drop log segments 10 to 8 if the village view is over budget.

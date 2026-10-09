@@ -32,8 +32,9 @@ function blocked(x, z, rad) {
     const n = nearestOnPolyline(x, z, road.pts);
     if (n.d < road.width * 0.5 + 2.5 + rad) return true;
   }
-  // Keep the frozen falls and its pool clear.
+  // Keep the frozen falls and its pool clear, and the watchtower vista free of big rocks.
   if (Math.hypot(x - FALLS.curtainX, z - FALLS.z) < 16 + rad) return true;
+  if (rad > 1.2 && Math.hypot(x - LOC.watchtower.x, z - LOC.watchtower.z) < 40 + rad) return true;
   return false;
 }
 

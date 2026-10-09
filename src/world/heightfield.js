@@ -376,8 +376,16 @@ function natural(x, z, sd) {
     const n = nearest(RIVER_LINE, x, z);
     if (n.d < 260) {
       let bed = n.h;
-      // Sharpen the falls segment into a cliff profile (top at segment start).
-      if (n.seg === 5) bed = fallsBed(n.t);
+      // Around the falls the valley bed follows the same cliff ramp as the hanging valley
+      // (vertical at the falls, a sloping step away from it), not the nearest river point,
+      // which would cut a straight wall across the whole valley.
+      const wF = ss(392, 402, x) * ss(528, 516, x);
+      if (wF > 0) {
+        const f = fallsCliff(z);
+        const below = 9 - Math.max(0, 440 - x) * 0.075;
+        const above = 36 + Math.max(0, x - 452) * 0.1176;
+        bed = mix(bed, mix(below, above, ss(f.xc - f.wdt, f.xc + f.wdt, x)), wF);
+      } else if (n.seg === 5) bed = fallsBed(n.t);
       const v = bed + riverBank(n.d);
       let hc = Math.min(h, v);
       if (n.d < RIVER.width * 0.5 + 14) hc = Math.max(hc, bed + 0.6);
