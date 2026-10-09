@@ -381,8 +381,9 @@ node scripts/shot.mjs --q "cam=-380,75,360&look=0,0,0&hour=15.5&weather=clear" -
 node scripts/shot.mjs --q "scene=characters&cam=0,1.6,5&look=0,1,0" --out shots/chars/sheet.png --seq 12 --every 120 --cols 4
 node scripts/shot.mjs --batch shots/terrain/plan.json
 ```
-Rendering is software (SwiftShader), so FPS in the harness is meaningless; draw calls and
-triangles are real. A shot takes 5 to 30 s. Put your shots under `shots/<your-area>/` (gitignored).
+Rendering is software (SwiftShader) by default, so FPS in the harness is meaningless; draw calls and
+triangles are real. On a machine with a GPU, `MZ_GPU=1 node scripts/shot.mjs ...` renders on the GPU
+(add `MZ_HEADED=1` if headless falls back to software); the harness prints the renderer it got. A shot takes 5 to 30 s. Put your shots under `shots/<your-area>/` (gitignored).
 Each builder should add a gallery scene in `src/debug/scenes/` for its area.
 
 ## Collaboration rules (several builders work in this tree at once)

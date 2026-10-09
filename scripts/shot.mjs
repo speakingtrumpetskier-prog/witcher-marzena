@@ -14,6 +14,7 @@
 // Options: --w 1280 --h 720 --eval "await __G.foo()" --timeout 180000 --frames 4
 //   --wait 0 (extra ms after ready)  --server http://127.0.0.1:5173 (reuse a running server)
 // "shot" is always added to the query. Output paths are relative to the repo root.
+// Rendering: software by default; MZ_GPU=1 for the local GPU, MZ_HEADED=1 for a visible window.
 /* global window, document, requestAnimationFrame */
 import { createServer } from 'vite';
 import path from 'node:path';
@@ -62,9 +63,18 @@ if (!base) {
   base = `http://127.0.0.1:${addr.port}`;
 }
 const { chromium } = await loadPlaywright();
+// Default: software WebGL (SwiftShader), which works anywhere, including GPU-less cloud containers.
+// MZ_GPU=1 uses the machine's GPU instead (full Chromium in new headless mode; Metal on macOS);
+// MZ_HEADED=1 opens a visible window, the most reliable way to get the GPU on some desktops.
+const GPU = process.env.MZ_GPU === '1';
+const SOFTWARE_ARGS = ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist', '--disable-gpu-sandbox'];
+const GPU_ARGS = ['--ignore-gpu-blocklist', '--enable-gpu-rasterization', ...(process.platform === 'darwin' ? ['--use-angle=metal'] : [])];
 const browser = await chromium.launch({
-  args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist', '--disable-gpu-sandbox', '--autoplay-policy=no-user-gesture-required'],
+  ...(GPU ? { channel: 'chromium' } : {}),
+  headless: process.env.MZ_HEADED !== '1',
+  args: [...(GPU ? GPU_ARGS : SOFTWARE_ARGS), '--autoplay-policy=no-user-gesture-required'],
 });
+let reportedRenderer = false;
 
 let failures = 0;
 for (const s of shots) {
@@ -118,6 +128,16 @@ for (const s of shots) {
       }
     }
     const info = await page.evaluate(() => ({ errors: window.__MZ_ERRORS || [], stats: window.__MZ_STATS || {} }));
+    if (!reportedRenderer) {
+      reportedRenderer = true;
+      const gl = await page.evaluate(() => {
+        const c = document.querySelector('#app canvas');
+        const ctx = c && (c.getContext('webgl2') || c.getContext('webgl'));
+        const ext = ctx && ctx.getExtension('WEBGL_debug_renderer_info');
+        return ext ? ctx.getParameter(ext.UNMASKED_RENDERER_WEBGL) : 'unknown';
+      });
+      console.log(`  renderer: ${gl}`);
+    }
     const secs = ((Date.now() - t0) / 1000).toFixed(1);
     console.log(`OK ${path.relative(ROOT, out)}  ${secs}s  calls=${info.stats.calls} tris=${info.stats.triangles}`);
     if (info.errors.length) { console.log('  module errors:'); for (const e of info.errors) console.log('   ', e); }
