@@ -405,7 +405,7 @@ export async function init(G_) {
     const pos = h.root.position;
     const r = nearestRoad(pos.x, pos.z);
     if (!r) return wantYaw;
-    const reach = r.road.width * 0.5 + 2.5;
+    const reach = r.road.width * 0.5 + 6;
     if (r.d > reach) return wantYaw;
     const a = r.road.pts[r.seg], b = r.road.pts[r.seg + 1];
     let road = Math.atan2(b[0] - a[0], b[1] - a[1]);
@@ -413,8 +413,8 @@ export async function init(G_) {
     if (Math.abs(wrapAngle(road - wantYaw)) > 0.95) return wantYaw;
     // Signed offset from the road centerline (positive = to the left of the travel direction).
     const lat = (pos.x - r.x) * Math.cos(road) - (pos.z - r.z) * Math.sin(road);
-    const target = road - clamp(lat * 0.2, -0.45, 0.45);
-    const w = 0.6 * (1 - smoothstep(r.road.width * 0.5, reach, r.d));
+    const target = road - clamp(lat * 0.22, -0.5, 0.5);
+    const w = 0.7 * (1 - smoothstep(1.5, reach, r.d));
     return wantYaw + wrapAngle(target - wantYaw) * w;
   }
 

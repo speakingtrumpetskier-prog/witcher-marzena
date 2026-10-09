@@ -24,13 +24,13 @@ export const TUNE = {
   signDelay: 1.4,
   // warmth per second
   nightDrain: 0.0011,
-  snowDrain: 0.0030,
-  windDrain: 0.0045,
+  snowDrain: 0.0016,
+  windDrain: 0.0030,
   iceExposure: 1.3,
   mountedShelter: 0.75,
   fireGain: 0.11,
   indoorGain: 0.09,
-  freezeBleed: 0.45, // health per second at zero warmth
+  freezeBleed: 0.3, // health per second at zero warmth
   frostBelow: 0.35,
 };
 

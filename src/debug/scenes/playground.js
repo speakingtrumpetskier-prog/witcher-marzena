@@ -228,22 +228,22 @@ export async function init(G) {
       { t: 1.8, tap: 'Space' },
       { t: 3.0, down: 'KeyD' }, { t: 3.1, tap: 'Space' }, { t: 3.25, tap: 'Space' }, { t: 3.8, up: 'KeyD' },
     ] },
-    combo: { dummy: 3.0, camOff: 1.15, script: [
-      { t: 0.1, tap: 'KeyR' }, { t: 1.3, click: 0 }, { t: 1.55, click: 0 }, { t: 2.2, click: 0 }, { t: 2.45, click: 0 },
+    // `drawn` demos start with the sword already in hand (the draw has its own sheet: draw).
+    draw: { camOff: 1.0, script: [{ t: 0.2, tap: 'KeyR' }, { t: 2.6, tap: 'KeyR' }] },
+    combo: { dummy: 3.0, camOff: 1.15, drawn: true, script: [
+      { t: 0.2, click: 0 }, { t: 0.45, click: 0 }, { t: 1.1, click: 0 }, { t: 1.35, click: 0 },
     ] },
-    heavy: { dummy: 3.0, camOff: 1.15, script: [
-      { t: 0.1, tap: 'KeyR' }, { t: 1.3, click: 2 },
-    ] },
+    heavy: { dummy: 3.0, camOff: 1.15, drawn: true, script: [{ t: 0.2, click: 2 }] },
     sign: { camOff: 1.0, script: [
       { t: 0.2, tap: 'Digit2' }, { t: 0.4, tap: 'KeyQ' }, { t: 2.0, tap: 'Digit3' }, { t: 2.1, tap: 'KeyQ' },
     ] },
-    block: { dummy: 3.0, camOff: 1.0, script: [
-      { t: 0.1, tap: 'KeyR' }, { t: 1.3, tap: 'KeyF' }, { t: 2.2, down: 'KeyF' }, { t: 3.4, up: 'KeyF' },
+    block: { dummy: 3.0, camOff: 1.0, drawn: true, script: [
+      { t: 0.2, tap: 'KeyF' }, { t: 1.2, down: 'KeyF' }, { t: 2.6, up: 'KeyF' },
     ] },
     ice: { start: [-10, 54, Math.PI], camOff: 0.8, script: [
       { t: 0.2, down: 'KeyW' }, { t: 0.6, down: 'ShiftLeft' }, { t: 3.2, up: 'KeyW' }, { t: 3.2, up: 'ShiftLeft' },
     ] },
-    call: { camOff: 0, horseAt: 'far', horse: true, script: [{ t: 0.5, tap: 'KeyX' }] },
+    call: { camOff: Math.PI, horseAt: 'far', horse: true, script: [{ t: 0.5, tap: 'KeyX' }] },
     mount: { camOff: 0.3, horse: true, script: [{ t: 0.3, tap: 'KeyX' }] },
     gallop: { camOff: 0, horse: true, script: [
       { t: 0.3, tap: 'KeyX' }, { t: 3.4, down: 'KeyW' }, { t: 4.2, down: 'ShiftLeft' }, { t: 9.0, up: 'ShiftLeft' }, { t: 9.5, up: 'KeyW' },
@@ -258,7 +258,8 @@ export async function init(G) {
     const st = d.start || [spawn.x, spawn.z, spawn.yaw];
     place(st[0], st[1], st[2]);
     P.stamina = P.maxStamina; P.health = P.maxHealth; P.signEnergy = 1;
-    P.character._setSword?.(false);
+    P.character._setSword?.(!!d.drawn);
+    if (d.drawn) P.moves.lastDraw = P.moves.t;
     if (d.horseAt === 'far') H?.teleport(st[0] - Math.sin(st[2]) * 62 + 12, st[1] - Math.cos(st[2]) * 62, st[2]);
     else if (!d.horse) H?.teleport(st[0] + Math.cos(st[2]) * 22, st[1] - Math.sin(st[2]) * 22, st[2]); // out of the way
     G.cameraRig.snapBehind(st[2] + (Q.has('camyaw') ? parseFloat(Q.get('camyaw')) : d.camOff || 0));

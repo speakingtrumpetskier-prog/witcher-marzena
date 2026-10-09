@@ -22,7 +22,7 @@ import { enemyPos } from './player/lock.js';
 const MODES = {
   explore: { dist: 3.5, side: 0.58, pivotH: 1.5, fov: 54, pitch: 0.16 },
   combat: { dist: 4.6, side: 0.78, pivotH: 1.55, fov: 52, pitch: 0.22 },
-  mounted: { dist: 5.4, side: 0.85, pivotH: 2.45, fov: 56, pitch: 0.17 },
+  mounted: { dist: 4.9, side: 0.85, pivotH: 2.35, fov: 56, pitch: 0.17 },
   interior: { dist: 2.5, side: 0.38, pivotH: 1.55, fov: 56, pitch: 0.12 },
 };
 const PITCH_MIN = -0.5, PITCH_MAX = 1.12;

@@ -256,7 +256,7 @@ class Player {
         this.velocity.set(loco.vel.x, 0, loco.vel.z);
       }
       this._idleClips();
-      this._writeCharacter();
+      this._writeCharacter(mag > 0.2);
     }
 
     // Remember a safe spot for respawns.
@@ -280,7 +280,7 @@ class Player {
     }
   }
 
-  _writeCharacter() {
+  _writeCharacter(hasInput = false) {
     const c = this.character, loco = this.loco;
     if (this.mounted || this._mounting) return;
     c.root.position.copy(this.position);
@@ -293,12 +293,12 @@ class Player {
     let v = loco.speed;
     if (v < 0.4) v = Math.max(v, Math.min(0.55, Math.abs(loco.yawRate) * 0.11));
     c.speed = c.targetSpeed = v;
-    if (c.anim.mode !== 'loco' && !this.moves.act && !this.moves.upper && !this._mounting) c.anim.toLoco(0.25);
+    // A clip someone else started (examine, drink at a fire) plays out; moving cancels it.
+    if (hasInput && c.anim.mode !== 'loco' && !this.moves.act && !this.moves.upper && !this._mounting) c.anim.toLoco(0.2);
   }
 
   // ---- late system (after characters): sync, footsteps, shared uniforms --------------------------
   late(dt) {
-    const c = this.character;
     const H = G.horse;
     if (this.mounted && H?.root) {
       this.position.copy(H.root.position);
@@ -311,7 +311,6 @@ class Player {
       const yaw = G.cameraRig ? G.cameraRig.yaw : cameraHeading();
       A.shadowFocus.set(this.position.x + Math.sin(yaw) * 8, this.position.y, this.position.z + Math.cos(yaw) * 8);
     }
-    void c;
   }
 }
 
@@ -323,6 +322,7 @@ function enemyDist(e, pos) {
 export async function init(G_) {
   const P = new Player();
   G_.player = P;
+  if (G_.world && !G_.world.fires) G_.world.fires = []; // locations push { x, z, r } for hearths and campfires
   const c = P.character;
   G_.scene.add(c.root);
   const sp = SPAWN.villageGate;

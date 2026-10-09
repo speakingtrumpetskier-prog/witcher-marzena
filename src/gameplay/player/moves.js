@@ -66,6 +66,7 @@ export class Moves {
     this.dodgeBuf = null; // time of a dodge press waiting for the recovery window
     this.lastDodgePress = -10;
     this.lastCombat = -100;
+    this.lastDraw = 0;
     this.out = { owns: false, speedMul: 1, face: null, noSprint: false };
   }
 
@@ -138,6 +139,10 @@ export class Moves {
       this.startAttack(k, ctx);
     }
 
+    // A blade left out in a quiet valley goes back on her back after a while (hunter senses need it sheathed).
+    if (c.swordDrawn && enabled && !this.act && !this.upper && !this.blocking && !P.target && !G.combat?.inCombat
+      && this.t - Math.max(this.lastCombat, this.lastDraw) > 20 && !P.mounted) this.toggleSword(false);
+
     // Input.
     if (enabled) this._input(dt, ctx);
 
@@ -184,6 +189,7 @@ export class Moves {
     const want = draw ?? !c.swordDrawn;
     if (want === c.swordDrawn || this.upper) return;
     this.blocking = false;
+    this.lastDraw = this.t;
     if (want) {
       c.swordKind = c.swordKind || 'steel';
       c.playUpper('draw_sword', { fade: 0.1, onEvent: (ev) => { if (ev === 'sword_draw') { G.audio?.sfx?.('sword_draw'); G.events.emit('player:draw', {}); } } });
