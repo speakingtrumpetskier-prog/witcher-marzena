@@ -131,18 +131,19 @@ export async function init(G) {
     proxyForce = true;
     return n;
   };
+  // Hide what sits under an exclusion entry (circle or box, optionally limited to some groups).
   const clearShape = (e) => {
-    const fade = 1.5;
-    if (e.type !== 'box') {
-      return clearArea(e.x, e.z, (e.r ?? 0) + (e.kinds ? 0 : 0.5));
-    }
-    const ext = Math.hypot(e.hw, e.hd) + 12;
-    const pred = (kind, px, pz, sx) => exclusionDistance(e, px, pz) < (kind.group === 'tree' ? Math.max(kind.trunkR, kind.radius * sx * 0.25) : 0.5) + fade * 0;
+    const ext = (e.type === 'box' ? Math.hypot(e.hw, e.hd) : (e.r ?? 0)) + 14;
+    const pred = (kind, px, pz, sx) => (!e.kinds || e.kinds.includes(kind.group))
+      && exclusionDistance(e, px, pz) < (kind.group === 'tree' ? Math.max(kind.trunkR, kind.radius * sx * 0.3) : Math.min(1.5, kind.radius * sx * 0.5));
     let n = trees.clearIf(e.x - ext, e.z - ext, e.x + ext, e.z + ext, pred);
     ground.clearIf(e.x - ext, e.z - ext, e.x + ext, e.z + ext, pred);
-    gen.cleared.push({ x: e.x, z: e.z, r: Math.hypot(e.hw, e.hd) });
-    for (const f of placed.far) if (!f.dead && exclusionDistance(e, f.x, f.z) < 2) { f.dead = true; n++; }
+    if (!e.kinds || e.kinds.includes('ground')) gen.cleared.push({ x: e.x, z: e.z, r: Math.max(0.5, e.type === 'box' ? Math.hypot(e.hw, e.hd) : (e.r ?? 0)) });
+    if (!e.kinds || e.kinds.includes('tree')) {
+      for (const f of placed.far) if (!f.dead && exclusionDistance(e, f.x, f.z) < 2) { f.dead = true; n++; }
+    }
     impDirty = true;
+    trees.dirty = true;
     proxyForce = true;
     return n;
   };

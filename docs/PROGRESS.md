@@ -7,7 +7,7 @@ catches issues, and fixes them or sends a targeted fix back to the builder. No c
 | Phase | Area | Builder | Status | Review rounds | Notes |
 |---|---|---|---|---|---|
 | 0 | Design bible, story script, village plan, architecture, engine skeleton, harness | lead | done | n/a | docs/DESIGN.md, docs/STORY.md, docs/VILLAGE.md, docs/ARCHITECTURE.md |
-| 1 | Terrain, ice, water, rocks | opus | building | 0 | |
+| 1 | Terrain, ice, water, rocks | opus | done, reviewed | 1 | worker-built 1025 + far grids, single instanced LOD terrain, horn-peak ranges with a sunset notch, black ice with depth, frozen river and falls, 3.8k rocks, full thaw |
 | 1 | Atmosphere, sky, weather, post | opus | building | 0 | |
 | 1 | Characters, animation, horse | opus | building | 0 | |
 | 1 | Audio and music | opus | done, reviewed | 1 | 12 moods, 7 stingers, 68 SFX, auto ambience; no clipping, loudness on target; needs human ears |
@@ -32,4 +32,5 @@ Model policy (user request): Part Two and later run on Sonnet 5.5, except a sing
 - Audio: needs a human listen (voice synthesis is the risk).
 - Architecture: idol faces too blocky (tiki read); sculpt deeper relief, weather it, keep the silhouette.
 - Architecture: bell tower should lean a few degrees and look drowned (ice line stains, broken boards, frost); stone texture cartoonish up close.
+- Terrain: noon snow blown out and no distance haze (sent to atmosphere builder); ice wind streaks too regular; talus boulders read as scattered teeth; marsh pool edges look cut; bear den needs a cave opening in the escarpment (locations builder; terrain left a pattern at the falls).
 - Architecture: large buildings 21k to 42k tris; drop log segments 10 to 8 if the village view is over budget.

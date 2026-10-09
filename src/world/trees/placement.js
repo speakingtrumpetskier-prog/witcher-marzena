@@ -285,6 +285,7 @@ export async function placeVegetation(G, kinds) {
       D *= smoothstep(2.5, 22, sd);
       const mdx = x - MARSH.x, mdz = z - MARSH.z;
       D *= smoothstep(MARSH.r * 0.9, MARSH.r + 38, Math.sqrt(mdx * mdx + mdz * mdz));
+      if (x > 280 && z > -170 && z < 30) D *= smoothstep(RIVER.width * 0.5 + 2, RIVER.width * 0.5 + 12, riverDistance(x, z)); // keep the frozen river free
       const vis = vistaFactor(x, z);
       D *= vis;
       // village: thin and gappy, cut for firewood

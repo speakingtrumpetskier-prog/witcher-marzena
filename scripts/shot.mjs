@@ -9,7 +9,8 @@
 // From a JSON file: [{ "q": "...", "out": "...", "eval": "optional js", "w": 1280, "h": 720 }]
 //   node scripts/shot.mjs --batch shots/plan.json
 // Frame sequence as one contact sheet (animations, cutscenes):
-//   node scripts/shot.mjs --q "scene=characters" --out sheet.png --seq 12 --every 120 --cols 4
+//   node scripts/shot.mjs --q "scene=characters&fps=30" --out sheet.png --seq 12 --every 120 --cols 4
+// After load, shot mode caps rendering at 6 fps to spare the CPU; add &fps=30 for animation sheets.
 // Options: --w 1280 --h 720 --eval "await __G.foo()" --timeout 180000 --frames 4
 //   --wait 0 (extra ms after ready)  --server http://127.0.0.1:5173 (reuse a running server)
 // "shot" is always added to the query. Output paths are relative to the repo root.

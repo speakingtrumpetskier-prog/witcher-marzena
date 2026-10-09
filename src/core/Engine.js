@@ -52,8 +52,13 @@ export function createEngine(container) {
   const stats = { fps: 0, calls: 0, triangles: 0, frame: 0 };
   window.__MZ_STATS = stats;
 
+  // In shot mode, once loaded, cap the frame rate so idle harness pages do not burn the CPU that
+  // other renders need. &fps=N overrides (use a higher value for animation contact sheets).
+  const shotCap = G.shot ? parseFloat(G.params.get('fps') || '6') : 0;
+
   function frame(now) {
     requestAnimationFrame(frame);
+    if (shotCap > 0 && window.__MZ_READY && now - last < 1000 / shotCap) return;
     let dt = (now - last) / 1000;
     last = now;
     if (G.shot && G.params.has('fixedDt')) dt = 1 / 60;

@@ -263,25 +263,6 @@ export function frond(b, o, theta, L, W, droop, rise, opts = {}) {
   return rowsIdx;
 }
 
-// Hanging spray: a narrow tapered strip hanging from a point, pointing down and a little outward.
-export function hangSpray(b, x, y, z, theta, len, width, col, opts = {}) {
-  const dx = Math.cos(theta), dz = Math.sin(theta);
-  const sx = -dz, sz = dx;
-  const out = opts.out ?? 0.25;
-  const snow = opts.snow ?? 0;
-  const flex = opts.flex ?? 0.8;
-  const phase = opts.phase ?? 0;
-  const dark = [col[0] * 0.8, col[1] * 0.8, col[2] * 0.8];
-  const a = b.v(x + sx * width, y, z + sz * width, dx, 0, dz, col, -1, 0.3, snow, flex * 0.5, phase);
-  const c = b.v(x - sx * width, y, z - sz * width, dx, 0, dz, col, 1, 0.3, snow, flex * 0.5, phase);
-  const m1 = b.v(x + dx * len * out * 0.5 + sx * width * 0.8, y - len * 0.5, z + dz * len * out * 0.5 + sz * width * 0.8, dx, 0, dz, dark, -1, 0.5, 0, flex, phase);
-  const m2 = b.v(x + dx * len * out * 0.5 - sx * width * 0.8, y - len * 0.5, z + dz * len * out * 0.5 - sz * width * 0.8, dx, 0, dz, dark, 1, 0.5, 0, flex, phase);
-  const tip = b.v(x + dx * len * out, y - len, z + dz * len * out, dx, 0, dz, dark, 0, 1, 0, flex, phase);
-  b.triFacing(a, c, m2, dx, 0, dz);
-  b.triFacing(a, m2, m1, dx, 0, dz);
-  b.triFacing(m1, m2, tip, dx, 0, dz);
-}
-
 // Soft normal function for foliage: blends the face normal with a "ball" normal radiating from the
 // crown center so a tree shades like one soft volume instead of a pile of flat plates.
 export function softBall(cx, cy, cz, k = 0.55, up = 0.2) {

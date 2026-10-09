@@ -361,7 +361,7 @@ holds `{ fps, calls, triangles }`. `window.__MZ_ERRORS` lists module init errors
 URL params: `shot` (deterministic, frozen clock, no title/audio), `cam=x,y,z`, `look=x,y,z`,
 `fov`, `hour`, `weather`, `only=a,b`, `skip=a,b`, `scene=name` (loads
 `src/debug/scenes/<name>.js`, which exports `init(G)` and optionally `modules = [...]` and
-`needsWorld = true`), `frames=N`, `quality`, `gridRes`, `debug` (F1 fly camera, P logs camera params).
+`needsWorld = true`), `frames=N`, `fps=N` (shot mode caps rendering at 6 fps after load; raise it for animation sheets), `quality`, `gridRes`, `debug` (F1 fly camera, P logs camera params).
 
 ```bash
 node scripts/shot.mjs --q "cam=-380,75,360&look=0,0,0&hour=15.5&weather=clear" --out shots/terrain/reveal.png
