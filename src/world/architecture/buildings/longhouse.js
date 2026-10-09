@@ -145,7 +145,7 @@ export function longhouse(opts = {}) {
     // Floor and walls.
     const flag = scaleC(PAL.stoneDark, GAIN * 0.8);
     kit.stone.box((cx0 + cx1) / 2, cy - 0.15, (cz0 + cz1) / 2, cx1 - cx0 + 1.0, 0.3, cz1 - cz0 + 1.0, flag, { uv: [2, 2] });
-    const wallT = 0.5, wy0 = cy - 0.1, wh = -0.02 - wy0;
+    const wallT = 0.5, wy0 = cy - 0.1, wh = 0.02 - wy0;
     const sc = () => mixC(PAL.stoneDark, PAL.stone, kit.rand()).multiplyScalar(GAIN * kit.r(0.85, 1.05));
     kit.stone.box((cx0 + cx1) / 2, wy0 + wh / 2, cz0 - wallT / 2, cx1 - cx0 + 1.0, wh, wallT, sc(), { uv: [2, 2] });
     kit.stone.box((cx0 + cx1) / 2, wy0 + wh / 2, cz1 + wallT / 2, cx1 - cx0 + 1.0, wh, wallT, sc(), { uv: [2, 2] });

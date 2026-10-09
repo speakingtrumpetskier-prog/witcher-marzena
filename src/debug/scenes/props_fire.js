@@ -21,11 +21,11 @@ export async function build(G, ctx) {
   put(props.lantern({ seed: 2 }), 8.2, 0.9);
 
   // Forge: anvil with sparks and a quench barrel with steam.
-  put(props.anvil({ seed: 1 }), -12.5, 0.2);
-  const sp = props.fx.sparks({ position: [-12.4, gh(-12.4, 0.2) + 0.85, 0.2], parent: G.scene, light: true, every: [0.8, 1.8] });
+  put(props.anvil({ seed: 1 }), -12, 1.2);
+  const sp = props.fx.sparks({ position: [-11.92, gh(-11.9, 1.2) + 0.85, 1.2], parent: G.scene, light: true, every: [0.8, 1.8] });
   void sp;
-  put(props.quenchBarrel({ seed: 1 }), -11, 1.2);
-  lab('anvil + sparks', -12.2, 0.2, 2.2);
+  put(props.quenchBarrel({ seed: 1 }), -10.6, 2.0);
+  lab('anvil + sparks', -12, 1.2, 2.2);
 
   // Effigies on fire and burnt.
   put(props.effigy({ seed: 8, variant: 'burning' }), 12.5, 0.2); lab('burning effigy', 12.5, 0.2, 3);
@@ -37,18 +37,18 @@ export async function build(G, ctx) {
     box.position.y = 1.2;
     box.castShadow = true;
     g.add(box);
-    put(g, x, -10);
-    props.fx.smoke({ position: [x, gh(x, -10) + 2.45, -10], parent: G.scene, height: [24, 40, 56][i], rate: 1.5 });
+    put(g, x, -12);
+    props.fx.smoke({ position: [x, gh(x, -12) + 2.45, -12], parent: G.scene, height: [24, 40, 56][i] });
   }
-  lab('chimney smoke', 0, -10, 6);
+  lab('chimney smoke', 0, -12, 6);
 
   // Steam: a hot spring pool, wisps, and a person-shaped stand-in breathing.
   const pool = new THREE.Mesh(new THREE.CylinderGeometry(2.2, 2.2, 0.06, 20), new THREE.MeshStandardMaterial({ color: 0x6a8a92, roughness: 0.2 }));
-  put(pool, -15, -4, gh(-15, -4) + 0.03);
-  props.fx.steam({ position: [-15, gh(-15, -4) + 0.1, -4], parent: G.scene, rate: 14, height: 9, spread: 1.4, size: 1.6 });
-  lab('hot spring steam', -15, -4, 3.6);
-  for (let i = 0; i < 3; i++) props.fx.wisp({ position: [14 + i * 1.6, gh(14, -4), -4 + i * 1.2], parent: G.scene, radius: 1.4 });
-  lab('will-o-wisps', 15.6, -4, 3);
+  put(pool, -7, -5, gh(-7, -5) + 0.03);
+  props.fx.steam({ position: [-7, gh(-7, -5) + 0.1, -5], parent: G.scene, rate: 14, height: 9, spread: 1.4, size: 1.6 });
+  lab('hot spring steam', -7, -5, 3.6);
+  for (let i = 0; i < 3; i++) props.fx.wisp({ position: [6 + i * 1.8, gh(6, -4), -4.5 + i * 1.0], parent: G.scene, radius: 1.4 });
+  lab('will-o-wisps', 7.8, -4.5, 3);
   const person = new THREE.Group();
   const body = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.25, 1.5, 10), new THREE.MeshStandardMaterial({ color: 0x4a5a70, roughness: 0.9 }));
   body.position.y = 0.75; body.castShadow = true;

@@ -9,13 +9,13 @@ const N3 = createNoise(5150);
 
 // ---- geometry variants
 export const KINDS = [
-  { kind: 'boulder', seed: 11, scale: [1.1, 0.8, 1.0], cuts: 9, rough: 0.14, depth: [0.5, 0.78] },
-  { kind: 'boulder', seed: 23, scale: [1.0, 0.65, 1.2], cuts: 11, rough: 0.12, depth: [0.48, 0.75] },
-  { kind: 'boulder', seed: 37, scale: [1.2, 0.9, 0.9], cuts: 8, rough: 0.16, depth: [0.52, 0.8] },
+  { kind: 'boulder', seed: 11, scale: [1.1, 0.8, 1.0], cuts: 9, rough: 0.14, depth: [0.4, 0.7] },
+  { kind: 'boulder', seed: 23, scale: [1.0, 0.65, 1.2], cuts: 11, rough: 0.12, depth: [0.38, 0.68] },
+  { kind: 'boulder', seed: 37, scale: [1.2, 0.9, 0.9], cuts: 9, rough: 0.14, depth: [0.42, 0.72] },
   { kind: 'slab', seed: 41, scale: [1.5, 0.55, 1.0], cuts: 10, rough: 0.1, strata: 1, depth: [0.5, 0.8] },
   { kind: 'slab', seed: 53, scale: [1.3, 0.7, 1.3], cuts: 12, rough: 0.1, strata: 1, depth: [0.5, 0.78] },
-  { kind: 'crag', seed: 67, scale: [0.8, 1.6, 0.9], cuts: 11, rough: 0.12, strata: 0.6, depth: [0.45, 0.75] },
-  { kind: 'crag', seed: 79, scale: [1.0, 1.9, 0.7], cuts: 10, rough: 0.13, strata: 0.7, depth: [0.45, 0.72] },
+  { kind: 'crag', seed: 67, scale: [0.8, 1.6, 0.9], cuts: 13, rough: 0.1, strata: 0.6, depth: [0.32, 0.62] },
+  { kind: 'crag', seed: 79, scale: [1.0, 1.9, 0.7], cuts: 12, rough: 0.1, strata: 0.7, depth: [0.3, 0.6] },
 ];
 
 export function rockGeometry(def, detail, { embed = 0.22 } = {}) {

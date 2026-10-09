@@ -319,8 +319,10 @@ export class Kit {
       for (let i = 0; i < p.count; i++) { ba[i * 3] = bx; ba[i * 3 + 1] = by; ba[i * 3 + 2] = bz; }
       geo.setAttribute('aBase', new THREE.BufferAttribute(ba, 3));
     }
-    let list = this.parts.get(matName);
-    if (!list) this.parts.set(matName, (list = []));
+    // nosnow: use the indoor (no snow patch) variant of the material for this part only (burnt logs, ash).
+    const key = o.nosnow && !this.indoor ? matName + '|i' : matName;
+    let list = this.parts.get(key);
+    if (!list) this.parts.set(key, (list = []));
     list.push({ geo, matrix: m });
     return this;
   }
@@ -629,9 +631,10 @@ export class Kit {
     const group = new THREE.Group();
     group.name = this.name;
     let tris = 0;
-    for (const [matName, list] of this.parts) {
+    for (const [key, list] of this.parts) {
+      const matName = key.endsWith('|i') ? key.slice(0, -2) : key;
       const merged = mergeGeos(list);
-      const mesh = new THREE.Mesh(merged, getMat(matName, this.indoor));
+      const mesh = new THREE.Mesh(merged, getMat(matName, this.indoor || key.endsWith('|i')));
       const info = MAT_INFO[matName];
       mesh.castShadow = !info.noShadow;
       mesh.receiveShadow = true;

@@ -83,7 +83,7 @@ export function watchtowerRuin(opts = {}) {
     boulder(kit, Math.cos(a) * r, -0.15, Math.sin(a) * r, kit.r(0.35, 0.9), kit.r(0.25, 0.6), kit.r(0.35, 0.8), { seg: 7, rings: 3 });
   }
   // Packed floor and snow drifted in through the door.
-  kit.stone.box(0, -0.05, 0, 3.7, 0.1, 3.7, scaleC(0x4a443e, GAIN * 0.7), { uv: [3, 3] });
+  kit.rock.box(0, -0.05, 0, 3.7, 0.1, 3.7, scaleC(0x4a443e, GAIN * 0.7), { uv: [3, 3] });
   snowPillow(kit, 0.2, 0.0, 1.4, 1.5, 0.5, 1.2, { nu: 4, nv: 10 });
   snowPillow(kit, -1.0, 0.0, -1.0, 0.9, 0.35, 0.8, { nu: 3, nv: 8 });
   // Snow on the broken wall crowns: lumps along the high edges.
@@ -119,7 +119,7 @@ export function watchtowerRuin(opts = {}) {
   // A section of the fallen shingle roof lying on the rubble on the east side, with its own snow.
   {
     const sl = slab(kit, V3(3.0, 0.6, 1.2), V3(3.0, 0.8, 4.2), V3(5.6, 1.9, 1.2), V3(5.6, 2.1, 4.2), { th: 0.1, nu: 4, pitch: 0.5, step: 0.25, jag: 0.25, wave: 0.05 });
-    const P = sl.P, T = P.map((row, i) => row.map((p, j) => Math.max(0.035, 0.2 * (0.6 + 0.5 * kit.n2(p.x * 0.7, p.z * 0.7)) * (j > 0 && j < row.length - 1 ? 1 : 0.5))));
+    const P = sl.P, T = P.map((row) => row.map((p, j) => Math.max(0.035, 0.2 * (0.6 + 0.5 * kit.n2(p.x * 0.7, p.z * 0.7)) * (j > 0 && j < row.length - 1 ? 1 : 0.5))));
     snowLayer(kit, { P, T, lip: [1, 0, 1, 1], lipOut: 0.15, under: 0.14 });
     kit.wood.tube([3.3, 0.3, 1.0], [5.4, 1.2, 4.6], 0.1, 0.09, beamC, { seg: 6, lenSeg: 2, ao: 0.25 });
     kit.wood.tube([4.0, 0.6, 1.0], [5.9, 1.7, 4.8], 0.1, 0.09, beamC, { seg: 6, lenSeg: 2, ao: 0.25 });

@@ -20,7 +20,7 @@ const _e = new THREE.Euler();
 // i + 1 (centre of the fade band), bands[i] its half width. The last LOD of a kind without an
 // impostor fades out over `fadeOut` meters ending at ends[last].
 const GROUPS = {
-  tree: { ends: [32, 105, 300], bands: [7, 18, 36] },
+  tree: { ends: [22, 100, 290], bands: [5, 14, 30] },
   bush: { ends: [30, 120], bands: [8, 0], fadeOut: 30 },
   deadwood: { ends: [38, 115], bands: [8, 0], fadeOut: 28 },
   ground: { ends: [20, 58], bands: [5, 0], fadeOut: 16 },
@@ -366,6 +366,28 @@ export class VegLayer {
       }
     }
     return null;
+  }
+
+  // Live instances of the given species within r of (x, z): [{ kind, species, x, y, z, top, r }]
+  // where top is the world height of the highest point (a perch for ravens on snags).
+  findNear(species, x, z, r) {
+    const cs = this.chunkSize;
+    const out = [];
+    for (let ix = Math.floor((x - r) / cs); ix <= Math.floor((x + r) / cs); ix++) {
+      for (let iz = Math.floor((z - r) / cs); iz <= Math.floor((z + r) / cs); iz++) {
+        const ch = this.chunks.get(`${ix},${iz}`);
+        if (!ch) continue;
+        for (let i = 0; i < ch.n; i++) {
+          if (!ch.alive[i]) continue;
+          const kind = this.kinds[ch.kind[i]];
+          if (!species.includes(kind.species)) continue;
+          const px = ch.m[i * 16 + 12], py = ch.m[i * 16 + 13], pz = ch.m[i * 16 + 14];
+          if (Math.hypot(px - x, pz - z) > r) continue;
+          out.push({ kind: kind.id, species: kind.species, x: px, y: py, z: pz, top: py + kind.height * ch.sy[i] * 0.97, r: kind.trunkR * ch.sx[i] });
+        }
+      }
+    }
+    return out;
   }
 
   // Visit every live instance (for rebuilding the impostor buffer).

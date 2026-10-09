@@ -2,9 +2,11 @@
 // of the far grid. Driven by gridBuilder.js. Pure math, no DOM.
 //
 // Messages in:  { id, kind: 'near', res, half, j0, j1 }
+//               { id, kind: 'normals', grid, n, cell, r1, r2 }  -> { out: Uint8Array }
 //               { id, kind: 'far', res, half, j0, j1, inner }   (skips |x|,|z| <= inner)
 // Messages out: { id, kind, j0, j1, h: Float32Array, mask?: Uint8Array, ms }
 import { computeHeight } from '../heightfield.js';
+import { normalData } from './normals.js';
 
 const info = { roadD: 0, roadHalf: 0, sd: 0, riverD: 0 };
 const clamp255 = (v) => (v < 0 ? 0 : v > 255 ? 255 : Math.round(v));
@@ -12,6 +14,12 @@ const clamp255 = (v) => (v < 0 ? 0 : v > 255 ? 255 : Math.round(v));
 self.onmessage = (e) => {
   const t0 = performance.now();
   const { id, kind, res, half, j0, j1 } = e.data;
+  if (kind === 'normals') {
+    const { grid, n, cell, r1, r2 } = e.data;
+    const out = normalData(grid, n, cell, r1, r2);
+    self.postMessage({ id, kind, out, ms: performance.now() - t0 }, [out.buffer]);
+    return;
+  }
   const cell = (half * 2) / (res - 1);
   const rows = j1 - j0;
   const h = new Float32Array(rows * res);

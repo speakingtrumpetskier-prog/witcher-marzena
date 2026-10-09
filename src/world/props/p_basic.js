@@ -219,6 +219,7 @@ export function choppingBlock(o = {}) {
   const k = new Kit('choppingBlock', o);
   const r = 0.26 + k.rs(0.04), h = 0.5 + k.rs(0.06);
   k.push({ yaw: k.r(0, TAU) });
+  k.anchor('work', 0, 0, 0.75);
   k.cyl('bark', r * 0.96, r * 1.1, h + 0.04, {
     pos: [0, h / 2 - 0.02, 0], radial: 10, cap: 'logEnd', noBottom: true, jitter: 0.016, jfreq: 5, tint: 0xe0d4c8,
   });
@@ -313,6 +314,7 @@ export function campfire(o = {}) {
   const r = 0.55 + k.rs(0.06);
   const stones = 8 + Math.floor(k.r(0, 2));
   k.push({ yaw: k.r(0, TAU) });
+  for (let i = 0; i < 4; i++) k.anchor('sit' + i, Math.cos(i * 1.57 + 0.4) * 1.3, 0.2, Math.sin(i * 1.57 + 0.4) * 1.3);
   // Melted dark ring and ash.
   k.plane('decal', r * 5.2, r * 5.2, { pos: [0, 0.03, 0], rot: [-Math.PI / 2, 0, 0], tint: 0x6a5a4c, grime: 0, var: 0.1 });
   k.plane('decal', r * 3.0, r * 3.0, { pos: [0, 0.034, 0], rot: [-Math.PI / 2, 0, 0], tint: 0x1c1a18, grime: 0, var: 0.2, jseed: 3 });
@@ -327,7 +329,7 @@ export function campfire(o = {}) {
   for (let i = 0; i < nl; i++) {
     const a = (i / nl) * Math.PI + k.rs(0.3);
     k.log(0.06 + k.r(0, 0.02), 0.85 + k.rs(0.1), {
-      lie: 'x', pos: [0, 0.09 + i * 0.035, 0], yaw: a, rot: [0, 0, k.rs(0.18)], radial: 7, tint: 0x3a3430,
+      lie: 'x', pos: [0, 0.09 + i * 0.035, 0], yaw: a, rot: [0, 0, k.rs(0.18)], radial: 7, tint: 0x3a3430, nosnow: true,
     });
   }
   k.cyl('coal', 0.2, 0.26, 0.05, { pos: [0, 0.07, 0], radial: 9, tint: 0xffffff, grime: 0, var: 0.1, jitter: 0.02 });

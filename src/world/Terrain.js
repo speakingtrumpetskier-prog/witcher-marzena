@@ -19,6 +19,7 @@ import { terrainUniforms, TERRAIN_SAMPLE_GLSL } from './terrain/terrainGLSL.js';
 import { createTerrainMaterials } from './terrain/terrainMaterial.js';
 import { computeHeight } from './heightfield.js';
 import { noiseTextures } from './terrain/noiseTextures.js';
+import { normalData } from './terrain/normals.js';
 
 const PATCH = 32; // cells per patch side
 const ROOT_HALF = 6400; // quadtree root covers [-6400, 6400]; 800 m nodes align with the near grid
@@ -30,51 +31,6 @@ const KEEP_NEAR = 70; // keep patches this close even outside the view (shadow c
 // per vertex. Each level still contains its nodes (range[L] + node diagonal < range[L+1]).
 const RANGE_BOOST = [1, 1, 1.15, 1.3, 1.6, 1.8, 1.8, 1.8];
 export const lodRange = (r0, L) => r0 * 2 ** L * RANGE_BOOST[L];
-
-function boxBlur(src, n, r) {
-  const tmp = new Float32Array(n * n), out = new Float32Array(n * n);
-  const inv = 1 / (2 * r + 1);
-  for (let j = 0; j < n; j++) {
-    const row = j * n;
-    let sum = 0;
-    for (let i = -r; i <= r; i++) sum += src[row + Math.min(n - 1, Math.max(0, i))];
-    for (let i = 0; i < n; i++) {
-      tmp[row + i] = sum * inv;
-      sum += src[row + Math.min(n - 1, i + r + 1)] - src[row + Math.max(0, i - r)];
-    }
-  }
-  for (let i = 0; i < n; i++) {
-    let sum = 0;
-    for (let j = -r; j <= r; j++) sum += tmp[Math.min(n - 1, Math.max(0, j)) * n + i];
-    for (let j = 0; j < n; j++) {
-      out[j * n + i] = sum * inv;
-      sum += tmp[Math.min(n - 1, j + r + 1) * n + i] - tmp[Math.max(0, j - r) * n + i];
-    }
-  }
-  return out;
-}
-
-// RGBA8: rg normal xz, b small concavity (+-2 m), a large concavity (+-12 m).
-function normalData(g, n, cell, r1, r2) {
-  const out = new Uint8Array(n * n * 4);
-  const b1 = boxBlur(g, n, r1), b2 = boxBlur(g, n, r2);
-  const c = (v) => (v < 0 ? 0 : v > 255 ? 255 : (v + 0.5) | 0);
-  for (let j = 0; j < n; j++) {
-    const jl = Math.max(0, j - 1), jr = Math.min(n - 1, j + 1);
-    for (let i = 0; i < n; i++) {
-      const il = Math.max(0, i - 1), ir = Math.min(n - 1, i + 1);
-      const o = j * n + i;
-      const dx = (g[j * n + ir] - g[j * n + il]) / ((ir - il) * cell);
-      const dz = (g[jr * n + i] - g[jl * n + i]) / ((jr - jl) * cell);
-      const inv = 1 / Math.sqrt(dx * dx + 1 + dz * dz);
-      out[o * 4] = c((-dx * inv * 0.5 + 0.5) * 255);
-      out[o * 4 + 1] = c((-dz * inv * 0.5 + 0.5) * 255);
-      out[o * 4 + 2] = c(((b1[o] - g[o]) / 4 + 0.5) * 255);
-      out[o * 4 + 3] = c(((b2[o] - g[o]) / 24 + 0.5) * 255);
-    }
-  }
-  return out;
-}
 
 function heightTexture(data, n) {
   const t = new THREE.DataTexture(data, n, n, THREE.RedFormat, THREE.FloatType);
@@ -297,11 +253,13 @@ export async function init(G) {
   if (!W.mask) for (let i = 0; i < W.res * W.res; i++) { mask[i * 4] = 255; mask[i * 4 + 1] = 0; mask[i * 4 + 2] = 255; mask[i * 4 + 3] = 255; }
 
   const nearCellsPerMeter = 1 / W.cell;
+  const [nn, fn] = await Promise.all([W.normals.near, W.normals.far]);
+  const t2 = performance.now();
   const textures = {
     nearH: heightTexture(W.grid, W.res),
     farH: heightTexture(far.grid, far.res),
-    nearN: rgbaTexture(normalData(W.grid, W.res, W.cell, Math.max(1, Math.round(4.5 * nearCellsPerMeter)), Math.max(2, Math.round(19 * nearCellsPerMeter))), W.res, true),
-    farN: rgbaTexture(normalData(far.grid, far.res, far.cell, 1, 4), far.res, true),
+    nearN: rgbaTexture(nn || normalData(W.grid, W.res, W.cell, Math.max(1, Math.round(4.5 * nearCellsPerMeter)), Math.max(2, Math.round(19 * nearCellsPerMeter))), W.res, true),
+    farN: rgbaTexture((fn && fn.length === far.res * far.res * 4) ? fn : normalData(far.grid, far.res, far.cell, 1, 4), far.res, true),
     mask: rgbaTexture(mask, W.res, false),
     near: { half: W.half, res: W.res, cell: W.cell },
     far: { half: far.half, res: far.res, cell: far.cell },
@@ -368,7 +326,8 @@ export async function init(G) {
   // Before the camera-dependent passes, after any camera mover (rig 80, atmosphere 90).
   G.addSystem('terrain', update, 99);
 
-  stats.buildMs = performance.now() - t1;
+  stats.buildMs = performance.now() - t2;
+  stats.normalsWaitMs = t2 - t1;
   G.terrain = {
     mesh, material, depthMaterial, uniforms, textures, stats,
     glsl: TERRAIN_SAMPLE_GLSL,

@@ -52,7 +52,7 @@ export function mainThreadJobs({ res, half, farRes, farHalf, onProgress }) {
     }
     return { grid };
   });
-  return { near, far, workers: 0 };
+  return { near, far, normals: async () => null, close() {}, workers: 0 };
 }
 
 export function startGridJobs({ res, half, farRes = FAR.res, farHalf = FAR.half, onProgress }) {
@@ -84,9 +84,29 @@ export function startGridJobs({ res, half, farRes = FAR.res, farHalf = FAR.half,
   // The far promise is optional for callers; avoid unhandled rejections if nobody awaits it.
   far.catch(() => {});
 
-  const finishAll = () => { for (const w of workers) w.terminate(); };
+  // Extra jobs (normal textures) go to the front of the queue; workers retire when idle and
+  // nothing else is pending.
+  const extra = [];
+  let closing = false, closed = false, pendingExtra = 0;
+  const finishAll = () => { if (!closed) { closed = true; for (const w of workers) w.terminate(); } };
+  const maybeFinish = () => {
+    if (closing && pendingExtra === 0 && !extra.length && next >= tasks.length && idle.length === workers.length) finishAll();
+  };
+  const idle = [];
+  const runExtra = (msg) => new Promise((resolve, reject) => {
+    pendingExtra++;
+    extra.push({ msg, resolve, reject });
+    while (idle.length && extra.length) feed(idle.pop());
+  });
   const feed = (w) => {
-    if (failed || next >= tasks.length) return;
+    if (failed) return;
+    if (extra.length) {
+      const job = extra.shift();
+      w._job = job;
+      w.postMessage(job.msg, [job.msg.grid.buffer]);
+      return;
+    }
+    if (next >= tasks.length) { idle.push(w); maybeFinish(); return; }
     const t = tasks[next];
     t.id = next++;
     w.postMessage(t);
@@ -94,6 +114,14 @@ export function startGridJobs({ res, half, farRes = FAR.res, farHalf = FAR.half,
   for (const w of workers) {
     w.onmessage = (e) => {
       const m = e.data;
+      if (m.kind === 'normals') {
+        const job = w._job;
+        w._job = null;
+        pendingExtra--;
+        job.resolve(m.out);
+        feed(w);
+        return;
+      }
       if (m.kind === 'near') {
         nearGrid.set(m.h, m.j0 * res);
         nearMask.set(m.mask, m.j0 * res * 4);
@@ -110,7 +138,7 @@ export function startGridJobs({ res, half, farRes = FAR.res, farHalf = FAR.half,
           for (let i = 0; i < farRes; i++) if (Math.abs(-farHalf + i * cell) <= half) farGrid[j * farRes + i] = NaN;
         }
         farDone++;
-        if (farDone === farTotal) { resolveFar({ grid: farGrid }); finishAll(); }
+        if (farDone === farTotal) resolveFar({ grid: farGrid });
       }
       feed(w);
     };
@@ -120,8 +148,15 @@ export function startGridJobs({ res, half, farRes = FAR.res, farHalf = FAR.half,
       finishAll();
       rejectNear(new Error(`height worker failed: ${e.message || 'unknown'}`));
       rejectFar(new Error('height worker failed'));
+      for (const ww of workers) ww._job?.reject(new Error('height worker failed'));
+      for (const j of extra.splice(0)) j.reject(new Error('height worker failed'));
     };
     feed(w);
   }
-  return { near, far, workers: workers.length };
+  // normals(grid, n, cell, r1, r2) -> Promise<Uint8Array> computed off the main thread
+  // (the grid is copied, the caller keeps its array).
+  const normals = (grid, n, cell, r1, r2) => (closed ? Promise.resolve(null) : runExtra({ kind: 'normals', grid: grid.slice(), n, cell, r1, r2 }));
+  // Retire the workers once everything queued has finished.
+  const close = () => { closing = true; maybeFinish(); };
+  return { near, far, normals, close, workers: workers.length };
 }

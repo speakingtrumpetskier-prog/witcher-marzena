@@ -203,16 +203,39 @@ function buildHorseMesh(rig, look) {
   }
   // ---- mane: hair strands along the crest falling to the left; forelock
   const maneMat = mat(maneC, { tile: 'hair', rough: 0.6, fuzz: 0.5, tileU: 3, tileV: 10 });
-  for (let i = 0; i < 22; i++) {
-    const t = i / 21;
-    const base = neckPts[0].clone().lerp(neckPts[4], t);
-    const top = base.clone().add(V(0, neckR[Math.min(4, Math.round(t * 4))][0] * 0.98, -0.03));
-    const side = i % 3 === 0 ? -1 : 1;
-    const len = 0.22 + R() * 0.1 - t * 0.06;
-    const pts = [top.clone().add(V(0, 0.03, 0)), top.clone().add(V(side * 0.05, 0.0, 0.01)), top.clone().add(V(side * 0.11, -len * 0.5, 0.03)), top.clone().add(V(side * 0.13, -len, 0.05))];
-    const sides = pts.map(() => V(0, 0.15, 1).normalize());
-    const bone = t < 0.3 ? 'neck1' : t < 0.75 ? 'neck2' : 'head';
-    ribbon(mb, pts, sides, [0.09, 0.1, 0.085, 0.04], { ...maneMat, color: maneC.clone().multiplyScalar(0.75 + R() * 0.5) }, () => [[bone, 1]], { double: true });
+  {
+    // crest ridge along the top of the neck, falling to the left, with ragged strands
+    const crest = [];
+    for (let i = 0; i <= 8; i++) {
+      const t = i / 8;
+      const fi = t * 4, i0 = Math.min(3, Math.floor(fi)), f = fi - i0;
+      const c = neckPts[i0].clone().lerp(neckPts[i0 + 1], f);
+      const dir = neckPts[i0 + 1].clone().sub(neckPts[i0]).normalize();
+      const fr = frame(dir, V(0, 0, 1));
+      const ra = lerp(neckR[i0][0], neckR[i0 + 1][0], f);
+      crest.push({ top: c.clone().addScaledVector(fr.a, -ra * 0.92), dir, t });
+    }
+    const rings = crest.map(({ top, dir, t }) => {
+      const up = V(0, 1, 0).addScaledVector(dir, -dir.y).normalize();
+      const left = new THREE.Vector3().crossVectors(up, dir).normalize();
+      const f = frame(dir, up);
+      return { c: top.clone().addScaledVector(left, 0.035).addScaledVector(up, -0.01), a: f.a, b: f.b, ra: 0.05 - t * 0.012, rb: 0.07 - t * 0.02, n: 2.4, t };
+    });
+    tube(mb, { rings, seg: 10, mat: { ...maneMat, tileU: 5 }, capStart: true, capEnd: true,
+      color: (ri, th) => maneC.clone().multiplyScalar(0.7 + 0.4 * Math.abs(Math.sin(th * 6 + ri))),
+      weights: (ri) => { const t = rings[ri].t; return t < 0.3 ? [['chest', 0.4], ['neck1', 0.6]] : t < 0.75 ? [['neck1', 0.3], ['neck2', 0.7]] : [['neck2', 0.5], ['head', 0.5]]; } });
+    for (let i = 0; i < 14; i++) {
+      const t = (i + 0.5) / 14;
+      const k = Math.min(7, Math.floor(t * 8));
+      const top = crest[k].top;
+      const dir = crest[k].dir;
+      const up = V(0, 1, 0).addScaledVector(dir, -dir.y).normalize();
+      const left = new THREE.Vector3().crossVectors(up, dir).normalize();
+      const len = 0.16 + R() * 0.1 - t * 0.05;
+      const pts = [top.clone().addScaledVector(left, 0.04), top.clone().addScaledVector(left, 0.09).addScaledVector(up, -len * 0.45), top.clone().addScaledVector(left, 0.11).addScaledVector(up, -len)];
+      const bone = t < 0.3 ? 'neck1' : t < 0.75 ? 'neck2' : 'head';
+      ribbon(mb, pts, pts.map(() => dir.clone()), [0.07, 0.06, 0.025], { ...maneMat, color: maneC.clone().multiplyScalar(0.7 + R() * 0.5) }, () => [[bone, 1]], { double: true });
+    }
   }
   {
     const pts = [V(0, 1.92, 1.0), V(0.01, 1.86, 1.08), V(0.02, 1.76, 1.13)];

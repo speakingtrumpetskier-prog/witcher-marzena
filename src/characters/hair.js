@@ -325,7 +325,7 @@ function buildScarf(ctx, hat, mode) {
   // face opening: gamma_edge(psi), psi = 0 forehead, PI chin
   const gE = (psi) => {
     const c = Math.cos(psi);
-    if (mode === 'nape') return lerp(0.62, 1.6, smoothstep(0.3, -0.6, c));
+    if (mode === 'nape') return lerp(0.74, 1.6, smoothstep(0.3, -0.6, c));
     if (mode === 'hood') return lerp(0.72, 0.98, smoothstep(0.8, -0.8, c));
     return lerp(0.6, 0.84, smoothstep(0.9, -0.9, c)) + (hat.open ?? 0);
   };
@@ -333,7 +333,7 @@ function buildScarf(ctx, hat, mode) {
   const nPsi = 28, nG = 12;
   const n = new THREE.Vector3();
   const rows = [];
-  const vol = mode === 'hood' ? 0.03 : 0.014;
+  const vol = mode === 'hood' ? 0.026 : 0.01;
   for (let i = 0; i <= nG; i++) {
     const row = [];
     for (let j = 0; j <= nPsi; j++) {
@@ -350,7 +350,7 @@ function buildScarf(ctx, hat, mode) {
       if (mode === 'hood') th += 0.02 * smoothstep(0.1, 0.18, p.y) * smoothstep(0.0, -0.06, p.z);
       const q = p.clone().addScaledVector(n, th);
       if (i === 0) q.addScaledVector(fwd, 0.004);
-      const shade = (i === 0 ? 0.8 : 1) * (0.9 + 0.1 * noise1(psi * 4 + i, 6)) * (0.92 + R() * 0.08);
+      const shade = (i === 0 ? 0.82 : 1) * (0.9 + 0.1 * noise1(Math.sin(psi) * 3 + Math.cos(psi) * 2 + i, 6)) * (0.95 + R() * 0.05);
       const w = p.y < S.stomY - 0.01 && p.z > 0.02 ? info.skinWeights(p) : [['head', 1]];
       row.push(mb.vert(toW(ctx, q), sm.color.clone().multiplyScalar(shade), (j / nPsi) * sm.tileU, t * sm.tileV * 0.3, sm, w));
     }

@@ -1,15 +1,24 @@
 // Props kit public API (see docs/ARCHITECTURE.md "Props kit").
 //
 //   import { props, PropBatch } from '../world/props/index.js';
-//   const obj = props.barrel({ seed: 3 });        Object3D at the origin, y = 0 is the ground
-//   obj.userData.collider / .colliders            circle { r } or box { hw, hd } in local space, with x, z, h
-//   obj.userData.anchors                          named local-space Vector3 (fire, light, seat ...)
-//   const batch = new PropBatch(G, 'village');    merged static placement, ~1500 props in < 150 draw calls
-//   batch.add('barrel', x, z, { yaw, scale, y, seed, snap: true, collide: true });  batch.build();
-//   props.fx.fire / smoke / steam / sparks / torch / candle / glow / wisp / breath / burst
-//   props.make(name, opts)    props.list()    props.catalog (names)    props.categories (suggested groups)
-//   await props.preload(onProgress)   optional: texture generation up front, with yields
-//   await batch.buildAsync({ budgetMs: 10, onProgress })   time-sliced build for loading screens
+//   const obj = props.barrel({ seed: 3 });        Group at the origin, y = 0 is the ground, merged per material
+//
+// Every prop returns a THREE.Group with userData:
+//   collider    first collider, or null:  { type: 'circle', r, x, z, h } | { type: 'box', hw, hd, x, z, yaw, h }
+//   colliders   all of them (local space; h is the blocking height above the ground)
+//   anchors     named local-space Vector3 (fire, light, flame, seat, work, sleep, hitch, head, knot, ...)
+//   bounds      Box3, height, tris, prop (name), snow (true unless indoor)
+//
+// Placement of many props:
+//   const batch = new PropBatch(G, 'village');    merged static placement, ~1500 props in about 60 draw calls
+//   const h = batch.add('barrel', x, z, { yaw, scale, y, seed, snap: true, collide: true, align });
+//   batch.build();   or   await batch.buildAsync({ budgetMs: 10, onProgress })      h.anchors.* are world space
+//
+// Fx (one shared pooled particle system, one draw call, one update system):
+//   props.fx.fire({ position, parent, scale, light, smoke })     props.fx.smoke({ position, parent, height })
+//   props.fx.steam / sparks / torch / candle / glow / wisp / breath({ parent: headBone }) / burst(kind, pos)
+//
+// Misc: props.make(name, opts)  props.list()  props.categories  await props.preload(onProgress)
 //
 // Common builder options: seed (variant), indoor (no snow patch on upward faces), variant (named
 // variant where a prop has them), fx (default true: spawn live fx emitters; PropBatch passes false

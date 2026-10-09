@@ -61,6 +61,9 @@ export function getMaterials() {
     map: rkT, bumpMap: rkT, bumpScale: 2.2, vertexColors: true, roughness: 0.95, metalness: 0,
   });
   rock.userData.snow = { amount: 0.85, threshold: 0.6 };
+  const rockIn = new THREE.MeshStandardMaterial({
+    map: rkT, bumpMap: rkT, bumpScale: 2.2, vertexColors: true, roughness: 0.97, metalness: 0,
+  });
 
   const stT = TEX.stone();
   const stone = new THREE.MeshStandardMaterial({
@@ -75,7 +78,6 @@ export function getMaterials() {
   const straw = new THREE.MeshStandardMaterial({
     map: TEX.straw(), vertexColors: true, roughness: 1, metalness: 0, side: THREE.DoubleSide,
   });
-  straw.userData.snow = { amount: 0.75, threshold: 0.65 };
 
   const snow = new THREE.MeshStandardMaterial({
     color: 0xffffff, vertexColors: true, roughness: 0.9, metalness: 0,
@@ -123,9 +125,9 @@ export function getMaterials() {
     map: TEX.cloth(), vertexColors: true, roughness: 1, metalness: 0, side: THREE.DoubleSide,
   });
 
-  mats = { wood, woodIn, shingle, stone, stoneIn, rock, straw, snow, ice, glow, ember, metal, cloth };
+  mats = { wood, woodIn, shingle, stone, stoneIn, rock, rockIn, straw, snow, ice, glow, ember, metal, cloth };
   return mats;
 }
 
 // Which materials receive shadows / cast them.
-export const CASTS = { rock: true, wood: true, woodIn: true, stoneIn: true, shingle: true, stone: true, straw: true, snow: false, ice: false, glow: false, ember: false, metal: true, cloth: true };
+export const CASTS = { rock: true, rockIn: true, wood: true, woodIn: true, stoneIn: true, shingle: true, stone: true, straw: true, snow: false, ice: false, glow: false, ember: false, metal: true, cloth: true };

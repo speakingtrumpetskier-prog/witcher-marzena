@@ -5,6 +5,8 @@ import { Kit, TAU } from './kit.js';
 
 const STRAW = [0xe8d9a6, 0xdcc98c, 0xd0bd7c, 0xe2d29a];
 const RED = [0x8a281e, 0x962e22, 0x7a2219];
+// Ribbons catch the low sun hard; keep them deeper than the embroidery red.
+const RIBBON = [0x6e2018, 0x7a241a, 0x631c14];
 
 // ---- the carved pale face and straw hair, shared by effigy and effigyHead ----------------------
 function addHead(k, o = {}) {
@@ -25,9 +27,9 @@ function addHead(k, o = {}) {
     // Painted brows, deep dark eye sockets with almond eyes, mouth and cheek dots in folk red.
     for (const sx of [-1, 1]) {
       k.box('matte', 0.05, 0.009, 0.01, { pos: [sx * 0.042, 0.037, 0.098], rot: [0, 0, sx * -0.18], tint: 0x2a1a12, grime: 0, var: 0 });
-      k.sph('matte', 0.024, { pos: [sx * 0.042, 0.02, 0.087], scale: [1.6, 0.8, 0.5], ws: 6, hs: 5, tint: 0x2a1e16, grime: 0, var: 0 });
-      k.sph('matte', 0.016, { pos: [sx * 0.042, 0.02, 0.0935], scale: [1.7, 0.55, 0.35], ws: 6, hs: 5, tint: 0x0e0a08, grime: 0, var: 0 });
-      k.sph('matte', 0.006, { pos: [sx * 0.042, 0.02, 0.098], scale: [1, 1, 0.5], ws: 4, hs: 3, tint: 0xe8e2d4, grime: 0, var: 0 });
+      k.sph('matte', 0.02, { pos: [sx * 0.042, 0.02, 0.087], scale: [1.55, 0.7, 0.5], ws: 6, hs: 5, tint: 0x5a4636, grime: 0, var: 0 });
+      k.sph('matte', 0.0155, { pos: [sx * 0.042, 0.02, 0.0925], scale: [1.6, 0.62, 0.35], ws: 6, hs: 5, tint: 0xece6d8, grime: 0, var: 0 });
+      k.sph('matte', 0.0075, { pos: [sx * 0.04, 0.02, 0.0975], scale: [1, 1.2, 0.5], ws: 5, hs: 4, tint: 0x14100c, grime: 0, var: 0 });
       k.cyl('paint', 0.02, 0.02, 0.004, { pos: [sx * 0.063, -0.045, 0.074], rot: [Math.PI / 2 - 0.35, sx * 0.3, 0], radial: 8, tint: burn ? 0x2a1a14 : RED[0], grime: 0, var: 0, cap: 'paint' });
     }
     k.box('paint', 0.05, 0.008, 0.012, { pos: [0, -0.066, 0.092], tint: burn ? 0x2a1a14 : 0x8a2a20, grime: 0, var: 0, rot: [0.15, 0, 0] });
@@ -185,11 +187,14 @@ function addBody(k, p) {
 }
 
 export function effigy(o = {}) {
-  const k = new Kit('effigy', o);
   const variant = o.variant || 'pole';
+  // Burning and burnt figures carry no snow: it has melted off (and the shader would whiten their shoulders).
+  const k = new Kit('effigy', variant === 'burnt' || variant === 'burning' ? { ...o, indoor: true } : o);
   const s = (o.scale || 1) * (1 + k.rs(0.05));
   k.push({ yaw: o.yaw || 0, scale: s });
   const lean = k.rs(0.05);
+  // Anchors in effigy space (the figure is ~1.6 m; 'pole' lifts it 0.7 m): where the knot and the face are.
+  k.anchor('base', 0, 0, 0); k.anchor('head', 0, (variant === 'pole' ? 0.7 : 0) + 1.77, 0.1); k.anchor('knot', 0, (variant === 'pole' ? 0.7 : 0) + 1.08, 0.2);
 
   if (variant === 'pole' || variant === 'standing' || variant === 'frozen' || variant === 'burnt' || variant === 'burning') {
     const raised = variant === 'pole' ? 0.7 : 0;
@@ -319,7 +324,7 @@ export function ribbonPole(o = {}) {
   // Twig crown at the top
   for (let i = 0; i < 9; i++) {
     const a = (i / 9) * TAU;
-    k.cyl('bark', 0.006, 0.012, 0.5, { pos: [Math.sin(a) * 0.1, H - 0.1, Math.cos(a) * 0.1], rot: [Math.cos(a) * 0.7, 0, -Math.sin(a) * 0.7], radial: 4, tint: 0x5a4a3c, cap: null });
+    k.cyl('bark', 0.007, 0.014, 0.34, { pos: [Math.sin(a) * 0.08, H - 0.15, Math.cos(a) * 0.08], rot: [Math.cos(a) * 0.55, 0, -Math.sin(a) * 0.55], radial: 4, tint: 0x8a7a68, cap: null });
   }
   // Ribbons: red cloth strips of varied lengths tied at different heights.
   const nr = o.ribbons || 10;
@@ -327,8 +332,8 @@ export function ribbonPole(o = {}) {
     const y = H - 0.3 - k.r(0, 1.0) - (i % 3) * 0.08;
     const a = (i / nr) * TAU * 2.3 + k.rs(0.3);
     const len = k.r(0.9, 1.9);
-    twine(k, y, 0.058, RED[i % 3], 0.014);
-    k.hang('ribbon', k.r(0.05, 0.1), len, { pos: [Math.sin(a) * 0.06, y, Math.cos(a) * 0.06], yaw: a, tint: RED[i % 3], sway: 1.0, wave: 0.02, sy: 5, grime: 0, var: 0.03 });
+    twine(k, y, 0.058, RIBBON[i % 3], 0.014);
+    k.hang('ribbon', k.r(0.05, 0.1), len, { pos: [Math.sin(a) * 0.06, y, Math.cos(a) * 0.06], yaw: a, tint: RIBBON[i % 3], sway: 1.0, wave: 0.02, sy: 5, grime: 0, var: 0.03 });
   }
   // Cairn
   for (let i = 0; i < 9; i++) {
@@ -408,10 +413,11 @@ export function gravePostSmall(o = {}) {
 }
 
 // Bone material: pale matte. Used for bones and skulls.
-const BONE = [0xd8cfb8, 0xe0d8c4, 0xc8bea6, 0xcfc4a8];
+const BONE = [0xa89a74, 0xb4a782, 0x9a8d68, 0xaa9d78];
 
 export function skull(o = {}) {
-  const k = new Kit('skull', o);
+  // Bones stay bare (no shader snow) so they read against the snow; mounds are placed by hand.
+  const k = new Kit('skull', Object.assign({ indoor: true }, o));
   const variant = o.variant || k.pick(['wolf', 'wolf', 'cow', 'human']);
   k.push({ yaw: k.r(0, TAU), pos: [0, o.hang ? 0 : 0, 0] });
   const t = k.pick(BONE);
@@ -433,14 +439,14 @@ export function skull(o = {}) {
     for (let i = 0; i < 6; i++) for (const sx of [-1, 1]) k.cone('matte', 0.004 * s, 0.014 * s, { pos: [sx * 0.02 * s, 0.026 * s, (0.07 + i * 0.016) * s], rot: [Math.PI, 0, 0], radial: 3, tint: 0xe8e0cc, grime: 0, var: 0 });
     if (cow) for (const sx of [-1, 1]) k.tube('matte', [[sx * 0.05, 0.12, -0.02], [sx * 0.13, 0.15, -0.03], [sx * 0.17, 0.23, 0.0]], (tt) => 0.017 * (1 - tt * 0.8), { radial: 6, tint: 0xd8cca8, grime: 0.1 });
   }
-  if (!o.indoor && k.chance(0.5)) k.mound(0.14, 0.03, 0.14, { pos: [0, 0.14, 0], jseed: 2 });
+  if (k.chance(0.5)) k.mound(0.12, 0.025, 0.12, { pos: [0.02, 0.13, 0], jseed: 2 });
   k.pop();
   k.ud.align = 0.8;
   return k.build();
 }
 
 export function bones(o = {}) {
-  const k = new Kit('bones', o);
+  const k = new Kit('bones', Object.assign({ indoor: true }, o));
   k.push({ yaw: k.r(0, TAU) });
   const bone = (len, r, pos, rot) => {
     const t = k.pick(BONE);
@@ -460,10 +466,8 @@ export function bones(o = {}) {
   }
   // Vertebrae
   for (let i = 0; i < 7; i++) k.sph('matte', 0.017, { pos: [-0.25 + i * 0.045, 0.012, -0.25 + Math.sin(i) * 0.02], scale: [1, 0.8, 1], ws: 5, hs: 4, tint: k.pick(BONE), grime: 0.1 });
-  if (!o.indoor) {
-    k.mound(0.5, 0.04, 0.35, { pos: [0.1, 0.0, 0.2], jseed: 2 });
-    k.mound(0.3, 0.03, 0.25, { pos: [-0.3, 0.0, -0.2], jseed: 3 });
-  }
+  k.mound(0.5, 0.04, 0.3, { pos: [0.12, 0.0, 0.22], jseed: 2 });
+  k.mound(0.3, 0.03, 0.22, { pos: [-0.32, 0.0, -0.22], jseed: 3 });
   k.pop();
   k.ud.align = 0.9;
   return k.build();

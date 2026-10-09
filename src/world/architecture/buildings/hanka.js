@@ -2,7 +2,6 @@
 // Inside: a cold stove, two beds (one a child's, one made and never slept in), a table with two
 // bowls, an empty shelf, a red ribbon on a nail. Enterable.
 //   anchors: door, doorInside, hearth (cold), table, bed1, bed2, ribbon, milk (bowls left on the ice, outside the back)
-import * as THREE from 'three';
 import { Kit, PAL, GAIN } from '../kit.js';
 import { mixC, scaleC } from '../mb.js';
 import { cabin } from '../cabin.js';

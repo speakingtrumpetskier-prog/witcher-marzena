@@ -111,6 +111,8 @@ export function idol(opts = {}) {
         mb.at(0, yc - 0.82, zh + 0.1, 0, (m) => {
           m.extrude([[-0.5, 0], [0.5, 0], [0.34, -0.5], [0.12, -0.84], [-0.12, -0.84], [-0.34, -0.5]], 0.16, raised, { uv: [3, 3] });
         });
+        // Braided strands down the beard.
+        for (let q = -2; q <= 2; q++) stroke(mb, [[q * 0.17, yc - 0.9], [q * 0.17 * 0.8, yc - 1.25], [q * 0.17 * 0.45, yc - 1.55]], 0.028, [0, 0, zh + 0.272], V3(1, 0, 0), V3(0, 1, 0), V3(0, 0, 1), scaleC(0x2a2824, 1), 0.008);
       }
       mb.box(0, 9.28, zh + 0.0, 2.3, 0.14, 0.04, scaleC(PAL.stone, GAIN * 0.8), { uv: [3, 3] });
     });

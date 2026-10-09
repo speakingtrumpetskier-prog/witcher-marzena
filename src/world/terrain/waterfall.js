@@ -60,6 +60,12 @@ function iceMat(G, uni) {
       '#include <begin_vertex>\nvMzFWP = (modelMatrix * vec4(transformed, 1.0)).xyz;\nvMzFN = normalize(mat3(modelMatrix) * objectNormal);');
     let fs = ICE_PARS + shader.fragmentShader;
     fs = fs.replace('#include <normal_fragment_maps>', '#include <normal_fragment_maps>\n' + ICE_SHADE);
+    fs = fs.replace('#include <opaque_fragment>', `
+  // Guard the HDR target: a mirror-smooth highlight facing the sun can exceed half-float range
+  // (Inf), and Inf or NaN would smear across the screen through bloom.
+  if (any(isnan(outgoingLight))) outgoingLight = vec3(0.0);
+  outgoingLight = min(outgoingLight, vec3(48.0));
+#include <opaque_fragment>`);
     shader.fragmentShader = fs;
   });
   return m;
@@ -91,7 +97,6 @@ export function buildWaterfall(G, { rockMat }) {
   group.name = 'frozenFalls';
   const uni = { light: { value: 0.6 }, thaw: { value: 0 } };
   const mat = iceMat(G, uni);
-  const W = G.world;
   const r = rng(4471);
   const zc = FALLS.z;
   const poolY = FALLS.bottom - 0.3;
@@ -229,7 +234,6 @@ export function buildWaterfall(G, { rockMat }) {
     base: new THREE.Vector3(FALLS.curtainX - 2, poolY, zc),
     caveMouth: { x: FALLS.x + 1, y: FALLS.bottom + 0.3, z: FALLS.caveZ, w: FALLS.caveW * 2 - 3, h: lipY - FALLS.bottom - 1, depth: 6, yaw: -Math.PI / 2 },
   };
-  void W;
   return {
     group, info,
     setThaw(t) {

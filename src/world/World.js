@@ -42,6 +42,8 @@ export class World {
     this.mask = null; // Uint8Array res*res*4 shader masks (road, lake SDF, river)
     this.far = null; // { grid, res, half, cell } once the background far grid lands
     this.farReady = Promise.resolve(null);
+    // Normal/concavity texture data computed in the workers (null = compute on demand).
+    this.normals = { near: Promise.resolve(null), far: Promise.resolve(null) };
     this.buildMs = 0;
   }
 
@@ -64,10 +66,15 @@ export class World {
     this.setGrid(near.grid, want);
     this.mask = near.mask;
     this.buildMs = performance.now() - t0;
+    const k = 1 / this.cell;
+    const soft = (p) => p.catch((e) => { console.warn('[world] normals job failed', e); return null; });
+    this.normals.near = soft(job.normals(near.grid, want, this.cell, Math.max(1, Math.round(4.5 * k)), Math.max(2, Math.round(19 * k))));
     this.farReady = job.far.then(({ grid }) => this._acceptFar(grid)).catch((e) => {
       console.warn('[world] far grid failed', e);
       return null;
     });
+    this.normals.far = soft(this.farReady.then((f) => (f ? job.normals(f.grid, f.res, f.cell, 1, 4) : null)));
+    Promise.all([this.normals.near, this.normals.far]).finally(() => job.close());
     onProgress?.(1);
   }
 

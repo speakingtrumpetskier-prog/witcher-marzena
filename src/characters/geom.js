@@ -58,6 +58,8 @@ export class MeshBuilder {
     }
     return this.count++;
   }
+  // Explicit (analytic) normal for a vertex, e.g. from an SDF gradient: smooth shading on coarse grids.
+  setNormal(i, n) { (this.NO ||= new Map()).set(i, [n.x, n.y, n.z]); }
   tri(a, b, c) { this.I.push(a, b, c); }
   quad(a, b, c, d) { this.I.push(a, b, d, b, c, d); }
   begin() { this.partStart = this.count; this.idxStart = this.I.length; return this.partStart; }
@@ -81,6 +83,10 @@ export class MeshBuilder {
     }
     g.setIndex(this.count > 65535 ? new THREE.Uint32BufferAttribute(this.I, 1) : new THREE.Uint16BufferAttribute(this.I, 1));
     computeWeldedNormals(g);
+    if (this.NO) {
+      const na = g.attributes.normal.array;
+      for (const [i, n] of this.NO) { na[i * 3] = n[0]; na[i * 3 + 1] = n[1]; na[i * 3 + 2] = n[2]; }
+    }
     return g;
   }
 }

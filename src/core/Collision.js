@@ -2,7 +2,7 @@
 // Characters are capsules approximated as XZ circles; terrain height is handled by G.world.
 //
 //   const id = G.physics.addCircle(x, z, r, { y0, y1, tag })
-//   const id = G.physics.addBox(x, z, halfW, halfD, yaw, { y0, y1, tag })
+//   const id = G.physics.addBox(x, z, halfW, halfD, yaw, { y0, y1, tag })   yaw matches three's rotation.y
 //   G.physics.remove(id)
 //   G.physics.resolve(pos, radius)   push a Vector3 out of colliders (XZ), returns true if hit
 //   G.physics.raycast(origin, dir, maxDist) -> distance to first hit (colliders + terrain) or maxDist
@@ -95,7 +95,7 @@ export class Collision {
         } else {
           // Into box local space.
           const dx = pos.x - it.x, dz = pos.z - it.z;
-          const lx = dx * it.c + dz * it.s, lz = -dx * it.s + dz * it.c;
+          const lx = dx * it.c - dz * it.s, lz = dx * it.s + dz * it.c;
           const cx = Math.max(-it.hw, Math.min(it.hw, lx)), cz = Math.max(-it.hd, Math.min(it.hd, lz));
           let ox = lx - cx, oz = lz - cz;
           let d = Math.hypot(ox, oz);
@@ -108,7 +108,7 @@ export class Collision {
               if (px < pz) { nx = Math.sign(lx) || 1; nz = 0; push = px + radius; }
               else { nx = 0; nz = Math.sign(lz) || 1; push = pz + radius; }
             }
-            const wx = nx * it.c - nz * it.s, wz = nx * it.s + nz * it.c;
+            const wx = nx * it.c + nz * it.s, wz = -nx * it.s + nz * it.c;
             pos.x += wx * push;
             pos.z += wz * push;
             moved = hit = true;
@@ -132,7 +132,7 @@ export class Collision {
           if (Math.hypot(p.x - it.x, p.z - it.z) < it.r) return Math.max(0, t - step);
         } else {
           const dx = p.x - it.x, dz = p.z - it.z;
-          const lx = dx * it.c + dz * it.s, lz = -dx * it.s + dz * it.c;
+          const lx = dx * it.c - dz * it.s, lz = dx * it.s + dz * it.c;
           if (Math.abs(lx) < it.hw && Math.abs(lz) < it.hd) return Math.max(0, t - step);
         }
       }

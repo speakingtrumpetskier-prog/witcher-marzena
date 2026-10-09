@@ -65,12 +65,12 @@ const FRAG_SHADE = /* glsl */ `
   vec4 nt = mzTerrainNormal(xz, large);
   vec3 N = nt.xyz;
   float conc = nt.w;
-  vec4 mk = mzTerrainMask(xz);
+  vec4 mk = dist < 700.0 ? mzTerrainMask(xz) : vec4(8.0, 0.0, 64.0, 40.0);
   float detail = 1.0 - smoothstep(50.0, 240.0, dist);
 
   vec4 qBig = mzNoiseK(xz, 0.011);
   vec4 qMid = mzNoiseK(xz + 37.0, 0.065);
-  vec4 qSm = mzNoiseK(xz - 11.0, 0.55);
+  vec4 qSm = dist < 520.0 ? mzNoiseK(xz - 11.0, 0.55) : vec4(0.5);
   float nBig = qBig.r, nMid = qMid.r, nSm = qSm.r;
   float up = N.y;
 
@@ -87,6 +87,10 @@ const FRAG_SHADE = /* glsl */ `
   float southExp = clamp(N.z * 2.2, 0.0, 1.0) * smoothstep(0.985, 0.86, up);
   float convexExp = smoothstep(-0.5, -2.2, large) * 0.85;
   float bare = max(southExp, convexExp) * lowAlt * smoothstep(0.38, 0.62, nMid) * step(1.5, mk.z);
+  // Reed marsh west of the lake: thin snow on the tussocks, dry sedge showing through.
+  vec2 mq = (xz - vec2(-268.0, -82.0)) / vec2(105.0, 78.0);
+  float marsh = 1.0 - smoothstep(0.75, 1.15, length(mq) + (nMid - 0.5) * 0.3);
+  bare = max(bare, marsh * (0.55 + 0.4 * smoothstep(0.4, 0.7, nMid)) * step(-0.05, wp.y));
   float tufts = smoothstep(0.5, 0.78, qSm.g + bare * 0.3);
   snow *= 1.0 - clamp(bare * (0.45 + 0.55 * tufts), 0.0, 1.0);
   float snowAlt = mix(1180.0, -80.0, uSnowCover);
@@ -97,17 +101,20 @@ const FRAG_SHADE = /* glsl */ `
   float steepR = 1.0 - smoothstep(0.35, 0.7, up);
   float sy = wp.y / 3.1 + (nMid - 0.5) * 3.0 + (qBig.g - 0.5) * 6.0 + (qSm.r - 0.5) * 0.6;
   float strata = fract(sy);
-  float joint = smoothstep(0.35, 0.65, mzNoiseK(vec2((wp.x + wp.z) * 0.6, wp.y * 0.08), 0.5).r);
+  float joint = 1.0;
+  if (steepR > 0.01 && dist < 450.0) joint = smoothstep(0.35, 0.65, mzNoiseK(vec2((wp.x + wp.z) * 0.6, wp.y * 0.08), 0.5).r);
   float band = smoothstep(0.1, 0.25, strata) * (1.0 - smoothstep(0.55, 0.85, strata)) * steepR * (1.0 - smoothstep(150.0, 450.0, dist)) * joint;
   float rq = nSm;
   if (rockiness > 0.02 && dist < 600.0) rq = mzNoiseK(vec2(wp.x + wp.z, wp.y), 0.9).r;
   vec3 rock = mix(vec3(0.045, 0.043, 0.042), vec3(0.11, 0.105, 0.098), qBig.g * 0.6 + rq * 0.4);
   rock = mix(rock, vec3(0.14, 0.132, 0.12), band * 0.15);
   // Vertical weathering streaks on steep faces (water and frost staining).
-  float vst = mzNoiseK(vec2((wp.x + wp.z) * 1.4, wp.y * 0.06), 0.6).r;
-  rock *= mix(1.0, 0.82 + 0.28 * vst, steepR);
+  if (steepR > 0.01 && dist < 600.0) {
+    float vst = mzNoiseK(vec2((wp.x + wp.z) * 1.4, wp.y * 0.06), 0.6).r;
+    rock *= mix(1.0, 0.82 + 0.28 * vst, steepR);
+  }
   rock = mix(rock, vec3(0.12, 0.085, 0.06), smoothstep(0.62, 0.8, qMid.g) * 0.4);
-  float grass = smoothstep(0.3, 0.7, nMid + (qSm.g - 0.5) * 0.5);
+  float grass = max(smoothstep(0.3, 0.7, nMid + (qSm.g - 0.5) * 0.5), marsh * 0.85);
   vec3 dirt = mix(vec3(0.1, 0.078, 0.06), vec3(0.3, 0.25, 0.15), grass);
   float wet = (1.0 - uSnowCover) * (1.0 - uSpring);
   dirt *= 1.0 - 0.35 * wet;
@@ -119,7 +126,7 @@ const FRAG_SHADE = /* glsl */ `
   // ---- snow surface (same palette as mzSnowAlbedo in snowChunk.js)
   vec3 snowCol = mix(vec3(0.72, 0.75, 0.8), vec3(0.83, 0.85, 0.89), smoothstep(0.3, 0.7, qMid.g) * 0.75 + qSm.g * 0.25);
   snowCol *= 1.0 + 0.04 * clamp(conc, 0.0, 1.0);
-  vec4 qDr = mzNoiseK(vec2(dot(xz, vec2(0.94, 0.34)) * 0.35, dot(xz, vec2(-0.34, 0.94))) + 19.0, 0.16);
+  vec4 qDr = dist < 600.0 ? mzNoiseK(vec2(dot(xz, vec2(0.94, 0.34)) * 0.35, dot(xz, vec2(-0.34, 0.94))) + 19.0, 0.16) : vec4(0.5);
   snowCol *= 0.93 + 0.1 * smoothstep(0.25, 0.75, qDr.r);
   float snowRough = 0.78;
 
@@ -229,6 +236,12 @@ export function createTerrainMaterials(G, uniforms) {
       fs = fs.replace('#include <lights_physical_pars_fragment>', '#include <lights_physical_pars_fragment>\n' + RE_OVERRIDE);
       fs = fs.replace('#include <normal_fragment_maps>', '#include <normal_fragment_maps>\n' + FRAG_SHADE);
     }
+    fs = fs.replace('#include <opaque_fragment>', `
+  // Guard the HDR target: a mirror-smooth highlight facing the sun can exceed half-float range
+  // (Inf), and Inf or NaN would smear across the screen through bloom.
+  if (any(isnan(outgoingLight))) outgoingLight = vec3(0.0);
+  outgoingLight = min(outgoingLight, vec3(48.0));
+#include <opaque_fragment>`);
     shader.fragmentShader = fs;
   });
 

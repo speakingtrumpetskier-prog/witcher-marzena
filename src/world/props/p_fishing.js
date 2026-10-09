@@ -39,6 +39,7 @@ export function dryingRack(o = {}) {
   const w = (o.width || 2.4) + k.rs(0.3);
   const rails = [1.75, 1.2];
   k.push({ yaw: o.yaw || 0 });
+  k.anchor('work', 0, 0, 0.7);
   const wood = k.pick(WOOD);
   for (const sx of [-1, 1]) {
     // A-frame legs
@@ -240,10 +241,11 @@ export function boat(o = {}) {
 // Ice fishing hole: dark water, rim of slush and chopped ice, a skim of fresh ice partly over it.
 export function iceFishingHole(o = {}) {
   const k = new Kit('iceFishingHole', o);
-  const r = (o.radius || 0.2) + k.rs(0.03);
+  const r = (o.radius || 0.26) + k.rs(0.03);
   k.push({ yaw: k.r(0, TAU) });
+  k.anchor('stand', 0, 0, 0.75); k.anchor('hole', 0, 0.01, 0);
   // Dark water (glossy ice material, near black)
-  k.cyl('ice', r, r, 0.004, { pos: [0, 0.006, 0], radial: 12, tint: 0x0a1620, grime: 0, var: 0.02, cap: 'ice' });
+  k.cyl('water', r, r, 0.004, { pos: [0, 0.006, 0], radial: 14, tint: 0x0a1822, grime: 0, var: 0.0, cap: 'water' });
   // Slush ring: lumpy flattened mounds around the rim.
   const n = 8;
   for (let i = 0; i < n; i++) {
@@ -259,8 +261,8 @@ export function iceFishingHole(o = {}) {
   // Skim of new ice with radial cracks over part of the hole (the "slush skin").
   if (o.skim !== false) {
     const ph = k.r(0, TAU);
-    k.sph('ice', r * 1.02, { pos: [0, 0.008, 0], scale: [1, 0.01, 1], ws: 12, hs: 3, t0: 0, t1: Math.PI / 2, tint: 0xdde8ee, grime: 0, jitter: 0.002, rot: [0, ph, 0] });
-    k.cyl('snowMound', r * 0.52, r * 0.52, 0.006, { pos: [Math.cos(ph) * r * 0.5, 0.012, Math.sin(ph) * r * 0.5], radial: 8, tint: 0xd0dce4, grime: 0.1, cap: 'snowMound' });
+    k.sph('ice', r * 1.02, { pos: [0, 0.008, 0], scale: [1, 0.01, 1], ws: 8, hs: 3, p0: ph, p1: 2.0, t0: 0, t1: Math.PI / 2, tint: 0xdde8ee, grime: 0, jitter: 0.002 });
+    k.cyl('snowMound', r * 0.3, r * 0.3, 0.006, { pos: [Math.cos(ph + 1) * r * 0.45, 0.012, Math.sin(ph + 1) * r * 0.45], radial: 8, tint: 0xd0dce4, grime: 0.1, cap: 'snowMound' });
   }
   // A stick across the hole with a line dropping in (optional).
   if (o.rod) {
@@ -276,6 +278,7 @@ export function fishingStool(o = {}) {
   const k = new Kit('fishingStool', o);
   const bucketSeat = (o.variant || k.pick(['legs', 'bucket'])) === 'bucket';
   k.push({ yaw: k.r(0, TAU) });
+  k.anchor('seat', 0, bucketSeat ? 0.34 : 0.34, 0);
   if (bucketSeat) {
     k.lathe('planks', [[0.14, 0], [0.155, 0.15], [0.17, 0.3]], { radial: 12, flat: true, uRepeat: 3, tint: k.pick(WOOD) });
     k.cyl('planks', 0.17, 0.17, 0.03, { pos: [0, 0.31, 0], radial: 12, tint: k.pick(WOOD) });
@@ -355,15 +358,14 @@ export function tent(o = {}) {
     k.circleCollider(R, { h: 1.6 });
   } else {
     const L = 2.6, W = 1.15, H = 1.4;
+    const hyp = Math.hypot(W, H), th = Math.atan2(W, H);
+    // Two canvas slopes (thin slabs tilted toward the ridge), gable ends, ridge pole and uprights.
     for (const sx of [-1, 1]) {
-      k.plane('burlap', L, Math.hypot(W, H), {
-        pos: [sx * W / 2, H / 2, 0], rot: [0, Math.PI / 2, sx * Math.atan2(W, H)], sx: 4, sy: 4, tint: cloth, tile: 0.8, grime: 0.4,
-        bend: (x, y) => [0, 0, Math.sin(x * 2.2 + y * 3 + k.seed) * 0.03 + Math.pow(Math.abs(y) / (Math.hypot(W, H) / 2), 3) * -0.02],
-      });
+      k.box('burlap', 0.02, hyp, L, { pos: [sx * W / 2, H / 2, 0], rot: [0, 0, sx * th], tint: cloth, grime: 0.4, jitter: 0.012, seg: [1, 3, 4], uv: 'box', grain: 'z' });
     }
-    k.cyl('wood', 0.03, 0.03, L + 0.5, { pos: [0, H + 0.01, 0], rot: [Math.PI / 2, 0, 0], radial: 5, tint: 0x9a8a78, cap: 'logEnd' });
+    k.cyl('wood', 0.03, 0.03, L + 0.5, { pos: [0, H + 0.02, 0], rot: [Math.PI / 2, 0, 0], radial: 5, tint: 0x9a8a78, cap: 'logEnd' });
     for (const sz of [-1, 1]) k.cyl('wood', 0.03, 0.03, H + 0.1, { pos: [0, H / 2 + 0.05, sz * (L / 2 + 0.05)], radial: 5, tint: 0x9a8a78, cap: 'logEnd' });
-    // Gable ends with a dark doorway
+    // Gable ends: the front one has a dark doorway.
     for (const sz of [-1, 1]) {
       const sh = new THREE.Shape();
       sh.moveTo(-W, 0); sh.lineTo(W, 0); sh.lineTo(0, H); sh.closePath();

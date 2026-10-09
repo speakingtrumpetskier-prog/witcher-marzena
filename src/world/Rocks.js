@@ -91,26 +91,27 @@ function place(G) {
   };
 
   // 1. North escarpment: talus blocks and boulders fallen from the cliff face (the face itself
-  // is a cliff mesh, terrain/cliffs.js).
-  for (let x = -455; x <= 435; x += 2 + r() * 3) {
+  // is a cliff mesh, terrain/cliffs.js). Big blocks half bury the cliff foot.
+  for (let x = -455; x <= 435; x += 1.5 + r() * 2.5) {
     const e = escarpmentAt(x);
     if (e.hgt * e.along < 6) continue;
-    for (let k = 0; k < 2; k++) {
-      const z = e.zc + 4 + r() * 10 + k * 3;
-      const big = r() < 0.25;
-      add(x + (r() - 0.5) * 3, z, big ? 1.6 + r() * 2.2 : 0.4 + r() * 1.1, Math.floor(r() * 5), { tilt: 0.6, sink: 0.25, shore: true });
+    const pile = 0.5 + 0.5 * N3.noise2(x * 0.02, 4.4);
+    for (let k = 0; k < 3; k++) {
+      const z = e.zc + 3 + r() * (6 + 10 * k) ;
+      const big = r() < 0.2 + 0.35 * pile;
+      const sc = big ? 1.8 + r() * 3.2 * pile : 0.35 + r() * 1.0;
+      add(x + (r() - 0.5) * 3, z, sc, big ? 3 + Math.floor(r() * 4) : Math.floor(r() * 5), { tilt: 0.5, sink: big ? 0.35 : 0.2, shore: true });
     }
   }
   // Is (x, z) on one of the meshed cliff faces?
   const onMeshedCliff = (x, z) => {
     if (z < -280 && x > -470 && x < 452) {
       const e = escarpmentAt(x);
-      if (e.hgt * e.along >= 6 && z < e.zc + 6 && z > e.zc - 10) return true;
-      if (e.h2 * e.along >= 7 && z < e.z2 + 6 && z > e.z2 - 14) return true;
+      if (e.hgt * e.along >= 6 && z < e.zc + 6 && z > Math.min(e.zc - 12, e.z2 - 16)) return true;
     }
-    if (x > 420 && x < 480 && Math.abs(z - FALLS.z) < 48) {
+    if (x > 380 && x < 520 && Math.abs(z - FALLS.z) < 125) {
       const f = fallsCliff(z);
-      if (f.wdt <= 9 && Math.abs(x - f.xc) < f.wdt + 6) return true;
+      if (f.wdt <= 11 && Math.abs(x - f.xc) < f.wdt + 6) return true;
     }
     return false;
   };
@@ -149,6 +150,7 @@ function place(G) {
       W.normalAt(jx, jz, nrm);
       const steep = 1 - nrm.y;
       if (steep > 0.22) {
+        if (onMeshedCliff(jx, jz)) continue;
         const cl = 0.5 + 0.5 * N3.noise2(jx * 0.02, jz * 0.02);
         if (r() < (steep - 0.15) * 1.6 * cl) {
           const crag = steep > 0.35;
@@ -210,7 +212,7 @@ export async function init(G) {
   const set = place(G);
   const rocks = set.list;
   const mat = rockMaterial(G);
-  const cliffs = buildCliffs(G, mat);
+  const cliffs = buildCliffs(G, rockMaterial(G, { tone: 0.72 }));
   const lods = [3, 1];
   const meshes = [];
   for (let v = 0; v < KINDS.length; v++) {
@@ -231,7 +233,6 @@ export async function init(G) {
     meshes.push(row);
   }
   // Precompute instance matrices.
-  const mtx = new THREE.Matrix4();
   for (const rk of rocks) {
     rk.m = new THREE.Matrix4().compose(new THREE.Vector3(rk.x, rk.y, rk.z), rk.q, new THREE.Vector3(rk.sx, rk.sy, rk.sz));
     rk.cy = rk.y + rk.h * 0.4;
@@ -277,7 +278,6 @@ export async function init(G) {
   };
   update(true);
   G.addSystem('rocks', () => update(false), 99);
-  void mtx;
 
   G.rocks = {
     rocks,

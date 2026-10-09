@@ -2,7 +2,8 @@
 // docs/ARCHITECTURE.md "Dialogue"; the sample is content/dialogues/_sample.js).
 //
 //   const { end, picks } = await G.dialogue.start('hanka_first', opts)
-//   opts: { actors: { id: Character | Actor }, noStage, walkIn, speed, autopick, camera, letterbox }
+//   opts: { actors: { id: Character | Actor }, start: nodeId, noStage, walkIn, speed, autopick,
+//           camera: false (leave the camera alone), letterbox: false }
 //   G.dialogue.active       true while one runs        G.dialogue.current -> { id, node }
 //   G.dialogue.has(id)      a content file exists       G.dialogue.ids() -> [ids]
 //   G.dialogue.autopick     debug: [indexes] | 'first' | (node, items) => index, used when set
@@ -144,7 +145,7 @@ export class Dialogue {
     const D = { G, actor: (aid) => getActor(aid), coverage: cov, def };
     const dir = { cov, lineIndex: 0, last: null, sinceClose: 9, sinceReact: 9, sinceWide: 0, gestureAt: new Map() };
 
-    let nodeId = def.start || Object.keys(def.nodes)[0];
+    let nodeId = opts.start || def.start || Object.keys(def.nodes)[0];
     let endNode = null;
     let guard = 0;
     try {
@@ -317,7 +318,7 @@ export class Dialogue {
     const nodAt = nodder && !strong && text.length > 26 && !/\?$/.test(text.trim()) && R() < 0.35 ? dur * (0.55 + R() * 0.2) : -1;
     const glanceAt = nodder && dur > 3.4 && R() < 0.3 ? dur * 0.35 : -1;
 
-    ui.subtitle(name, text, dur + 0.25, { italic: !!node.italic || node.s === 'wiesia' || node.s === 'wiesia_ghost' });
+    const subTok = ui.subtitle(name, text, Infinity, { italic: !!node.italic || node.s === 'wiesia' || node.s === 'wiesia_ghost' });
     G.audio?.duck?.(0.35, dur + 0.3);
     G.events.emit('dialogue:line', { id: ctx.def.id, node: ctx.nodeId, s: node.s, t: text, dur });
 
@@ -351,6 +352,7 @@ export class Dialogue {
       if (nodder && R() < 0.6) nodder.play('nod');
       await sched.wait(0.85 / speed);
     }
+    ui.clearSubtitle(subTok);
   }
 
   // Cut or blend to a setup, then drift through the line.

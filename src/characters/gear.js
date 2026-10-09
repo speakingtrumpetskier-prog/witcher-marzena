@@ -352,8 +352,9 @@ function buildPouch(ctx, p) {
   const { mb, M, k } = ctx;
   const pm = garmentMat({ color: p.color || '#5a4030', tile: 'leather', tileU: 2, tileV: 2 });
   for (const s of (p.sides || [1])) {
-    const c = surf(ctx, ctx.waistY - 0.05 * k, s * 1.15, 0.03);
-    blob(mb, c, { x: 0.05 * k, y: 0.06 * k, z: 0.03 * k }, pm, [['hips', 1]], 8, 5, null, (th) => 1 + 0.15 * Math.abs(Math.cos(th)));
+    const c = surf(ctx, ctx.waistY - 0.06 * k, s * 1.7, 0.022);
+    blob(mb, c, { x: 0.045 * k, y: 0.06 * k, z: 0.022 * k }, pm, [['hips', 1]], 8, 5, null, (th) => 1 + 0.3 * Math.pow(Math.abs(Math.sin(th * 2)), 0.6));
+    blob(mb, c.clone().add(V(0, 0.045 * k, 0.004 * k)), { x: 0.047 * k, y: 0.018 * k, z: 0.025 * k }, pm, [['hips', 1]], 8, 3);
   }
   void M;
 }

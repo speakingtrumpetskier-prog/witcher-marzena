@@ -72,6 +72,7 @@ export function createStoryUI(G) {
   let dom = null;
   let lbOn = false;
   let subTimer = 0;
+  let subToken = 0;
   let fadeLevel = 0;
 
   const real = (name) => !!(G.ui && !G.ui.stub && typeof G.ui[name] === 'function');
@@ -125,19 +126,24 @@ export function createStoryUI(G) {
       d.top.style.height = d.bot.style.height = `${pct}vh`;
     },
 
-    // opts.italic: render the line in italics (Wiesia, songs).
+    // opts.italic: render the line in italics (Wiesia, songs). seconds = Infinity keeps the line
+    // up until clearSubtitle(token) (the story drives line timing in game time). Returns a token.
     subtitle(name, text, seconds = 3, opts = {}) {
+      const token = ++subToken;
       // The real UI renders *text* in italics.
-      if (real('subtitle')) { G.ui.subtitle(name || '', opts.italic ? `*${text}*` : text, seconds); return; }
+      if (real('subtitle')) { G.ui.subtitle(name || '', opts.italic ? `*${text}*` : text, seconds); return token; }
       const d = root();
       const body = opts.italic ? `<span class="it">${esc(text)}</span>` : esc(text);
       d.sub.innerHTML = (name ? `<span class="who">${esc(name)}</span>` : '') + body;
       d.sub.classList.add('on');
       clearTimeout(subTimer);
-      if (seconds > 0) subTimer = setTimeout(() => d.sub.classList.remove('on'), seconds * 1000);
+      if (seconds > 0 && Number.isFinite(seconds)) subTimer = setTimeout(() => d.sub.classList.remove('on'), seconds * 1000);
+      return token;
     },
 
-    clearSubtitle() {
+    // Without a token: clear whatever shows. With one: only if that line is still the latest.
+    clearSubtitle(token) {
+      if (token != null && token !== subToken) return;
       if (real('subtitle')) {
         if (typeof G.ui.clearSubtitle === 'function') G.ui.clearSubtitle();
         else G.ui.subtitle('', '', 0);

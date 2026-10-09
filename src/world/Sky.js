@@ -166,7 +166,7 @@ export async function init(G) {
     uniforms.uCirrus.value = W ? W.cirrus : 0.5;
     uniforms.uSunVis.value = W ? W.sunVis : 1;
     const clearness = clamp(1 - Math.max(overcast, (cover - 0.3) * 1.4), 0, 1);
-    uniforms.uStars.value = night * clearness * 0.22;
+    uniforms.uStars.value = night * clearness * (W ? W.stars : 1) * 0.22;
 
     // Aurora: on clear, dark nights unless the story forces it.
     const autoTarget = night * clearness * (W ? W.aurora : 1);

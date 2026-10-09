@@ -283,6 +283,8 @@ export async function placeVegetation(G, kinds) {
       D *= smoothstep(0.52, 0.8, ny);
       D *= smoothstep(1.8, 22, ld) * smoothstep(3.0, 14, rd) * exF;
       D *= smoothstep(2.5, 22, sd);
+      const mdx = x - MARSH.x, mdz = z - MARSH.z;
+      D *= smoothstep(MARSH.r * 0.9, MARSH.r + 38, Math.sqrt(mdx * mdx + mdz * mdz));
       const vis = vistaFactor(x, z);
       D *= vis;
       // village: thin and gappy, cut for firewood
@@ -383,7 +385,7 @@ export async function placeVegetation(G, kinds) {
   const cattail = kinds.findIndex((k) => k.id === 'cattail');
   const reedKinds = reedIdx.filter((i) => i !== cattail);
   {
-    const RS = 2.3;
+    const RS = 1.9;
     const reach = 82;
     for (let gz = MARSH.z - reach; gz < MARSH.z + reach; gz += RS) {
       await maybeYield();
@@ -402,8 +404,8 @@ export async function placeVegetation(G, kinds) {
         const h = W.heightAt(x, z);
         if (h > 6) continue;
         const patch = N.fbm2(x / 17 + 80, z / 17 - 40, 2) * 0.5 + 0.5;
-        const core = smoothstep(MARSH.r + 34, MARSH.r * 0.35, dm);
-        const dd = smoothstep(0.32, 0.62, patch) * core * 0.95 * exF * dens;
+        const core = smoothstep(MARSH.r + 34, MARSH.r * 0.25, dm);
+        const dd = (0.2 + 0.8 * smoothstep(0.28, 0.55, patch)) * core * exF * dens;
         if (rn() < dd) {
           const isCat = rn() < 0.18 && dm < MARSH.r + 6;
           const ki = isCat ? cattail : pickVar(reedKinds, [1, 0.7]);

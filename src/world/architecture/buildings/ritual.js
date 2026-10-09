@@ -2,7 +2,7 @@
 // altar), wayside shrines, carved grave posts, and the stone circle of the first rite.
 import * as THREE from 'three';
 import { Kit, PAL, GAIN } from '../kit.js';
-import { C, mixC, scaleC } from '../mb.js';
+import { mixC, scaleC } from '../mb.js';
 import { hewn, boulder, stroke } from '../masonry.js';
 import { gableRoof } from '../roofs.js';
 import { snowPillow, bench } from '../details.js';

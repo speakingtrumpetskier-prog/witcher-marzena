@@ -70,6 +70,12 @@ export function rockMaterial(G, { tone = 1, snow = true } = {}) {
     let fs = PARS + shader.fragmentShader;
     fs = fs.replace('#include <color_fragment>', '#include <color_fragment>\n' + COLOR);
     fs = fs.replace('#include <normal_fragment_maps>', '#include <normal_fragment_maps>\n' + NORMAL);
+    fs = fs.replace('#include <opaque_fragment>', `
+  // Guard the HDR target: a mirror-smooth highlight facing the sun can exceed half-float range
+  // (Inf), and Inf or NaN would smear across the screen through bloom.
+  if (any(isnan(outgoingLight))) outgoingLight = vec3(0.0);
+  outgoingLight = min(outgoingLight, vec3(48.0));
+#include <opaque_fragment>`);
     shader.fragmentShader = fs;
   });
   cached.set(key, m);

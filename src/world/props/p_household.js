@@ -18,6 +18,8 @@ export function bench(o = {}) {
   const L = (o.length || 1.5) + k.rs(0.2);
   const logSeat = (o.variant || k.pick(['plank', 'plank', 'log'])) === 'log';
   k.push({ yaw: o.yaw || 0 });
+  // Sitting spots (NPC stations): local seat centers along the bench.
+  k.anchor('seat', 0, 0.46, 0); k.anchor('seatA', -L * 0.25, 0.46, 0); k.anchor('seatB', L * 0.25, 0.46, 0);
   if (logSeat) {
     k.log(0.14, L, { lie: 'x', pos: [0, 0.39, 0], radial: 8, tint: 0xd8cdc0 });
     k.box('planks', L * 0.99, 0.02, 0.2, { pos: [0, 0.505, 0.0], tint: 0xe8dccb, jitter: 0.004, grain: 'x' });
@@ -40,6 +42,7 @@ export function stool(o = {}) {
   const k = new Kit('stool', o);
   const log = (o.variant || k.pick(['legs', 'legs', 'log'])) === 'log';
   k.push({ yaw: k.r(0, TAU) });
+  k.anchor('seat', 0, log ? 0.4 : 0.45, 0);
   if (log) {
     k.cyl('bark', 0.16, 0.18, 0.38, { pos: [0, 0.19, 0], radial: 9, cap: 'logEnd', noBottom: true, jitter: 0.01, tint: 0xe0d4c8 });
   } else {
@@ -107,7 +110,7 @@ export function shelf(o = {}) {
   for (let i = 0; i < 3; i++) {
     const x = -0.45 + i * 0.4;
     k.box('wood', 0.012, 0.012, 0.012, { pos: [x, 1.98, 0.05] });
-    k.cone('straw', 0.045, 0.2, { pos: [x, 1.86, 0.05], rot: [Math.PI, 0, 0], radial: 6, tint: k.pick([0x9aa070, 0xb0a070, 0x889060]) });
+    k.cone('matte', 0.045, 0.2, { pos: [x, 1.86, 0.05], rot: [Math.PI, 0, 0], radial: 6, tint: k.pick([0x5a6a44, 0x7a7048, 0x4e5e3c]), jitter: 0.008 });
   }
   k.pop();
   k.ud.align = 0;
@@ -139,6 +142,7 @@ export function bed(o = {}) {
   const k = new Kit('bed', Object.assign({ indoor: true }, o));
   const L = 1.95, W = 0.95;
   k.push({ yaw: o.yaw || 0 });
+  k.anchor('sleep', 0, 0.6, 0.1);
   const wood = 0xb8a690;
   for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
     k.box('wood', 0.08, sz < 0 ? 1.1 : 0.62, 0.08, { pos: [sx * (W / 2), sz < 0 ? 0.55 : 0.31, sz * (L / 2)], tint: wood, jitter: 0.004 });
@@ -267,6 +271,7 @@ export function cauldron(o = {}) {
   const k = new Kit('cauldron', o);
   const fire = o.fire !== false;
   k.push({ yaw: k.r(0, TAU) });
+  k.anchor('stir', 0, 0.0, 0.85);
   // Tripod
   for (let i = 0; i < 3; i++) {
     const a = (i / 3) * TAU + 0.3;
@@ -288,7 +293,7 @@ export function cauldron(o = {}) {
   }
   k.plane('decal', 2.4, 2.4, { pos: [0, 0.03, 0], rot: [-Math.PI / 2, 0, 0], tint: 0x6a5a4c, grime: 0 });
   if (fire) {
-    for (let i = 0; i < 3; i++) k.log(0.04, 0.5, { lie: 'x', pos: [0, 0.07 + i * 0.03, 0], yaw: i * 1.05, radial: 6, tint: 0x3a3430 });
+    for (let i = 0; i < 3; i++) k.log(0.04, 0.5, { lie: 'x', pos: [0, 0.07 + i * 0.03, 0], yaw: i * 1.05, radial: 6, tint: 0x3a3430, nosnow: true });
     k.cyl('coal', 0.14, 0.18, 0.04, { pos: [0, 0.06, 0], radial: 8, tint: 0xffffff, grime: 0 });
     k.anchor('fire', 0, 0.1, 0);
     k.fx('fire', [0, 0.1, 0], { scale: 0.85, radius: 0.2, height: 0.5, light: true, smoke: false });
@@ -325,20 +330,21 @@ export function musicBox(o = {}) {
   const open = o.open != null ? o.open : true;
   k.push({ yaw: o.yaw || 0 });
   const w = 0.16, d = 0.11, h = 0.07;
-  k.box('wood', w, h, d, { pos: [0, h / 2, 0], tint: 0xb8a088, jitter: 0.001 });
-  // Inlaid band
-  k.box('paint', w + 0.002, 0.012, d + 0.002, { pos: [0, h * 0.5, 0], tint: FOLK_RED, grime: 0 });
-  // Lid (open: tilted back)
+  // Pale-grained walnut: the 'face' material is a light base that takes warm tints well.
+  k.box('face', w, h, d, { pos: [0, h / 2, 0], tint: 0x9a7448, jitter: 0.0008, grime: 0.2, tile: 0.2 });
+  k.box('paint', w + 0.002, 0.012, d + 0.002, { pos: [0, h * 0.5, 0], tint: FOLK_RED, grime: 0, tile: 0.2 });
+  // Brass corner caps
+  for (const sx of [-1, 1]) for (const sz of [-1, 1]) k.box('iron', 0.012, 0.012, 0.012, { pos: [sx * (w / 2 - 0.004), 0.004, sz * (d / 2 - 0.004)], tint: 0xc8a050, grime: 0 });
+  // Lid (open: tilted back) with a folk-pattern inlay.
   k.with({ pos: [0, h, -d / 2], rot: [open ? -1.9 : 0, 0, 0] }, () => {
-    k.box('wood', w, 0.014, d, { pos: [0, 0.007, d / 2], tint: 0xc4ae98, jitter: 0.001 });
-    k.box('paint', w * 0.6, 0.002, d * 0.5, { pos: [0, 0.015, d / 2], tint: FOLK_RED, grime: 0 });
+    k.box('face', w, 0.014, d, { pos: [0, 0.007, d / 2], tint: 0xa87c4c, jitter: 0.0008, tile: 0.2 });
+    k.plane('folk', w * 0.7, d * 0.62, { pos: [0, 0.0155, d / 2], rot: [-Math.PI / 2, 0, 0], uvRect: folkRect(2), tint: 0xffffff, grime: 0, var: 0.02 });
   });
-  // Brass comb and cylinder visible inside when open
   if (open) {
     k.box('iron', w * 0.8, 0.004, 0.03, { pos: [0, h + 0.002, 0.01], tint: 0xc8a050, grime: 0 });
-    k.cyl('iron', 0.012, 0.012, w * 0.78, { pos: [0, h + 0.008, -0.02], rot: [0, 0, Math.PI / 2], radial: 6, tint: 0xb89040, grime: 0, cap: null });
+    k.cyl('iron', 0.012, 0.012, w * 0.78, { pos: [0, h + 0.008, -0.02], rot: [0, 0, Math.PI / 2], radial: 8, tint: 0xd8b060, grime: 0, cap: null });
+    for (let i = 0; i < 9; i++) k.box('iron', 0.0015, 0.004, 0.02, { pos: [-0.06 + i * 0.015, h + 0.005, 0.013], tint: 0xe0c070, grime: 0 });
   }
-  // Crank on the side
   k.cyl('iron', 0.003, 0.003, 0.03, { pos: [w / 2 + 0.015, 0.04, 0], rot: [0, 0, Math.PI / 2], radial: 4, tint: 0xc8a050, cap: null });
   k.box('iron', 0.004, 0.035, 0.004, { pos: [w / 2 + 0.03, 0.022, 0], tint: 0xc8a050, grime: 0 });
   k.pop();
@@ -349,18 +355,16 @@ export function musicBox(o = {}) {
 export function birdCarving(o = {}) {
   const k = new Kit('birdCarving', Object.assign({ indoor: true }, o));
   k.push({ yaw: o.yaw || 0 });
-  const wood = 0xe0d0b4;
-  // Little plinth.
-  k.cyl('wood', 0.05, 0.06, 0.02, { pos: [0, 0.01, 0], radial: 8, tint: 0xa08a74 });
-  // Body: plump teardrop, a head, beak, tail fan, wing grooves.
-  k.sph('wood', 0.045, { pos: [0, 0.075, 0], scale: [0.9, 0.85, 1.35], tint: wood, ws: 10, hs: 8, jitter: 0.001 });
-  k.sph('wood', 0.028, { pos: [0, 0.105, 0.055], tint: wood, ws: 8, hs: 6 });
-  k.cone('wood', 0.012, 0.03, { pos: [0, 0.102, 0.093], rot: [Math.PI / 2, 0, 0], radial: 5, tint: 0xc8a050 });
-  k.box('wood', 0.06, 0.006, 0.07, { pos: [0, 0.07, -0.075], rot: [0.3, 0, 0], tint: wood, taper: [1.6, 1] });
-  for (const sx of [-1, 1]) k.box('wood', 0.008, 0.03, 0.07, { pos: [sx * 0.038, 0.08, -0.005], rot: [0.12, 0, sx * -0.22], tint: 0xd0bea0, jitter: 0.0005 });
-  // Painted eye dots and a red breast patch.
-  for (const sx of [-1, 1]) k.sph('matte', 0.005, { pos: [sx * 0.02, 0.11, 0.07], tint: 0x201a16, ws: 5, hs: 4 });
-  k.sph('paint', 0.03, { pos: [0, 0.07, 0.03], scale: [1.1, 0.9, 0.55], tint: FOLK_RED, ws: 8, hs: 6 });
+  const wood = 0xe6d6b2;
+  // Little plinth, then a plump bird: body, head, beak, tail fan, wing grooves, painted breast.
+  k.cyl('wood', 0.05, 0.06, 0.035, { pos: [0, 0.0175, 0], radial: 8, tint: 0x8a7458 });
+  k.sph('face', 0.045, { pos: [0, 0.088, 0], scale: [0.9, 0.85, 1.35], ws: 10, hs: 8, tint: wood, tile: 0.2, grime: 0.1 });
+  k.sph('face', 0.028, { pos: [0, 0.118, 0.055], tint: wood, ws: 8, hs: 6, tile: 0.2, grime: 0 });
+  k.cone('face', 0.012, 0.03, { pos: [0, 0.115, 0.093], rot: [Math.PI / 2, 0, 0], radial: 5, tint: 0xc89850, tile: 0.2, grime: 0 });
+  k.box('face', 0.06, 0.006, 0.07, { pos: [0, 0.083, -0.075], rot: [0.3, 0, 0], tint: wood, taper: [1.6, 1], tile: 0.2, grime: 0 });
+  for (const sx of [-1, 1]) k.box('face', 0.008, 0.03, 0.07, { pos: [sx * 0.038, 0.093, -0.005], rot: [0.12, 0, sx * -0.22], tint: 0xd6c49c, tile: 0.2, grime: 0 });
+  for (const sx of [-1, 1]) k.sph('matte', 0.005, { pos: [sx * 0.02, 0.124, 0.07], tint: 0x201a16, ws: 5, hs: 4, grime: 0 });
+  k.sph('paint', 0.03, { pos: [0, 0.083, 0.03], scale: [1.1, 0.9, 0.55], tint: FOLK_RED, ws: 8, hs: 6, grime: 0, tile: 0.2 });
   k.pop();
   k.ud.align = 0;
   return k.build();
@@ -398,8 +402,12 @@ export function snowman(o = {}) {
   lump(0.3, 0.8 - melt * 0.08, 0.85, { pos: [0.02, 0.78 - melt * 0.08, 0.0] });
   lump(0.22, 1.13 - melt * 0.15, 0.9, { pos: [0.06 * melt * 2, 1.1 - melt * 0.13, 0.0] });
   // Coal eyes and mouth, carrot nose, stick arms, a battered pot as a hat.
-  for (const sx of [-1, 1]) k.sph('coal', 0.018, { pos: [sx * 0.075, 1.17 - melt * 0.14, 0.19], ws: 5, hs: 4, tint: 0x222222, grime: 0 });
-  k.cone('paint', 0.025, 0.22, { pos: [0.02, 1.1 - melt * 0.14, 0.28], rot: [Math.PI / 2, 0, 0], radial: 6, tint: 0xc8662a, grime: 0 });
+  for (const sx of [-1, 1]) k.sph('coal', 0.022, { pos: [sx * 0.08 + 0.05 * melt * 2, 1.17 - melt * 0.14, 0.215], ws: 5, hs: 4, tint: 0x222222, grime: 0 });
+  for (let i = 0; i < 5; i++) { const a = -0.6 + i * 0.3; k.sph('coal', 0.012, { pos: [0.05 * melt * 2 + Math.sin(a) * 0.1, 1.04 - melt * 0.14 + Math.cos(a * 1.6) * 0.03, 0.2 + Math.cos(a) * 0.015], ws: 4, hs: 3, tint: 0x222222, grime: 0 }); }
+  k.cone('paint', 0.03, 0.24, { pos: [0.05 * melt * 2, 1.1 - melt * 0.14, 0.33], rot: [Math.PI / 2, 0, 0], radial: 6, tint: 0xc8662a, grime: 0 });
+  // Red wool scarf with a hanging tail.
+  k.torus('ribbon', 0.17, 0.035, { pos: [0.03 * melt * 2, 0.97 - melt * 0.1, 0], rot: [Math.PI / 2, 0, 0], seg: 12, rseg: 4, tint: 0x7a241a, grime: 0, var: 0.05 });
+  k.hang('ribbon', 0.06, 0.32, { pos: [0.1, 0.96 - melt * 0.1, 0.17], rot: [0, 0.2, 0], tint: 0x6e2018, sway: 0.9, grime: 0, var: 0 });
   for (const sx of [-1, 1]) k.cyl('wood', 0.01, 0.014, 0.6, { pos: [sx * 0.42, 0.85 - melt * 0.1, 0.0], rot: [0, 0, sx * -(1.1 - melt * 0.4)], radial: 4, tint: 0x5a4a3a, cap: null });
   k.lathe('iron', [[0.001, 0.0], [0.1, 0.0], [0.115, 0.1], [0.1, 0.13]], { pos: [0.1 * melt * 2, 1.27 - melt * 0.17, 0], rot: [0, 0, 0.3 + melt * 0.3], radial: 8, tint: 0x6a6a70 });
   k.pop();
@@ -435,7 +443,7 @@ export function herbs(o = {}) {
     const x = -W / 2 + 0.1 + i * 0.16;
     const len = k.r(0.22, 0.4);
     k.tube('rope', [[x, 0, 0], [x, -0.07, 0]], 0.004, { radial: 3, tint: 0xb89c6c });
-    k.cyl('straw', 0.01, 0.06, len, { pos: [x, -0.07 - len / 2, 0], radial: 7, tint: k.pick([0x8a9a68, 0x9a9a6a, 0xb0a070, 0x7a8a5a, 0xa87850]), jitter: 0.012, cap: null, var: 0.25, grime: 0 });
+    k.cyl('matte', 0.01, 0.06, len, { pos: [x, -0.07 - len / 2, 0], radial: 7, tint: k.pick([0x5a6a44, 0x6a6a48, 0x7a7048, 0x4e5e3c, 0x6a4e34]), jitter: 0.012, cap: null, var: 0.25, grime: 0 });
     k.torus('rope', 0.022, 0.006, { pos: [x, -0.1, 0], rot: [Math.PI / 2, 0, 0], tint: 0xb89c6c, seg: 6, rseg: 3 });
   }
   k.pop();

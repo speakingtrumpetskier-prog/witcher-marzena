@@ -230,17 +230,17 @@ export class Cutscenes {
         const len = dur ?? Math.max(1.6, String(text).length / 14 + 0.35);
         if (sched.instant) return Promise.resolve();
         const italic = o.italic ?? (sid === 'wiesia' || sid === 'wiesia_ghost');
-        ui.subtitle(o.name ?? displayName(G, sid === 'player' ? 'vesna' : sid), text, len + 0.2, { italic });
+        const tok = ui.subtitle(o.name ?? displayName(G, sid === 'player' ? 'vesna' : sid), text, Infinity, { italic });
         G.audio?.duck?.(0.35, len);
         a?.talk(true);
         if (o.anim) a?.play(o.anim);
-        return sched.wait(len).then(() => a?.talk(false));
+        return sched.wait(len).then(() => { a?.talk(false); ui.clearSubtitle(tok); });
       },
       sub(text, dur, o = {}) {
         const len = dur ?? Math.max(1.6, String(text).length / 14 + 0.35);
         if (sched.instant) return Promise.resolve();
-        ui.subtitle(o.name || '', text, len + 0.2, { italic: !!o.italic });
-        return sched.wait(len);
+        const tok = ui.subtitle(o.name || '', text, Infinity, { italic: !!o.italic });
+        return sched.wait(len).then(() => ui.clearSubtitle(tok));
       },
       wait(s) { return sched.wait(s); },
       fade(to, s = 1) {

@@ -73,7 +73,7 @@ const CAST = {
     name: 'Hanka',
     body: { sex: 'f', age: 40, height: 1.66, mass: 0.15, shoulders: 0.96 },
     skin: '#d6b09a',
-    face: { iris: '#5e6a72', browColor: '#4a3e34', gaunt: 0.75, cheek: 0.7, lipFull: 0.78, blush: 0.25, noseRed: 0.35, wrinkles: 0.45, underEye: 0.85, lidHeavy: 0.4, pale: 0.12 },
+    face: { iris: '#5e6a72', browColor: '#4a3e34', gaunt: 0.45, cheek: 0.7, lipFull: 0.78, blush: 0.25, noseRed: 0.35, wrinkles: 0.45, underEye: 0.85, lidHeavy: 0.4, pale: 0.12 },
     hair: { style: 'bun', color: '#4a3e34' },
     hat: { type: 'kerchief', color: '#7a7670' },
     outfit: {

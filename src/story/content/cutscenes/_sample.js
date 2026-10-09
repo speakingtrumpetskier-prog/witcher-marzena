@@ -18,7 +18,7 @@ export default async function sample(d) {
   await d.shot({
     from: { x: 66, z: 55.5, h: 0.5 },
     via: [{ x: 70, z: 62, h: 3.2 }],
-    to: { x: 74, z: 74, h: 9 },
+    to: { x: 71.5, z: 72, h: 6.5 },
     look: d.head(hanka), lookTo: d.ground(57, 68, 1.2),
     fov: 42, fovTo: 48, dur: 6.5, ease: 'inOut',
   });

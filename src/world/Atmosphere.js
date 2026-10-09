@@ -12,6 +12,9 @@
 //   sun            DirectionalLight, the shadow-casting key. Follows the sun by day and the
 //                  moon by night (one shadow map, crossfaded through twilight).
 //   key            alias of sun
+//   farCascade     black DirectionalLight carrying the far shadow map (~2 km, refreshed every
+//                  few seconds); farProxy is the coarse terrain it casts from
+//   shadowRadius   half size of the near shadow frustum in meters (70)
 //   hemi           HemisphereLight, artistic fill (the sky environment map is the main ambient)
 //   moon           { dir: Vector3, phase: 0..1 lit fraction }
 //   shadowFocus    Vector3 the shadow frustum follows. Write it every frame (player rig) or
@@ -229,7 +232,12 @@ export async function init(G) {
     }
     // The lake fog blanket is lit like a cloud top: sun from above plus the sky.
     U.uFogLayerColor.value.copy(look.key).multiplyScalar(keyI * Math.max(A.keyDir.y, 0.06) / Math.PI)
-      .add(tmp.copy(look.hor).multiplyScalar(0.6)).add(tmp.copy(look.zen).multiplyScalar(0.45)).multiplyScalar(0.8);
+      .add(tmp.copy(look.hor).multiplyScalar(0.6)).add(tmp.copy(look.zen).multiplyScalar(0.45)).multiplyScalar(0.85);
+    {
+      const c = U.uFogLayerColor.value;
+      const l = c.r * 0.3 + c.g * 0.55 + c.b * 0.15;
+      c.lerp(tmp.setRGB(l * 0.97, l, l * 1.05), 0.55);
+    }
     U.uFogDensity.value = W.fogDensity * fogMul;
     U.uFogHeightFalloff.value = W.fogFalloff;
     U.uFogBaseHeight.value = 0;

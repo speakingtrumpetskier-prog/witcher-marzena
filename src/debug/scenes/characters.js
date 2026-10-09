@@ -10,10 +10,19 @@
 //   &face=smile:0.8,browUp:0.5   &talk=1  &lookcam=1  &yaw=0.6  &t=0.4 (clip start time)
 //   &views=1 (front, 3/4, side, back of one preset)  &atmo=1 (load atmosphere, sky, postfx)
 //   &slope=1 (sloped ground to test foot planting)  &speed=2.5 (locomotion speed)
+//   &demo=1 (village vignette using walkTo, playUpper, talk, lookAt)  &poses=1|2 (frozen pose grids)
+//   &clip=attack_1+attack_2 (chain)  &sword=1  &onready=1  &animStep=0.08 (deterministic sheets)
 import * as THREE from 'three';
 
 const qs = new URLSearchParams(location.search);
 export const modules = qs.has('atmo') ? ['atmosphere', 'sky', 'postfx', 'characters'] : ['characters'];
+
+// Pose gallery sets: [clip, time in seconds]
+const POSES1 = [['kneel_idle', 1], ['sit_bench', 1], ['sit_ground', 1], ['cross_arms', 1], ['hands_hips', 1], ['pray', 1], ['cry', 0.3],
+  ['warm_hands', 0.5], ['chop_wood', 0.62], ['hammer', 0.55], ['crouch_examine', 0.5], ['lie_dead', 1], ['lean_wall', 1], ['hug', 1.5]];
+const POSES2 = [['carry_bucket', 0.5], ['fish_ice', 1], ['drown_reach', 0.5], ['sweep', 0.4], ['stir', 0.5], ['point', 0.9], ['wave', 0.6],
+  ['shrug', 0.7], ['drink', 1.3], ['carry_pole', 0.5], ['senses', 1], ['mend_net', 1], ['eat', 0.5], ['carry_torch', 0.5],
+  ['talk_1', 0.9], ['beckon', 0.5], ['death', 2.1], ['roll', 0.45], ['dodge_left', 0.22], ['parry', 0.1], ['stagger', 0.45]];
 
 const LINEUPS = {
   main: ['vesna', 'ola', 'hanka', 'bogdan', 'dobra', 'zbyszek', 'jarek', 'wiesia_ghost', 'miller', 'miller_wife'],
@@ -59,6 +68,62 @@ export async function init(G) {
     G.camera.position.set(1.55, hy - 0.05, 1.25);
     G.camera.lookAt(-0.35, hy - 0.22, 0);
     G.camera.fov = 32;
+  } else if (P.has('demo')) {
+    // A small village vignette exercising the API: walkTo paths, an upper-body layer over
+    // locomotion, talking with look-at, work loops, children playing, a horse.
+    const add = (id, x, z, yaw) => { const c = C.create(id); c.setPosition(x, z); c.yaw = yaw; G.scene.add(c.root); G.gallery.chars.push(c); return c; };
+    const vesna = add('vesna', -3.2, 1.2, Math.PI / 2);
+    const loop = () => vesna.walkTo([{ x: -1.2, z: 0.4 }, { x: 1.5, z: 0.9 }, { x: 3.4, z: 0.2 }]).then(() => { vesna.setPosition(-3.2, 1.2); loop(); });
+    loop();
+    const hanka = add('hanka', 1.2, -1.4, -0.3);
+    hanka.playUpper('carry_torch', { loop: true });
+    const bogdan = add('bogdan', -1.6, -1.8, 0.4);
+    bogdan.play('hands_hips', { loop: true });
+    bogdan.talk(true);
+    bogdan.lookAt(vesna.bones.head);
+    const dobra = add('dobra', -0.4, -2.4, 0.2);
+    dobra.play('warm_hands', { loop: true });
+    const wood = add('villager_m_3', 3.0, -2.6, -0.9);
+    wood.play('chop_wood', { loop: true });
+    const ola = add('ola', 2.3, 1.9, 2.6);
+    ola.play('child_play', { loop: true });
+    const kid = add('child_b', 3.1, 2.4, -2.2);
+    kid.play('throw_snowball', { loop: true });
+    const fem = add('villager_f_2', -3.0, -0.8, 0.9);
+    fem.play('cross_arms', { loop: true });
+    fem.lookAt(vesna.bones.head);
+    const horse = G.characters.createHorse('kasza');
+    horse.setPosition(-4.6, -2.2);
+    horse.yaw = 0.5;
+    G.scene.add(horse.root);
+    G.camera.position.set(1.0, 2.3, 8.4);
+    G.camera.lookAt(0, 0.9, -0.4);
+    G.camera.fov = 40;
+  } else if (P.has('poses')) {
+    // Grid of frozen poses: one character per clip at a representative time.
+    const set = (P.get('poses') === '2' ? POSES2 : POSES1);
+    const ids = ['villager_m_1', 'villager_f_1', 'vesna', 'villager_m_2', 'villager_f_3', 'jarek', 'villager_m_5'];
+    const cols = 7;
+    set.forEach(([name, t], i) => {
+      const c = C.create(P.get('preset') || ids[i % ids.length]);
+      const col = i % cols, row = Math.floor(i / cols);
+      c.setPosition((col - (cols - 1) / 2) * 1.35, -row * 2.2);
+      c.yaw = 0.35;
+      G.scene.add(c.root);
+      c.play(name, { loop: true, fade: 0 });
+      c._stripT = t;
+      G.gallery.chars.push(c);
+    });
+    G.addSystem('poses', () => {
+      for (const c of G.gallery.chars) {
+        const st = c.anim.base[c.anim.base.length - 1];
+        if (st && st.clip) { st.t = Math.min(st.clip.dur - 0.001, c._stripT); st.speed = 0; }
+      }
+    }, 49);
+    const rows = Math.ceil(set.length / cols);
+    G.camera.position.set(0, 2.2 + rows * 0.9, 6.5 + rows * 1.6);
+    G.camera.lookAt(0, 0.6, -rows * 1.0);
+    G.camera.fov = 40;
   } else if (P.has('strip')) {
     const n = parseInt(P.get('strip'), 10) || 8;
     const id = preset || 'vesna';
@@ -115,8 +180,17 @@ export async function init(G) {
         if (c.root.position.x > 30) c.root.position.x = -30;
       }, 40);
     } else if (clip) {
-      if (clip === 'idle_cold') c.locoSet({ idle: 'idle_cold' });
-      else if (clip !== 'idle') for (const ch of G.gallery.chars) ch.play(clip, { loop: true, start: tStart });
+      if (P.has('sword')) for (const ch of G.gallery.chars) { ch._setSword(true); ch.locoSet({ idle: 'combat_idle' }); }
+      const chain = clip.split(' ').join('+').split('+').filter(Boolean);
+      const start = () => {
+        if (clip === 'idle_cold') c.locoSet({ idle: 'idle_cold' });
+        else if (chain.length > 1) {
+          // play the chain back to back (attack combos), then loop it
+          const run = async () => { for (const n of chain) await c.play(n, { loop: false, fade: 0.08 }); run(); };
+          run();
+        } else if (clip !== 'idle') for (const ch of G.gallery.chars) ch.play(clip, { loop: true, start: tStart });
+      };
+      if (P.has('onready')) G.events.once('game:ready', start); else start();
     }
     if (P.has('lookcam')) for (const ch of G.gallery.chars) ch.lookAt(G.camera);
     const H = c.height;

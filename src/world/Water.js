@@ -1,7 +1,7 @@
 // Lake ice and water, the frozen river and the frozen waterfall (owner: terrain builder).
 //
 // Public API (G.water):
-//   addHole(x, z, r) -> id          dark open-water hole in the ice with a slush ring (max 16)
+//   addHole(x, z, r = 0.6) -> id    dark open-water hole in the ice with a slush ring (max 16, -1 if full)
 //   removeHole(id)
 //   setUnderGlow(x, z, radius, intensity, color?)   pale light under the ice (intensity 0 = off)
 //   setCracks(x, z, radius, amount) crack network on the ice, amount 0..1 grows it (animatable)
@@ -16,7 +16,7 @@ import { LAKE, LOC, RIVER, WORLD } from './layout.js';
 import { lakeSDF, FALLS } from './heightfield.js';
 import { rng } from '../core/util.js';
 import { noise } from '../core/Noise.js';
-import { createIceUniforms, createIceMaterial, MAX_HOLES } from './terrain/iceMaterial.js';
+import { createIceUniforms, createIceMaterial } from './terrain/iceMaterial.js';
 import { buildWaterfall } from './terrain/waterfall.js';
 import { rockMaterial } from './terrain/rockMaterial.js';
 
@@ -47,7 +47,7 @@ function riverRibbon() {
     }
   }
   const half = RIVER.width * 0.5 + 5.5, across = 10;
-  const pos = [], idx = [];
+  const pos = [], idx = [], acr = [];
   let row = 0;
   for (let s = 0; s < stations.length; s++) {
     const st = stations[s];
@@ -58,15 +58,17 @@ function riverRibbon() {
     for (let a = 0; a <= across; a++) {
       const o = (a / across - 0.5) * 2 * half;
       pos.push(st.x - tz * o, st.y, st.z + tx * o);
+      acr.push(o / half);
     }
     if (s > 0 && !st.gap && Math.abs(st.y - prev.y) < 6) {
       const b0 = (row - 1) * (across + 1), b1 = row * (across + 1);
-      for (let a = 0; a < across; a++) idx.push(b0 + a, b1 + a, b0 + a + 1, b0 + a + 1, b1 + a, b1 + a + 1);
+      for (let a = 0; a < across; a++) idx.push(b0 + a, b0 + a + 1, b1 + a, b0 + a + 1, b1 + a + 1, b1 + a);
     }
     row++;
   }
   const g = new THREE.BufferGeometry();
   g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setAttribute('aAcross', new THREE.Float32BufferAttribute(acr, 1));
   g.setIndex(idx);
   g.computeVertexNormals();
   return g;
@@ -208,7 +210,6 @@ export async function init(G) {
       falls.setThaw(t);
     },
   };
-  void MAX_HOLES;
   G.water = api;
 
   G.addSystem('water', () => {

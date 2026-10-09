@@ -10,8 +10,8 @@ export const GRASS_VARIANTS = [
   { id: 'weed_c', seed: 8303, kind: 'umbel', blades: 5, L0: 0.8, L1: 1.3, w: 0.008, bend: 0.12, heads: 5 },
 ];
 export const REED_VARIANTS = [
-  { id: 'reed_a', seed: 9101, kind: 'reed', blades: 16, L0: 1.7, L1: 2.8, w: 0.036, bend: 0.5, plumes: 4 },
-  { id: 'reed_b', seed: 9202, kind: 'reed', blades: 10, L0: 1.2, L1: 2.0, w: 0.032, bend: 0.65, plumes: 2 },
+  { id: 'reed_a', seed: 9101, kind: 'reed', blades: 18, L0: 2.0, L1: 3.2, w: 0.04, bend: 0.36, plumes: 4 },
+  { id: 'reed_b', seed: 9202, kind: 'reed', blades: 12, L0: 1.5, L1: 2.4, w: 0.036, bend: 0.5, plumes: 2 },
   { id: 'cattail', seed: 9303, kind: 'cattail', blades: 5, L0: 1.3, L1: 1.8, w: 0.045, bend: 0.4, plumes: 3 },
 ];
 

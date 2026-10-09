@@ -15,6 +15,9 @@ export const MAX_HOLES = 16;
 
 const PARS = /* glsl */ `
 varying vec3 vMzIceWP;
+#ifdef MZ_RIVER
+  varying float vMzAcross;
+#endif
 uniform vec4 uMzHoles[${MAX_HOLES}];
 uniform vec4 uMzGlow;
 uniform vec3 uMzGlowColor;
@@ -53,6 +56,12 @@ const SHADE = /* glsl */ `
   float th = mzHeight(xz);
   float depth = wp.y - th;
   if (depth < 0.05) discard;
+  #ifdef MZ_RIVER
+    // Trim the ribbon to the channel with a ragged, frosted edge.
+    float rEdge = abs(vMzAcross) - (0.56 + 0.1 * (mzNoiseK(xz, 0.18).r - 0.5) * 2.0);
+    if (rEdge > 0.0) discard;
+    depth = min(depth, -rEdge * 6.0);
+  #endif
   vec4 mk = mzTerrainMask(xz);
   float sd = mk.z;
   float dist = length(wp - cameraPosition);
@@ -66,12 +75,13 @@ const SHADE = /* glsl */ `
   vec4 sM = mzNoiseK(vec2(q.x * 0.1, q.y) - 13.0, 0.22);
   vec4 sB = mzNoiseK(vec2(q.x * 0.14, q.y) + 31.0, 0.9);
   vec4 big = mzNoiseK(xz + 7.0, 0.006);
-  float nearShore = 1.0 - smoothstep(3.0, 45.0, -sd);
-  float edge = 1.0 - smoothstep(0.05, 0.5, depth);
+  float nearShore = (1.0 - smoothstep(3.0, 45.0, -sd)) * (1.0 - smoothstep(0.0, 4.0, sd));
+  float edge = 1.0 - smoothstep(0.05, 0.24, depth);
   #ifdef MZ_RIVER
-    float snowBias = 0.32;
+    float snowBias = 0.04;
   #else
-    float snowBias = 0.0;
+    // Marsh pools (outside the shoreline) are sheltered: mostly clear ice between reeds.
+    float snowBias = -0.25 * smoothstep(-2.0, 6.0, sd);
   #endif
   // Drifts: broad wind-packed fields plus long narrow streaks with crisp edges and feathered
   // tails downwind (the streak noise is stretched along the wind).
@@ -89,16 +99,19 @@ const SHADE = /* glsl */ `
   float bubbles = (b1 * 0.8 + b2 * 0.55) * bubbleCl;
   // Fracture planes: straight, branching crack networks (cell edges) at two depths.
   float c1n = mzNoiseK(xz + 50.0, 0.11).r;
-  float aw = clamp(dist * 0.0006, 0.0, 0.05);
-  vec2 v1 = mzVoronoi((xz + rv * 0.06) / 11.0 + vec2(c1n * 0.25, 0.0));
-  vec2 v2 = mzVoronoi((xz + rv * 0.3) / 4.5 + 17.0);
-  float cr1 = (1.0 - smoothstep(0.004 + aw, 0.014 + aw * 1.5, v1.y - v1.x)) * smoothstep(0.35, 0.6, mzNoiseK(xz - 3.0, 0.04).g);
-  float cr2 = (1.0 - smoothstep(0.008 + aw, 0.03 + aw * 1.5, v2.y - v2.x)) * 0.45 * smoothstep(0.5, 0.75, mzNoiseK(xz + 9.0, 0.08).r);
+  // Crack width in meters (a few centimeters), widened to about a pixel with distance.
+  float cw = 0.025 + dist * 0.0011;
+  vec4 cw4 = mzNoiseK(xz * 0.7 + 3.0, 0.09);
+  vec2 cwarp = (cw4.rg - 0.5) * 0.35;
+  vec2 v1 = mzVoronoi((xz + rv * 0.06) / 13.0 + cwarp + vec2(c1n * 0.2, 0.0));
+  vec2 v2 = mzVoronoi((xz + rv * 0.3) / 4.5 + cwarp * 1.5 + 17.0);
+  float cr1 = (1.0 - smoothstep(cw / 13.0, cw * 2.5 / 13.0, (v1.y - v1.x) * 0.5)) * smoothstep(0.55, 0.72, mzNoiseK(xz - 3.0, 0.035).g);
+  float cr2 = (1.0 - smoothstep(cw / 4.5, cw * 2.5 / 4.5, (v2.y - v2.x) * 0.5)) * 0.5 * smoothstep(0.6, 0.78, mzNoiseK(xz + 9.0, 0.06).r);
   float inner = max(cr1, cr2) * (1.0 - smoothstep(150.0, 400.0, dist));
   vec3 deep = vec3(0.003, 0.01, 0.016);
   vec3 bedC = vec3(0.05, 0.062, 0.055);
   vec3 under = mix(bedC, deep, 1.0 - exp(-depth * 0.8));
-  vec3 clearIce = under + vec3(0.42, 0.52, 0.58) * bubbles * 0.45 + vec3(0.5, 0.6, 0.66) * inner * 0.32;
+  vec3 clearIce = under + vec3(0.42, 0.52, 0.58) * bubbles * 0.45 + vec3(0.5, 0.6, 0.66) * inner * 0.22;
   float clearRough = mix(0.035, 0.12, big.g) + 0.08 * smoothstep(0.5, 0.8, sB.r);
 
   vec3 snowC = mix(vec3(0.72, 0.75, 0.8), vec3(0.83, 0.85, 0.89), sB.g);
@@ -224,11 +237,18 @@ export function createIceMaterial(G, uniforms, kind = 'lake') {
     Object.assign(shader.uniforms, uniforms);
     shader.uniforms.uTime = G.uniforms.uTime;
     shader.uniforms.uWind = G.uniforms.uWind;
-    shader.vertexShader = 'varying vec3 vMzIceWP;\n' + shader.vertexShader.replace('#include <begin_vertex>',
-      '#include <begin_vertex>\nvMzIceWP = (modelMatrix * vec4(transformed, 1.0)).xyz;');
+    const riv = kind === 'river';
+    shader.vertexShader = (riv ? 'attribute float aAcross;\nvarying float vMzAcross;\n' : '') + 'varying vec3 vMzIceWP;\n' + shader.vertexShader.replace('#include <begin_vertex>',
+      '#include <begin_vertex>\nvMzIceWP = (modelMatrix * vec4(transformed, 1.0)).xyz;' + (riv ? '\nvMzAcross = aAcross;' : ''));
     let fs = (kind === 'river' ? '#define MZ_RIVER\n' : '') + PARS + shader.fragmentShader;
     fs = fs.replace('#include <lights_physical_pars_fragment>', '#include <lights_physical_pars_fragment>\n' + RE_OVERRIDE);
     fs = fs.replace('#include <normal_fragment_maps>', '#include <normal_fragment_maps>\n' + SHADE);
+    fs = fs.replace('#include <opaque_fragment>', `
+  // Guard the HDR target: a mirror-smooth highlight facing the sun can exceed half-float range
+  // (Inf), and Inf or NaN would smear across the screen through bloom.
+  if (any(isnan(outgoingLight))) outgoingLight = vec3(0.0);
+  outgoingLight = min(outgoingLight, vec3(48.0));
+#include <opaque_fragment>`);
     shader.fragmentShader = fs;
   });
   return mat;

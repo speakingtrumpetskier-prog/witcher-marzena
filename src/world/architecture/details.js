@@ -3,7 +3,7 @@
 import * as THREE from 'three';
 import { C, mixC, scaleC } from './mb.js';
 import { PAL, GAIN } from './kit.js';
-import { shedRoof, icicles, snowLayer, smooth } from './roofs.js';
+import { shedRoof, smooth } from './roofs.js';
 import { dropsShape } from './carve.js';
 
 const V3 = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z);

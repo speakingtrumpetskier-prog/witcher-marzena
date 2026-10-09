@@ -91,7 +91,7 @@ function makeSculpt(FP) {
   const jw = FP.jawW, cw = FP.craniumW;
   const fl = FP.faceLen;
   const es = FP.eyeSpace;
-  const re = 0.0116 * FP.eyeSize;
+  const re = 0.0112 * FP.eyeSize;
   const eyeL = V(0.0315 * es, 0.0715, 0.073);
   const eyeR = V(-0.0315 * es, 0.0715, 0.073);
   const nl = FP.noseLen, nw = FP.noseW, ns = FP.noseSize;
@@ -115,7 +115,7 @@ function makeSculpt(FP) {
     d = smin(d, sdEll(x, y, z, 0, 0.118, 0.045, 0.054, 0.05, 0.048), 0.02);
     d = smax(d, -sdEll(ax, y, z, 0.081 * cw, 0.096, 0.052, 0.012, 0.028, 0.026), 0.01);
     // midface, zygomatic arches, jaw body, jawline, ramus, chin
-    d = smin(d, sdEll(x, y, z, 0, 0.045, 0.034, 0.061, 0.056 * fl, 0.06), 0.03);
+    d = smin(d, sdEll(x, y, z, 0, 0.045, 0.032, 0.06, 0.056 * fl, 0.058), 0.03);
     d = smin(d, sdCone(ax, y, z, V(0.045, 0.054, 0.06), V(0.061, 0.052, 0.006), 0.0065, 0.006), 0.026);
     d = smin(d, sdEll(x, y, z, 0, 0.014, 0.04, 0.046 * jw, 0.031 * fl, 0.05), 0.026);
     d = smin(d, sdCone(ax, y, z, gonL, chinPL, 0.011 + FP.jawSq * 0.002, 0.012), 0.018);
@@ -123,9 +123,9 @@ function makeSculpt(FP) {
     d = smin(d, sdEll(x, y, z, 0, chinY, 0.085 + FP.chin * 0.004, 0.015 * FP.chinW, 0.013, 0.011), 0.01);
     if (z < 0.028 && y > -0.03) return d; // face features live in front; skip them back here
     // cheekbones and cheek fat
-    d = smin(d, sdEll(ax, y, z, 0.043, 0.053, 0.07, 0.016 * cheekS, 0.0095 * cheekS, 0.014), 0.012);
-    if (full > 0) d = smin(d, sdEll(ax, y, z, 0.036, 0.044, 0.079, 0.02, 0.017, 0.012 + full * 0.002), 0.012 + full * 0.006);
-    if (FP.gaunt > 0.3) d = smax(d, -sdEll(ax, y, z, 0.047, 0.022, 0.088, 0.014, 0.016, 0.01), 0.012 / FP.gaunt);
+    d = smin(d, sdEll(ax, y, z, 0.044, 0.053, 0.064, 0.016 * cheekS, 0.0095 * cheekS, 0.013), 0.014);
+    if (full > 0) d = smin(d, sdEll(ax, y, z, 0.037, 0.044, 0.07, 0.02, 0.017, 0.012 + full * 0.002), 0.014 + full * 0.006);
+    if (FP.gaunt > 0.4) d = smax(d, -sdEll(ax, y, z, 0.048, 0.026, 0.078, 0.013, 0.013, 0.006), 0.025);
     // brow ridge
     const bz = 0.087 + FP.brow * 0.004;
     d = smin(d, sdCone(ax, y, z, V(0.011, 0.0935, bz), V(0.046, 0.0955, bz - 0.013), browH, browH * 0.78), 0.014);
@@ -140,14 +140,12 @@ function makeSculpt(FP) {
     d = smin(d, nose, 0.006);
     d = smax(d, -sdEll(ax, y, z, 0.0058 * nw, tipY - 0.0078, tipZ - 0.0105, 0.003, 0.0015, 0.0035), 0.0015);
     // lips
-    const ul = sdEll(x, y, z, 0, stomY + 0.005 * lf, 0.0962, 0.0212 * lw, 0.0056 * lf, 0.0077 * lf);
-    const ll = sdEll(x, y, z, 0, stomY - 0.0055 * lf, 0.0932, 0.0188 * lw, 0.0066 * lf, 0.008 * lf);
+    const ul = sdEll(x, y, z, 0, stomY + 0.0048 * lf, 0.0935, 0.0198 * lw, 0.0052 * lf, 0.0068 * lf);
+    const ll = sdEll(x, y, z, 0, stomY - 0.0052 * lf, 0.091, 0.0178 * lw, 0.006 * lf, 0.007 * lf);
     d = smin(d, smin(ul, ll, 0.0014), 0.006);
-    d = smax(d, -sdCone(x, y, z, V(0, tipY - 0.011, 0.104), V(0, stomY + 0.0105, 0.1035), 0.0016, 0.0022), 0.003);
-    d = smax(d, -sdEll(x, y, z, 0, stomY, 0.1035, 0.0215 * lw, 0.0005, 0.0035), 0.0015);
-    d = smax(d, -sdEll(ax, y, z, 0.0225 * lw, stomY, 0.092, 0.0028, 0.0024, 0.006), 0.003);
-    d = smax(d, -sdEll(x, y, z, 0, stomY - 0.0145, 0.0975, 0.013, 0.0028, 0.006), 0.005);
-    if (FP.wrinkles > 0.2) d = smax(d, -sdCone(ax, y, z, V(0.016 * nw, tipY - 0.005, 0.099), V(0.027, stomY - 0.006, 0.088), 0.0015, 0.0013), 0.004);
+    d = smax(d, -sdCone(x, y, z, V(0, tipY - 0.011, 0.102), V(0, stomY + 0.0105, 0.1005), 0.0014, 0.002), 0.004);
+    d = smax(d, -sdEll(ax, y, z, 0.0215 * lw, stomY, 0.09, 0.0024, 0.002, 0.005), 0.004);
+    d = smax(d, -sdEll(x, y, z, 0, stomY - 0.0145, 0.0975, 0.012, 0.0022, 0.005), 0.007);
     return d;
   };
   return { sdf, re, rl, eyeL, eyeR, stomY, chinY, tipY, tipZ };
@@ -335,8 +333,8 @@ export function buildHead(mb, rig, FP, look) {
       const ps = Math.asin(clamp(q.y / dist, -1, 1));
       const u = a / LS.phM;
       const uc = clamp(u, -1, 1);
-      const out = Math.max(ps - LS.upper(uc), LS.lower(uc) - ps, (Math.abs(u) - 1) * 0.6);
-      const c = smoothstep(0.17, 0.07, out) * smoothstep(-0.25, 0.1, q.z / dist);
+      const out = Math.max(ps - LS.upper(uc), LS.lower(uc) - ps, (Math.abs(u) - 1) * 2.4);
+      const c = Math.pow(smoothstep(0.42, -0.04, out), 1.5) * smoothstep(-0.25, 0.1, q.z / dist);
       if (c > 0) p.copy(E).addScaledVector(q.normalize(), lerp(dist, S.re - 0.0025, c));
     }
   };
@@ -377,7 +375,7 @@ export function buildHead(mb, rig, FP, look) {
       const slit = i === kStom && Math.abs(az) < azCorner * 1.12;
       if (slit) {
         const inner = smoothstep(azCorner * 1.12, azCorner * 0.4, Math.abs(az));
-        p.z -= 0.001 * inner;
+        p.z -= 0.0004 * inner;
       }
       const u = j / nAz, v = (i === kStom ? tStom : polTs[i]) * vUV;
       const wp = p.clone().multiplyScalar(scale).add(pivot);
@@ -401,6 +399,8 @@ export function buildHead(mb, rig, FP, look) {
       mb.quad(a, d, c, b);
     }
   }
+  info.grid = grid;
+  info.slitRow = kStom;
   info.uvOf = (p) => {
     const { az, pol } = polOf(p);
     return [azW.inv(az), polW.inv(pol) * vUV];
@@ -439,7 +439,7 @@ export function hairMask(p, h) {
   if (h.style === 'cropped') {
     return { mask: smoothstep(line - 0.002, line + 0.006, p.y), thick: 0.0025 };
   }
-  const m = smoothstep(line - 0.003, line + 0.009, p.y);
+  const m = smoothstep(line - 0.004, line + 0.014, p.y);
   // volume grows toward the crown and back
   const thick = (h.thick ?? 0.009) * (0.55 + 0.45 * smoothstep(0.06, 0.16, p.y)) * (1 + 0.25 * smoothstep(1.5, 2.8, aa));
   return { mask: m, thick };
@@ -502,8 +502,8 @@ function buildEyes(mb, rig, FP, S, sc, pivot, uvOf, look) {
           const edge = 1 - Math.pow(Math.abs(u), 6);
           const w = r > nR ? edge : (r / nR) ** 1.3 * edge;
           let shade = 1;
-          if (r === nR) shade = upper ? 0.72 : 0.86;
-          if (r > nR) shade = upper ? 0.42 : 0.6;
+          if (r === nR) shade = upper ? 0.84 : 0.92;
+          if (r > nR) shade = upper ? 0.55 : 0.7;
           const [tu, tv] = uvOf(toLocal(ph, Math.max(-0.5, Math.min(0.6, ps)), rl + 0.002));
           row.push(mb.vert(toWorld(pl), new THREE.Color(shade, shade * 0.93, shade * 0.92), tu, tv, lidMat, [[bone, w], ['head', 1 - w]]));
         }
@@ -514,9 +514,9 @@ function buildEyes(mb, rig, FP, S, sc, pivot, uvOf, look) {
         if (upper) mb.quad(a, d, cc, b); else mb.quad(a, b, cc, d);
       }
       // Lashes: a dark fin from the margin, fuller on the upper lid.
-      const lashC = col(FP.browColor).multiplyScalar(0.3);
+      const lashC = col(FP.browColor).multiplyScalar(0.42);
       const lashMat = mat(lashC, { tile: 'hair', rough: 0.6, fuzz: 0, tileU: 6, tileV: 40 });
-      const len = upper ? 0.0034 : 0.0015;
+      const len = upper ? 0.0026 : 0.001;
       const fin = [];
       for (let c = 0; c <= nC; c++) {
         const u = c / nC * 2 - 1;
@@ -562,8 +562,8 @@ function buildMouthInside(mb, FP, S, sc, pivot) {
     const row = [];
     for (let i = 0; i <= nT; i++) {
       const a = (i / nT - 0.5) * 2.1;
-      const r = up ? 0.021 : 0.019;
-      const x = Math.sin(a) * r, z = 0.081 + Math.cos(a) * r * 0.62 + (up ? 0.0012 : -0.001);
+      const r = (up ? 0.0175 : 0.016) * FP.lipW;
+      const x = Math.sin(a) * r, z = 0.077 + Math.cos(a) * r * 0.62 + (up ? 0.001 : -0.001);
       let shade = 1 - Math.abs(i / nT - 0.5) * 1.1;
       if (up && FP.missingTooth && i === 4) shade = 0.06;
       const c = toothC.clone().multiplyScalar(shade);
@@ -688,20 +688,26 @@ export function paintFace(canvas, info, FP, look) {
   // cold flush: cheeks, nose, chin, ears
   for (const s of [1, -1]) {
     const [cx, cy] = P(s * 0.045, 0.045, 0.09);
-    blot(cx, cy, 34 * sz, red, 0.32 * FP.blush * warmth, 1, 0.8);
+    blot(cx, cy, 36 * sz, red, 0.42 * FP.blush * warmth, 1, 0.8);
     const [ex, ey] = P(s * 0.073, 0.06, -0.006);
     blot(ex, ey, 22 * sz, red, 0.4 * warmth);
     // under-eye shadow (hunger, cold)
     const [ux, uy] = P(s * 0.031, 0.06, 0.09);
-    blot(ux, uy, 13 * sz, cool, 0.32 * FP.underEye, 1.3, 0.6);
+    blot(ux, uy, 12 * sz, cool, 0.2 * FP.underEye, 1.3, 0.6);
     // eye socket upper shading
     const [lx, ly] = P(s * 0.033, 0.083, 0.088);
-    blot(lx, ly, 13 * sz, skin.clone().multiplyScalar(0.72), 0.45, 1.4, 0.7);
+    blot(lx, ly, 12 * sz, skin.clone().multiplyScalar(0.8), 0.22, 1.4, 0.7);
   }
   const [nx, ny] = P(0, S.tipY, S.tipZ + 0.01);
-  blot(nx, ny, 16 * sz, red, 0.4 * FP.noseRed * warmth);
+  blot(nx, ny, 18 * sz, red, 0.5 * FP.noseRed * warmth);
   const [chx, chy] = P(0, S.chinY + 0.004, 0.096);
   blot(chx, chy, 16 * sz, red, 0.14 * warmth);
+  for (const s of [1, -1]) {
+    const [tx, ty] = P(s * 0.06, 0.1, 0.05);
+    blot(tx, ty, 30 * sz, skin.clone().lerp(col('#a8a0b8'), 0.4), 0.22);
+    const [jx, jy] = P(s * 0.045, 0.01, 0.075);
+    blot(jx, jy, 28 * sz, skin.clone().multiplyScalar(0.86), 0.25);
+  }
   // forehead slightly lighter
   const [fx, fy] = P(0, 0.12, 0.09);
   blot(fx, fy, 50 * sz, skin.clone().lerp(col('#f0d8c0'), 0.4), 0.25, 1.6, 0.8);
@@ -760,8 +766,8 @@ export function paintFace(canvas, info, FP, look) {
   for (const s of [1, -1]) {
     for (let i = 0; i <= 8; i++) {
       const t = i / 8;
-      const [px, py] = P(s * lerp(0.013, 0.048, t), 0.0905 + Math.sin(t * Math.PI * 0.85) * 0.004 * (0.6 + FP.browArch) - t * 0.002, 0.094 - t * 0.016);
-      blot(px, py, (7 - t * 3) * sz * FP.browThick, browC, 0.22, 1.4, 0.7);
+      const [px, py] = P(s * lerp(0.013, 0.048, t), 0.0885 + Math.sin(t * Math.PI * 0.85) * 0.004 * (0.6 + FP.browArch) - t * 0.002, 0.094 - t * 0.016);
+      blot(px, py, (8 - t * 3.5) * sz * FP.browThick, browC, 0.34, 1.5, 0.75);
     }
   }
   for (const s of [1, -1]) {
@@ -770,11 +776,11 @@ export function paintFace(canvas, info, FP, look) {
       const t = R();
       const x = s * lerp(0.011, 0.05, t);
       const arch = Math.sin(t * Math.PI * 0.85) * 0.004 * (0.6 + FP.browArch);
-      const y = 0.0905 + arch - t * 0.002 + (R() - 0.5) * 0.0042 * (1 - t * 0.6) * FP.browThick;
+      const y = 0.0885 + arch - t * 0.002 + (R() - 0.5) * 0.0046 * (1 - t * 0.6) * FP.browThick;
       const z = 0.094 - t * 0.016;
       const [px, py] = P(x, y, z);
       const ang = (s > 0 ? -1 : 1) * lerp(0.9, 0.15, t) + Math.PI * (s > 0 ? 0 : 1);
-      const len = (5 + R() * 4) * sz;
+      const len = (6 + R() * 5) * sz;
       g.strokeStyle = css(browC, 0.45 + R() * 0.4);
       g.lineWidth = (0.9 + R() * 0.6) * sz * (FP.child ? 0.8 : 1);
       g.beginPath();
@@ -867,15 +873,23 @@ function paintScalp(g, info, look, W, Hh, R, css) {
   // Rasterize the mask in UV space by sampling grid points (pre-collected).
   const pts = info.hairPts;
   const sz = W / 512;
+  // Paint the hair mass on an offscreen layer, then composite it once with a blur so the
+  // hairline is soft (blurring every dab would be very slow on software canvas).
+  const layer = document.createElement('canvas');
+  layer.width = W; layer.height = Hh;
+  const lg = layer.getContext('2d');
   for (const p of pts) {
     const [u, v] = info.uvOf(p);
     const m = hairMask(p, h).mask;
     if (m < 0.05) continue;
-    g.fillStyle = css(hc.clone().multiplyScalar(0.85 + R() * 0.2), Math.min(1, m * 1.2));
-    g.beginPath();
-    g.arc(u * W, v * Hh, 9 * sz, 0, 7);
-    g.fill();
+    lg.fillStyle = css(hc.clone().multiplyScalar(0.85 + R() * 0.2), Math.min(1, m * 1.2));
+    lg.beginPath();
+    lg.arc(u * W, v * Hh, 9 * sz, 0, 7);
+    lg.fill();
   }
+  g.filter = `blur(${2.5 * sz}px)`;
+  g.drawImage(layer, 0, 0);
+  g.filter = 'none';
   // strands: streaks running down v (crown to edges)
   for (let i = 0; i < 2600 * sz; i++) {
     const p = pts[(R() * pts.length) | 0];
@@ -920,7 +934,7 @@ function paintIris(g, FP, W, Hh, css, R) {
       g.stroke();
     }
     // iris: radius maps to ~30 degrees on the eyeball
-    const ir = ew * 0.43;
+    const ir = ew * 0.4;
     const ig = g.createRadialGradient(cx, cy, ir * 0.2, cx, cy, ir);
     ig.addColorStop(0, css(iris.clone().lerp(col('#f0d090'), FP.slit ? 0.35 : 0.1)));
     ig.addColorStop(0.55, css(iris));

@@ -26,6 +26,12 @@ function strip(stations, seed) {
       const vm = Math.min(v / 0.86, 1);
       let y = st.yB + (st.yT - st.yB) * vm;
       let o = st.lean0 + (st.lean1 - st.lean0) * vm;
+      if (st.w) {
+        // Follow the heightfield's smoothstep slope profile (inverse smoothstep of the height).
+        const f = Math.min(1, Math.max(0, (y - st.hB) / (st.hT - st.hB)));
+        const t = 0.5 - Math.sin(Math.asin(1 - 2 * f) / 3);
+        o = st.w - 2 * st.w * t + 0.9;
+      }
       // Roll the top edge back over into the cliff-top terrain.
       if (v > 0.86) {
         const t = (v - 0.86) / 0.14;
@@ -34,9 +40,11 @@ function strip(stations, seed) {
       }
       const n = noise.noise2;
       const ribs = 1.3 * Math.pow(Math.abs(n(s * 0.17 + seed, y * 0.035)), 0.6);
-      const q = y / 3.4 + 0.6 * n(s * 0.05, 0.3 + seed);
+      // Strata ledges: uneven spacing, broken along the face (only some catch snow).
+      const q = y / (2.6 + 1.6 * (0.5 + 0.5 * n(s * 0.011, 5.5 + seed))) + 0.8 * n(s * 0.04, 0.3 + seed);
       const fq = q - Math.floor(q);
-      const ledge = 0.9 * (fq > 0.72 ? Math.min(1, (fq - 0.72) / 0.2) : 0);
+      const lk = Math.max(0, n(s * 0.06 + Math.floor(q) * 3.1, 2.2 + seed));
+      const ledge = 1.1 * lk * (fq > 0.74 ? Math.min(1, (fq - 0.74) / 0.18) : 0);
       const bulge = 1.9 * noise.fbm2(s * 0.03 + seed, y * 0.045, 3);
       const crack = -0.9 * Math.max(0, 1 - Math.abs(n(s * 0.09, 7.1 + seed)) / 0.07);
       const top = 1 - Math.max(0, (v - 0.8) / 0.2);
@@ -100,9 +108,10 @@ export function buildCliffs(G, material) {
     const nearDen = Math.abs(x - den.x) < 6;
     if (hgt < 6 || nearDen) { main.push(null); } else {
       const ln = Math.hypot(sl, 1);
-      const yB = W.terrainAt(x, e.zc + 7) - 2.2, yT = W.terrainAt(x, e.zc - 9);
+      const foot = noise.noise2(x * 0.045, 12.3);
+      const yB = W.terrainAt(x, e.zc + 7) - 2.2 + 1.6 * foot, yT = W.terrainAt(x, e.zc - 9);
       if (yT - yB < 7) main.push(null);
-      else main.push({ x, z: e.zc, nx: -sl / ln, nz: 1 / ln, yB, yT, lean0: 3.2, lean1: -2.6, back: -6.5 });
+      else main.push({ x, z: e.zc, nx: -sl / ln, nz: 1 / ln, yB, yT, lean0: 3.2 + 1.2 * foot, lean1: -2.6, back: -6.5 });
     }
     const h2 = e.h2 * e.along;
     if (h2 < 7) { upper.push(null); continue; }
@@ -116,15 +125,16 @@ export function buildCliffs(G, material) {
 
   // Falls cliff: the near-vertical part on both sides of the falls, open at the cave slot.
   const falls = [];
-  for (let z = FALLS.z - 46; z <= FALLS.z + 46; z += 1) {
+  for (let z = FALLS.z - 60; z <= FALLS.z + 60; z += 1) {
     const f = fallsCliff(z), f2 = fallsCliff(z + 0.5);
     const inSlot = Math.abs(z - FALLS.caveZ) < FALLS.caveW - 0.4;
-    if (f.wdt > 9 || inSlot) { falls.push(null); continue; }
+    if (f.wdt > 11 || inSlot) { falls.push(null); continue; }
     const sl = (f2.xc - f.xc) / 0.5, ln = Math.hypot(sl, 1);
     const nx = -1 / ln, nz = sl / ln;
-    const yB = W.terrainAt(f.xc - f.wdt - 4, z) - 2, yT = W.terrainAt(f.xc + f.wdt + 5, z);
+    const hB = W.terrainAt(f.xc - f.wdt - 1, z), hT = W.terrainAt(f.xc + f.wdt + 1, z);
+    const yB = hB - 2, yT = W.terrainAt(f.xc + f.wdt + 5, z);
     if (yT - yB < 8) { falls.push(null); continue; }
-    falls.push({ x: f.xc, z, nx, nz, yB, yT, lean0: f.wdt + 1.2, lean1: -f.wdt + 0.2, back: -f.wdt - 4 });
+    falls.push({ x: f.xc, z, nx, nz, yB, yT, hB, hT, w: f.wdt, lean0: f.wdt + 1.2, lean1: -f.wdt + 0.2, back: -f.wdt - 4 });
   }
   addStrips(group, falls, material, 4.4, 200);
   G.scene.add(group);

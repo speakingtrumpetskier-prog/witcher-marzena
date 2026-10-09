@@ -6,6 +6,7 @@
 //   clearArea(x, z, r)        hide trees, bushes, ground cover, reeds and far impostors in a circle
 //                              and drop their colliders; returns the number of hidden trees/bushes
 //   treeAt(x, z, r = 0)       { kind, species, x, z, r } of a live trunk within r of the point, or null
+//   snagsNear(x, z, r = 40)   [{ kind, x, y, z, top, r }] dead standing trees (perches for ravens)
 //   report()                  instance counts per species, draw call and triangle estimate
 //   layers { trees, ground, impostors }, kinds, stats  (debug)
 // Locations builders may also append circles or boxes to src/world/exclusions.js at any time; the
@@ -110,7 +111,7 @@ export async function init(G) {
       made++;
     }
     // evict far cells
-    if (cells.size > (cellRadius * 2 + 1) ** 2 * 0.9) {
+    if (cells.size > Math.PI * (cellRadius + 3) ** 2) {
       for (const key of [...cells.keys()]) {
         const [cx, cz] = key.split(',').map(Number);
         if ((cx - ccx) ** 2 + (cz - ccz) ** 2 > (cellRadius + 2) ** 2) { cells.delete(key); ground.removeChunk(key); }
@@ -151,6 +152,7 @@ export async function init(G) {
   const api = {
     clearArea,
     treeAt: (x, z, r = 0) => trees.treeAt(x, z, r),
+    snagsNear: (x, z, r = 40) => trees.findNear(['snag'], x, z, r),
     layers: { trees, ground, impostors: imp },
     kinds: all,
     placement: placed.stats,

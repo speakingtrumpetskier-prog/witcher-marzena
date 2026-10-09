@@ -229,7 +229,7 @@ export function workshop(opts = {}) {
   const hw = info.hw, hd = info.hd, y = 0.0;
   kit.indoor(true);
   // Beaten earth floor, scattered with straw.
-  kit.stone.box(0, -0.06, 0, w - 0.2, 0.12, d - 0.2, mixC(0x6b6256, 0x5a5348, 0.5).multiplyScalar(GAIN * 0.9), { uv: [3, 3] });
+  kit.rock.box(0, -0.06, 0, w - 0.2, 0.12, d - 0.2, mixC(0x5a4f42, 0x4a4338, 0.5).multiplyScalar(GAIN * 0.85), { uv: [2.5, 2.5] });
   kit.walk.floors.push({ y: 0.0, polygon: [[-hw + 0.1, -hd + 0.1], [hw - 0.1, -hd + 0.1], [hw - 0.1, hd - 0.1], [-hw + 0.1, hd - 0.1]] });
   const strawCol = () => mixC(PAL.straw, 0x8a7a54, kit.rand() * 0.6).multiplyScalar(0.8);
   // Straw heaps: big lumpy mounds.

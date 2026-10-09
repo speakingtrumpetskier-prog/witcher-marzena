@@ -210,17 +210,23 @@ export function standPose(sx, drop, w, t, o) {
 }
 
 // Sword guard stance, sword in the right hand, left hand open for signs. b in -1..1 sway.
+// Feet placed with leg IK: left foot forward and out, right foot back and turned out.
 export function combatGuard(b = 0, t = 0) {
-  const sx = 0.012 * b;
-  const p = standPose(sx, 1.5 * b, 0.5 + 0.3 * b, t, { knee: 14, lean: 7, down: 0.06 });
-  // wider, staggered stance: left foot forward
-  p.thighL = [p.thighL[0] + 16, 10, p.thighL[2] + 4];
-  p.shinL = [p.shinL[0] + 12, 0, 0];
-  p.footL = [p.footL[0] - 4, 8, 0];
-  p.thighR = [p.thighR[0] - 12, 20, p.thighR[2] + 5];
-  p.shinR = [p.shinR[0] + 18, 0, 0];
-  p.footR = [p.footR[0] - 2, 22, 0];
-  p.hips = [6, -28, 0];
+  const p = standPose(0, 0, 0.5, t, { knee: 10, lean: 6 });
+  const drop = -0.085 + 0.008 * b;
+  const hipY = REF.hipJY + drop;
+  const hz = 0.0, hx = 0.012 * b;
+  p.$hips = [hx, drop, hz];
+  const feet = { L: { x: 0.15, z: 0.2, tw: 14 }, R: { x: -0.16, z: -0.2, tw: 34 } };
+  for (const [sgn, S] of [[1, 'L'], [-1, 'R']]) {
+    const f = feet[S];
+    const hip = { x: sgn * REF.hipJX + hx, y: hipY, z: hz + (sgn > 0 ? -1 : 1) * REF.hipJX * Math.sin(-26 * D2R) };
+    const ik = legIK(hip, { x: f.x, y: ANK, z: f.z }, 0, 0, sgn);
+    p['thigh' + S] = [ik.thigh[0], f.tw * 0.6, ik.thigh[2]];
+    p['shin' + S] = ik.shin;
+    p['foot' + S] = [ik.foot[0], f.tw * 0.4, ik.foot[2]];
+  }
+  p.hips = [6, -26, 0];
   p.spine = [6, 8 + b, 0];
   p.chest = [4, 10, 0];
   p.neck = [0, 4, 0];

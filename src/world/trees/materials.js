@@ -63,6 +63,8 @@ uniform vec3 uVegSpring;
 uniform vec3 uVegSnowCol;
 uniform vec3 uVegSunDir;
 uniform vec3 uVegSunCol;
+uniform float uVegMode;
+uniform float uVegGlow;
 varying float vVegSnow;
 varying vec2 vVegUv;
 varying vec3 vVegWPos;
@@ -79,7 +81,12 @@ float vegNoise(vec2 p) {
 }
 `;
 
-// mode: 'foliage' | 'bark' | 'birch' | 'grass' | 'cards'
+// One fragment program serves foliage, bark, birch bark and grass: the behaviour is picked by the
+// uniform uVegMode (0 foliage, 1 bark, 2 grass, 3 birch), so a dozen materials share a handful of
+// compiled programs (shader compile time is the slow part on software GL). Cards and leaves
+// (alpha textured) are separate programs because they sample a map.
+const MODE_ID = { foliage: 0, bark: 1, grass: 2, birch: 3 };
+
 function bodyF(mode, fade) {
   let s = '';
   if (fade) {
@@ -91,9 +98,9 @@ function bodyF(mode, fade) {
     if (mzD < mzOut || mzD >= mzIn) discard;
   }`;
   }
-  if (mode === 'foliage') {
-    s += `
-  {
+  if (!(mode in MODE_ID)) return s;
+  s += `
+  if (uVegMode < 0.5) {
     // needle comb: fine teeth along the frond edge (u across, v along), deeper toward the tip
     float mzE = abs(vVegUv.x);
     float mzTooth = vegHash(vec2(floor(vVegUv.y * 38.0), vVegSeed * 7.13));
@@ -101,62 +108,47 @@ function bodyF(mode, fade) {
     if (mzE > 0.86 + 0.26 * mzTooth + 0.1 * mzTooth2 - 0.2 * vVegUv.y * vVegUv.y) discard;
   }
   {
-    float mzNear = 1.0 - smoothstep(8.0, 38.0, vVegLodD);
+    float mzSnLo = 0.30;
+    float mzFront = gl_FrontFacing ? 1.0 : 0.0;
     float mzN = vegNoise(vVegWPos.xz * 3.1 + vVegWPos.y * 1.3);
-    // herringbone needle striations radiating from the twig
-    float mzStripe = sin((vVegUv.y * 95.0 - abs(vVegUv.x) * 22.0 + vVegSeed * 4.0) * 3.14159);
-    float mzFine = 1.0 - mzNear * 0.24 * (0.5 + 0.5 * mzStripe) * step(0.04, abs(vVegUv.x));
-    diffuseColor.rgb *= (0.78 + 0.44 * mzN) * mzFine;
-    float mzSn = vVegSnow * uSnowCover * (gl_FrontFacing ? 1.0 : 0.0);
+    if (uVegMode < 0.5) {
+      // herringbone needle striations radiating from the twig, strongest close up
+      float mzNear = 1.0 - smoothstep(8.0, 38.0, vVegLodD);
+      float mzStripe = sin((vVegUv.y * 95.0 - abs(vVegUv.x) * 22.0 + vVegSeed * 4.0) * 3.14159);
+      float mzFine = 1.0 - mzNear * 0.24 * (0.5 + 0.5 * mzStripe) * step(0.04, abs(vVegUv.x));
+      diffuseColor.rgb *= (0.78 + 0.44 * mzN) * mzFine;
+    } else if (uVegMode < 1.5) {
+      diffuseColor.rgb *= 0.8 + 0.4 * vegNoise(vVegWPos.xz * 5.0 + vVegWPos.y * 2.2);
+      mzSnLo = 0.35;
+    } else if (uVegMode < 2.5) {
+      diffuseColor.rgb *= 0.84 + 0.32 * vegNoise(vVegWPos.xz * 4.0);
+      // spring: dry straw greens up
+      float mzLum = dot(diffuseColor.rgb, vec3(0.3, 0.55, 0.15));
+      diffuseColor.rgb = mix(diffuseColor.rgb, uVegSpring * (0.55 + mzLum * 1.6), uSpring * 0.85);
+      mzFront = 1.0;
+      mzSnLo = 0.25;
+    } else {
+      // birch bark: white with black horizontal scars, dark and rough at the base
+      float mzU = vVegUv.x, mzV = vVegUv.y;
+      float mzRow = floor(mzV / 0.14 + vVegSeed);
+      float mzFr = fract(mzV / 0.14 + vVegSeed);
+      float mzA = vegHash(vec2(mzRow, 3.1)), mzB = vegHash(vec2(mzRow, 9.7)), mzC = vegHash(vec2(mzRow, 21.3));
+      float mzDu = abs(fract(mzU - mzA + 0.5) - 0.5);
+      float mzMark = (1.0 - smoothstep(0.03 + 0.2 * mzB, 0.06 + 0.24 * mzB, mzDu)) * (1.0 - smoothstep(0.1 + 0.12 * mzC, 0.2 + 0.14 * mzC, abs(mzFr - 0.5)));
+      mzMark *= step(0.28, vegHash(vec2(mzRow, 5.5)));
+      float mzDu2 = abs(fract(mzU - mzB + 0.5) - 0.5);
+      mzMark = max(mzMark, (1.0 - smoothstep(0.02, 0.07, mzDu2)) * (1.0 - smoothstep(0.04, 0.1, abs(mzFr - 0.25))) * step(0.55, mzC));
+      float mzBase = 1.0 - smoothstep(0.5, 1.5, mzV);
+      float mzG = vegNoise(vec2(mzU * 9.0, mzV * 6.0));
+      diffuseColor.rgb *= 0.86 + 0.2 * mzG;
+      diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.012, 0.01, 0.01), clamp(mzMark * 0.92 + mzBase * (0.55 + 0.4 * mzG), 0.0, 1.0));
+      mzSnLo = 0.35;
+    }
+    float mzSn = vVegSnow * uSnowCover * mzFront;
     float mzCl = vegNoise(vVegWPos.xz * 1.7 + vVegWPos.y * 0.6) * 0.65 + vegNoise(vVegWPos.xz * 6.0) * 0.35;
-    mzSn = smoothstep(0.30, 0.58, mzSn + (mzCl - 0.5) * 0.55);
+    mzSn = smoothstep(mzSnLo, mzSnLo + 0.28, mzSn + (mzCl - 0.5) * 0.55);
     diffuseColor.rgb = mix(diffuseColor.rgb, uVegSnowCol, mzSn);
   }`;
-  } else if (mode === 'bark') {
-    s += `
-  {
-    float mzN = vegNoise(vVegWPos.xz * 5.0 + vVegWPos.y * 2.2);
-    diffuseColor.rgb *= 0.8 + 0.4 * mzN;
-    float mzSn = vVegSnow * uSnowCover * (gl_FrontFacing ? 1.0 : 0.0);
-    float mzCl = vegNoise(vVegWPos.xz * 2.3 + vVegWPos.y * 0.8);
-    mzSn = smoothstep(0.35, 0.6, mzSn + (mzCl - 0.5) * 0.5);
-    diffuseColor.rgb = mix(diffuseColor.rgb, uVegSnowCol, mzSn);
-  }`;
-  } else if (mode === 'birch') {
-    s += `
-  {
-    float mzU = vVegUv.x, mzV = vVegUv.y;
-    float mzRow = floor(mzV / 0.14 + vVegSeed);
-    float mzFr = fract(mzV / 0.14 + vVegSeed);
-    float mzA = vegHash(vec2(mzRow, 3.1)), mzB = vegHash(vec2(mzRow, 9.7)), mzC = vegHash(vec2(mzRow, 21.3));
-    float mzDu = abs(fract(mzU - mzA + 0.5) - 0.5);
-    float mzMark = (1.0 - smoothstep(0.03 + 0.2 * mzB, 0.06 + 0.24 * mzB, mzDu)) * (1.0 - smoothstep(0.1 + 0.12 * mzC, 0.2 + 0.14 * mzC, abs(mzFr - 0.5)));
-    mzMark *= step(0.28, vegHash(vec2(mzRow, 5.5)));
-    // a second, thinner scar band
-    float mzDu2 = abs(fract(mzU * 1.0 - mzB + 0.5) - 0.5);
-    mzMark = max(mzMark, (1.0 - smoothstep(0.02, 0.07, mzDu2)) * (1.0 - smoothstep(0.04, 0.1, abs(mzFr - 0.25))) * step(0.55, mzC));
-    float mzBase = 1.0 - smoothstep(0.5, 1.5, mzV);
-    float mzG = vegNoise(vec2(mzU * 9.0, mzV * 6.0));
-    vec3 mzDark = vec3(0.012, 0.01, 0.01);
-    diffuseColor.rgb *= 0.86 + 0.2 * mzG;
-    diffuseColor.rgb = mix(diffuseColor.rgb, mzDark, clamp(mzMark * 0.92 + mzBase * (0.55 + 0.4 * mzG), 0.0, 1.0));
-    float mzSn = vVegSnow * uSnowCover * (gl_FrontFacing ? 1.0 : 0.0);
-    mzSn = smoothstep(0.35, 0.6, mzSn + (vegNoise(vVegWPos.xz * 3.0) - 0.5) * 0.4);
-    diffuseColor.rgb = mix(diffuseColor.rgb, uVegSnowCol, mzSn);
-  }`;
-  } else if (mode === 'grass') {
-    s += `
-  {
-    float mzN = vegNoise(vVegWPos.xz * 4.0);
-    diffuseColor.rgb *= 0.84 + 0.32 * mzN;
-    // spring: dry straw greens up
-    float mzLum = dot(diffuseColor.rgb, vec3(0.3, 0.55, 0.15));
-    diffuseColor.rgb = mix(diffuseColor.rgb, uVegSpring * (0.55 + mzLum * 1.6), uSpring * 0.85);
-    float mzSn = vVegSnow * uSnowCover;
-    mzSn = smoothstep(0.25, 0.55, mzSn + (vegNoise(vVegWPos.xz * 5.0) - 0.5) * 0.4);
-    diffuseColor.rgb = mix(diffuseColor.rgb, uVegSnowCol, mzSn);
-  }`;
-  }
   return s;
 }
 
@@ -166,7 +158,7 @@ const GLOW_F = /* glsl */ `
   vec3 mzV = normalize(vVegWPos - cameraPosition);
   float mzBack = max(dot(mzV, uVegSunDir), 0.0);
   float mzUp = smoothstep(-0.02, 0.2, uVegSunDir.y);
-  totalEmissiveRadiance += diffuseColor.rgb * uVegSunCol * (pow(mzBack, 3.0) * 0.5 + 0.03) * mzUp;
+  totalEmissiveRadiance += diffuseColor.rgb * uVegSunCol * (pow(mzBack, 3.0) * 0.5 + 0.03) * mzUp * uVegGlow;
 }
 `;
 
@@ -191,7 +183,8 @@ export function makeVegMaterial(opts = {}) {
   m.userData.vegLod = lod;
   const spring = new THREE.Color(opts.springColor ?? 0x6fa84a);
   const snowCol = new THREE.Color(opts.snowColor ?? 0xf1f4fa);
-  const key = `veg:${mode}${lod ? ':f' : ''}`;
+  const unified = mode in MODE_ID;
+  const key = `veg:${unified ? 'u' : mode}${lod ? ':f' : ''}`;
   addCompileHook(m, key, (shader) => {
     shader.uniforms.uSnowCover = U.uSnowCover;
     shader.uniforms.uSpring = U.uSpring;
@@ -200,6 +193,8 @@ export function makeVegMaterial(opts = {}) {
     shader.uniforms.uVegSnowCol = { value: new THREE.Vector3(snowCol.r, snowCol.g, snowCol.b) };
     shader.uniforms.uVegSunDir = U.uSunDir;
     shader.uniforms.uVegSunCol = U.uSunColor;
+    shader.uniforms.uVegMode = { value: MODE_ID[mode] ?? 0 };
+    shader.uniforms.uVegGlow = { value: mode === 'bark' || mode === 'birch' ? 0 : 1 };
     shader.vertexShader = (opts.wind ? '' : 'attribute vec2 aWind;\n') + HEADER_V + shader.vertexShader;
     shader.vertexShader = shader.vertexShader.replace('#include <project_vertex>', '#include <project_vertex>\n' + BODY_V);
     shader.fragmentShader = HEADER_F + shader.fragmentShader;
@@ -208,7 +203,7 @@ export function makeVegMaterial(opts = {}) {
       shader.vertexShader = 'attribute vec3 aCorner;\nuniform float uSpring;\n' + shader.vertexShader;
       shader.vertexShader = shader.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\n  transformed += aCorner * smoothstep(0.04, 0.85, uSpring);');
     }
-    if (mode === 'foliage' || mode === 'grass' || mode === 'cards' || mode === 'leaves') {
+    {
       shader.fragmentShader = shader.fragmentShader.replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\n' + GLOW_F);
     }
   });

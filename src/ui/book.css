@@ -15,7 +15,7 @@
 
 .paper, .grain { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
 .paper { image-rendering: auto; }
-.grain { background-size: 160px 160px; mix-blend-mode: multiply; opacity: 0.9; }
+.grain { background-size: 160px 160px; opacity: 0.9; }
 .rule { display: flex; align-items: center; gap: 10px; color: var(--ink-red); margin: 10px 0 0; }
 .rule::before, .rule::after { content: ''; flex: 1; height: 1px; background: currentColor; opacity: 0.55; }
 .rule::before { max-width: 54px; }
@@ -28,7 +28,8 @@
   position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
   background: radial-gradient(ellipse at center, rgba(7, 9, 13, 0.55), rgba(3, 4, 7, 0.86)); backdrop-filter: blur(4px) saturate(0.85);
 }
-.mz-sheetwrap { position: relative; width: min(580px, 90vw); filter: drop-shadow(0 26px 40px rgba(0, 0, 0, 0.7)) drop-shadow(0 2px 3px rgba(0, 0, 0, 0.5)); transform: translateY(14px) rotate(-0.4deg); transition: transform 0.7s var(--mz-ease); }
+.mz-sheetwrap { position: relative; width: min(580px, 90vw); transform: translateY(14px) rotate(-0.4deg); transition: transform 0.7s var(--mz-ease); }
+.mz-sheetwrap .under-shadow, .mz-map-wrap .under-shadow { position: absolute; inset: 3% 2% 1%; box-shadow: 0 26px 48px rgba(0, 0, 0, 0.7), 0 3px 6px rgba(0, 0, 0, 0.5); pointer-events: none; }
 .mz-modal.on .mz-sheetwrap { transform: rotate(-0.4deg); }
 .mz-sheet { position: relative; color: var(--ink); max-height: 84vh; }
 .mz-sheet-in { position: relative; padding: 50px 56px 46px; max-height: 84vh; overflow-y: auto; box-sizing: border-box; scrollbar-width: none; }
@@ -123,9 +124,9 @@
 .jr-now { margin-top: 26px; padding: 10px 16px 12px; border-left: 2px solid var(--ink-red); background: linear-gradient(90deg, rgba(140, 42, 30, 0.13), rgba(140, 42, 30, 0) 90%); }
 .jr-now .lab { font-family: var(--mz-serif); font-weight: 600; font-size: 12px; letter-spacing: 0.3em; text-transform: uppercase; color: var(--ink-red); }
 .jr-now p { margin: 2px 0 0; font-family: var(--mz-serif); font-weight: 600; font-size: 22px; line-height: 1.3; color: #3f120c; }
-.jr-stamp { position: absolute; top: 58px; right: 60px; padding: 3px 14px 4px; border: 2px solid rgba(140, 42, 30, 0.7); border-radius: 3px; transform: rotate(-7deg); font-family: var(--mz-serif); font-weight: 600; font-size: 17px; letter-spacing: 0.26em; text-transform: uppercase; color: rgba(140, 42, 30, 0.78); mix-blend-mode: multiply; }
+.jr-stamp { position: absolute; top: 58px; right: 60px; padding: 3px 14px 4px; border: 2px solid rgba(140, 42, 30, 0.7); border-radius: 3px; transform: rotate(-7deg); font-family: var(--mz-serif); font-weight: 600; font-size: 17px; letter-spacing: 0.26em; text-transform: uppercase; color: rgba(140, 42, 30, 0.78); }
 .jr-sketchbox { flex: none; margin-top: auto; padding-top: 8px; display: flex; justify-content: center; }
-.jr-sketch { display: block; width: min(100%, 330px); height: auto; opacity: 0.95; mix-blend-mode: multiply; }
+.jr-sketch { display: block; width: min(100%, 330px); height: auto; opacity: 0.95; }
 .jr-facts { margin-top: 20px; padding-top: 14px; border-top: 1px solid rgba(42, 30, 20, 0.2); font-family: var(--mz-serif); font-size: 20px; line-height: 1.35; color: #3d2d1d; }
 .jr-facts > div + div { margin-top: 8px; }
 .jr-facts .lab { display: inline-block; min-width: 5.2em; font-weight: 600; font-size: 12px; letter-spacing: 0.26em; text-transform: uppercase; color: var(--ink-red); }
@@ -134,7 +135,7 @@
 .mz-mapmodal { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: radial-gradient(ellipse at center, rgba(7, 9, 13, 0.5), rgba(3, 4, 7, 0.9)); backdrop-filter: blur(5px) saturate(0.8); }
 .mz-map-wrap { position: relative; width: min(96vw, calc(min(860px, 100vh - 104px) * 1.22)); height: min(860px, calc(100vh - 104px)); margin-top: -22px; }
 .mz-map-sheet { position: absolute; inset: 0; color: var(--ink); filter: none; }
-.mz-map-wrap { filter: drop-shadow(0 30px 50px rgba(0, 0, 0, 0.75)) drop-shadow(0 3px 4px rgba(0, 0, 0, 0.5)); transform: translateY(16px); transition: transform 0.7s var(--mz-ease); }
+.mz-map-wrap { transform: translateY(16px); transition: transform 0.7s var(--mz-ease); }
 .mz-modal.on .mz-map-wrap { transform: none; }
 .mz-map-canvas { position: absolute; inset: 0; width: 100%; height: 100%; cursor: grab; touch-action: none; }
 .mz-map-canvas.grab { cursor: grabbing; }

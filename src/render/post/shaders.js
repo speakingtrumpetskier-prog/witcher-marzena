@@ -195,15 +195,19 @@ void main() {
   // Frost on the screen edges: a growth front driven by distance to the nearest edge.
   float frostM = 0.0;
   vec4 fr = vec4(0.0);
+  float e = 1.0, reach = 0.0;
   if (uFrost > 0.001) {
-    vec2 fuv = vUv * vec2(uAspect, 1.0) * 0.9;
+    vec2 fuv = vUv * vec2(uAspect, 1.0) * 0.8;
     fr = texture2D(tFrost, fuv);
-    float edge = min(min(vUv.x, 1.0 - vUv.x) * uAspect, min(vUv.y, 1.0 - vUv.y));
-    float reach = uFrost * 0.42;
-    float e = edge + (fr.g - 0.5) * 0.16 - fr.r * 0.04;
-    frostM = smoothstep(reach, reach - 0.07, e);
+    float ex = min(vUv.x, 1.0 - vUv.x) * uAspect;
+    float ey = min(vUv.y, 1.0 - vUv.y);
+    // Corners freeze first, then the edges; an irregular front creeps inward.
+    e = min(ex, ey) * 0.7 + sqrt(ex * ey) * 0.45;
+    reach = uFrost * 0.32;
+    e += (fr.g - 0.5) * 0.11 - fr.r * 0.025;
+    frostM = smoothstep(reach, reach - 0.11, e);
     vec2 grad = vec2(texture2D(tFrost, fuv + vec2(0.004, 0.0)).b - fr.b, texture2D(tFrost, fuv + vec2(0.0, 0.004)).b - fr.b);
-    uv += grad * 0.35 * frostM;
+    uv += grad * 0.12 * frostM;
   }
 
   vec3 c = texture2D(tColor, uv).rgb;
@@ -215,7 +219,7 @@ void main() {
   if (frostM > 0.001) {
     vec3 blur = texture2D(tColor, uv + vec2(3.0, 1.0) * uTexel).rgb + texture2D(tColor, uv + vec2(-1.0, 3.0) * uTexel).rgb
               + texture2D(tColor, uv + vec2(-3.0, -1.0) * uTexel).rgb + texture2D(tColor, uv + vec2(1.0, -3.0) * uTexel).rgb;
-    c = mix(c, blur * 0.25, frostM * 0.8);
+    c = mix(c, blur * 0.25, frostM * 0.65);
   }
 
   vec3 bloom = texture2D(tBloom, vUv).rgb;
@@ -268,9 +272,10 @@ void main() {
 
   // Frost overlay: pale crystals with bright fern lines.
   if (frostM > 0.001) {
-    vec3 ice = vec3(0.82, 0.9, 0.98);
-    g = mix(g, ice * (0.75 + 0.25 * fr.b), frostM * (0.25 + 0.3 * fr.b));
-    g += vec3(0.85, 0.93, 1.0) * fr.r * frostM * 0.55;
+    vec3 ice = vec3(0.8, 0.88, 0.97);
+    g = mix(g, ice * (0.82 + 0.18 * fr.b), frostM * 0.32);
+    float fern = smoothstep(0.25, 0.9, fr.r);
+    g += vec3(0.75, 0.86, 1.0) * fern * frostM * 0.28 * (0.6 + 0.4 * smoothstep(0.0, 0.08, e - (reach - 0.11)));
   }
 
   // Vignette (slightly cool in the corners), flash, grain, dither.

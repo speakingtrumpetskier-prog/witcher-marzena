@@ -42,6 +42,7 @@ export function cart(o = {}) {
   const variant = o.variant || k.pick(['firewood', 'sacks', 'straw', 'empty', 'empty']);
   const R = 0.46;
   k.push({ yaw: o.yaw || 0, pos: [0, -0.02, 0] });
+  k.anchor('hitch', 0, 0.35, 2.15); k.anchor('load', 0, 0.8, 0);
   const wood = k.pick(WOOD);
   // Axle and wheels (one wheel slightly canted).
   k.cyl('wood', 0.04, 0.04, 1.5, { pos: [0, R, -0.1], rot: [0, 0, Math.PI / 2], radial: 6, tint: 0x8a7a6a });
@@ -181,6 +182,7 @@ export function snowShovel(o = {}) {
 export function anvil(o = {}) {
   const k = new Kit('anvil', o);
   k.push({ yaw: o.yaw || 0 });
+  k.anchor('work', 0, 0, 0.7); k.anchor('face', 0, 0.8, 0);
   // Stump base
   k.cyl('bark', 0.27, 0.34, 0.5, { pos: [0, 0.25, 0], radial: 10, cap: 'logEnd', noBottom: true, jitter: 0.02, tint: 0x8a7e72 });
   const y = 0.5;
@@ -230,6 +232,7 @@ export function grindstone(o = {}) {
   const k = new Kit('grindstone', o);
   // Local +X is the axle; rotated so the wheel faces +Z (the usual viewing side) at yaw 0.
   k.push({ yaw: (o.yaw || 0) + Math.PI / 2 });
+  k.anchor('work', 0, 0, 0.75);
   const wood = 0xb8a690;
   // Two splayed A-frame legs on each side, axle between them.
   for (const sx of [-1, 1]) {

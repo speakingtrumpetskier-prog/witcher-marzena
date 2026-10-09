@@ -124,8 +124,8 @@ function setupSenses(G, cast) {
   if (cast?.hanka?.root) cast.hanka.root.visible = false;
   const v = cast?.vesna;
   if (v) {
-    v.setPosition?.(-62.6, 10.2);
-    v.yaw = Math.atan2(-67.5 + 62.6, 3 - 10.2);
+    v.setPosition?.(-63.2, 10.7);
+    v.yaw = Math.atan2(-67.2 + 63.2, 2.6 - 10.7);
     v.play?.('senses', { loop: true });
   }
   S.addTrail({ id: 'demo_steps', kind: 'footprints', points: [[-57, 17], [-61, 12.5], [-64.5, 9], [-67.5, 6], [-69.5, 4]] });
@@ -153,7 +153,7 @@ function setupSenses(G, cast) {
   S.force(true);
   if (G.cameraOwner !== 'cutscene') {
     // Over her right shoulder, down the trail toward the camp.
-    G.camera.position.set(-60.9, G.world.heightAt(-60.9, 12.6) + 2.05, 12.6);
+    G.camera.position.set(-60.4, G.world.heightAt(-60.4, 12.9) + 2.0, 12.9);
     G.camera.lookAt(-67.2, G.world.heightAt(-67.2, 2.6) + 0.35, 2.6);
     G.camera.fov = 50;
     G.camera.updateProjectionMatrix();
@@ -170,9 +170,10 @@ async function sheet(G, api, kind = 'dialogue', { cols = 4, rows = 4, settle = 0
   const TW = Math.floor(window.innerWidth / cols), TH = Math.floor((TW * 9) / 16);
   let sub = '';
   const origSub = ui.subtitle;
-  ui.subtitle = (name, text, s, o) => { sub = (name ? `${name}: ` : '') + text; origSub(name, text, s, o); };
+  let subTok = null;
+  ui.subtitle = (name, text, s, o) => { sub = (name ? `${name}: ` : '') + text; subTok = origSub(name, text, s, o); return subTok; };
   const origClear = ui.clearSubtitle;
-  ui.clearSubtitle = () => { sub = ''; origClear(); };
+  ui.clearSubtitle = (t) => { if (t == null || t === subTok) sub = ''; origClear(t); };
   let pending = null, lastInfo = null, lastT = 0;
   G.story.cam.onShot = (info) => { pending = { info, t: G.story.sched.time }; lastInfo = info; };
   const off = G.addSystem('story-sheet', () => {

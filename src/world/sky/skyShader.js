@@ -107,12 +107,19 @@ vec3 aurora(vec3 rd) {
   raysA = 0.25 + 1.1 * smoothstep(0.38, 0.85, raysA);
   raysB = 0.25 + 1.1 * smoothstep(0.38, 0.85, raysB);
   float pulse = 0.7 + 0.3 * texture2D(uNoise, vec2(xc * 0.01 + t * 0.02, t * 0.003)).g * 2.0;
+  // Large bright patches drifting along the curtains, so it never reads as a uniform wall.
+  float patchA = smoothstep(0.32, 0.72, texture2D(uNoise, vec2(xc * 0.035 + t * 0.003, 0.61)).r);
+  float patchB = smoothstep(0.3, 0.7, texture2D(uNoise, vec2(xc * 0.05 - t * 0.004, 0.83)).g);
+  raysA *= 0.25 + 1.15 * patchA;
+  raysB *= 0.2 + 1.1 * patchB;
+  // The lower edge rises and falls along the curtain.
+  float liftA = (texture2D(uNoise, vec2(xc * 0.04 + t * 0.002, 0.29)).b - 0.5) * 0.5;
   float dith = fract(sin(dot(gl_FragCoord.xy, vec2(12.9898, 78.233))) * 43758.5453);
   vec3 acc = vec3(0.0);
   const int N = 18;
   for (int i = 0; i < N; i++) {
     float fi = (float(i) + dith) / float(N);
-    float h = 1.0 + fi * 2.6;
+    float h = 1.0 + liftA + fi * 2.6;
     float pz = rd.z * h / rd.y;
     float dA = pz - czA, dB = pz - czB;
     float bA = exp(-dA * dA * 3.5) * raysA;
@@ -165,7 +172,7 @@ vec4 cloudDeck(vec3 rd, float mu) {
   float c = texture2D(uNoise, p * 3.1 + 0.57).g;
   float d = a * 0.55 + b * 0.35 + c * 0.18;
   float cov = mix(uCover, 1.0, uOvercast);
-  float th = 1.02 - cov * 0.62;
+  float th = 0.9 - cov * 0.95;
   float dens = smoothstep(th - 0.06, th + 0.22, d);
   // Lit side: density sampled a step toward the sun; thinner there means a lit edge.
   vec2 toSun = normalize(uSunDir.xz + 1e-4) * 0.05;

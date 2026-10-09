@@ -81,12 +81,12 @@ export function bed(kit, x, y, z, yaw, w = 0.9, l = 1.9) {
 export function stove(kit, x, y, z, yaw, o = {}) {
   const w = o.w ?? 1.7, d = o.d ?? 1.5, h = o.h ?? 1.9;
   kit.frame(x, y, z, yaw, () => {
-    const wash = mixC(0xd8cdb8, 0xc4b8a0, kit.rand() * 0.4).multiplyScalar(1.05);
-    kit.stone.box(0, h / 2, 0, w, h, d, wash, { uv: [2, 2], top: scaleC(wash, 0.9), skip: '-y' });
-    kit.stone.box(0, h + 0.1, 0, w + 0.15, 0.18, d + 0.15, scaleC(wash, 0.9), { uv: [2, 2] });
+    const wash = mixC(0xb8ad98, 0xa49a84, kit.rand() * 0.4).multiplyScalar(0.95);
+    kit.rock.box(0, h / 2, 0, w, h, d, wash, { uv: [2.5, 2.5], top: scaleC(wash, 0.9), skip: '-y' });
+    kit.rock.box(0, h + 0.1, 0, w + 0.15, 0.18, d + 0.15, scaleC(wash, 0.9), { uv: [2.5, 2.5] });
     // Mouth: dark arch with embers inside, facing +z.
     const mz = d / 2 + 0.005;
-    kit.stone.box(0, 0.68, mz, 0.72, 0.62, 0.012, scaleC(PAL.iron, GAIN * (o.cold ? 0.3 : 0.5)), { uv: [1, 1] });
+    kit.rock.box(0, 0.68, mz, 0.72, 0.62, 0.012, scaleC(PAL.iron, GAIN * (o.cold ? 0.3 : 0.5)), { uv: [1, 1] });
     if (!o.cold) {
       kit.ember.quad([-0.28, 0.42, mz + 0.012], [0.28, 0.42, mz + 0.012], [0.25, 0.8, mz + 0.012], [-0.25, 0.8, mz + 0.012], new THREE.Color(2.6, 1.0, 0.3), [[0, 0], [1, 0], [1, 1], [0, 1]]);
       kit.ember.quad([-0.22, 0.3, mz + 0.011], [0.22, 0.3, mz + 0.011], [0.28, 0.42, mz + 0.011], [-0.28, 0.42, mz + 0.011], new THREE.Color(1.6, 0.5, 0.12), [[0, 0], [1, 0], [1, 1], [0, 1]]);
@@ -103,7 +103,7 @@ export function stove(kit, x, y, z, yaw, o = {}) {
 
 // Wide open stone fireplace set into a wall (tavern, longhouse). Faces +z in the given frame.
 export function fireplace(kit, x, y, z, yaw, o = {}) {
-  const w = o.w ?? 2.4, d = o.d ?? 0.9, h = o.h ?? 2.6;
+  const w = o.w ?? 2.4, d = o.d ?? 0.9;
   kit.frame(x, y, z, yaw, () => {
     const tone = () => mixC(PAL.stoneDark, PAL.stoneWarm, kit.rand()).multiplyScalar(GAIN * kit.r(0.85, 1.1));
     // Jambs and mantel built from rough blocks.

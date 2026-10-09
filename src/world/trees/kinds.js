@@ -40,7 +40,7 @@ function makeKind(def, builder, lodCount) {
       const alphaTest = p.haze ? 0.03 : p.card ? 0.32 : 0;
       const material = makeVegMaterial({ mode: p.mode || 'foliage', wind, lod: lu, map, alphaTest, springColor: def.springColor, transparent: !!p.haze });
       const depth = makeDepthMaterial(wind, { map, alphaTest: p.haze ? 0.3 : alphaTest });
-      return { geometry: p.geometry, material, depth, noShadow: !!p.noShadow, leaves: !!p.leaves };
+      return { geometry: p.geometry, material, depth, noShadow: !!p.noShadow, leaves: !!p.leaves, mode: p.mode || 'foliage', card: !!p.card, haze: !!p.haze };
     });
     kind.lods.push({ parts });
   }

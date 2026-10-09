@@ -79,7 +79,9 @@ export class Kit {
     this._stoneIn = new MB('stoneIn', { uv: [2, 2] });
     this.wood = this._wood;
     this.stone = this._stone;
-    this.rock = new MB('rock', { uv: [3, 3], shade: groundShade });
+    this._rock = new MB('rock', { uv: [3, 3], shade: groundShade });
+    this._rockIn = new MB('rockIn', { uv: [3, 3] });
+    this.rock = this._rock;
     this.shingle = new MB('shingle', { uv: [1.2, 1.2] });
     this.straw = new MB('straw', { uv: [1.5, 1.5] });
     this.snow = new MB('snow', { base: true, uv: [2, 2] });
@@ -111,7 +113,7 @@ export class Kit {
   chance(p) { return this.rand() < p; }
 
   get mbs() {
-    return [this._wood, this._woodIn, this.shingle, this._stone, this._stoneIn, this.rock, this.straw, this.snow, this.ice, this.glow, this.ember, this.metal, this.cloth];
+    return [this._wood, this._woodIn, this.shingle, this._stone, this._stoneIn, this._rock, this._rockIn, this.straw, this.snow, this.ice, this.glow, this.ember, this.metal, this.cloth];
   }
 
   // Record current vertex counts of every builder, so shear() can bend only what was added since.
@@ -140,13 +142,14 @@ export class Kit {
   indoor(on) {
     this.wood = on ? this._woodIn : this._wood;
     this.stone = on ? this._stoneIn : this._stone;
+    this.rock = on ? this._rockIn : this._rock;
   }
 
   // Run fn with wood / stone pointing at the interior twins.
   indoors(fn) {
-    const w = this.wood, s = this.stone;
-    this.wood = this._woodIn; this.stone = this._stoneIn;
-    try { fn(this); } finally { this.wood = w; this.stone = s; }
+    const w = this.wood, s = this.stone, r = this.rock;
+    this.indoor(true);
+    try { fn(this); } finally { this.wood = w; this.stone = s; this.rock = r; }
   }
 
   // Run fn inside a translated / rotated frame applied to every material builder at once
@@ -186,7 +189,7 @@ export class Kit {
     if (this.mergeMetal) appendMB(this._wood, this.metal);
     const group = new THREE.Group();
     group.name = this.name;
-    const parts = { wood: this._wood, woodIn: this._woodIn, shingle: this.shingle, stone: this._stone, stoneIn: this._stoneIn, rock: this.rock, straw: this.straw, snow: this.snow, ice: this.ice, glow: this.glow, ember: this.ember, metal: this.metal, cloth: this.cloth };
+    const parts = { wood: this._wood, woodIn: this._woodIn, shingle: this.shingle, stone: this._stone, stoneIn: this._stoneIn, rock: this._rock, rockIn: this._rockIn, straw: this.straw, snow: this.snow, ice: this.ice, glow: this.glow, ember: this.ember, metal: this.metal, cloth: this.cloth };
     for (const key of Object.keys(parts)) {
       const geo = parts[key].build();
       if (!geo) continue;

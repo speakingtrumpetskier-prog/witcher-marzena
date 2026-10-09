@@ -2,7 +2,7 @@
 // y up, z outward; see walls.js). Window panes feed the `glow` material, which lights up with
 // uWindowLight, and register lights metadata for the lighting builder.
 import * as THREE from 'three';
-import { MB, C, mixC, scaleC } from './mb.js';
+import { MB, mixC, scaleC } from './mb.js';
 import { PAL, GAIN } from './kit.js';
 import { lintelShape } from './carve.js';
 import { toLocal } from './walls.js';

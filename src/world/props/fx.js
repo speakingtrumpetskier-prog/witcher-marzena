@@ -402,7 +402,7 @@ function curve(i) {
   switch (k) {
     case K.smoke: case K.steam: case K.breath: case K.powder: {
       look[0] = 1 + (pool.grow[i] - 1) * Math.pow(t, 0.6);
-      look[1] = sstep(0.0, k === K.breath ? 0.12 : 0.08, t) * Math.pow(1 - t, k === K.breath ? 1.2 : 1.35);
+      look[1] = sstep(0.0, k === K.breath ? 0.12 : k === K.smoke ? 0.045 : 0.08, t) * Math.pow(1 - t, k === K.breath ? 1.2 : 1.35);
       break;
     }
     case K.flame: {
@@ -490,7 +490,7 @@ function update(dt) {
     }
     sa[o4] = sizeX; sa[o4 + 1] = sizeY; sa[o4 + 2] = rot; sa[o4 + 3] = P.by[i];
     ca[o4] = P.cr[i]; ca[o4 + 1] = P.cg[i]; ca[o4 + 2] = P.cb[i]; ca[o4 + 3] = a;
-    ma[o4] = cells[i]; ma[o4 + 1] = modes[i]; ma[o4 + 2] = t; ma[o4 + 3] = k === K.flame ? P.warm[i] : P.warm[i] * Math.max(0, 1 - P.age[i] / 3);
+    ma[o4] = cells[i]; ma[o4 + 1] = modes[i]; ma[o4 + 2] = t; ma[o4 + 3] = k === K.flame ? P.warm[i] : P.warm[i] * Math.max(0, 1 - P.age[i] / 9);
   }
   geo.instanceCount = n;
   aPos.needsUpdate = aSize.needsUpdate = aColor.needsUpdate = aMisc.needsUpdate = true;
@@ -723,7 +723,7 @@ class Smoke extends Emitter {
     this.size = o.size == null ? 1 : o.size;
     this.col = o.color || [0.46, 0.46, 0.5];
     this.alpha = o.opacity == null ? 0.36 : o.opacity;
-    this.warm = o.warm == null ? 0.2 : o.warm;
+    this.warm = o.warm == null ? 0.17 : o.warm;
     this.steamLike = false;
     this.fixedLife = true;
     if (o.prewarm !== false) this.prewarm(this.life);
@@ -754,8 +754,8 @@ class Steam extends Emitter {
     this.life = Math.max(3, this.height * 0.9);
     this.d = 1.6 / this.life;
     this.v0 = (this.height * this.d) / 0.8;
-    this.alpha = o.opacity == null ? 0.3 : o.opacity;
-    this.warm = o.warm == null ? 0.08 : o.warm;
+    this.alpha = o.opacity == null ? 0.4 : o.opacity;
+    this.warm = o.warm == null ? 0.1 : o.warm;
     if (o.prewarm !== false) this.prewarm(this.life);
   }
   tick(dt, adv) {
@@ -778,15 +778,21 @@ class Sparks extends Emitter {
   constructor(o) {
     super(o);
     this.every = o.every || [1.2, 3.2];
-    this.count = o.count || 14;
+    this.count = o.count || 18;
     this.t = rand() * 2;
     this.auto = o.auto !== false;
-    if (o.light) {
-      this.lightSpec = { r: 1, g: 0.62, b: 0.3, range: 9, intensity: 6, weight: 0.6, lift: 0 };
-      this.pulse = 0;
-    }
+    this.pulse = 0;
+    this.halo = this.persistent(glowParticle(1.0, 0.68, 0.34));
+    if (o.light) this.lightSpec = { r: 1, g: 0.62, b: 0.3, range: 9, intensity: 6, weight: 0.6, lift: 0 };
   }
   flicker() { return this.pulse || 0; }
+  updatePersistent(live) {
+    const i = this.halo;
+    if (i < 0) return;
+    pool.px[i] = this.wx; pool.py[i] = this.wy + 0.04; pool.pz[i] = this.wz; pool.by[i] = -999;
+    pool.sx[i] = pool.sy[i] = live && this.pulse > 0.02 ? 0.55 * (0.5 + this.pulse) : 0;
+    pool.ca[i] = live ? this.pulse * 0.9 : 0;
+  }
   burst(n = this.count) {
     for (let j = 0; j < n; j++) {
       const th = rand() * TAU, up = 0.35 + rand() * 0.65;
@@ -795,7 +801,7 @@ class Sparks extends Emitter {
         kind: K.spark, cell: CELL.spark, mode: 2,
         x: this.wx, y: this.wy, z: this.wz,
         vx: Math.cos(th) * sp * (1 - up * 0.5), vy: sp * (0.3 + up) * 0.9, vz: Math.sin(th) * sp * (1 - up * 0.5),
-        drag: 0.6, life: 0.35 + rand() * 0.6, sx: 0.12, sy: 0.022, r: 1, g: 0.62 + rand() * 0.3, b: 0.25, a: 2.4,
+        drag: 0.6, life: 0.35 + rand() * 0.6, sx: 0.2, sy: 0.03, r: 1, g: 0.62 + rand() * 0.3, b: 0.25, a: 3.2,
       });
     }
     this.pulse = 1;
@@ -805,7 +811,7 @@ class Sparks extends Emitter {
     if (!this.auto) return;
     this.t -= dt;
     if (this.t <= 0) {
-      this.burst(Math.round(this.count * (0.6 + rand() * 0.8) * rateMul));
+      this.burst(Math.round(this.count * (0.7 + rand() * 0.8) * rateMul));
       this.t = this.every[0] + rand() * (this.every[1] - this.every[0]);
     }
   }
@@ -1025,14 +1031,14 @@ export const fx = {
   },
   stats: { alive: 0, drawn: 0 },
   // Debug: counts per kind and the first few particle states.
-  debug() {
+  debug(kind = K.flame, max = 4) {
     if (!pool) return null;
     const per = {};
     const sample = [];
     for (let i = 0; i < pool.cap; i++) {
       if (!pool.alive[i]) continue;
       per[pool.kind[i]] = (per[pool.kind[i]] || 0) + 1;
-      if (pool.kind[i] === K.flame && sample.length < 4) {
+      if (pool.kind[i] === kind && sample.length < max) {
         sample.push({ p: [pool.px[i], pool.py[i], pool.pz[i]], s: [pool.sx[i], pool.sy[i]], a: pool.ca[i], age: pool.age[i], life: pool.life[i] });
       }
     }

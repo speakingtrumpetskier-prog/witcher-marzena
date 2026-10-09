@@ -295,7 +295,7 @@ function natural(x, z, sd) {
   const dv = Math.sqrt(dvx * dvx + dvz * dvz);
   // Sunset window weight (see SUN_WIN): the far bowl sinks there so the low ranges keep relief.
   const swx = x - SUN_WIN.x, swz = z - SUN_WIN.z, swd = Math.sqrt(swx * swx + swz * swz) + 1e-6;
-  const sunW = ss(0.955, 0.99, (swx * SUN_WIN.dx + swz * SUN_WIN.dz) / swd);
+  const sunW = ss(0.9, 0.99, (swx * SUN_WIN.dx + swz * SUN_WIN.dz) / swd);
   let h = bowl(dv) * (1 - 0.6 * sunW * ss(0.9, 1.6, dv));
 
   // Foothills, calmer near the shore and the village fields.
@@ -306,8 +306,9 @@ function natural(x, z, sd) {
   // Wind dunes: low drifts elongated across the prevailing wind (west-southwest).
   if (dv < 1.1) {
     const along = x * 0.94 + z * 0.34, across = -x * 0.34 + z * 0.94;
-    const dn = 1 - Math.abs(noise2(along * 0.006, across * 0.034 + 3.3));
-    h += (dn * dn - 0.45) * 0.9 * ss(6, 40, dl) * (1 - ss(0.85, 1.1, dv));
+    const dn = 1 - Math.abs(noise2(along * 0.008, across * 0.03 + 3.3));
+    const patchy = ss(-0.2, 0.5, noise2(x * 0.004 + 9.1, z * 0.004 - 2.7));
+    h += (dn * dn - 0.45) * 0.55 * patchy * ss(6, 40, dl) * (1 - ss(0.85, 1.1, dv));
   }
 
   // Mountain ring, cut by the pass gorge and the river gorge.
@@ -353,12 +354,17 @@ function natural(x, z, sd) {
   // Hanging valley east of the falls: a cliff line across the river valley.
   if (x > 400 && z > FALLS.z - 270 && z < FALLS.z + 270) {
     const f = fallsCliff(z);
-    h += ss(f.xc - f.wdt, f.xc + f.wdt, x) * (1 - ss(140, 260, f.dz)) * 40;
+    const u = (x - f.xc) / f.wdt;
+    const ramp = ss(-1, 1, u);
+    // Ribs and gullies down the ramp (strongest mid-slope), so the flanks are not a smooth dam.
+    const slope = Math.max(0, 1 - u * u) * ss(8, 25, f.dz);
+    const rib = (1 - Math.abs(noise2(z * 0.045, x * 0.012 + 3.3))) * 2 - 1;
+    h += (ramp * 40 + slope * (6 * rib + 3 * noise2(z * 0.13, x * 0.05))) * (1 - ss(140, 260, f.dz));
   }
 
   // Featured hills.
   h += gauss(x, z, 200, 230, 75) * 48; // idol hill
-  h += gauss(x, z, -585, 548, 150) * 22; // the pass climbs out of the valley
+  h += gauss(x, z, -585, 548, 150) * 34; // the pass climbs out of the valley
   h += gauss(x, z, -40, 222, 42) * 9; // sledding hill
   h += gauss(x, z, -362, 344, 80) * 22; // watchtower ridge
   h += gauss(x, z, -300, 330, 60) * 8;
@@ -531,7 +537,7 @@ export function computeHeight(x, z, info) {
       const wet = 0.38 * (1 - ss(-12, 70, sd)) - 0.12;
       const v = n1 + wet;
       const land = 0.3 + 0.22 * Math.max(0, -v) + 0.06 * noise2(x * 0.3, z * 0.3);
-      const marshH = mix(land, -0.55, ss(-0.07, 0.1, v));
+      const marshH = mix(land, -0.9 - 0.3 * Math.max(0, v), ss(-0.07, 0.1, v));
       h = mix(h, marshH, mw);
     }
   }

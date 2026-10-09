@@ -60,7 +60,7 @@ export async function init(G) {
   if (rows.includes(3)) {
     // row 3: the far billboard impostors baked from LOD 0 (z = -3 * 26 when mixed with other rows)
     const imps = kinds.filter((k) => k.impostor);
-    const atlas = await bakeImpostors(G, imps);
+    const atlas = await bakeImpostors(G, imps, { log: true });
     const u = lodUniform();
     setLod(u, -2, -1, null, null);
     const layer = new ImpostorLayer(atlas, u, [0, 9999], imps.length * 2 + 4);
@@ -74,6 +74,7 @@ export async function init(G) {
     layer.end();
     G.scene.add(layer.mesh);
     G.vegGallery.atlas = atlas;
+    console.warn('impostor bake ms: ' + Math.round(atlas.ms));
   }
   const sh = G.atmosphere?.sun?.shadow;
   if (sh) { sh.bias = -0.0004; sh.normalBias = 0.06; }

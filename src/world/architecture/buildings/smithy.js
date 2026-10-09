@@ -22,7 +22,7 @@ export function smithy(opts = {}) {
   const hw = info.hw, hd = info.hd, y = 0.0;
   kit.indoor(true);
   // Hard-packed floor with soot and scale.
-  kit.stone.box(0, -0.05, 0, w - 0.2, 0.1, d - 0.2, scaleC(0x4a443e, GAIN * 0.75), { uv: [3, 3] });
+  kit.rock.box(0, -0.05, 0, w - 0.2, 0.1, d - 0.2, scaleC(0x4a423a, GAIN * 0.8), { uv: [2.5, 2.5] });
   kit.walk.floors.push({ y: 0, polygon: [[-hw + 0.1, -hd + 0.1], [hw - 0.1, -hd + 0.1], [hw - 0.1, hd - 0.1], [-hw + 0.1, hd - 0.1]] });
   const tone = (k = 1) => mixC(PAL.stoneDark, PAL.stoneWarm, kit.rand()).multiplyScalar(GAIN * kit.r(0.8, 1.0) * k);
 
@@ -32,13 +32,22 @@ export function smithy(opts = {}) {
     for (let j = 0; j < 4; j++) for (let i = 0; i < 6; i++) {
       kit.stone.box(-1.0 + i * 0.4 + kit.rs() * 0.04, 0.17 + j * 0.28, 0.0, kit.r(0.36, 0.46), 0.27, 1.3, tone(0.95), { ry: kit.rs() * 0.05, uv: [2, 2] });
     }
-    // Hearth bed: dark slab with glowing coals and a hot core.
+    // Hearth bed: dark slab with glowing coals and a hot core; the glowing back wall is the part you see from the front.
     kit.stone.box(0, 1.14, 0.0, 2.2, 0.06, 1.3, scaleC(PAL.stoneDark, GAIN * 0.35), { uv: [2, 2] });
-    kit.ember.quad([-0.8, 1.18, -0.5], [-0.8, 1.18, 0.5], [0.8, 1.18, 0.5], [0.8, 1.18, -0.5], new THREE.Color(2.6, 0.9, 0.2), [[0, 0], [1, 0], [1, 1], [0, 1]]);
-    kit.ember.quad([-0.35, 1.19, -0.25], [-0.35, 1.19, 0.25], [0.35, 1.19, 0.25], [0.35, 1.19, -0.25], new THREE.Color(4.0, 2.2, 0.7), [[0, 0], [1, 0], [1, 1], [0, 1]]);
-    // Hood tapering into the wall.
+    kit.ember.quad([-0.8, 1.18, -0.5], [-0.8, 1.18, 0.5], [0.8, 1.18, 0.5], [0.8, 1.18, -0.5], new THREE.Color(3.2, 1.2, 0.3), [[0, 0], [1, 0], [1, 1], [0, 1]]);
+    kit.ember.quad([-0.35, 1.19, -0.25], [-0.35, 1.19, 0.25], [0.35, 1.19, 0.25], [0.35, 1.19, -0.25], new THREE.Color(5.0, 2.8, 0.9), [[0, 0], [1, 0], [1, 1], [0, 1]]);
+    {
+      const rows = [];
+      const cols = [new THREE.Color(5.0, 2.4, 0.7), new THREE.Color(3.4, 1.1, 0.25), new THREE.Color(1.4, 0.35, 0.08)];
+      for (let i = 0; i < 3; i++) { const t = i / 2; rows.push([-0.85, 0.85].map((x) => [x, 1.17 + t * 0.48, -0.58])); }
+      kit.ember.grid(rows, cols[0], { flip: false, colorFn: (i) => cols[i], uv: [1, 1] });
+      // Glowing sides of the cavity so it reads from an angle too.
+      for (const sg of [-1, 1]) kit.ember.quad([sg * 0.85, 1.17, -0.58], [sg * 0.85, 1.17, 0.3], [sg * 0.85, 1.6, 0.3], [sg * 0.85, 1.6, -0.58], new THREE.Color(1.8, 0.5, 0.1), [[0, 0], [1, 0], [1, 1], [0, 1]]);
+    }
+    // Jambs carry the hood; the hood tapers into the wall.
+    for (const sg of [-1, 1]) kit.stone.box(sg * 1.02, 1.4, 0.0, 0.34, 0.54, 1.25, tone(0.85), { uv: [2, 2] });
     for (let k = 0; k < 4; k++) {
-      kit.stone.box(0, 1.5 + k * 0.42, -0.1 - k * 0.0, 2.0 - k * 0.35, 0.44, 1.2 - k * 0.12, tone(0.75), { uv: [2, 2] });
+      kit.stone.box(0, 1.84 + k * 0.42, -0.1 - k * 0.0, 2.2 - k * 0.38, 0.44, 1.2 - k * 0.12, tone(0.75), { uv: [2, 2] });
     }
     // Hearth lip toward the room, tuyere pipe and the bellows.
     kit.stone.box(0, 0.06, 0.9, 2.4, 0.12, 0.5, tone(), { uv: [2, 2] });

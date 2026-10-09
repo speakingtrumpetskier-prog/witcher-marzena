@@ -13,26 +13,142 @@ import { U } from '../../render/Uniforms.js';
 
 const TW = 128, TH = 256, COLS = 8;
 
+// ---------------------------------------------------------------------------------------------
+// CPU bake. A tiny orthographic software rasterizer draws the LOD 0 geometry into the atlas: flat
+// albedo (vertex colors carry the baked ambient occlusion), snow from the aSnow attribute with the
+// same thresholds as the real shader, the needle comb fringe, alpha textured birch cards. No GPU
+// work at all, so loading never stalls on shader compilation or readbacks (very slow on software GL).
+const SNOW_LIN = [0.88, 0.905, 0.956];
+const CLEAR = [0.12, 0.16, 0.12];
+
+const hash2 = (x, y) => { const s = Math.sin(x * 127.1 + y * 311.7) * 43758.5453; return s - Math.floor(s); };
+const vnoise = (x, y) => {
+  const ix = Math.floor(x), iy = Math.floor(y);
+  let fx = x - ix, fy = y - iy;
+  fx = fx * fx * (3 - 2 * fx); fy = fy * fy * (3 - 2 * fy);
+  const a = hash2(ix, iy), b = hash2(ix + 1, iy), c = hash2(ix, iy + 1), d = hash2(ix + 1, iy + 1);
+  return (a + (b - a) * fx) * (1 - fy) + (c + (d - c) * fx) * fy;
+};
+const sstep = (e0, e1, x) => { const t = Math.min(1, Math.max(0, (x - e0) / (e1 - e0))); return t * t * (3 - 2 * t); };
+const toSRGB = (c) => (c <= 0.0031308 ? 12.92 * c : 1.055 * Math.pow(c, 1 / 2.4) - 0.055);
+const LUT = new Float32Array(256);
+for (let i = 0; i < 256; i++) { const c = i / 255; LUT[i] = c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4); }
+
+function rasterTile(parts, fw, fh, yaw, snow, spring, cardData) {
+  const SS = 2, W = TW * SS, H = TH * SS;
+  const zbuf = new Float32Array(W * H).fill(-1e9);
+  const col = new Float32Array(W * H * 3);
+  const hit = new Uint8Array(W * H);
+  const cosT = Math.cos(yaw), sinT = Math.sin(yaw);
+  const sx = W / fw, sy = H / fh;
+  const grow = sstep(0.04, 0.85, spring);
+  for (const part of parts) {
+    const g = part.geometry;
+    const pos = g.attributes.position.array, colA = g.attributes.color.array, snowA = g.attributes.aSnow.array;
+    const uvA = g.attributes.uv.array, wA = g.attributes.aWind.array;
+    const cornerA = g.attributes.aCorner ? g.attributes.aCorner.array : null;
+    const idx = g.index.array;
+    const foliage = part.mode === 'foliage';
+    const isCard = !!part.card;
+    if (part.leaves && grow <= 0.001) continue;
+    const n = pos.length / 3;
+    const vx = new Float32Array(n), vy = new Float32Array(n), vz = new Float32Array(n), wy = new Float32Array(n);
+    const px3 = new Float32Array(n), pz3 = new Float32Array(n);
+    for (let i = 0; i < n; i++) {
+      let x = pos[i * 3], y = pos[i * 3 + 1], z = pos[i * 3 + 2];
+      if (cornerA) { x += cornerA[i * 3] * grow; y += cornerA[i * 3 + 1] * grow; z += cornerA[i * 3 + 2] * grow; }
+      const X = x * cosT + z * sinT, Z = -x * sinT + z * cosT;
+      vx[i] = (X + fw / 2) * sx; vy[i] = (fh - y) * sy; vz[i] = Z; wy[i] = y; px3[i] = X; pz3[i] = Z;
+    }
+    for (let t = 0; t < idx.length; t += 3) {
+      const a = idx[t], b = idx[t + 1], c = idx[t + 2];
+      const x0 = vx[a], y0 = vy[a], x1 = vx[b], y1 = vy[b], x2 = vx[c], y2 = vy[c];
+      const area = (x1 - x0) * (y2 - y0) - (x2 - x0) * (y1 - y0);
+      if (Math.abs(area) < 1e-4) continue;
+      // facing: normal z component in view space (camera on +Z, screen y is flipped)
+      const front = area < 0;
+      const minx = Math.max(0, Math.floor(Math.min(x0, x1, x2))), maxx = Math.min(W - 1, Math.ceil(Math.max(x0, x1, x2)));
+      const miny = Math.max(0, Math.floor(Math.min(y0, y1, y2))), maxy = Math.min(H - 1, Math.ceil(Math.max(y0, y1, y2)));
+      const inv = 1 / area;
+      for (let py = miny; py <= maxy; py++) {
+        for (let px = minx; px <= maxx; px++) {
+          const qx = px + 0.5, qy = py + 0.5;
+          const w0 = ((x1 - qx) * (y2 - qy) - (x2 - qx) * (y1 - qy)) * inv;
+          const w1 = ((x2 - qx) * (y0 - qy) - (x0 - qx) * (y2 - qy)) * inv;
+          const w2 = 1 - w0 - w1;
+          if (w0 < 0 || w1 < 0 || w2 < 0) continue;
+          const z = w0 * vz[a] + w1 * vz[b] + w2 * vz[c];
+          const o = py * W + px;
+          if (z <= zbuf[o]) continue;
+          let r = w0 * colA[a * 3] + w1 * colA[b * 3] + w2 * colA[c * 3];
+          let gg = w0 * colA[a * 3 + 1] + w1 * colA[b * 3 + 1] + w2 * colA[c * 3 + 1];
+          let bb = w0 * colA[a * 3 + 2] + w1 * colA[b * 3 + 2] + w2 * colA[c * 3 + 2];
+          if (isCard) {
+            const u = w0 * uvA[a * 2] + w1 * uvA[b * 2] + w2 * uvA[c * 2];
+            const v = w0 * uvA[a * 2 + 1] + w1 * uvA[b * 2 + 1] + w2 * uvA[c * 2 + 1];
+            const tx = Math.min(cardData.width - 1, Math.max(0, Math.floor(u * cardData.width)));
+            const ty = Math.min(cardData.height - 1, Math.max(0, Math.floor((1 - v) * cardData.height)));
+            const to = (ty * cardData.width + tx) * 4;
+            const alpha = cardData.data[to + 3] / 255;
+            if (alpha < (part.haze ? 0.2 : 0.32)) continue;
+            r *= LUT[cardData.data[to]]; gg *= LUT[cardData.data[to + 1]]; bb *= LUT[cardData.data[to + 2]];
+          } else {
+            const u = w0 * uvA[a * 2] + w1 * uvA[b * 2] + w2 * uvA[c * 2];
+            const v = w0 * uvA[a * 2 + 1] + w1 * uvA[b * 2 + 1] + w2 * uvA[c * 2 + 1];
+            const seed = w0 * wA[a * 2 + 1] + w1 * wA[b * 2 + 1] + w2 * wA[c * 2 + 1];
+            if (foliage) {
+              const tooth = hash2(Math.floor(v * 38), seed * 7.13);
+              const tooth2 = hash2(Math.floor(v * 17 + 0.5), seed * 3.7);
+              if (Math.abs(u) > 0.86 + 0.26 * tooth + 0.1 * tooth2 - 0.2 * v * v) continue;
+            }
+            const sn = (w0 * snowA[a] + w1 * snowA[b] + w2 * snowA[c]) * snow * (front ? 1 : 0);
+            if (sn > 0.0) {
+              const cl = vnoise(px * 0.05, py * 0.05) * 0.65 + vnoise(px * 0.22, py * 0.22) * 0.35;
+              const m = sstep(0.3, 0.58, sn + (cl - 0.5) * 0.55);
+              r += (SNOW_LIN[0] - r) * m; gg += (SNOW_LIN[1] - gg) * m; bb += (SNOW_LIN[2] - bb) * m;
+            }
+          }
+          zbuf[o] = z; hit[o] = 1;
+          col[o * 3] = r; col[o * 3 + 1] = gg; col[o * 3 + 2] = bb;
+        }
+      }
+    }
+  }
+  // 2x2 box downsample with coverage as alpha, sRGB encode, rows bottom-up
+  const out = new Uint8Array(TW * TH * 4);
+  for (let y = 0; y < TH; y++) {
+    for (let x = 0; x < TW; x++) {
+      let r = 0, g = 0, b = 0, cnt = 0;
+      for (let j = 0; j < SS; j++) {
+        for (let i = 0; i < SS; i++) {
+          const o = (y * SS + j) * W + x * SS + i;
+          if (hit[o]) { r += col[o * 3]; g += col[o * 3 + 1]; b += col[o * 3 + 2]; cnt++; }
+        }
+      }
+      const dst = ((TH - 1 - y) * TW + x) * 4;
+      if (cnt === 0) { r = CLEAR[0]; g = CLEAR[1]; b = CLEAR[2]; } else { r /= cnt; g /= cnt; b /= cnt; }
+      out[dst] = Math.round(toSRGB(r) * 255); out[dst + 1] = Math.round(toSRGB(g) * 255); out[dst + 2] = Math.round(toSRGB(b) * 255);
+      out[dst + 3] = Math.round((cnt / (SS * SS)) * 255);
+    }
+  }
+  return out;
+}
+
 export async function bakeImpostors(G, kinds, opts = {}) {
   const snowBake = opts.snow ?? 0.62; // a little less snow than the meshes so far forests keep dark green mass
   const imp = kinds.filter((k) => k.impostor);
   const nTiles = imp.length * 2;
   const rows = Math.max(1, Math.ceil(nTiles / COLS));
   const W = COLS * TW, H = rows * TH;
-  const R = G.renderer;
-
-  // Each tile is rendered into a small multisampled target and read back into a CPU atlas; the atlas
-  // becomes a DataTexture (mipmapped once on upload). Rendering tile after tile into one big
-  // render target instead regenerates its mipmaps and resolves it after every call, which is
-  // painfully slow on software GL.
-  const tileRT = new THREE.WebGLRenderTarget(TW, TH, {
-    colorSpace: THREE.SRGBColorSpace, depthBuffer: true, samples: 4, generateMipmaps: false,
-    minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter,
-  });
   const bufs = [new Uint8Array(W * H * 4), new Uint8Array(W * H * 4)];
-  const px = new Uint8Array(TW * TH * 4);
-
-  // frames
+  // clear to transparent with the clear color so mip levels do not bleed black into the edges
+  for (const buf of bufs) {
+    for (let i = 0; i < buf.length; i += 4) {
+      buf[i] = Math.round(toSRGB(CLEAR[0]) * 255); buf[i + 1] = Math.round(toSRGB(CLEAR[1]) * 255); buf[i + 2] = Math.round(toSRGB(CLEAR[2]) * 255); buf[i + 3] = 0;
+    }
+  }
+  const t0 = performance.now();
+  let cardData = null;
   imp.forEach((k, i) => {
     let maxXZ = 0, maxY = 0;
     for (const part of k.lods[0].parts) {
@@ -43,62 +159,24 @@ export async function bakeImpostors(G, kinds, opts = {}) {
     const fh = Math.max(maxY + 0.4, (2 * maxXZ + 1.4) * 2);
     k.imp = { tile: [i * 2, i * 2 + 1], fw: fh / 2, fh };
   });
-
-  const scene = new THREE.Scene();
-  scene.add(new THREE.AmbientLight(0xffffff, Math.PI));
-  const cam = new THREE.OrthographicCamera(-1, 1, 1, 0, 0.1, 400);
-  cam.position.set(0, 0, 150);
-  cam.lookAt(0, 0, 0);
-
-  // save renderer + uniform state
-  const prevRT = R.getRenderTarget();
-  const prevAuto = R.autoClear;
-  const prevClear = new THREE.Color(); R.getClearColor(prevClear);
-  const prevAlpha = R.getClearAlpha();
-  const prevSun = U.uSunDir.value.clone();
-  const prevWind = U.uWind.value.clone();
-  const prevSnow = U.uSnowCover.value, prevSpring = U.uSpring.value;
-  U.uSunDir.value.set(0, -1, 0);
-  U.uWind.value.z = 0; U.uWind.value.w = 0;
-  R.autoClear = true;
-  R.setClearColor(0x61705f, 0);
-  R.setRenderTarget(tileRT);
-
-  let yieldT = performance.now();
-  const maybeYield = async () => {
-    if (performance.now() - yieldT > 20) { await new Promise((r) => setTimeout(r, 0)); yieldT = performance.now(); R.setRenderTarget(tileRT); }
-  };
-  const run = async (buf, snow, spring) => {
-    U.uSnowCover.value = snow; U.uSpring.value = spring;
-    for (const k of imp) {
-      const holder = new THREE.Group();
-      for (const p of k.lods[0].parts) holder.add(new THREE.Mesh(p.geometry, p.material));
-      scene.add(holder);
-      cam.left = -k.imp.fw / 2; cam.right = k.imp.fw / 2; cam.bottom = 0; cam.top = k.imp.fh;
-      cam.updateProjectionMatrix();
-      for (let v = 0; v < 2; v++) {
-        const tile = k.imp.tile[v];
-        const tx = (tile % COLS) * TW, ty = Math.floor(tile / COLS) * TH;
-        holder.rotation.y = v * Math.PI * 0.5 + 0.35;
-        R.render(scene, cam);
-        R.readRenderTargetPixels(tileRT, 0, 0, TW, TH, px);
-        for (let y = 0; y < TH; y++) buf.set(px.subarray(y * TW * 4, (y + 1) * TW * 4), ((ty + y) * W + tx) * 4);
-        await maybeYield();
-      }
-      scene.remove(holder);
+  for (const k of imp) {
+    const parts = k.lods[0].parts;
+    if (!cardData && parts.some((p) => p.card)) {
+      const img = parts.find((p) => p.card).material.map.image;
+      cardData = img.getContext('2d').getImageData(0, 0, img.width, img.height);
     }
-  };
-  try {
-    await run(bufs[0], snowBake, 0);
-    await run(bufs[1], 0, 1);
-  } finally {
-    R.setRenderTarget(prevRT);
-    R.autoClear = prevAuto;
-    R.setClearColor(prevClear, prevAlpha);
-    U.uSunDir.value.copy(prevSun);
-    U.uWind.value.copy(prevWind);
-    U.uSnowCover.value = prevSnow; U.uSpring.value = prevSpring;
-    tileRT.dispose();
+    for (let v = 0; v < 2; v++) {
+      const tile = k.imp.tile[v];
+      const tx = (tile % COLS) * TW, ty = Math.floor(tile / COLS) * TH;
+      const yaw = v * Math.PI * 0.5 + 0.35;
+      for (let st = 0; st < 2; st++) {
+        const px = rasterTile(parts, k.imp.fw, k.imp.fh, yaw, st === 0 ? snowBake : 0, st === 0 ? 0 : 1, cardData);
+        const buf = bufs[st];
+        for (let y = 0; y < TH; y++) buf.set(px.subarray(y * TW * 4, (y + 1) * TW * 4), ((ty + y) * W + tx) * 4);
+      }
+    }
+    if (opts.log) console.warn(`bake ${k.id} t=${Math.round(performance.now() - t0)}ms`);
+    if (performance.now() - t0 > 40) await new Promise((r) => setTimeout(r, 0));
   }
   const mk = (buf) => {
     const t = new THREE.DataTexture(buf, W, H, THREE.RGBAFormat, THREE.UnsignedByteType);
@@ -111,7 +189,7 @@ export async function bakeImpostors(G, kinds, opts = {}) {
     t.needsUpdate = true;
     return t;
   };
-  return { atlasA: mk(bufs[0]), atlasB: mk(bufs[1]), cols: COLS, rows };
+  return { atlasA: mk(bufs[0]), atlasB: mk(bufs[1]), cols: COLS, rows, ms: performance.now() - t0, buffers: bufs };
 }
 
 const HEADER_V = /* glsl */ `
@@ -127,10 +205,14 @@ const BODY_V = /* glsl */ `
 vec3 mzBase = (modelMatrix * vec4(instanceMatrix[3].xyz, 1.0)).xyz;
 vec3 mzTo = cameraPosition - mzBase;
 float mzDist = length(mzTo);
+vec3 mzToN = mzTo / max(mzDist, 0.001);
 mzTo.y = 0.0;
 mzTo = normalize(mzTo + vec3(0.0001, 0.0, 0.0));
 vec3 mzRight = vec3(mzTo.z, 0.0, -mzTo.x);
-vec3 mzW = mzBase + mzRight * (position.x * aImp.y) + vec3(0.0, position.y * aImp.z, 0.0);
+// seen from high above (towers, the map camera) the card leans toward the viewer so it never goes edge-on
+float mzTilt = clamp((mzToN.y - 0.35) / 0.5, 0.0, 1.0) * 0.8;
+vec3 mzUpV = normalize(mix(vec3(0.0, 1.0, 0.0), mzToN, mzTilt));
+vec3 mzW = mzBase + mzRight * (position.x * aImp.y) + mzUpV * (position.y * aImp.z);
 // subtle sway of the whole billboard with the wind, stronger toward the top
 mzW.xz += uWind.xy * uWind.z * 0.012 * aImp.z * position.y * position.y * (0.6 + 0.4 * sin(uTime * 1.3 + mzBase.x * 0.07 + mzBase.z * 0.05));
 vec4 mvPosition = viewMatrix * vec4(mzW, 1.0);

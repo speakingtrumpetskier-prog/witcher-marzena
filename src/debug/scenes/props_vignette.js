@@ -100,9 +100,9 @@ export async function build(G, ctx) {
   A('barrelStack', -6.7, -0.2, { seed: 1, variant: 'standing', yaw: 0.2, opts: { variant: 'standing' } });
   A('woodpile', 6.3, -0.6, { seed: 1, yaw: 0.1 });
   A('cart', 6.8, 3.5, { seed: 2, yaw: 2.4, opts: { variant: 'sacks' } });
-  A('campfire', 3.6, 6.0, { seed: 1, yaw: 0, opts: { smoke: true } });
-  A('bench', 1.9, 6.4, { seed: 3, yaw: 1.5, opts: { variant: 'log' } });
-  A('bench', 5.3, 6.6, { seed: 2, yaw: -1.6, opts: { variant: 'log' } });
+  A('campfire', 1.6, 5.4, { seed: 1, yaw: 0, opts: { smoke: true } });
+  A('bench', 3.2, 5.6, { seed: 3, yaw: 1.5, opts: { variant: 'log' } });
+  A('bench', 0.0, 5.9, { seed: 2, yaw: -1.6, opts: { variant: 'log' } });
   A('fishString', -2.8, -0.95, { y: 0.35, snap: false, seed: 1, yaw: 0 });
   A('ladder', 4.6, -0.95, { seed: 1, yaw: 0 });
   A('icicles', 0, 2.62, { snap: false, y: 2.57, seed: 1, yaw: 0, opts: { width: 8.6, maxLen: 0.6 } });

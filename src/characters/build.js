@@ -35,6 +35,7 @@ export function buildCharacter(spec) {
   }
   tri.total = mb.I.length / 3;
   const geometry = mb.build();
+  smoothGridNormals(geometry, info.grid, info.slitRow);
   const size = look.faceRes;
   const canvas = makeFaceCanvas(size);
   canvas.height = Math.round(size * 1.25);
@@ -98,5 +99,32 @@ function resolveLook(spec, M) {
   }
   const hatT = spec.hat?.type;
   if (hatT === 'scarf' || hatT === 'kerchief' || hatT === 'hood' || (hatT === 'knit' && (spec.hat.low ?? 1) > 0.5)) look.hideEars = true;
+  // hair is flattened under anything that covers the skull
+  if (hatT && hatT !== 'crown' && hatT !== 'fur') look.hair = { ...look.hair, thick: 0.0015 };
   return look;
+}
+
+// Soften faceting on the head grid: average each normal with its grid neighbours (twice).
+function smoothGridNormals(geo, grid, slit) {
+  const na = geo.attributes.normal.array;
+  const rows = grid.length, cols = grid[0].length;
+  for (let it = 0; it < 2; it++) {
+    const next = new Float32Array(na.length);
+    next.set(na);
+    for (let i = 1; i < rows - 1; i++) {
+      if (Math.abs(i - slit) <= 1) continue;
+      for (let j = 0; j < cols; j++) {
+        const v = grid[i][j];
+        let x = na[v * 3] * 2, y = na[v * 3 + 1] * 2, z = na[v * 3 + 2] * 2;
+        for (const [di, dj] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) {
+          const jj = (j + dj + cols - 1) % (cols - 1);
+          const w = grid[i + di][dj === 0 ? j : jj];
+          x += na[w * 3]; y += na[w * 3 + 1]; z += na[w * 3 + 2];
+        }
+        const l = Math.hypot(x, y, z) || 1;
+        next[v * 3] = x / l; next[v * 3 + 1] = y / l; next[v * 3 + 2] = z / l;
+      }
+    }
+    na.set(next);
+  }
 }

@@ -18,6 +18,7 @@ uniform float uSize;
 uniform float uStreak;
 uniform float uFlutter;
 uniform float uFlakeTime;
+uniform float uTurb;
 uniform vec2 uViewport;
 varying vec2 vUv;
 varying float vLen;
@@ -33,14 +34,16 @@ void main() {
   float ph = aRand.x * 41.0 + aRand.y * 17.0 + aRand.z * 7.0;
   vec3 flutter = vec3(sin(uFlakeTime * (1.1 + s) + ph), 0.25 * sin(uFlakeTime * 2.3 + ph * 1.7), cos(uFlakeTime * (0.9 + s * 0.7) + ph * 1.3)) * uFlutter;
   vec3 fv = vec3(cos(uFlakeTime * (1.1 + s) + ph) * (1.1 + s), 0.0, -sin(uFlakeTime * (0.9 + s * 0.7) + ph * 1.3) * (0.9 + s * 0.7)) * uFlutter;
-  vec3 p = aRand.xyz * uBox + uOffset * speed + flutter;
+  // Per-flake turbulence so storm streaks never fly in lockstep.
+  vec3 turb = (vec3(aRand.y, aRand.z * 0.6, aRand.x) - vec3(0.5, 0.3, 0.5)) * vec3(5.0, 2.0, 5.0) * uTurb;
+  vec3 p = aRand.xyz * uBox + uOffset * speed + turb * uFlakeTime + flutter;
   vec3 rel = mod(p - cameraPosition + 0.5 * uBox, uBox) - 0.5 * uBox;
   vec3 wp = cameraPosition + rel;
   vWorld = wp;
   #ifdef USE_FOG
     vFogWorldPos = vWorld;
   #endif
-  vec3 vel = uVel * speed + fv;
+  vec3 vel = uVel * speed + fv + turb;
   vec4 c1 = projectionMatrix * viewMatrix * vec4(wp, 1.0);
   vec4 c2 = projectionMatrix * viewMatrix * vec4(wp - vel * uStreak, 1.0);
   float dist = length(rel);
@@ -62,7 +65,7 @@ void main() {
   // Energy: sub-pixel flakes fade instead of shrinking, long streaks spread their light.
   float cover = min(1.0, (sizePx * sizePx) / (sz * sz));
   float spread = 1.0 / (1.0 + len / max(sz, 1.0) * 0.07);
-  float nearFade = smoothstep(0.25, 1.1, dist);
+  float nearFade = smoothstep(0.45, 1.6, dist);
   float farFade = 1.0 - smoothstep(uBox * 0.36, uBox * 0.5, max(max(abs(rel.x), abs(rel.y)), abs(rel.z)));
   vAlpha = cover * spread * nearFade * farFade * (0.55 + 0.45 * s);
   gl_Position = vec4(px / (uViewport * 0.5) * c1.w, c1.z, c1.w);
@@ -119,6 +122,7 @@ export function createSnowfall(G) {
     uStreak: { value: 0.03 },
     uFlutter: { value: 0.3 },
     uFlakeTime: { value: 0 },
+    uTurb: { value: 0 },
     uViewport: { value: new THREE.Vector2(1280, 720) },
     uAmb: { value: new THREE.Color(0.5, 0.55, 0.6) },
     uKey: { value: new THREE.Color(0.5, 0.45, 0.4) },
@@ -164,6 +168,7 @@ export function createSnowfall(G) {
     uniforms.uFlakeTime.value += step;
     uniforms.uFlutter.value = 0.35 * (1 - 0.6 * wind.strength);
     uniforms.uStreak.value = 0.022 + 0.02 * wind.strength;
+    uniforms.uTurb.value = wind.strength * (0.6 + wind.gust);
     uniforms.uSize.value = 0.022 + 0.02 * wind.strength;
     G.renderer.getDrawingBufferSize(size);
     uniforms.uViewport.value.copy(size);

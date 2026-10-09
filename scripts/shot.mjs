@@ -105,7 +105,15 @@ for (const s of shots) {
       }, { seq, every, cols });
       fs.writeFileSync(out, Buffer.from(dataUrl.split(',')[1], 'base64'));
     } else {
-      await page.screenshot({ path: out });
+      // Under heavy CPU load the compositor can stall page.screenshot; fall back to reading the
+      // WebGL canvas directly (shot mode keeps the drawing buffer). The fallback omits DOM UI.
+      try {
+        await page.screenshot({ path: out, timeout: Math.min(opts.timeout, 90000), animations: 'disabled' });
+      } catch (err) {
+        const dataUrl = await page.evaluate(() => document.querySelector('#app canvas').toDataURL('image/png'));
+        fs.writeFileSync(out, Buffer.from(dataUrl.split(',')[1], 'base64'));
+        console.log(`  (page.screenshot failed: ${err.message.split('\n')[0]}; saved the canvas only)`);
+      }
     }
     const info = await page.evaluate(() => ({ errors: window.__MZ_ERRORS || [], stats: window.__MZ_STATS || {} }));
     const secs = ((Date.now() - t0) / 1000).toFixed(1);

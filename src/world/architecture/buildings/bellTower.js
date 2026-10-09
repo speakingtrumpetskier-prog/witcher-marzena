@@ -241,7 +241,7 @@ export function bellTower(opts = {}) {
     kit.metal.tube([0, 2.5, 0], [0, 2.1, 0], 0.06, 0.14, scaleC(PAL.iron, GAIN * 0.7), { seg: 8, lenSeg: 1, ao: 0, capA: false });
     kit.metal.box(0, 3.63, 0, 0.5, 0.12, 0.34, scaleC(PAL.iron, GAIN * 0.7), {});
     // Tent roof: four concave shingled faces, flared eaves.
-    const Wb = 3.85, Y0 = 3.8, H = 5.3;
+    const Wb = 3.85, Y0 = 3.8, H = 6.6;
     const surface = (x, z) => {
       const d = Math.max(Math.abs(x), Math.abs(z)) / Wb;
       const u = Math.max(0, 1 - d);
@@ -276,10 +276,10 @@ export function bellTower(opts = {}) {
     }
     // Onion cupola, neck and cross at the apex.
     const AY = apex.y - 0.25;
-    const cup = mixC(0x35504a, 0x5f6a58, 0.4).multiplyScalar(GAIN * 0.75);
-    kit.metal.lathe([[0.3, AY], [0.34, AY + 0.14], [0.6, AY + 0.45], [0.82, AY + 0.9], [0.8, AY + 1.3], [0.58, AY + 1.72], [0.28, AY + 2.1], [0.08, AY + 2.4], [0.001, AY + 2.52]], cup, { seg: 14, uv: [1, 1] });
+    const cup = mixC(0x2c403c, 0x4c5648, 0.4).multiplyScalar(GAIN * 0.7);
+    kit.metal.lathe([[0.26, AY], [0.3, AY + 0.14], [0.5, AY + 0.45], [0.66, AY + 0.85], [0.64, AY + 1.2], [0.47, AY + 1.58], [0.23, AY + 1.92], [0.07, AY + 2.2], [0.001, AY + 2.32]], cup, { seg: 14, uv: [1, 1] });
     const iron = scaleC(PAL.iron, GAIN * 0.7);
-    kit.metal.tube([0, AY + 2.4, 0], [0, AY + 3.9, 0], 0.05, 0.04, iron, { seg: 5, lenSeg: 1, ao: 0, endCol: iron });
+    kit.metal.tube([0, AY + 2.2, 0], [0, AY + 3.7, 0], 0.05, 0.04, iron, { seg: 5, lenSeg: 1, ao: 0, endCol: iron });
     kit.metal.box(0, AY + 3.4, 0, 0.9, 0.07, 0.07, iron, {});
     kit.metal.box(0, AY + 3.65, 0, 0.55, 0.055, 0.055, iron, {});
     kit.metal.box(0, AY + 3.15, 0, 0.6, 0.055, 0.055, iron, { rz: 0.35 });
@@ -333,7 +333,7 @@ export function bellTower(opts = {}) {
   kit.anchor('hatch', (hatch.x0 + hatch.x1) / 2, ty, (hatch.z0 + hatch.z1) / 2);
   kit.anchor('bell', 0.12, FLOOR + 2.8, 0);
   kit.anchor('vista', 0, ty, 2.5);
-  kit.anchor('top', 0.8, FLOOR + Y0A + 5.3 + 0.45 + 3.9, 0.3);
+  kit.anchor('top', 0.85, FLOOR + Y0A + 6.6 + 0.45 + 3.7, 0.3);
   kit.light(0, ty + 1.8, 0, { color: 0x9ff5ff, intensity: 1.4, radius: 11, kind: 'ghost' });
   kit.light(0, ICEY + 1.6, 0, { color: 0x9ff5ff, intensity: 0.5, radius: 6, kind: 'ghost' });
   kit.door({ x: 0, z: HO + 0.1, y: ICEY, yaw: 0, w: 1.9, h: 1.7, kind: 'open', id: 'window' });

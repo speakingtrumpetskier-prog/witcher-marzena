@@ -7,7 +7,7 @@
 // shadow: shadow strength under this sky.
 export const WEATHER_STATES = {
   clear: {
-    cover: 0.2, cirrus: 0.6, overcast: 0, sunVis: 1,
+    cover: 0.3, cirrus: 0.6, overcast: 0, sunVis: 1,
     fogDensity: 0.00012, fogFalloff: 0.012, haze: 0.0008, hazeFalloff: 1 / 1000,
     lake: 0, lakeTop: 4, lakeSoft: 2.5, lakeNoise: 1.5,
     fogWhite: 0, snowfall: 0, wind: 0.22, gust: 0.25, drift: 0.18,

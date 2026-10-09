@@ -425,7 +425,7 @@ function genFish(seed) {
     const scale = vn(u * 40, v * 16, 40, 16, seed);
     const back = sstep(0.4, 0.0, v);
     const belly = sstep(0.65, 1.0, v);
-    const sheen = 0.55 + scale * 0.25 + 0.2 * Math.sin(u * 30 + v * 12);
+    const sheen = 0.58 + scale * 0.2 + 0.05 * Math.sin(u * 12 + v * 6);
     const lat = sstep(0.04, 0.0, Math.abs(v - 0.42)) * 0.5;
     const r = lerp(lerp(sheen * 0.78, 0.18, back), 0.9, belly) * (1 - lat * 0.4);
     const g = lerp(lerp(sheen * 0.85, 0.24, back), 0.9, belly) * (1 - lat * 0.3);
@@ -443,8 +443,8 @@ function genClay(seed) {
   const S = 128;
   return bake(S, S, (u, v, o) => {
     const n = fbm(u * 5, v * 5, 5, 5, seed, 4);
-    const k = 0.55 + n * 0.4;
-    o.r = k * 0.88; o.g = k * 0.55; o.b = k * 0.38;
+    const k = 0.5 + n * 0.4;
+    o.r = k * 0.78; o.g = k * 0.56; o.b = k * 0.44;
     o.h = n;
   });
 }

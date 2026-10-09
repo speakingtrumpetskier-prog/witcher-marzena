@@ -19,7 +19,7 @@ import { PAL, GAIN } from './kit.js';
 
 // Collision.js rotates boxes with the opposite handedness to three.js rotation.y. Flip here so
 // physics boxes line up with the meshes. If Collision.js is ever fixed, set this to 1.
-const PHYS_YAW_SIGN = -1;
+const PHYS_YAW_SIGN = 1; // Collision.addBox now uses three's rotation.y convention
 
 const rotXZ = (x, z, yaw) => [x * Math.cos(yaw) + z * Math.sin(yaw), -x * Math.sin(yaw) + z * Math.cos(yaw)];
 

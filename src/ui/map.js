@@ -464,7 +464,7 @@ export class MapView {
     const sheet = h('div', { class: 'mz-map-sheet' }, paper, h('div', { class: 'grain', style: { backgroundImage: `url(${grainURL()})` } }), this.canvas, this.cartouche, this.status);
     sheet.style.clipPath = tornClip(11, 34, 0.7);
     this.sheet = sheet;
-    this.el = h('div', { class: 'mz-mapmodal' }, h('div', { class: 'mz-map-wrap' }, sheet, this.legend, this.hintEl));
+    this.el = h('div', { class: 'mz-mapmodal' }, h('div', { class: 'mz-map-wrap' }, h('div', { class: 'under-shadow' }), sheet, this.legend, this.hintEl));
     this._pointer();
     this._ro = new ResizeObserver(() => { this._size(); });
     this._ro.observe(this.sheet);
@@ -576,12 +576,14 @@ export class MapView {
     this._objT -= dt;
     if (this._objT <= 0) {
       this._objT = 0.5;
-      try { this._objs = this.G.quests?.objectives?.() || []; } catch { this._objs = []; }
-      this.dirty = true;
+      let o = [];
+      try { o = this.G.quests?.objectives?.() || []; } catch { o = []; }
+      const sig = o.map((q) => `${q.questId}|${q.text}|${q.marker}`).join(';');
+      if (sig !== this._objSig) { this._objSig = sig; this._objs = o; this.dirty = true; }
     }
     this._pulse = (this._pulse ?? 0) + dt;
     this._frame = (this._frame ?? 0) + 1;
-    if (this._frame % 5 === 0) this.dirty = true; // player pulse
+    if (!this.G.shot && this._frame % 5 === 0) this.dirty = true; // pulse of the player ring and objective rings
     if (this.dirty) { this.dirty = false; this.draw(); }
   }
 
@@ -741,8 +743,8 @@ export class MapView {
     const r0 = Math.min(46, Math.min(this.cw, this.ch) * 0.075);
     const roseX = this.cw - this.margin - r0 - 22, roseY = this.ch - this.margin - r0 - 26;
     const placed = [
-      [roseX - r0 - 8, roseY - r0 - 24, roseX + r0 + 8, roseY + r0 + 8],
-      [this.cw * 0.06, this.ch * 0.09, this.cw * 0.5, this.ch * 0.27],
+      [roseX - r0 - 18, roseY - r0 - 44, roseX + r0 + 18, roseY + r0 + 12],
+      [this.cw * 0.06, this.ch * 0.09, this.cw * 0.4, this.ch * 0.27],
       [this.margin, this.ch - this.margin - 44, this.margin + 160, this.ch - this.margin],
     ];
     const fs = Math.max(13, Math.min(20, 12.5 + zoom * 1.8));

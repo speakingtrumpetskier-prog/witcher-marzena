@@ -16,8 +16,8 @@
 //   opts     extra options forwarded to the prop builder (variant, indoor, ...)
 //
 // Draw calls: merged per (spatial chunk, material). Default chunking is 'auto': 1 cell when the batch spans
-// under ~90 m, 2 x 2 up to ~330 m (new PropBatch(G, name, { chunk: meters | 0 | 'auto' })). Use one batch per
-// location (village, mill, camp) so a whole village costs about 4 x (materials used) draw calls.
+// under ~120 m, then 2 (or 3 above ~300 m) strips along the longer axis, so frustum culling still helps
+// (new PropBatch(G, name, { chunk: meters | 0 | 'auto' })). A village costs about 2 x (materials used) draw calls.
 // Fx markers on props (campfire, brazier, lantern, chimney...) become real emitters at build.
 // Static: batched props cannot be moved or removed individually (dispose() removes the batch).
 import * as THREE from 'three';
@@ -25,7 +25,7 @@ import { mergeGeos } from './kit.js';
 import { fx } from './fx.js';
 
 // Collision.js addBox uses the opposite yaw sign to three's rotation.y (see the report).
-const COLLIDER_YAW_SIGN = -1;
+const COLLIDER_YAW_SIGN = 1; // Collision.addBox now uses three's rotation.y convention
 
 const IDENT = new THREE.Matrix4();
 const _m = new THREE.Matrix4();
@@ -114,14 +114,15 @@ export class PropBatch {
     root.name = `props:${this.name}`;
     const buckets = new Map(); // cellKey -> Map(material -> { items, cast, receive })
     let chunk = this.chunk;
-    let ox = 0, oz = 0;
+    let ox = 0, oz = 0, stripX = true;
     if (chunk === 'auto') {
       let minX = Infinity, maxX = -Infinity, minZ = Infinity, maxZ = -Infinity;
       for (const h of this.items) { minX = Math.min(minX, h.x); maxX = Math.max(maxX, h.x); minZ = Math.min(minZ, h.z); maxZ = Math.max(maxZ, h.z); }
       const ext = Math.max(maxX - minX, maxZ - minZ, 1);
-      const n = ext < 90 ? 1 : ext < 330 ? 2 : 3;
+      const n = ext < 120 ? 1 : ext < 300 ? 2 : 3;
       chunk = n === 1 ? 0 : ext / n + 0.01;
       ox = minX; oz = minZ;
+      stripX = maxX - minX >= maxZ - minZ; // cells only along the longer axis
     }
 
     for (const h of this.items) {
@@ -158,7 +159,9 @@ export class PropBatch {
       h.matrix = placement;
 
       // Merge buckets
-      const cx = chunk > 0 ? Math.floor((h.x - ox) / chunk) : 0, cz = chunk > 0 ? Math.floor((h.z - oz) / chunk) : 0;
+      const auto = this.chunk === 'auto';
+      const cx = chunk > 0 && (!auto || stripX) ? Math.floor((h.x - ox) / chunk) : 0;
+      const cz = chunk > 0 && (!auto || !stripX) ? Math.floor((h.z - oz) / chunk) : 0;
       const ck = cx * 100003 + cz;
       let cell = buckets.get(ck);
       if (!cell) buckets.set(ck, (cell = new Map()));
@@ -213,9 +216,12 @@ export class PropBatch {
       }
     }
     this.stats = {
-      props: this.items.length, meshes: root.children.length, tris, colliders: this.colliderIds.length,
+      props: this.items.length, meshes: root.children.filter((c) => c.isMesh).length, tris, colliders: this.colliderIds.length,
       emitters: this.emitters.length, templates: this.templates.size,
     };
+    // Templates are only needed to bake; release their CPU-side geometry.
+    for (const t of this.templates.values()) t.traverse((o) => { if (o.isMesh) o.geometry.dispose(); });
+    this.templates.clear();
     this.G.scene.add(root);
     this.root = root;
     this.built = true;
