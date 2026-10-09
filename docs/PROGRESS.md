@@ -14,10 +14,12 @@ The Witcher 3 at similar framing. Work loops until the critic passes it or the r
 | 1 | Vegetation | sonnet | building | 0 | |
 | 1 | Architecture kit | sonnet | building | 0 | |
 | 1 | Props kit and FX | sonnet | building | 0 | |
-| 2 | Player, camera, horse riding, combat, senses | | pending | | |
+| 2 | Player, camera, horse riding | sonnet | waits for characters | | |
 | 2 | UI | sonnet | building | 0 | started early, no dependencies |
-| 2 | Dialogue, cutscene director, quests, interaction, senses, flow | opus | building | 0 | started early |
-| 2 | NPCs and animals | sonnet | pending | | |
-| 2 | Combat and creatures | sonnet | pending | | |
+| 2 | Dialogue, cutscene director, quests, interaction, senses, flow | opus, then sonnet | gauntlet workflow | 0 | Opus draft stopped at the user's request; Sonnet finishes it with cinematography + code critics |
+| 2 | NPCs and animals | sonnet | waits for characters | | |
+| 2 | Combat and creatures | sonnet | waits for characters | | |
 | 3 | Village and wilderness locations | | pending | | |
 | 3 | Writing and cutscene scripts | | pending | | |
+
+Model policy (user request): Part Two and later run on Sonnet 5.5. Phase 1 Opus builders already in flight finish their runs.

@@ -73,8 +73,8 @@ export function wood() {
       const i = (y * S + x) * 4;
       // Warm-grey weathering: red a touch above blue.
       d[i] = clamp01(l * 1.0) * 255;
-      d[i + 1] = clamp01(l * 0.93) * 255;
-      d[i + 2] = clamp01(l * 0.84) * 255;
+      d[i + 1] = clamp01(l * 0.96) * 255;
+      d[i + 2] = clamp01(l * 0.9) * 255;
       d[i + 3] = 255;
     }
   }

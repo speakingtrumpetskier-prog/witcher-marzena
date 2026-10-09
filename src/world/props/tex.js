@@ -134,14 +134,14 @@ function genWood(seed, planks) {
     const crack = sstep(0.035, 0.0, Math.abs(crackN - 0.5)) * sstep(0.45, 0.62, vn(u * 4, vv * 2, 4, 2, seed + 17));
     const grain = ring * 0.55 + fibre * 0.3 + fibre2 * 0.15;
     // Warm brown with silvered weathering.
-    let r = lerp(0.60, 0.40, grain) + boardTint * 0.5;
-    let g = lerp(0.47, 0.29, grain) + boardTint * 0.4;
-    let b = lerp(0.34, 0.20, grain) + boardTint * 0.3;
-    const silver = sstep(0.45, 0.72, wear) * 0.55;
-    r = lerp(r, 0.55, silver); g = lerp(g, 0.53, silver); b = lerp(b, 0.50, silver);
+    let r = lerp(0.50, 0.30, grain) + boardTint * 0.4;
+    let g = lerp(0.41, 0.24, grain) + boardTint * 0.34;
+    let b = lerp(0.33, 0.19, grain) + boardTint * 0.28;
+    const silver = sstep(0.42, 0.72, wear) * 0.6;
+    r = lerp(r, 0.50, silver); g = lerp(g, 0.49, silver); b = lerp(b, 0.47, silver);
     const dark = Math.max(crack * 0.85, knotDark * 0.5, seam * 0.8);
     r *= 1 - dark * 0.75; g *= 1 - dark * 0.75; b *= 1 - dark * 0.7;
-    o.r = r * 1.25; o.g = g * 1.25; o.b = b * 1.25;
+    o.r = r; o.g = g; o.b = b;
     o.h = 0.62 + ring * 0.18 + fibre2 * 0.1 - crack * 0.5 - seam * 0.45 - knotDark * 0.1;
   });
 }
@@ -158,7 +158,7 @@ function genBark(seed) {
     let g = lerp(0.16, 0.42, ridge * 0.8 + fine * 0.2);
     let b = lerp(0.12, 0.33, ridge * 0.8 + fine * 0.2);
     r = lerp(r, 0.55, lichen * 0.35); g = lerp(g, 0.58, lichen * 0.35); b = lerp(b, 0.48, lichen * 0.35);
-    o.r = r * 1.1; o.g = g * 1.1; o.b = b * 1.1;
+    o.r = r * 0.95; o.g = g * 0.95; o.b = b * 0.95;
     o.h = ridge * 0.8 + fine * 0.2;
   });
 }
@@ -211,9 +211,9 @@ function genStraw(seed) {
     const gap = sstep(0.5, 0.05, strand2) * 0.5;
     const joint = sstep(0.93, 1.0, vn(u * 48, v * 9, 48, 9, seed + 6)) * 0.4;
     const tone = strand * 0.5 + strand2 * 0.2 + clump * 0.3;
-    o.r = lerp(0.52, 0.93, tone) * (1 - gap * 0.6) * (1 - joint);
-    o.g = lerp(0.38, 0.77, tone) * (1 - gap * 0.6) * (1 - joint);
-    o.b = lerp(0.19, 0.45, tone) * (1 - gap * 0.6) * (1 - joint);
+    o.r = lerp(0.46, 0.86, tone) * (1 - gap * 0.6) * (1 - joint);
+    o.g = lerp(0.36, 0.73, tone) * (1 - gap * 0.6) * (1 - joint);
+    o.b = lerp(0.20, 0.46, tone) * (1 - gap * 0.6) * (1 - joint);
     o.h = strand * 0.5 + strand2 * 0.4 - gap * 0.6;
   });
 }
@@ -259,8 +259,8 @@ function genBurlap(seed) {
     const slub = vn(u * 10, v * 80, 10, 80, seed) * 0.5 + vn(u * 80, v * 10, 80, 10, seed + 2) * 0.5;
     const fleck = sstep(0.9, 1.0, vn(u * 60, v * 60, 60, 60, seed + 5));
     const stain = fbm(u * 3, v * 3, 3, 3, seed + 7, 4);
-    const k = (0.62 + wu * 0.12 + wv * 0.12 + slub * 0.14) * (1 - hole * 0.45) * (1 - fleck * 0.5) * (0.85 + stain * 0.25);
-    o.r = k * 1.02; o.g = k * 0.86; o.b = k * 0.62;
+    const k = (0.62 + wu * 0.06 + wv * 0.06 + slub * 0.18) * (1 - hole * 0.28) * (1 - fleck * 0.45) * (0.8 + stain * 0.32);
+    o.r = k * 0.92; o.g = k * 0.82; o.b = k * 0.64;
     o.h = 0.35 + (wu + wv) * 0.25 + slub * 0.15 - hole * 0.3;
   });
 }
@@ -320,10 +320,10 @@ function genIron(seed) {
     const rustMask = sstep(0.5, 0.72, fbm(u * 3, v * 3, 3, 3, seed + 4, 4));
     const pit = sstep(0.7, 0.9, vn(u * 70, v * 70, 70, 70, seed + 6));
     const scr = sstep(0.03, 0.0, Math.abs(vn(u * 4, v * 90, 4, 90, seed + 8) - 0.5)) * 0.4;
-    let r = lerp(0.20, 0.34, n) , g = lerp(0.21, 0.35, n), b = lerp(0.24, 0.40, n);
-    r = lerp(r, 0.52, rustMask * 0.7); g = lerp(g, 0.27, rustMask * 0.7); b = lerp(b, 0.14, rustMask * 0.7);
+    let r = lerp(0.16, 0.30, n), g = lerp(0.17, 0.31, n), b = lerp(0.20, 0.36, n);
+    r = lerp(r, 0.38, rustMask * 0.5); g = lerp(g, 0.22, rustMask * 0.5); b = lerp(b, 0.14, rustMask * 0.5);
     const k = 1 - pit * 0.35 + scr * 0.5;
-    o.r = r * k * 1.2; o.g = g * k * 1.2; o.b = b * k * 1.2;
+    o.r = r * k * 1.1; o.g = g * k * 1.1; o.b = b * k * 1.1;
     o.h = n * 0.6 + 0.2 - pit * 0.3;
   });
 }
@@ -461,6 +461,24 @@ function genCoal(seed) {
   });
 }
 
+
+// Ground patch with soft noisy edge: melted ring around fires, dirt, ash, trampled mud.
+function genPatch(seed) {
+  const S = 256;
+  return bake(S, S, (u, v, o) => {
+    const dx = u - 0.5, dy = v - 0.5;
+    const r = Math.hypot(dx, dy) * 2;
+    const n = fbm(u * 5, v * 5, 5, 5, seed, 4);
+    const edge = r + (n - 0.5) * 0.55;
+    const a = (1 - sstep(0.45, 0.98, edge)) * (1 - sstep(0.92, 1.0, r));
+    const m = fbm(u * 9, v * 9, 9, 9, seed + 4, 3);
+    const k = 0.55 + m * 0.6;
+    o.r = 0.20 * k; o.g = 0.16 * k; o.b = 0.12 * k;
+    o.a = a * (0.75 + 0.25 * m);
+    o.h = 0.5;
+  }, { bump: false, alpha: true, repeat: false });
+}
+
 // ---------------------------------------------------------------------------------------------
 // Folk textile atlas: 4 x 2 cells of cross-stitch style patterns in 1024 x 512.
 // Cell order: 0 rhomb rug, 1 zigzag kilim, 2 star tapestry, 3 tooth-border runner,
@@ -487,7 +505,6 @@ function genFolk(seed) {
       g.fillRect(cx * CELL + i * ST + ST - 1.5, cy * CELL + j * ST, 1.5, ST);
     }
   };
-  const border = (i, j, w = 2) => (i < w || j < w || i >= N - w || j >= N - w);
   const rim = (i, j) => Math.min(i, j, N - 1 - i, N - 1 - j);
   const rh = (i, j, k) => Math.abs(((i % k) + k) % k - (k - 1) / 2) + Math.abs(((j % k) + k) % k - (k - 1) / 2);
 
@@ -594,6 +611,7 @@ export const tex = {
   paint: (seed = 16) => memo('paint' + seed, () => genPaint(seed)),
   fish: (seed = 17) => memo('fish' + seed, () => genFish(seed)),
   clay: (seed = 18) => memo('clay' + seed, () => genClay(seed)),
+  patch: (seed = 21) => memo('patch' + seed, () => genPatch(seed)),
   coal: (seed = 20) => memo('coal' + seed, () => genCoal(seed)),
   folk: (seed = 19) => memo('folk' + seed, () => genFolk(seed)),
 };
