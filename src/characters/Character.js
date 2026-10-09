@@ -2,7 +2,7 @@
 //
 //   c.root (feet at origin, +Z forward), c.mesh, c.bones, c.height, c.yaw, c.setPosition(x, z)
 //   c.play(clip, { loop, fade, speed, hold, then }) -> Promise (one-shots resolve at the end)
-//   c.playUpper(clip, opts), c.stopUpper(fade), c.setLocomotion(mps), c.walkTo(x, z | path, opts)
+//   c.playUpper(clip, opts), c.stopUpper(fade), c.setLocomotion(mps), c.walkTo(x, z | path, opts) -> Promise(true on arrival, false if interrupted)
 //   c.lookAt(target | null), c.talk(bool), c.gesture(name), c.attach(socket, obj), c.detach(obj)
 //   c.setVisible(bool), c.dispose()
 // Extras: c.expression(name, amount, fade), c.setFace({ smile, ... }), c.drawSword(kind),
@@ -80,7 +80,7 @@ export class Character {
   }
 
   play(name, o = {}) {
-    this._walk = null;
+    this._cancelWalk();
     if (o.loop === undefined) {
       const c = getClip(name);
       if (c) o = { ...o, loop: c.loop };
@@ -93,9 +93,20 @@ export class Character {
   }
   playUpper(name, o = {}) { return this.anim.playUpper(name, o); }
   stopUpper(fade = 0.3) { this.anim.stopUpper(fade); }
-  stop(fade = 0.3) { this._walk = null; this.setLocomotion(0); this.anim.toLoco(fade); }
+  stop(fade = 0.3) { this._cancelWalk(); this.setLocomotion(0); this.anim.toLoco(fade); }
+
+  // Any interruption of a walk (play, stop, another walkTo, setLocomotion, dispose) resolves the
+  // pending walkTo promise with false, so awaiting scripts never hang.
+  _cancelWalk() {
+    const W = this._walk;
+    if (!W) return;
+    this._walk = null;
+    this.targetSpeed = 0;
+    W.resolve(false);
+  }
 
   setLocomotion(speed) {
+    this._cancelWalk();
     this.targetSpeed = Math.max(0, speed);
     if (speed > 0.05) this.anim.toLoco(0.25);
     return this;
@@ -110,7 +121,7 @@ export class Character {
     let path = Array.isArray(x) ? x.map((p) => ({ x: p.x ?? p[0], z: p.z ?? p[1] })) : [{ x, z }];
     if (Array.isArray(x)) o = z || {};
     const speed = o.speed ?? (o.run ? 3.4 : 1.35);
-    if (this._walk) this._walk.resolve(false);
+    this._cancelWalk();
     return new Promise((resolve) => {
       this._walk = { path, i: 0, speed, resolve, stopDist: o.stopDist ?? 0.08, face: o.face };
       this.anim.toLoco(0.3);
@@ -159,6 +170,7 @@ export class Character {
   setVisible(v) { this.visible = v; this.root.visible = v; }
 
   dispose() {
+    this._cancelWalk();
     if (this.root.parent) this.root.parent.remove(this.root);
     this.mesh.geometry.dispose();
     this.material.dispose();

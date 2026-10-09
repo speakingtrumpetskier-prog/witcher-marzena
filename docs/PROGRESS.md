@@ -14,7 +14,7 @@ catches issues, and fixes them or sends a targeted fix back to the builder. No c
 | 1 | Vegetation | sonnet | reviewed, rework sent | 1 | 34k trees + 33k far billboards, 3 LODs, wind, marsh reeds, spring leaves; close-up spruce too faceted, dither stipple, speckled mid forest |
 | 1 | Architecture kit | sonnet | done, reviewed | 1 | full catalog incl. enterable tavern, longhouse+cellar, Hanka's house, workshop, walkable bell tower; placeBuilding with foundations, colliders, doors, lights, walk floors |
 | 1 | Props kit and FX | sonnet | done, reviewed | 1 | 74 props, pooled FX (fire, smoke, steam, sparks, wisps, breath), PropBatch merging; lead fixed the Collision yaw convention both kits worked around |
-| 2 | Player, camera, horse riding | sonnet | waits for characters | | |
+| 2 | Player, camera, horse riding, player moveset | sonnet (worktree) | building | 0 | |
 | 2 | UI | sonnet | done, reviewed | 1 | HUD, compass, subtitles, barks, choices, journal, parchment map, notes, pause, settings, title, credits |
 | 2 | Dialogue, cutscene director, quests, interaction, senses, flow | opus (single agent) | done, reviewed | 1 | TV-director coverage, skippable cutscenes, all quests, senses trails and echoes, title/new game/continue/rest |
 | 2 | NPCs and animals | sonnet | waits for characters | | |

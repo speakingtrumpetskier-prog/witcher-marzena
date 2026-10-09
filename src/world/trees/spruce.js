@@ -2,12 +2,12 @@
 //
 // Each variant is built at three levels of detail from the same parameters so silhouettes match:
 //   lod 0: many thin drooping tiers of branch cards (alpha tested needle texture with a fringed,
-//          soft silhouette, see textures.js), a dark inner skirt, hanging cards and snow lumps
-//          sitting on the tiers (about 3k triangles)
+//          soft silhouette, see textures.js), a dark inner skirt, hanging cards, and a snow
+//          ridge along every branch that breaks up with world noise (about 2.5k triangles)
 //   lod 1: scalloped cone tiers with a ragged rim (about 400 triangles)
 //   lod 2: coarse cone tiers (about 60 triangles)
 // Snow is baked as the vertex attribute aSnow (tops of the branch layers) and scaled by uSnowCover.
-import { GeoBuilder, rng, rgb, mixRGB, tube, frond, softBall, trunkHeights, snowLump } from './geo.js';
+import { GeoBuilder, rng, rgb, mixRGB, tube, frond, softBall, trunkHeights } from './geo.js';
 import { NEEDLE_UV } from './textures.js';
 
 export const SPRUCE_VARIANTS = [
@@ -108,8 +108,8 @@ export function buildSpruce(v, lod = 0) {
   if (lod === 0) {
     // needle card tints (multiply the texture): vertex colors carry shading and variation only
     const hue = v.hue;
-    const tintLo = [0.74 * (1 + hue * 0.08), 0.78, 0.78 * (1 - hue * 0.06)];
-    const tintHi = [1.08 * (1 + hue * 0.06), 1.12, 1.1 * (1 - hue * 0.05)];
+    const tintLo = [0.6 * (1 + hue * 0.08), 0.64, 0.66 * (1 - hue * 0.06)];
+    const tintHi = [0.92 * (1 + hue * 0.06), 0.96, 0.98 * (1 - hue * 0.05)];
     const cardW = (s) => Math.min(1, s / 0.12 + 0.35) * (1 - 0.16 * s * s);
     for (let t = 0; t < tiers; t++) {
       const f = tiers > 1 ? t / (tiers - 1) : 0;
@@ -132,15 +132,9 @@ export function buildSpruce(v, lod = 0) {
         const phase = r() * 6.28;
         frond(b, { x: ox, y, z: oz }, th, L, W, droop, rise, {
           rng: r, sRows: sRowsMid, jag: 0.1, col: [tintLo, tintHi], shade,
-          snow: v.snow * 0.5, sag: 0.5 + 0.2 * (1 - f), tipLift: f > 0.5 ? L * 0.08 * r() : 0, phase,
+          snow: v.snow * 0.95, snowEdge: 0.3, sag: 0.5 + 0.2 * (1 - f), tipLift: f > 0.5 ? L * 0.08 * r() : 0, phase,
           r0: 0.14, uvRect: NEEDLE_UV.spruce, widthFn: cardW,
         });
-        // snow lump resting on the branch
-        if (!v.sapling && f < 0.88 && r() < 0.45 * (1 - 0.4 * f)) {
-          const sp = 0.4 + r() * 0.25;
-          const p = spine(ox, y, oz, th, L, droop, rise, sp);
-          snowLump(b, p[0], p[1] + 0.02, p[2], W * (0.4 + 0.3 * r()) * (1 - 0.3 * f), 0.12 + 0.14 * (1 - f) + r() * 0.06, r, 6, 0.3, phase);
-        }
         // a hanging card under the lower branches: the ragged curtain that Norway spruce wears
         if (!v.sapling && f < 0.58 && r() < 0.5) {
           const sh = 0.55 + r() * 0.3;
