@@ -26,6 +26,10 @@ const CSS = `
 .mzc-boss .mzc-bar { height: 4px; }
 .mzc-boss .mzc-bar .fill { background: linear-gradient(90deg, #86c6d6, #cfeff5); }
 .mzc-boss .mzc-bar .tick { position: absolute; top: -2px; bottom: -2px; width: 1px; background: rgba(236, 230, 218, 0.4); }
+.mzc-hold { position: absolute; left: 50%; bottom: 22%; width: 180px; margin-left: -90px; opacity: 0; transition: opacity 0.2s ease; text-align: center; }
+.mzc-hold.on { opacity: 1; }
+.mzc-hold .mzc-name { font-size: 11px; letter-spacing: 0.16em; margin-bottom: 5px; }
+.mzc-hold .mzc-bar .fill { background: linear-gradient(90deg, #c9c1b2, #f3ece0); transition: transform 0.08s ease-out; }
 .mzc-boss.armor .mzc-bar { box-shadow: 0 0 0 1px rgba(150, 220, 240, 0.55), 0 0 10px rgba(110, 210, 235, 0.45); }
 `;
 
@@ -65,6 +69,15 @@ export class EnemyUi {
     this.bossE = null;
     this.bossLast = { fill: -1, armor: null };
     this.offs = [];
+
+    // Grab prompt: how to get out, and how close she is.
+    this.holdEl = document.createElement('div');
+    this.holdEl.className = 'mzc-hold';
+    this.holdEl.innerHTML = '<div class="mzc-name">Strike to break free</div><div class="mzc-bar"><i class="fill"></i></div>';
+    this.holdFill = this.holdEl.querySelector('.fill');
+    this.holdFill.style.transform = 'scaleX(0)';
+    this.layer.appendChild(this.holdEl);
+    this.holdLast = -1;
   }
 
   _makeTag() {
@@ -108,6 +121,14 @@ export class EnemyUi {
 
   update(dt) {
     const P = G.player;
+    // Grab prompt.
+    const hold = this.combat.hold_;
+    const hf = hold ? Math.min(1, hold.progress / (hold.breakAt || 1)) : -1;
+    if (hf !== this.holdLast) {
+      if ((hf >= 0) !== (this.holdLast >= 0)) this.holdEl.classList.toggle('on', hf >= 0);
+      if (hf >= 0) this.holdFill.style.transform = `scaleX(${hf.toFixed(3)})`;
+      this.holdLast = hf;
+    }
     // Boss bar.
     const B = this.bossE;
     if (B) {
