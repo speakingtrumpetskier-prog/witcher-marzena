@@ -94,7 +94,7 @@ export function install(C) {
     if (!P) return;
     const c = P.character;
     P.setControl(false);
-    c.setPosition(seat.x, seat.z, seat.y - 0.02);
+    c.setPosition(seat.x, seat.z); // the sit clip lowers the hips to the log
     c.yaw = seat.yaw ?? c.yaw;
     c.play(clip, { loop: true, fade: 0.4 });
     G.ui?.hint?.([['E', 'Stand']], 600);

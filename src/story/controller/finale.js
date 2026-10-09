@@ -226,8 +226,8 @@ export function install(C) {
       if (boss && !boss.disposed) {
         boss.root.visible = false;
         boss.char?.setVisible?.(false);
-        G.combat?.fx?.chips?.({ x: at.x, y: 1.4, z: at.z }, { kind: 'frost', count: 60, speed: 7, up: 6 });
-        G.combat?.fx?.chips?.({ x: at.x, y: 0.4, z: at.z }, { kind: 'ice', count: 30, speed: 5, up: 4 });
+        G.combat?.fx?.chips?.({ x: at.x, y: 1.4, z: at.z }, { kind: 'frost', count: 40, speed: 6, up: 5 });
+        G.combat?.fx?.chips?.({ x: at.x, y: 0.4, z: at.z }, { kind: 'ice', count: 12, speed: 4, up: 3 });
       }
       d.postfx('echo', 0, 0);
       G.postfx?.flash?.(0x9ff5ff, 0.3);
@@ -247,10 +247,13 @@ export function install(C) {
         d.lookAt(a, w);
       }
       d.fade(0, 0.4);
-      d.cut(d.close(w, v));
-      d.shot({ to: d.rel(w, [0.3, 1.3, 1.6]), look: d.head(w), dur: 18, ease: 'sine', fov: 36 });
+      // Over Vesna's shoulder while Wiesia speaks, then in on her face for the question and the choice.
+      d.cut(d.ots(w, v));
       await d.say(w, "I don't want to go down there. It's dark down there.", 4.2, { italic: true });
       d.lookAt(w, d.ground(R.center.x + 4, R.center.z + 17.5, 1.4));
+      const cu = d.close(w, v);
+      d.cut(cu);
+      d.shot({ to: d.rel(w, [0.25, 1.15, 1.9]), look: d.head(w), dur: 20, ease: 'sine', fov: 38 });
       await d.say(w, 'Mama?', 2.2, { italic: true });
       const idx = await d.choice(opts.map((o) => ({ t: o.text, decisive: true })), { timer: 15, default: 1, decisive: true });
       picked = opts[idx]?.key || 'call';

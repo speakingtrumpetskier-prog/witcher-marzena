@@ -257,7 +257,8 @@ function asides(C) {
       const up = C.ground(x + Math.sin(yaw) * 12, z + Math.cos(yaw) * 12) - C.ground(x, z);
       if (up > 3.2 && (G.horse.speed || 0) > 2) say('uphill', 'Come on, girl.', 160);
     }
-    for (const [i, c] of (C.L.vignettes?.carcasses || []).entries()) {
+    const corpses = [...(C.L.vignettes?.carcasses || []), C.L.crossroads?.hanged?.feet, C.L.marsh?.smuggler?.pos].filter(Boolean);
+    for (const [i, c] of corpses.entries()) {
       if (!seen.has(i) && Math.hypot(c.x - P.position.x, c.z - P.position.z) < 4.5) { seen.add(i); say('corpse', 'Not long ago.', 20); }
     }
   }, 20);

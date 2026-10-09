@@ -51,7 +51,9 @@ export function install(C) {
         ],
       });
     };
-    SF.temp = [kid('sf_kid_1', 'child_c', 'sled_kid1'), kid('sf_kid_2', 'child_d', 'sled_kid3')];
+    // Two more children, playing near the foot of the hill (inline stations: a spot, a pose).
+    const play = (x, z, yaw) => ({ kind: 'work', x, z, yaw, anim: 'child_play' });
+    SF.temp = [kid('sf_kid_1', 'child_c', play(BOTTOM.x - 5.5, BOTTOM.z + 3, 1.2)), kid('sf_kid_2', 'child_d', play(BOTTOM.x + 1.5, BOTTOM.z + 7, 2.6))];
     const ola = G.npcs.get('ola');
     if (ola) ola.goTo({ x: hill.x - 5, z: hill.z + 4, yaw: 1.2, anim: 'child_play' });
   }
@@ -121,9 +123,11 @@ export function install(C) {
     for (const [i, k] of SF.kids.entries()) {
       k.npc.pause(true);
       const c = kidChar(k);
-      // Anyone still far from the hill is brought to their spot at the edge of her sight.
-      if (Math.hypot(c.root.position.x - k.anchor.x, c.root.position.z - k.anchor.z) > 30) c.setPosition(k.anchor.x, k.anchor.z);
-      c.play('child_play', { loop: true, fade: 0.3 });
+      // Anyone still far from the hill is brought to their spot at the edge of her sight; the rest run to theirs.
+      const far = Math.hypot(c.root.position.x - k.anchor.x, c.root.position.z - k.anchor.z);
+      if (far > 30) c.setPosition(k.anchor.x, k.anchor.z);
+      else if (far > 4) { c.walkTo(k.anchor.x, k.anchor.z, { run: true }); k.move = far / 3.4 + 1; }
+      else c.play('child_play', { loop: true, fade: 0.3 });
       k.spawnedAt = i;
     }
     SF.score = { vesna: 0, kids: 0 };
