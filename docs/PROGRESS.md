@@ -21,7 +21,9 @@ catches issues, and fixes them or sends a targeted fix back to the builder. No c
 | 2 | Combat, creatures, signs, boss mechanics | sonnet (worktree) | building | 0 | |
 | 3 | Village composition | sonnet (worktree) | done, merged | 1 | 28 houses + heroes + 11 outbuildings, palisade and gates, stilted huts, boardwalk, graveyard, ~440 props, 177 NPC stations, fires, light pool, smoke, interiors, doors, discovery tracker, story anchors |
 | 3 | Lake set pieces and wilderness nooks | sonnet (worktree) | building | 0 | |
-| 3 | Writing and cutscene scripts | | pending | | |
+| 3 | Dialogue scenes (writer) | sonnet (worktree) | building | 0 | under the STORY.md voice rules |
+| 3 | Cutscenes, endings, the thaw (cinematics) | sonnet (worktree) | building | 0 | |
+| 3 | Story controller: triggers, clues, quests, boss integration, endings, playthrough | sonnet | pending | | after wilderness and combat merge |
 
 Model policy (user request): Part Two and later run on Sonnet 5.5, except a single long-running builder may stay on Opus (the story systems builder).
 
