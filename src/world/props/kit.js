@@ -376,7 +376,7 @@ export class Kit {
   }
 
   sph(mat, r, o = {}) {
-    const g = new THREE.SphereGeometry(r, o.ws || 10, o.hs || 8, 0, TAU, o.t0 || 0, o.t1 == null ? Math.PI : o.t1);
+    const g = new THREE.SphereGeometry(r, o.ws || 10, o.hs || 8, o.p0 || 0, o.p1 == null ? TAU : o.p1, o.t0 || 0, o.t1 == null ? Math.PI : o.t1);
     const tile = o.tile || MAT_INFO[mat].tile;
     uvScale(g, Math.max(1, Math.round(TAU * r / tile)), Math.max(1, Math.PI * r / tile));
     return this.emit(g, mat, { uv: 'none', ...o });
@@ -473,7 +473,11 @@ export class Kit {
     });
     g.translate(0, 0, -depth / 2);
     const tile = o.tile || MAT_INFO[mat].tile;
-    uvScale(g, 1 / tile, 1 / tile, this.rnd(), this.rnd());
+    if (o.uvFit) {
+      const [x0, y0, fw, fh] = o.uvFit;
+      const uv = g.attributes.uv;
+      for (let i = 0; i < uv.count; i++) uv.setXY(i, (uv.getX(i) - x0) / fw, (uv.getY(i) - y0) / fh);
+    } else uvScale(g, 1 / tile, 1 / tile, this.rnd(), this.rnd());
     return this.emit(g, mat, { uv: 'none', ...o });
   }
 
@@ -513,6 +517,23 @@ export class Kit {
     return this.emit(g, mat, { uv: 'none', sway: o.sway == null ? 1 : o.sway, swayFrom: 0, grime: 0, ...o });
   }
 
+  // Reuse the baked meshes of another prop group (barrel stacks, crate stacks, vignettes).
+  // Geometry is shared, not copied; the source group must outlive this kit's build.
+  addGroup(group, o = {}) {
+    const part = this._compose(o);
+    const base = new THREE.Matrix4().multiplyMatrices(this.stack[this.stack.length - 1], part);
+    group.updateMatrixWorld(true);
+    group.traverse((ch) => {
+      if (!ch.isMesh) return;
+      const name = ch.material.name;
+      if (!MAT_INFO[name]) return;
+      let list = this.parts.get(name);
+      if (!list) this.parts.set(name, (list = []));
+      list.push({ geo: ch.geometry, matrix: new THREE.Matrix4().multiplyMatrices(base, ch.matrixWorld), shared: true });
+    });
+    return this;
+  }
+
   // --- metadata ------------------------------------------------------------------------------
   anchor(name, x, y, z) {
     const v = new THREE.Vector3(x, y, z).applyMatrix4(this.stack[this.stack.length - 1]);
@@ -548,7 +569,7 @@ export class Kit {
       mesh.matrixAutoUpdate = false;
       group.add(mesh);
       tris += merged.index.count / 3;
-      for (const it of list) it.geo.dispose();
+      for (const it of list) if (!it.shared) it.geo.dispose();
     }
     for (const e of this.extra) group.add(e);
     const box = new THREE.Box3().setFromObject(group);

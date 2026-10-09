@@ -24,6 +24,9 @@ varying float vLen;
 varying float vAlpha;
 varying vec3 vWorld;
 
+#ifdef USE_FOG
+  varying vec3 vFogWorldPos;
+#endif
 void main() {
   float s = aRand.w;
   float speed = 0.7 + 0.6 * s;
@@ -34,6 +37,9 @@ void main() {
   vec3 rel = mod(p - cameraPosition + 0.5 * uBox, uBox) - 0.5 * uBox;
   vec3 wp = cameraPosition + rel;
   vWorld = wp;
+  #ifdef USE_FOG
+    vFogWorldPos = vWorld;
+  #endif
   vec3 vel = uVel * speed + fv;
   vec4 c1 = projectionMatrix * viewMatrix * vec4(wp, 1.0);
   vec4 c2 = projectionMatrix * viewMatrix * vec4(wp - vel * uStreak, 1.0);

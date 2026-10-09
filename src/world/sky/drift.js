@@ -18,6 +18,9 @@ uniform float uTravel;
 varying vec3 vWorld;
 varying float vLayer;
 varying vec2 vQ;
+#ifdef USE_FOG
+  varying vec3 vFogWorldPos;
+#endif
 void main() {
   vec3 p = position;
   vec2 w = uWindDir;
@@ -26,6 +29,9 @@ void main() {
   float n = texture2D(uNoise, q * vec2(0.008, 0.03) + aLayer * 0.31).r;
   p.y += aLayer * (0.6 + 1.2 * n) * 0.6;
   vWorld = p;
+  #ifdef USE_FOG
+    vFogWorldPos = vWorld;
+  #endif
   vLayer = aLayer;
   vQ = q;
   gl_Position = projectionMatrix * viewMatrix * vec4(p, 1.0);

@@ -317,7 +317,7 @@ export function windbreak(o = {}) {
         }
         k.extrude('fur', sh, 0.02, { pos: [0, ph / 2 + 0.1, 0.035], tint: 0xa89478, tile: 0.7 });
       } else {
-        k.box('wicker', pw, ph, 0.05, { pos: [0, ph / 2 + 0.04, 0], tint: k.pick([0xffffff, 0xe8dcc8]), uv: 'none', grime: 0.4 });
+        k.box('wicker', pw, ph, 0.05, { pos: [0, ph / 2 + 0.04, 0], tint: k.pick([0xffffff, 0xe8dcc8]), grime: 0.4 });
       }
       k.box('wood', pw + 0.1, 0.04, 0.05, { pos: [0, ph + 0.12, 0.0], tint: 0xa89684, jitter: 0.004 });
       if (!o.indoor) k.mound(pw * 0.95, 0.07, 0.14, { pos: [0, ph + 0.14, 0], jseed: p });

@@ -479,6 +479,26 @@ function genPatch(seed) {
   }, { bump: false, alpha: true, repeat: false });
 }
 
+
+// Wicker / wattle: woven strips, tan to grey-brown.
+function genWicker(seed) {
+  const S = 256;
+  return bake(S, S, (u, v, o) => {
+    const f = 14;
+    const cu = Math.floor(u * f), cv = Math.floor(v * f);
+    const fu = u * f - cu, fv = v * f - cv;
+    const over = (cu + cv) % 2 === 0;
+    // Horizontal and vertical strips alternate; each strip is a rounded rod.
+    const rod = over ? 1 - Math.pow(Math.abs(fv - 0.5) * 2, 2.2) : 1 - Math.pow(Math.abs(fu - 0.5) * 2, 2.2);
+    const gap = over ? sstep(0.0, 0.12, fu) * sstep(1.0, 0.88, fu) : sstep(0.0, 0.12, fv) * sstep(1.0, 0.88, fv);
+    const n = vn(u * 40, v * 40, 40, 40, seed);
+    const tone = hash(cu + (over ? 7 : 0), cv, seed) * 0.35 + n * 0.15;
+    const k = (0.42 + tone) * (0.55 + 0.45 * rod * gap);
+    o.r = k * 1.0; o.g = k * 0.84; o.b = k * 0.6;
+    o.h = rod * gap;
+  });
+}
+
 // ---------------------------------------------------------------------------------------------
 // Folk textile atlas: 4 x 2 cells of cross-stitch style patterns in 1024 x 512.
 // Cell order: 0 rhomb rug, 1 zigzag kilim, 2 star tapestry, 3 tooth-border runner,
@@ -612,6 +632,7 @@ export const tex = {
   fish: (seed = 17) => memo('fish' + seed, () => genFish(seed)),
   clay: (seed = 18) => memo('clay' + seed, () => genClay(seed)),
   patch: (seed = 21) => memo('patch' + seed, () => genPatch(seed)),
+  wicker: (seed = 22) => memo('wicker' + seed, () => genWicker(seed)),
   coal: (seed = 20) => memo('coal' + seed, () => genCoal(seed)),
   folk: (seed = 19) => memo('folk' + seed, () => genFolk(seed)),
 };
