@@ -117,7 +117,7 @@ export async function build(W) {
     if (!haloTex) break;
     const sm2 = new THREE.SpriteMaterial({ map: haloTex, color: 0xffffff, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending, fog: false });
     w.halo = new THREE.Sprite(sm2);
-    w.halo.scale.set(5.6, 5.6, 1);
+    w.halo.scale.set(3.4, 3.4, 1);
     w.halo.name = 'wild:wispHalo';
     w.halo.renderOrder = 9;
     G.scene.add(w.halo);
@@ -129,8 +129,8 @@ export async function build(W) {
     const nk = Math.min(1, Math.max(0, (nt - 0.12) / 0.43));
     for (const w of wisps) {
       if (w.halo) {
-        w.halo.position.set(w.pos.x, w.pos.y, w.pos.z);
-        w.halo.material.opacity = 0.95 * nk * nk * (3 - 2 * nk);
+        w.halo.position.set(w.pos.x, w.pos.y + 0.8, w.pos.z);
+        w.halo.material.opacity = 0.7 * nk * nk * (3 - 2 * nk);
         w.halo.visible = w.halo.material.opacity > 0.01;
       }
       const d = Math.hypot(pp.x - w.pos.x, pp.z - w.pos.z);

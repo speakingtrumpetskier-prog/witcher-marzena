@@ -18,6 +18,7 @@
 //   W.clear(x, z, r)               G.vegetation.clearArea
 //   W.smoke(pos, opts)             G.world.addSmoke?.(pos, opts) or a props.fx smoke column
 //   W.tick(fn)                     per-frame update (late order); returns remove()
+//   W.lod(obj, near)               hide obj beyond `near` meters from the camera (done for everything a module adds)
 import * as THREE from 'three';
 import { ORDER } from '../../../core/G.js';
 
@@ -39,6 +40,8 @@ const MODULES = [
   ['mill', './mill.js'],
   ['vignettes', './vignettes.js'],
 ];
+
+const LANDMARK = /bellTower|watchtower|idol|mill|island|ritual|stoneCircle|crossroads|sign|drownedMen|bellCracks|wispHalo/;
 
 function makeContext(G, ctx) {
   const W = {
@@ -72,6 +75,15 @@ function makeContext(G, ctx) {
         em.setActive(k > 0.01);
       });
     },
+    // Distance culling for everything a location adds to the scene: far objects are hidden (and so skipped by
+    // both the main pass and the shadow maps). Landmarks stay visible much farther than small clutter.
+    lods: [],
+    lod(obj, near) {
+      obj.updateWorldMatrix(true, true);
+      const box = new THREE.Box3().setFromObject(obj);
+      if (box.isEmpty()) return;
+      W.lods.push({ obj, box, near, on: true });
+    },
     pause: () => new Promise((r) => setTimeout(r, 0)),
     v3: (x, y, z) => new THREE.Vector3(x, y, z),
     stats: { built: [], failed: [] },
@@ -93,7 +105,9 @@ export async function build(G, ctx, opts = {}) {
     const t0 = performance.now();
     try {
       const mod = await load();
+      const before = new Set(G.scene.children);
       await mod.build(W);
+      for (const o of G.scene.children) if (!before.has(o)) W.lod(o, LANDMARK.test(o.name || '') ? 700 : 230);
       W.stats.built.push(`${id} ${Math.round(performance.now() - t0)}ms`);
     } catch (e) {
       console.error(`[wilderness ${id}]`, e);
@@ -103,5 +117,19 @@ export async function build(G, ctx, opts = {}) {
     await W.pause();
   }
   G.world.locations.__wilderness = W.stats;
+  // refresh the distance culling a few times a second (camera position, with hysteresis)
+  let acc = 0;
+  const cam = new THREE.Vector3();
+  W.tick((dt) => {
+    acc += dt;
+    if (acc < 0.2 && acc !== dt) return;
+    acc = 0;
+    cam.copy(G.camera.position);
+    for (const l of W.lods) {
+      const d = l.box.distanceToPoint(cam);
+      const on = d < l.near + (l.on ? 14 : 0);
+      if (on !== l.on) { l.on = on; l.obj.visible = on; }
+    }
+  });
   return W;
 }

@@ -71,6 +71,7 @@ export async function init(G) {
   if (spot) {
     if (!Number.isFinite(hour)) G.time.hours = spot.hour ?? 14.5;
     if (spot.weather && !G.params.get('weather')) G.weather?.set(spot.weather, 0);
+    if (spot.aurora != null && G.sky) G.sky.auroraOverride = spot.aurora;
     G.camera.position.set(...spot.cam);
     G.camera.lookAt(...spot.look);
     if (spot.fov) { G.camera.fov = spot.fov; G.camera.updateProjectionMatrix(); }
