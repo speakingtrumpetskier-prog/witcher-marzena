@@ -7,7 +7,7 @@
 // Every one is specific and small: a prop group of 6 to 20 pieces merged into a handful of draw calls.
 //
 // G.world.locations.vignettes:
-//   list [{ id, type, road, x, y, z, label }], ravens [Vector3] (perches for the animals builder),
+//   list [{ id, type, road, x, y, z, label, view { cam, look } }], ravens [Vector3] (perches for the animals builder),
 //   shrines [{ x, y, z, candle }], tracks [{ id, points, kind }] (senses trails), carcasses []
 import * as THREE from 'three';
 import { ROADS, LOC } from '../../layout.js';
@@ -80,7 +80,10 @@ export async function build(W) {
     try {
       const rec = await place(W, type, site, road, rnd, seed, out);
       if (rec) {
-        out.list.push({ id: `${rid}_${type}_${seed}`, type, road: rid, ...rec });
+        // a suggested viewpoint: on the road, twelve metres short of the vignette, looking at it
+        const back = alongPath(road.pts, Math.max(2, site.s - 12)) || site.a;
+        const view = { cam: v(back.x, G.world.heightAt(back.x, back.z) + 1.7, back.z), look: v(rec.x, rec.y + 1.0, rec.z) };
+        out.list.push({ id: `${rid}_${type}_${seed}`, type, road: rid, ...rec, view });
         built++;
       }
     } catch (e) {

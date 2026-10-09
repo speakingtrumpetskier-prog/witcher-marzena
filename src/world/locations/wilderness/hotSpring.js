@@ -26,7 +26,7 @@ function poolMesh(G, cx, cz, rx, rz, rot, y, seed) {
   }
   const geo = new THREE.ShapeGeometry(new THREE.Shape(pts), 2);
   geo.rotateX(-Math.PI / 2);
-  const mat = new THREE.MeshStandardMaterial({ color: 0x143a3e, roughness: 0.06, metalness: 0.0, emissive: 0x0c3a3a, emissiveIntensity: 0.5, transparent: true, opacity: 0.94 });
+  const mat = new THREE.MeshStandardMaterial({ color: 0x0d2a2e, roughness: 0.14, metalness: 0.0, emissive: 0x0c3a3a, emissiveIntensity: 0.5, transparent: true, opacity: 0.94 });
   // a slow drifting shimmer on the surface
   addCompileHook(mat, 'wildSpring', (shader) => {
     shader.uniforms.uTime = G.uniforms.uTime;
@@ -65,7 +65,6 @@ export async function build(W) {
   ];
   const steam = [];
   const c = new Composer(G, W.ctx, 'hotSpring', L.x, L.z, { seed: 34 });
-  const rocks = [];
   pools.forEach((pl, pi) => {
     const gy = G.world.heightAt(pl.x, pl.z);
     poolMesh(G, pl.x, pl.z, pl.rx, pl.rz, pl.rot, gy + 0.2, 40 + pi);
@@ -80,7 +79,7 @@ export async function build(W) {
       const moss = rnd.chance(0.6);
       c.at(x, z, { y: gy }, (k) => {
         k.blob('stone', s, { pos: [0, s * 0.35, 0], scale: [1.2, 0.55, 1.0], rot: [0, rnd.range(0, 6.28), 0], detail: 1, flat: true, tint: rnd.pick([0xa8a29a, 0x8a847e, 0xb4aea6]), jitter: s * 0.1, nosnow: true });
-        if (moss) k.blob('matte', s * 0.8, { pos: [0, s * 0.62, 0], scale: [1.1, 0.22, 0.95], detail: 1, tint: rnd.pick([0x5d7a3a, 0x6f8a42, 0x4e6a34]), jitter: s * 0.05, grime: 0, var: 0.2, nosnow: true });
+        if (moss) k.blob('matte', s * 0.7, { pos: [rnd.signed(s * 0.2), s * 0.6, rnd.signed(s * 0.2)], scale: [1.0, 0.16, 0.8], detail: 1, tint: rnd.pick([0x4a5c30, 0x55663a, 0x42532c]), jitter: s * 0.08, grime: 0.2, var: 0.3, nosnow: true });
       });
     }
     // steam columns over the water
@@ -89,7 +88,7 @@ export async function build(W) {
       const a = (i / ns) * Math.PI * 2 + 0.7, d = pi === 0 ? 0.5 : 0.35;
       const lx = Math.cos(a) * pl.rx * d, lz = Math.sin(a) * pl.rz * d;
       const x = pl.x + lx * Math.cos(pl.rot) + lz * Math.sin(pl.rot), z = pl.z - lx * Math.sin(pl.rot) + lz * Math.cos(pl.rot);
-      const e = W.fx?.steam?.({ position: [x, gy + 0.3, z], parent: G.scene, height: 7 + rnd.range(0, 3), rate: 5.5, spread: 1.0 + pl.rx * 0.12, size: 1.5, opacity: 0.38 });
+      const e = W.fx?.steam?.({ position: [x, gy + 0.3, z], parent: G.scene, height: 7 + rnd.range(0, 3), rate: 6, spread: 1.0 + pl.rx * 0.12, size: 1.6, opacity: 0.4 });
       if (e) steam.push(e);
     }
     W.fire(pl.x, pl.z, pl.rx + 3.5); // warm water: the player warms up here
@@ -111,15 +110,8 @@ export async function build(W) {
     const s = rnd.range(0.8, 1.9);
     const gy = G.world.heightAt(x, z);
     blocks.push({ v: i % 5, x, y: gy - 0.2, z, s: [s * 1.2, s * 0.8, s], ry: rnd.range(0, 6.28), embed: 0.3 });
-    rocks.push({ x, z, s, y: gy });
   }
   rockBlocks(G, blocks, { tone: 0.85, name: 'hotSpringRocks' });
-  for (const rk of rocks) {
-    c.at(rk.x, rk.z, { y: rk.y }, (k) => {
-      for (let j = 0; j < 3; j++) k.blob('matte', rk.s * rnd.range(0.3, 0.5), { pos: [rnd.signed(rk.s * 0.5), rk.s * 0.55 + rnd.range(0, 0.15), rnd.signed(rk.s * 0.4)], scale: [1.3, 0.28, 1.0], detail: 1, tint: rnd.pick([0x5d7a3a, 0x6f8a42, 0x4e6a34]), jitter: 0.03, grime: 0, var: 0.2, nosnow: true });
-    });
-  }
-
   // ---- props of the bathing place ----------------------------------------------------------------------------
   const bx = (lx, lz) => { const cs = Math.cos(byaw), sn = Math.sin(byaw); return { x: bpos.x + lx * cs + lz * sn, z: bpos.z - lx * sn + lz * cs }; };
   const lp = bx(6.6, 4.0);
@@ -138,7 +130,7 @@ export async function build(W) {
 
   // ---- ground: bare wet earth and moss where the snow cannot lie ---------------------------------------------
   const wet = tex.blob('springWet', { r: 52, g: 44, b: 36, a: 0.92, seed: 4, speck: 0.15, size: 256 });
-  const moss = tex.blob('springMoss', { r: 78, g: 118, b: 52, a: 0.95, seed: 6, speck: 0.3, size: 128 });
+  const moss = tex.blob('springMoss', { r: 70, g: 100, b: 46, a: 0.88, seed: 6, speck: 0.3, size: 192, ragged: 2.1 });
   groundPatch(G, { x: L.x + 15, z: L.z + 4, w: 30, d: 22, yaw: 0.2, map: wet, opacity: 0.9, lift: 0.045, name: 'springWet' });
   groundPatch(G, { x: bpos.x, z: bpos.z + 0.5, w: 14, d: 11, yaw: byaw, map: wet, opacity: 0.85, lift: 0.045, name: 'bathWet' });
   const mossPts = [];

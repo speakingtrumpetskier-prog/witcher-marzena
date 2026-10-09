@@ -30,6 +30,7 @@ export async function build(W) {
 
   // ---- the smuggler, frozen in a pool at the far end of the light path -----------------------------------
   const sm = poolAt(L.x - 21, L.z + 18);
+  W.clear(sm.x, sm.z, 3.5);
   const smuggler = await frozenChar(G, 'villager_m_6', { x: sm.x, z: sm.z, y: 0.78, yaw: 2.3, base: 'drown_reach', tint: [0.8, 0.9, 1.0], steps: 2.6 });
 
   frostFace(smuggler, { opacity: 0.55 });
@@ -45,6 +46,7 @@ export async function build(W) {
     k.mound(0.22, 0.06, 0.2, { pos: [0.02, 1.52, 0.0], jseed: 5 });
   });
   const pn = poolAt(sm.x + 9, sm.z - 6);
+  W.clear(pn.x, pn.z, 3.2);
   c.prop('boat', pn.x, pn.z, { seed: 4, yaw: 0.8, opts: { variant: 'frozen', length: 3.4 }, y: 0 });
   const casks = [];
   for (const [dx, dz, s] of [[2.6, 1.4, 1], [3.5, 0.2, 2]]) {
@@ -66,6 +68,7 @@ export async function build(W) {
 
   // ---- the drowned wayside shrine ---------------------------------------------------------------------------------
   const sp = poolAt(L.x + 14, L.z + 2);
+  W.clear(sp.x, sp.z, 2.6);
   const shrineB = buildings.waysideShrine({ seed: 51 });
   const sh = placeBuilding(G, shrineB, sp.x, sp.z, 0.7, { snap: false, y: -0.85, foundation: false, skirt: false, tag: 'drownedShrine' });
   sh.root.rotation.z = 0.2;
@@ -99,10 +102,37 @@ export async function build(W) {
     wisps.push({ em, idx: i0, k, pos: new THREE.Vector3(wpts[i0].x, 1.0, wpts[i0].z), goal: wpts[i0] });
     W.nightOnly(em);
   });
+  // a soft lure halo per wisp, so the chain of lights reads from forty metres across the ice
+  let haloTex = null;
+  try {
+    const cv = document.createElement('canvas');
+    cv.width = cv.height = 64;
+    const g2 = cv.getContext('2d');
+    const gr = g2.createRadialGradient(32, 32, 0, 32, 32, 32);
+    gr.addColorStop(0, 'rgba(210,255,240,0.95)'); gr.addColorStop(0.18, 'rgba(120,255,215,0.5)'); gr.addColorStop(0.55, 'rgba(60,200,170,0.12)'); gr.addColorStop(1, 'rgba(40,160,140,0)');
+    g2.fillStyle = gr; g2.fillRect(0, 0, 64, 64);
+    haloTex = new THREE.CanvasTexture(cv);
+  } catch { haloTex = null; }
+  for (const w of wisps) {
+    if (!haloTex) break;
+    const sm2 = new THREE.SpriteMaterial({ map: haloTex, color: 0xffffff, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending, fog: false });
+    w.halo = new THREE.Sprite(sm2);
+    w.halo.scale.set(5.6, 5.6, 1);
+    w.halo.name = 'wild:wispHalo';
+    w.halo.renderOrder = 9;
+    G.scene.add(w.halo);
+  }
   const lastIdx = [nW - 2, nW - 1, nW];
   W.tick((dt) => {
     const pp = G.player?.position || G.camera.position;
+    const nt = G.uniforms.uNight ? G.uniforms.uNight.value : 0;
+    const nk = Math.min(1, Math.max(0, (nt - 0.12) / 0.43));
     for (const w of wisps) {
+      if (w.halo) {
+        w.halo.position.set(w.pos.x, w.pos.y, w.pos.z);
+        w.halo.material.opacity = 0.95 * nk * nk * (3 - 2 * nk);
+        w.halo.visible = w.halo.material.opacity > 0.01;
+      }
       const d = Math.hypot(pp.x - w.pos.x, pp.z - w.pos.z);
       // when someone comes within 8 m the light slips on to the next point of the chain (never past its own last point)
       if (d < 8 && w.idx < lastIdx[w.k]) { w.idx++; w.goal = wpts[w.idx]; }

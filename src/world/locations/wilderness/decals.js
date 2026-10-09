@@ -139,7 +139,7 @@ export function dragTexture(seed = 5) {
 }
 
 // Soft blob with a noisy edge. rgb 0..255, used for moss, wet ground, soot, scorch.
-export function blobTexture(name, { r = 70, g = 100, b = 50, a = 0.9, seed = 1, speck = 0.25, size = 128 } = {}) {
+export function blobTexture(name, { r = 70, g = 100, b = 50, a = 0.9, seed = 1, speck = 0.25, size = 128, ragged = 1, solid = 0 } = {}) {
   return once(`blob${name}`, () => {
     const c = mkCanvas(size, size);
     const ctx = c.getContext('2d');
@@ -150,13 +150,13 @@ export function blobTexture(name, { r = 70, g = 100, b = 50, a = 0.9, seed = 1, 
         const rr = Math.hypot(u - 0.5, v - 0.5) * 2;
         const n = fbm(u * 5, v * 5, 5, 5, seed, 4);
         const n2 = fbm(u * 18, v * 18, 18, 18, seed + 9, 3);
-        const edge = rr + (n - 0.5) * 0.8 + (n2 - 0.5) * 0.35;
-        const al = (1 - sstep(0.25, 0.9, edge)) * (1 - sstep(0.88, 1.0, rr));
+        const edge = rr + (n - 0.5) * 0.8 * ragged + (n2 - 0.5) * 0.35 * ragged;
+        const al = (1 - sstep(0.25 + solid * 0.4, 0.9, edge)) * (1 - sstep(0.88, 1.0, rr));
         const m = 0.7 + 0.6 * fbm(u * 14, v * 14, 14, 14, seed + 3, 3);
         const sp = vn(u * 44, v * 44, 44, 44, seed + 8) > 0.7 ? 1 + speck : 1;
         const i = (y * size + x) * 4;
         im.data[i] = Math.min(255, r * m * sp); im.data[i + 1] = Math.min(255, g * m * sp); im.data[i + 2] = Math.min(255, b * m * sp);
-        im.data[i + 3] = Math.max(0, Math.min(255, al * al * a * 255 * (0.65 + 0.5 * n2)));
+        im.data[i + 3] = Math.max(0, Math.min(255, (solid ? al : al * al) * a * 255 * (solid ? 0.9 + 0.2 * n2 : 0.65 + 0.5 * n2)));
       }
     }
     ctx.putImageData(im, 0, 0);

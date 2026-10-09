@@ -86,7 +86,6 @@ export async function build(W) {
   });
   c.at(faP.x, faP.z, { yaw: 0 }, (k) => {
     k.mound(0.5, 0.16, 0.4, { pos: [0.1, 0.84, -0.05], jseed: 1 }); // shoulders
-    k.mound(0.9, 0.22, 0.8, { pos: [0, 0.3, 0.2], jseed: 2 }); // knees
     k.mound(0.22, 0.07, 0.2, { pos: [0.0, 1.12, 0.02], jseed: 3 }); // cap
   });
   c.circle(faP.x, faP.z, 0.5, gy - 1, gy + 1.7, 'frozen father');
@@ -94,7 +93,7 @@ export async function build(W) {
 
   // ---- wind-polished road: ruts and the last tracks (the family's, heading for the pass) ----------
   const trackPts = [[P0.x + F.x * 40, P0.z + F.z * 40], [P0.x + F.x * 14, P0.z + F.z * 14], [cart.x + 0.8, cart.z + 0.6]];
-  const ruts = groundRibbon(G, { pts: trackPts, width: 1.6, map: tex.drag(11), repeat: 8, lift: 0.04, opacity: 0.55, name: 'passRuts' });
+  const ruts = groundRibbon(G, { pts: trackPts, width: 1.25, map: tex.drag(11), repeat: 8, lift: 0.04, opacity: 0.3, name: 'passRuts' });
   c.parts.push(ruts);
 
   c.build();

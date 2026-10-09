@@ -163,6 +163,8 @@ export async function build(W) {
     },
     stairs,
     drowned: { center: new THREE.Vector3(dc.x, 0, dc.z), men: menWorld, decal: 'drownedMen' },
+    // pass to G.water.setUnderGlow(x, z, radius, intensity) during C5 (the pale light of Wiesia under the ice)
+    underGlow: { x: dc.x, z: dc.z, radius: 7 },
     // the pale shape under the ice: slides from beside the men out toward the open lake
     wiesiaGlide: { from: S(5.5, -0.8, 3.8), to: S(-12, -1.2, 20) },
   });

@@ -164,6 +164,14 @@ function baseRock(v, detail, embed) {
   return g;
 }
 
+// Size of a rock block's unit geometry (before scale): { w, h, d, y0, y1 } with the base embed applied.
+export function rockDims(v, detail = 3, embed = 0.22) {
+  const g = baseRock(v, detail, embed);
+  g.computeBoundingBox();
+  const b = g.boundingBox;
+  return { w: b.max.x - b.min.x, h: b.max.y - b.min.y, d: b.max.z - b.min.z, y0: b.min.y, y1: b.max.y };
+}
+
 export function rockBlocks(G, blocks, { tone = 0.8, detail = 2, name = 'rockBlocks', shadows = true, collide = true } = {}) {
   const list = [];
   const m = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), p = new THREE.Vector3(), s = new THREE.Vector3();

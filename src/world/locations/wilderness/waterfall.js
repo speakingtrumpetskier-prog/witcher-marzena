@@ -15,7 +15,8 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { LOC } from '../../layout.js';
 import { FALLS } from '../../heightfield.js';
 import { noise } from '../../../core/Noise.js';
-import { Composer, rngOf, rockBlocks, smoothPath } from './compose.js';
+import { Composer, rngOf, smoothPath } from './compose.js';
+import { denRock } from './denRock.js';
 import { denBones, bedding, brokenChain } from './objects2.js';
 import { tex, groundPatch, groundRibbon } from './decals.js';
 
@@ -36,47 +37,32 @@ async function wolfDen(W) {
   const R = (lx, lz) => { const c = Math.cos(yaw), s = Math.sin(yaw); return { x: P.x + lx * c + lz * s, z: P.z - lx * s + lz * c }; };
   W.clear(P.x, P.z, 8);
 
-  // rock lean-to: two cheek stones, a lintel slab and a tumble of boulders, the hollow dark
-  const blocks = [];
-  const add = (v, lx, lz, dy, s, ry = 0, extra = {}) => { const q = R(lx, lz); blocks.push({ v, x: q.x, y: gh(q.x, q.z) + dy, z: q.z, s, ry: yaw + ry, ...extra }); };
-  for (const sx of [-1, 1]) {
-    add(6, sx * 1.9, 0.4, -0.3, [1.0, 0.9, 1.1], sx * 0.3);
-    add(5, sx * 2.1, 1.7, -0.4, [0.8, 0.6, 0.9], sx * 0.6);
-  }
-  add(3, 0, 0.8, 1.6, [1.7, 0.8, 1.4], 0.1, { embed: 0.1, collide: false });
-  add(4, 0.6, -0.4, 2.4, [1.4, 0.8, 1.2], -0.3, { embed: 0.1, collide: false });
-  for (let i = 0; i < 6; i++) add(i % 7, rnd.range(-4, 4), rnd.range(3, 6.5), -0.1, [rnd.range(0.4, 0.9), rnd.range(0.3, 0.6), rnd.range(0.4, 0.8)], rnd.range(0, 6));
-  rockBlocks(G, blocks, { tone: 0.78, name: 'wolfDenRocks', detail: 3 });
-  {
-    const sh = new THREE.Shape();
-    sh.moveTo(-1.5, 0); sh.lineTo(-1.45, 0.9); sh.quadraticCurveTo(-1.1, 2.1, 0, 2.2); sh.quadraticCurveTo(1.2, 2.0, 1.5, 0.9); sh.lineTo(1.5, 0); sh.closePath();
-    const m = new THREE.Mesh(new THREE.ShapeGeometry(sh, 6), new THREE.MeshBasicMaterial({ color: 0x050608, fog: false }));
-    const q = R(0, 0.55);
-    m.position.set(q.x, floor + 0.05, q.z);
-    m.rotation.y = yaw;
-    m.name = 'wild:wolfDenDark';
-    G.scene.add(m);
-  }
+  // the den: a heap of boulders round a low horseshoe mouth against the slope, a shell of dark rock behind it
   const c = new Composer(G, W.ctx, 'wolfDen', P.x, P.z, { seed: 44 });
-  const bd = R(0, 2.6);
-  c.at(bd.x, bd.z, { yaw: 0.4 }, (k) => bedding(k, { r: 1.5 }));
-  c.at(R(-0.5, 4.2).x, R(-0.5, 4.2).z, { yaw: 1.1 }, (k) => denBones(k, { n: 14, r: 2.3 }));
-  c.prop('skull', R(1.8, 3.6).x, R(1.8, 3.6).z, { seed: 2, opts: { variant: 'wolf' }, yaw: 0.8 });
-  c.prop('skull', R(-1.6, 5.2).x, R(-1.6, 5.2).z, { seed: 3, opts: { variant: 'cow' }, yaw: 2.2 });
-  c.prop('bones', R(0.4, 5.8).x, R(0.4, 5.8).z, { seed: 3, yaw: 0.2 });
-  const dc = R(-1.0, 3.6);
+  const den = denRock(G, c, { x: P.x, z: P.z, yaw, k: 0.7, seed: 446, tone: 0.78, name: 'wolfDen' });
+  const MD = den.mouthD;
+  const earth = tex.blob('denEarth', { r: 70, g: 56, b: 44, a: 0.96, seed: 12, speck: 0.12, size: 256, ragged: 1.1, solid: 1 });
+  { const q = R(0, MD * 0.62); groundPatch(G, { x: q.x, z: q.z, w: 5.6, d: 8.2, yaw, map: earth, opacity: 0.94, lift: 0.05, name: 'wolfDenEarth' }); }
+  const bd = R(0.2, 2.1);
+  c.at(bd.x, bd.z, { yaw: 0.4 }, (k) => bedding(k, { r: 1.2 }));
+  c.at(R(-0.8, 3.0).x, R(-0.8, 3.0).z, { yaw: 0.6 }, (k) => denBones(k, { n: 8, r: 1.1 }));
+  c.at(R(-0.5, MD + 1.8).x, R(-0.5, MD + 1.8).z, { yaw: 1.1 }, (k) => denBones(k, { n: 14, r: 2.3 }));
+  c.prop('skull', R(1.8, MD + 0.6).x, R(1.8, MD + 0.6).z, { seed: 2, opts: { variant: 'wolf' }, yaw: 0.8 });
+  c.prop('skull', R(-1.6, MD + 2.0).x, R(-1.6, MD + 2.0).z, { seed: 3, opts: { variant: 'cow' }, yaw: 2.2 });
+  c.prop('bones', R(0.4, MD + 2.6).x, R(0.4, MD + 2.6).z, { seed: 3, yaw: 0.2 });
+  const dc = R(-1.0, MD - 0.7);
   c.at(dc.x, dc.z, { yaw: 1.4 }, (k) => brokenChain(k)); // the dog's chain and collar
   c.build();
 
   // frozen blood by the mouth, wolf tracks coming from the mill over the ice
   const blood = tex.blob('blood', { r: 96, g: 28, b: 24, a: 0.9, seed: 3, speck: 0.2, size: 128 });
-  for (const [lx, lz, w] of [[-0.6, 5.0, 1.8], [1.4, 6.4, 1.2], [-2.0, 7.4, 0.9]]) {
+  for (const [lx, lz, w] of [[-0.6, MD + 1.4, 1.8], [1.4, MD + 2.8, 1.2], [-2.0, MD + 3.8, 0.9]]) {
     const q = R(lx, lz);
     groundPatch(G, { x: q.x, z: q.z, w, d: w * 0.8, yaw: rnd.range(0, 3), map: blood, opacity: 0.8, lift: 0.045, name: 'denBlood' });
   }
-  const trk = smoothPath([[LOC.mill.x + 4, LOC.mill.z - 6], [LOC.mill.x + 30, LOC.mill.z - 18], [LOC.mill.x + 58, LOC.mill.z - 32], [LOC.mill.x + 74, LOC.mill.z - 46], [R(0, 9).x, R(0, 9).z]], 1.6);
+  const trk = smoothPath([[LOC.mill.x + 4, LOC.mill.z - 6], [LOC.mill.x + 30, LOC.mill.z - 18], [LOC.mill.x + 58, LOC.mill.z - 32], [LOC.mill.x + 74, LOC.mill.z - 46], [R(0, MD + 5.5).x, R(0, MD + 5.5).z]], 1.6);
   groundRibbon(G, { pts: trk, width: 1.2, map: tex.tracks('wolf', 5), repeat: 8, lift: 0.04, opacity: 0.75, name: 'denTracks', order: 4 });
-  const trk2 = smoothPath([[R(0, 9).x, R(0, 9).z], [P.x - 10, P.z + 8], [P.x - 22, P.z + 12], [P.x - 38, P.z + 4]], 1.6);
+  const trk2 = smoothPath([[R(0, MD + 5.5).x, R(0, MD + 5.5).z], [P.x - 10, P.z + 8], [P.x - 22, P.z + 12], [P.x - 38, P.z + 4]], 1.6);
   groundRibbon(G, { pts: trk2, width: 1.2, map: tex.tracks('wolf', 11), repeat: 8, lift: 0.04, opacity: 0.6, name: 'denTracks2', order: 4 });
 
   const v = (x, y, z) => new THREE.Vector3(x, y, z);
@@ -85,9 +71,9 @@ async function wolfDen(W) {
     id: 'waterfall',
     den: {
       center: v(P.x, floor, P.z),
-      mouth: spawn(0, 1.4),
-      wolfSpawns: [spawn(-1.2, 3.2), spawn(1.4, 3.8), spawn(-2.6, 5.4), spawn(2.8, 6.0)],
-      alpha: spawn(0, 2.4), // the scarred alpha waits at the mouth
+      mouth: spawn(0, MD),
+      wolfSpawns: [spawn(-1.3, MD + 1.0), spawn(1.5, MD + 1.7), spawn(-2.6, MD + 3.2), spawn(2.8, MD + 3.8)],
+      alpha: spawn(0, MD - 0.4), // the scarred alpha waits at the mouth
       collar: v(dc.x, floor + 0.1, dc.z), // the dog's collar: Gniewko wants it back
       tracks: { points: trk, kind: 'footprints' },
       yaw,
@@ -167,6 +153,7 @@ async function iceCave(W) {
       if (nrmY < -0.2) c.lerp(cC, 0.55);
       if (nrmY > 0.75) c.lerp(cC, 0.3 + n1);
       if (noise.noise3(x * 0.9, y * 0.9, z * 0.9) > 0.3) c.lerp(cD, 0.6);
+      c.multiplyScalar(0.78 - 0.36 * Math.min(1, t * 1.3)); // daylight dies away down the tunnel
       col.push(c.r, c.g, c.b);
       ring.push({ x, y, z, nx: -S.x * u, ny: -v, nz: -S.z * u });
     }
@@ -181,7 +168,7 @@ async function iceCave(W) {
   geo.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
   geo.setIndex(idx);
   geo.computeVertexNormals();
-  const shellMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.28, metalness: 0.05, side: THREE.DoubleSide, flatShading: true, emissive: 0x0a2c4a, emissiveIntensity: 0.9 });
+  const shellMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.28, metalness: 0.05, side: THREE.DoubleSide, flatShading: true, emissive: 0x0a2c4a, emissiveIntensity: 0.55 });
   const shell = new THREE.Mesh(geo, shellMat);
   shell.name = 'wild:iceCaveShell';
   shell.receiveShadow = false;
@@ -297,7 +284,6 @@ async function iceCave(W) {
   (G.world.walkFloors ||= []).push({ id: 'iceCave', y: floorY, polygon: floorPoly, yAt: (x, z) => { let bi = 0, bd = 1e9; for (let i = 0; i < ringInfo.length; i++) { const d = Math.hypot(x - ringInfo[i].P.x, z - ringInfo[i].P.z); if (d < bd) { bd = d; bi = i; } } return ringInfo[bi].P.y; } });
 
   const v = (x, y, z) => new THREE.Vector3(x, y, z);
-  const cur = G.world.locations.waterfall || {};
   W.loc('waterfall', {
     cave: {
       mouth: v(cm.x, floorY, cm.z), // the slot behind the curtain
@@ -310,6 +296,5 @@ async function iceCave(W) {
       walk,
       colliders: ids,
     },
-    ...(cur.den ? {} : {}),
   });
 }

@@ -82,7 +82,7 @@ export async function build(W) {
     cv.width = 4; cv.height = 64;
     const g2 = cv.getContext('2d');
     const gr = g2.createLinearGradient(0, 64, 0, 0);
-    gr.addColorStop(0, '#ffffff'); gr.addColorStop(0.35, '#7a7a7a'); gr.addColorStop(1, '#000000');
+    gr.addColorStop(0, '#ffffff'); gr.addColorStop(0.3, '#8a8a8a'); gr.addColorStop(0.65, '#262626'); gr.addColorStop(1, '#000000');
     g2.fillStyle = gr; g2.fillRect(0, 0, 4, 64);
     const am = new THREE.CanvasTexture(cv);
     const geo = new THREE.CylinderGeometry(1.0, 2.2, 24, 20, 1, true);
@@ -93,7 +93,7 @@ export async function build(W) {
     beam.name = 'wild:islandBeam';
     beam.renderOrder = 8;
     G.scene.add(beam);
-    W.tick(() => { const n = G.uniforms.uNight?.value ?? 0; mat.opacity = 0.26 * Math.min(1, Math.max(0, (n - 0.15) / 0.5)); beam.visible = mat.opacity > 0.005; });
+    W.tick(() => { const n = G.uniforms.uNight?.value ?? 0; mat.opacity = 0.17 * Math.min(1, Math.max(0, (n - 0.15) / 0.5)); beam.visible = mat.opacity > 0.005; });
   }
 
   // note_island: the carved stone nearest the south landing that shows the girl and the hole (kind 0 or 1)

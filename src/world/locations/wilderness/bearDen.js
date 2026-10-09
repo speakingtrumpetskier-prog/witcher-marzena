@@ -1,8 +1,11 @@
-// Bear den (LOC.bearDen): a cave mouth in the north escarpment, built as overlay geometry (no terrain edits):
-// a rock arch of terrain-rock blocks framing a dark opening set against the cliff, scree at its foot, bones and
-// skulls scattered on the floor, trampled boughs where the bear sleeps, an old Lynx hunter slumped against the
-// left wall in the tatters of his coat with his silver sword by his hand (note_wit), and a breath of warm mist
-// from the dark. The bear itself is spawned by the creatures builder at `bearSleep`.
+// Bear den (LOC.bearDen): a cave mouth in the north escarpment, built as overlay geometry (no terrain edits).
+// The escarpment is a continuous cliff, so the cave is a rock buttress heaped against its foot: three rows of
+// boulders ring a tall horseshoe mouth, heavier blocks pile up over it and roll back into the cliff, and behind
+// them a faceted rock shell makes a real alcove six metres deep whose walls go dark toward the back. The floor
+// is trampled bare earth, the bear's nest lies in the middle, bones and skulls are scattered about, and an old
+// Lynx hunter sits slumped against the left wall in the tatters of his coat with his silver sword by his hand
+// (note_wit). A faint breath of warm air comes out of the dark. The bear itself is spawned by the creatures
+// builder at `bearSleep`.
 //
 // G.world.locations.bearDen:
 //   center, mouth (arch center on the ground), face (cliff hit point), yaw (outward direction), floorY,
@@ -10,10 +13,11 @@
 //   approach (safe viewing spot), tracks (old bear trail), warn (radius around the bear where it wakes)
 import * as THREE from 'three';
 import { LOC } from '../../layout.js';
-import { Composer, rngOf, rockBlocks } from './compose.js';
+import { Composer } from './compose.js';
+import { denRock } from './denRock.js';
 import { huntersRemains, denBones, bedding } from './objects2.js';
 import { silverSword } from './objects.js';
-import { tex, groundRibbon } from './decals.js';
+import { tex, groundRibbon, groundPatch } from './decals.js';
 
 // Find the visible cliff face at (x, y) looking north from the south: raycast the cliff meshes, or march the terrain.
 function faceZ(G, x, y) {
@@ -30,109 +34,71 @@ function faceZ(G, x, y) {
 export async function build(W) {
   const { G } = W;
   const L = LOC.bearDen;
-  const rnd = rngOf(150);
-  W.clear(L.x, L.z, 17);
+  W.clear(L.x, L.z, 20);
   const X = L.x;
   // floor height at the foot of the cliff, iterating with the face position
   let zf = L.z - 4, floor = G.world.heightAt(X, zf + 2.5);
   for (let i = 0; i < 4; i++) { zf = faceZ(G, X, floor + 2.6); floor = G.world.heightAt(X, zf + 2.6); }
   const P = { x: X, y: floor, z: zf };
   const gy = (lx, lz) => G.world.heightAt(P.x + lx, P.z + lz);
-  const W3 = (lx, lz, y) => new THREE.Vector3(P.x + lx, y ?? gy(lx, lz), P.z + lz);
+  const c = new Composer(G, W.ctx, 'bearDen', P.x, P.z, { seed: 15, y: floor });
 
-  // ---- the arch: terrain-rock blocks framing the opening -----------------------------------------------------
-  const blocks = [];
-  const add = (v, lx, lz, dy, s, ry = 0, extra = {}) => blocks.push({ v, x: P.x + lx, y: gy(lx, lz) + dy, z: P.z + lz, s, ry, ...extra });
-  const top = floor + 4.6;
-  // jambs: crags either side, stacked
-  for (const sx of [-1, 1]) {
-    add(6, sx * 3.5, 0.6, -0.4, [1.5, 1.35, 1.7], sx * 0.3 + 0.2);
-    add(5, sx * 3.7, 2.2, -0.5, [1.2, 0.95, 1.3], sx * 0.5);
-    add(1, sx * 3.0, 3.8, -0.4, [1.0, 0.75, 1.1], sx * 0.8);
-    add(4, sx * 3.2, 0.2, 2.3, [1.3, 1.1, 1.4], sx * 0.2 + 1.0, { embed: 0.1 }); // upper jamb stones
-  }
-  // lintel slab and roof mass over the opening
-  blocks.push({ v: 3, x: P.x, y: top - 0.9, z: P.z + 1.9, s: [3.1, 1.15, 2.1], ry: 0.05, embed: 0.05, collide: false });
-  blocks.push({ v: 4, x: P.x - 1.0, y: top + 0.1, z: P.z + 0.4, s: [2.6, 1.3, 1.8], ry: -0.2, embed: 0.1, collide: false });
-  blocks.push({ v: 4, x: P.x + 2.2, y: top - 0.2, z: P.z + 0.9, s: [2.0, 1.1, 1.5], ry: 0.5, embed: 0.1, collide: false });
-  // scree and fallen blocks in front of the mouth
-  for (let i = 0; i < 9; i++) {
-    const a = rnd.range(-1.2, 1.2), d = rnd.range(4.5, 9);
-    const lx = Math.sin(a) * d * 1.3, lz = 2 + Math.cos(a) * d * 0.9;
-    if (Math.abs(lx) < 2.3 && lz < 7) continue; // keep the path in clear
-    const s = rnd.range(0.5, 1.3);
-    add(i % 7, lx, lz, -0.1, [s * 1.2, s * 0.8, s], rnd.range(0, 6.28));
-  }
-  rockBlocks(G, blocks, { tone: 0.72, name: 'bearDenArch', detail: 3 });
+  // ---- the alcove and the buttress heaped round it (see denRock.js) ----------------------------------------------
+  const den = denRock(G, c, { x: P.x, z: P.z, yaw: 0, k: 1, seed: 150, tone: 0.72, name: 'bearDen' });
+  const MOUTH_D = den.mouthD;
 
-  // the dark inside: an arch-shaped plug set just proud of the cliff face, and inner shadow planes on the walls
-  {
-    const sh = new THREE.Shape();
-    sh.moveTo(-2.75, -2.5);
-    sh.lineTo(-2.7, 1.9);
-    sh.quadraticCurveTo(-2.4, 3.8, 0, 4.0);
-    sh.quadraticCurveTo(2.5, 3.8, 2.75, 1.7);
-    sh.lineTo(2.75, -2.5);
-    sh.closePath();
-    const geo = new THREE.ShapeGeometry(sh, 8);
-    const mat = new THREE.MeshBasicMaterial({ color: 0x050608, fog: false });
-    const m = new THREE.Mesh(geo, mat);
-    m.position.set(P.x, floor, P.z + 0.45);
-    m.name = 'wild:bearDenDark';
-    G.scene.add(m);
-    // a second, deeper layer so the dark has volume when seen at an angle
-    const m2 = m.clone();
-    m2.position.set(P.x, floor, P.z + 1.4);
-    m2.scale.set(0.96, 0.9, 1);
-    m2.material = new THREE.MeshBasicMaterial({ color: 0x0a0b0e, transparent: true, opacity: 0.55, fog: false, depthWrite: false });
-    G.scene.add(m2);
-  }
+  // trampled bare earth under the roof and out into the yard, darker toward the back
+  const earth = tex.blob('denEarth', { r: 70, g: 56, b: 44, a: 0.96, seed: 12, speck: 0.12, size: 256, ragged: 1.1, solid: 1 });
+  groundPatch(G, { x: P.x, z: P.z + 4.3, w: 8.4, d: 9.4, yaw: 0, map: earth, opacity: 0.96, lift: 0.05, name: 'denEarth' });
+  const shade = tex.blob('denShade', { r: 6, g: 5, b: 5, a: 0.85, seed: 14, speck: 0, size: 128, ragged: 0.5 });
+  groundPatch(G, { x: P.x, z: P.z + 1.8, w: 7.4, d: 5.8, yaw: 0, map: shade, opacity: 0.9, lift: 0.075, name: 'denShade' });
 
   // ---- inside: bedding, bones, the old hunter -------------------------------------------------------------------
-  const c = new Composer(G, W.ctx, 'bearDen', P.x, P.z, { seed: 15, y: floor });
-  const bearAt = { x: P.x + 0.9, z: P.z + 1.9 };
-  c.at(bearAt.x, bearAt.z, { yaw: 0.4 }, (k) => bedding(k, { r: 1.8 }));
-  c.at(P.x - 1.2, P.z + 2.8, { yaw: 0.2 }, (k) => denBones(k, { n: 10, r: 1.5 }));
-  c.at(P.x + 1.6, P.z + 0.9, { yaw: 1.2 }, (k) => denBones(k, { n: 6, r: 1.0 }));
-  c.prop('bones', P.x - 0.3, P.z + 3.4, { seed: 2, yaw: 0.8 });
-  c.prop('skull', P.x + 2.0, P.z + 2.9, { seed: 3, opts: { variant: 'cow' }, yaw: 2.0 });
-  c.prop('skull', P.x - 0.9, P.z + 1.2, { seed: 4, opts: { variant: 'wolf' }, yaw: 0.4 });
-  c.prop('skull', P.x - 2.5, P.z + 3.0, { seed: 5, opts: { variant: 'human' }, yaw: -0.6 });
-  const hp = { x: P.x - 2.15, z: P.z + 1.6 };
-  c.at(hp.x, hp.z, { yaw: 0.35, dy: 0.0 }, (k) => huntersRemains(k, { scale: 1.0 }));
+  const bearAt = { x: P.x + 0.9, z: P.z + 3.0 };
+  c.at(bearAt.x, bearAt.z, { yaw: 0.4 }, (k) => bedding(k, { r: 1.7 }));
+  c.at(P.x - 1.0, P.z + 4.9, { yaw: 0.2 }, (k) => denBones(k, { n: 10, r: 1.6 }));
+  c.at(P.x + 2.0, P.z + 1.8, { yaw: 1.2 }, (k) => denBones(k, { n: 7, r: 1.2 }));
+  c.at(P.x + 0.4, P.z + 6.6, { yaw: 2.2 }, (k) => denBones(k, { n: 6, r: 1.4 }));
+  c.prop('bones', P.x - 0.2, P.z + 5.6, { seed: 2, yaw: 0.8 });
+  c.prop('skull', P.x + 2.2, P.z + 4.6, { seed: 3, opts: { variant: 'cow' }, yaw: 2.0 });
+  c.prop('skull', P.x - 0.9, P.z + 2.6, { seed: 4, opts: { variant: 'wolf' }, yaw: 0.4 });
+  c.prop('skull', P.x + 0.6, P.z + 7.2, { seed: 5, opts: { variant: 'human' }, yaw: -0.6 });
+  const hp = { x: P.x - 2.55, z: P.z + 4.2 };
+  c.at(hp.x, hp.z, { yaw: 0.5, dy: 0.0 }, (k) => huntersRemains(k, { scale: 1.0 }));
   c.circle(hp.x, hp.z, 0.6, floor - 1, floor + 1.6, 'remains');
   // the silver sword at his right hand, half under the bones; a pack, a snapped steel blade and a lantern
-  const sw = { x: hp.x + 0.9, z: hp.z + 0.65 };
+  const sw = { x: hp.x + 0.95, z: hp.z + 0.75 };
   c.at(sw.x, sw.z, { yaw: 1.9, dy: 0.03 }, (k) => silverSword(k, { rot: [Math.PI / 2 - 0.04, 0, 0], pos: [0, 0.03, 0] }));
-  c.prop('sack', hp.x - 0.5, hp.z + 1.3, { seed: 3, yaw: 0.3 });
-  c.prop('lantern', hp.x + 0.2, hp.z + 1.9, { seed: 1, rot: [0, 0, 1.4], dy: 0.1, opts: { mount: 'ground' } });
+  c.prop('sack', hp.x - 0.1, hp.z + 1.4, { seed: 3, yaw: 0.3 });
+  c.prop('lantern', hp.x + 0.45, hp.z + 2.0, { seed: 1, rot: [0, 0, 1.4], dy: 0.1, opts: { mount: 'ground' } });
   c.build();
 
-  // warm mist breathing out of the dark
-  const mist = W.fx?.steam?.({ position: [P.x + 0.3, floor + 1.9, P.z + 1.2], parent: G.scene, height: 3.5, rate: 2.2, spread: 0.9, size: 1.2, opacity: 0.2 });
-  void mist;
+  // a faint warm breath out of the dark
+  W.fx?.steam?.({ position: [P.x + 0.4, floor + 2.2, P.z + 4.8], parent: G.scene, height: 3.2, rate: 1.4, spread: 1.8, size: 1.5, opacity: 0.1 });
+
+  // the den is a cave to the ears and the light
+  W.interior({ id: 'bearDen', polygon: [[P.x - 3.1, P.z + 0.2], [P.x + 3.1, P.z + 0.2], [P.x + 3.4, P.z + MOUTH_D], [P.x - 3.4, P.z + MOUTH_D]], y0: floor - 1, y1: floor + 6, env: 'cave' });
 
   // old bear tracks, half filled with snow, leading out of the mouth and away south-east
-  const trk = [[P.x + 0.8, P.z + 3.5], [P.x + 3, P.z + 9], [P.x + 8, P.z + 16], [P.x + 15, P.z + 22]];
+  const trk = [[P.x + 0.8, P.z + MOUTH_D + 1], [P.x + 3, P.z + 12], [P.x + 8, P.z + 18], [P.x + 15, P.z + 24]];
   groundRibbon(G, { pts: trk, width: 1.5, map: tex.tracks('wolf', 9), repeat: 7, lift: 0.04, opacity: 0.5, name: 'bearTracks', order: 4 });
 
   const v = (x, y, z) => new THREE.Vector3(x, y, z);
   W.loc('bearDen', {
     id: 'bearDen',
     center: v(L.x, G.world.heightAt(L.x, L.z), L.z),
-    mouth: v(P.x, floor, P.z + 1.0),
+    mouth: v(P.x, floor, P.z + MOUTH_D),
     face: v(P.x, floor, P.z),
     yaw: 0,
     floorY: floor,
-    bearSleep: { x: bearAt.x, y: floor, z: bearAt.z, yaw: 2.6, radius: 7 },
+    bearSleep: { x: bearAt.x, y: floor, z: bearAt.z, yaw: 2.4, radius: 7 },
     hunter: v(hp.x, floor + 0.5, hp.z),
     silverSword: v(sw.x, floor + 0.12, sw.z), // note_wit: "For Wit of the Lynx. Paid in full."
-    skulls: [v(P.x + 2.0, floor, P.z + 2.9), v(P.x - 0.9, floor, P.z + 1.2), v(P.x - 2.5, floor, P.z + 3.0)],
-    bones: v(P.x - 0.3, floor, P.z + 3.4),
+    skulls: [v(P.x + 2.2, floor, P.z + 4.6), v(P.x - 0.9, floor, P.z + 2.6), v(P.x + 0.6, floor, P.z + 7.2)],
+    bones: v(P.x - 0.2, floor, P.z + 5.6),
     bedding: v(bearAt.x, floor, bearAt.z),
-    approach: v(P.x, gy(0, 14), P.z + 14),
+    approach: v(P.x, gy(0, 18), P.z + 18),
     tracks: trk.map(([x, z]) => v(x, G.world.heightAt(x, z), z)),
     warn: 7,
   });
-  void W3;
 }

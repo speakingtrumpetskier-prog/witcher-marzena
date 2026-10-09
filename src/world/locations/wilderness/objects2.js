@@ -127,15 +127,24 @@ export function brokenChain(k, o = {}) {
   k.pop();
 }
 
-// Bedding of trampled boughs and fur (the bear's, the wolves').
+// Bedding of trampled boughs, dry grass and old fur (the bear's, the wolves'): a low lumpy nest, no snow on it.
 export function bedding(k, o = {}) {
   const r = o.r || 1.4;
   k.push({ yaw: o.yaw || 0 });
-  for (let i = 0; i < 24; i++) {
-    const a = k.r(0, TAU), d = Math.sqrt(k.r(0, 1)) * r;
-    k.cyl('bark', 0.025, 0.03, k.r(0.5, 1.1), { pos: [Math.cos(a) * d, 0.06 + k.r(0, 0.1), Math.sin(a) * d], rot: [Math.PI / 2, 0, 0], yaw: k.r(0, TAU), radial: 4, tint: k.pick([0x4a463a, 0x5a5646, 0x3e3a30]), cap: null });
+  // lumpy heap of dry grass and spruce litter
+  k.blob('straw', r * 0.6, { pos: [0, 0.1, 0], scale: [1.25, 0.28, 1.15], detail: 1, tint: 0x6a5834, jitter: r * 0.07, nosnow: true, grime: 0.2 });
+  for (let i = 0; i < 5; i++) {
+    const a = k.r(0, TAU), d = k.r(0.25, 0.7) * r;
+    k.blob('straw', r * k.r(0.25, 0.38), { pos: [Math.cos(a) * d, 0.12 + k.r(0, 0.08), Math.sin(a) * d], scale: [1.2, 0.4, 1.15], detail: 1, tint: k.pick([0x5e4e30, 0x75613a, 0x4f4430]), jitter: 0.06, nosnow: true, grime: 0.25 });
   }
-  k.blob('fur', r * 0.4, { pos: [0.1, 0.1, 0.0], scale: [1.5, 0.3, 1.1], detail: 1, tint: 0x4e4036, jitter: 0.05 });
+  // broken boughs dragged in and flattened
+  for (let i = 0; i < 20; i++) {
+    const a = k.r(0, TAU), d = Math.sqrt(k.r(0, 1)) * r * 1.05;
+    k.cyl('bark', 0.022, 0.03, k.r(0.5, 1.0), { pos: [Math.cos(a) * d, 0.07 + k.r(0, 0.14), Math.sin(a) * d], rot: [Math.PI / 2 - k.r(0, 0.25), 0, 0], yaw: k.r(0, TAU), radial: 4, tint: k.pick([0x3c382c, 0x4a4636, 0x2f2c24]), cap: null, nosnow: true });
+  }
+  // a matted hollow where the animal lies, with a patch of old fur
+  k.blob('fur', r * 0.32, { pos: [0.12, 0.17, 0.05], scale: [1.7, 0.2, 1.1], detail: 1, tint: 0x4a3c32, jitter: 0.05, nosnow: true });
+  k.blob('fur', r * 0.18, { pos: [-0.5, 0.15, -0.3], scale: [1.4, 0.18, 1.0], detail: 1, tint: 0x5a4a3c, jitter: 0.04, nosnow: true });
   k.pop();
 }
 
