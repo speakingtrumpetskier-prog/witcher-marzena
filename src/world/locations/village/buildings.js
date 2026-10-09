@@ -13,9 +13,9 @@ export async function buildStructures(V) {
 
   put('longhouse', 'longhouse', B.longhouse({ seed: H.longhouse.seed, open: 0 }), H.longhouse, {}, { hero: true, inhabited: true, smokeRate: 0.7, room: 'room' });
   put('tavern', 'tavern', B.tavern({ seed: H.tavern.seed, open: 0.3 }), H.tavern, {}, { hero: true, inhabited: true, room: 'room', smokeRate: 1.5 });
-  put('smithy', 'smithy', B.smithy({ seed: H.smithy.seed }), H.smithy, {}, { hero: true, inhabited: true, smokeRate: 2.2, smokeKey: 'smoke' });
+  put('smithy', 'smithy', B.smithy({ seed: H.smithy.seed }), H.smithy, { align: 'avg', lip: 0.1 }, { hero: true, inhabited: true, smokeRate: 2.2, smokeKey: 'smoke' });
   put('shrine', 'shrine', B.shrine({ seed: H.shrine.seed }), H.shrine, { foundation: false, skirt: false }, { hero: true });
-  put('workshop', 'workshop', B.workshop({ seed: H.workshop.seed }), H.workshop, {}, { hero: true, inhabited: true, room: 'room', smokeRate: 1.0 });
+  put('workshop', 'workshop', B.workshop({ seed: H.workshop.seed }), H.workshop, { align: 'avg', lip: 0.1 }, { hero: true, inhabited: true, room: 'room', smokeRate: 1.0 });
   put('hanka', 'hankaHouse', B.hankaHouse({ seed: H.hanka.seed, open: 0 }), H.hanka, { align: 'avg', lip: 0.02 }, { hero: true, room: 'room' });
   put('banya', 'banya', B.banya({ seed: H.banya.seed }), H.banya, {}, { hero: true, inhabited: true, room: 'room', smokeRate: 1.2 });
   await tick();

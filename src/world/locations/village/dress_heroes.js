@@ -226,6 +226,11 @@ export function dressHeroes(D) {
     D.tryPut('cart', [[-1.5, 112, 0.7]], { opts: { variant: 'empty' } }, 1.7);
     D.tryPut('hayBale', [[19, 118.5, 0.4], [19.8, 120, 1.0]], {}, 0.7);
     D.tryPut('snowman', [[-6.4, 125.5, 0.3]], {}, 0.7);
+    // the rite is near: a birch pole with red ribbons waits at the north side of the square
+    D.tryPut('ribbonPole', [[3.6, 112.6, 0]], { opts: { height: 4.2 } }, 0.8);
+    D.tryPut('sled', [[16.4, 118.8, 0.5]], {}, 0.9);
+    D.tryPut('barrelStack', [[-18.5, 120.8, 0.4]], { opts: { variant: 'pyramid' } }, 1.1);
+    D.tryPut('woodpile', [[19.5, 124.6, 0.2]], {}, 1.1);
     // lanterns around the square
     for (const [x, z] of [[-6, 113], [11, 114.2], [-8, 123.4], [11.6, 121]]) { const h = D.tryPut('lantern', [[x, z, 0]], { opts: { mount: 'post' }, id: `sq_lantern${D.lanterns.length}` }, 0.5); if (h) D.lanterns.push(h); }
 
@@ -251,6 +256,10 @@ export function dressHeroes(D) {
         put('sack', 0.8, 0.95, { scale: 0.7 });
       }
       D.claim(r.x, r.z, 1.6);
+      for (const [lx, lz, name] of [[1.9, -0.7, 'crateStack'], [-1.9, -0.4, 'barrel'], [0.4, -1.8, 'sack']]) {
+        const [x, z] = sf.at(lx, lz);
+        D.tryPut(name, [[x, z, r.yaw + lx]], {}, name === 'crateStack' ? 0.8 : 0.5);
+      }
     }
   }
 

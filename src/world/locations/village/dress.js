@@ -9,6 +9,7 @@ import { frame, inRect, roadGap, seeded, tick } from './util.js';
 import { buildRibbons } from './paths.js';
 import { dressHeroes } from './dress_heroes.js';
 import { dressEdges } from './dress_edges.js';
+import { dressStreets } from './dress_streets.js';
 import { nearestRoad } from '../../layout.js';
 import { SQUARE } from './plan.js';
 
@@ -202,6 +203,7 @@ export async function buildDressing(V) {
   }
   await tick();
   dressHeroes(D);
+  if (V.G.quality !== 'low') dressStreets(D);
   squarePaths(D);
   await tick();
   dressEdges(D);

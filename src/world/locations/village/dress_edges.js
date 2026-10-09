@@ -44,15 +44,18 @@ function dressShore(D, sh) {
     D.add('fishingStool', st[0], st[1], { yaw: rng() * 6 });
     const bk = c.at(2.2, 5.2);
     D.add('bucket', bk[0], bk[1], { seed: i });
-    if (i % 2 === 1) {
+    if (i % 3 === 1) {
       const b = c.at(-6.5, 8.5);
       D.add('boat', b[0], b[1], { yaw: hut.yaw + PI / 2 + (rng() - 0.5) * 0.6, seed: i });
     }
     // nets drying behind (land side)
-    const nb = c.at(i % 2 ? -4.2 : 4.4, -6.2);
-    if (D.free(nb[0], nb[1], 1.2)) D.put('net', nb[0], nb[1], { yaw: hut.yaw + 0.1 }, 1.2);
-    const rk = c.at(i % 2 ? 4.8 : -4.8, -7.0);
-    if (D.free(rk[0], rk[1], 1.3)) D.put('dryingRack', rk[0], rk[1], { yaw: hut.yaw + (rng() - 0.5) * 0.4 }, 1.3);
+    if (i % 2 === 0) {
+      const nb = c.at(4.4, -6.2);
+      if (D.free(nb[0], nb[1], 1.2)) D.put('net', nb[0], nb[1], { yaw: hut.yaw + 0.1 }, 1.2);
+    } else {
+      const rk = c.at(-4.8, -7.0);
+      if (D.free(rk[0], rk[1], 1.3)) D.put('dryingRack', rk[0], rk[1], { yaw: hut.yaw + (rng() - 0.5) * 0.4 }, 1.3);
+    }
   });
 
   // more nets, racks and boats on the beach between the huts
@@ -61,11 +64,11 @@ function dressShore(D, sh) {
     const name = ['net', 'dryingRack', 'skinFrame', 'dryingRack', 'net', 'dryingRack'][Math.abs(Math.round(x)) % 6];
     D.tryPut(name, [[x, z, PI / 2 + (rng() - 0.5) * 0.5]], {}, 1.3);
   }
-  for (const [x, d] of [[-62, 9], [-5, 10], [20, 9], [58, 9]]) {
+  for (const [x, d] of [[-62, 9], [-5, 10], [58, 9]]) {
     const z = shoreZ(G, x, d);
     D.tryPut('boat', [[x, z, rng() * 6]], { opts: { variant: 'overturned' } }, 2.2);
   }
-  for (const x of [-84, -64, -40]) {
+  for (const x of [-60]) {
     const z = shoreZ(G, x, -6);
     D.tryPut('boat', [[x, z, PI / 2 + (rng() - 0.5)]], { opts: { variant: 'frozen' }, lake: -50 }, 2.4);
   }

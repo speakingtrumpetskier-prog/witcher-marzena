@@ -3,15 +3,21 @@
 //
 //   build(G, ctx)  called by locations/index.js (ctx: { props, PropBatch, fx })
 //
-// Public results (see docs/VILLAGE.md and the report):
+// Public results (see docs/VILLAGE.md and the builder's report):
 //   G.world.locations.village   story anchors (world-space Vector3 plus objects), audit(), V registry
-//   G.world.stations            NPC stations (id -> { x, z, yaw, anim, kind, indoor })
-//   G.world.fires               warm spots { x, z, r }
-//   G.world.indoors(x, z)       true inside enterable interiors (interiors.js)
+//   G.world.stations            NPC stations (id -> { x, z, y, yaw, anim, kind, indoor })
+//   G.world.fires               warm spots { x, z, r, id, indoor? }
+//   G.world.indoors(x, z)       true inside enterable interiors; G.world.registerInterior({ id, box | polygon, env })
 //   G.world.walk                { floors, ramps } of every building plus the boardwalk (walk surfaces for gameplay)
-//   G.world.lights              shared point-light pool (lights.js)
-// Files: village/plan.js (data), buildings.js, linear.js (palisade, gates, fences), shore.js, dress.js (props),
-// life.js (stations, fires, fx, audio), anchors.js; lights.js, interiors.js and tracker.js sit one level up.
+//   Shared services other locations can use (installed first, before anything can fail):
+//     G.world.lights / G.world.addLight(desc)      point-light pool (lights.js)
+//     G.world.addSmoke(pos, opts)                  smoke columns with a live budget (smoke.js)
+//     G.world.registerInterior / registerDoor      interiors, audio environment and door swing (interiors.js)
+//     location:enter / location:leave events       tracker.js, every LOC entry
+// Files: village/plan.js (data), buildings.js, linear.js (palisade, gates, fences), shore.js, dress*.js (props),
+// life.js (stations, fires, fx, audio), anchors.js, bake.js (draw-call and triangle bake with LODs), paths.js
+// (trodden-snow ribbons), signs.js (canvas signs), mounds.js; lights.js, smoke.js, interiors.js and tracker.js
+// sit one level up.
 import * as THREE from 'three';
 import { placeBuilding } from '../architecture/index.js';
 import { getLightPool } from './lights.js';
@@ -19,6 +25,9 @@ import { installSmoke } from './smoke.js';
 import { installInteriors } from './interiors.js';
 import { initTracker } from './tracker.js';
 import { inRect, rot, rectOverlap, roadGap, tick, makeLog } from './village/util.js';
+import { addApron } from './village/apron.js';
+
+const APRON = new Set(['longhouse', 'tavern', 'smithy', 'workshop', 'hankaHouse', 'banya', 'logHouse', 'barn', 'stable', 'shed']);
 
 async function load(G, name, fn) {
   try {
@@ -58,6 +67,7 @@ function makeV(G, ctx) {
     };
     V.placed.push(rec);
     V.byId[id] = rec;
+    if (opts.snap !== false && APRON.has(kind)) addApron(V, rec);
     // Lights: windows, lanterns and hearths become pool descriptors (indoor ones stay on while you are inside).
     const fp = rec.fp;
     for (const l of p.lights) {
