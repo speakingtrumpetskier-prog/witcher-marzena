@@ -20,7 +20,7 @@ catches issues, and fixes them or sends a targeted fix back to the builder. No c
 | 2 | NPCs and animals | sonnet (worktree) | building | 0 | |
 | 2 | Combat and creatures | sonnet | waits for characters | | |
 | 3 | Village composition | sonnet (worktree) | building | 0 | |
-| 3 | Lake set pieces and wilderness nooks | sonnet | pending | | |
+| 3 | Lake set pieces and wilderness nooks | sonnet (worktree) | building | 0 | |
 | 3 | Writing and cutscene scripts | | pending | | |
 
 Model policy (user request): Part Two and later run on Sonnet 5.5, except a single long-running builder may stay on Opus (the story systems builder).
