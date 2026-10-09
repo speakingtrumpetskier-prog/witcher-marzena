@@ -17,9 +17,10 @@ catches issues, and fixes them or sends a targeted fix back to the builder. No c
 | 2 | Player, camera, horse riding, player moveset | sonnet (worktree) | building | 0 | |
 | 2 | UI | sonnet | done, reviewed | 1 | HUD, compass, subtitles, barks, choices, journal, parchment map, notes, pause, settings, title, credits |
 | 2 | Dialogue, cutscene director, quests, interaction, senses, flow | opus (single agent) | done, reviewed | 1 | TV-director coverage, skippable cutscenes, all quests, senses trails and echoes, title/new game/continue/rest |
-| 2 | NPCs and animals | sonnet | waits for characters | | |
+| 2 | NPCs and animals | sonnet (worktree) | building | 0 | |
 | 2 | Combat and creatures | sonnet | waits for characters | | |
-| 3 | Village and wilderness locations | | pending | | |
+| 3 | Village composition | sonnet (worktree) | building | 0 | |
+| 3 | Lake set pieces and wilderness nooks | sonnet | pending | | |
 | 3 | Writing and cutscene scripts | | pending | | |
 
 Model policy (user request): Part Two and later run on Sonnet 5.5, except a single long-running builder may stay on Opus (the story systems builder).
