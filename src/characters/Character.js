@@ -235,6 +235,10 @@ export class Character {
     this.anim.update(dt, ctx);
     if (ctx.lod === 0 && ctx.ik !== false) this._footIK();
     if (ctx.lod <= 1) {
+      // riding: find the horse this character is parented under (saddle anchor)
+      let o = this.root.parent, horse = null;
+      for (let i = 0; o && i < 6; i++, o = o.parent) if (o.userData && o.userData.horse) { horse = o.userData.horse; break; }
+      this.springs.mount = horse;
       const wind = G.uniforms ? _v3.set(G.uniforms.uWind.value.x, 0, G.uniforms.uWind.value.y).multiplyScalar(G.uniforms.uWind.value.z * 2) : null;
       this.springs.update(dt, wind);
     }

@@ -119,9 +119,9 @@ function buildHairShell(ctx, h) {
     const phi = (j / nPhi) * TAU;
     let g = 0.04, lo = 0;
     if (!inRegion(info.cast(dirAt(phi, g)))) { edges.push(0); continue; }
-    while (g < 3.0 && inRegion(info.cast(dirAt(phi, g)))) { lo = g; g += 0.06; }
+    while (g < 3.0 && inRegion(info.cast(dirAt(phi, g)))) { lo = g; g += 0.11; }
     let a = lo, b = Math.min(g, 3.0);
-    for (let k = 0; k < 7; k++) {
+    for (let k = 0; k < 8; k++) {
       const m = (a + b) * 0.5;
       if (inRegion(info.cast(dirAt(phi, m)))) a = m; else b = m;
     }
@@ -142,10 +142,15 @@ function buildHairShell(ctx, h) {
     if (!streak) return 0;
     const pe = info.cast(dirAt((j / nPhi) * TAU, ge));
     if (pe.z < 0.02) return 0;
-    return Math.exp(-(((Math.atan2(pe.x, pe.z) - (h.streakAz ?? 0.32)) / 0.12) ** 2));
+    return Math.exp(-(((Math.atan2(pe.x, pe.z) - (h.streakAz ?? 0.32)) / 0.2) ** 2));
   });
+  // smooth across neighbouring meridians so the streak is a band, not single strands
+  for (let it = 0; it < 2; it++) {
+    const w = streakW.slice();
+    for (let j = 0; j < nPhi; j++) streakW[j] = (w[(j + nPhi - 1) % nPhi] + 2 * w[j] + w[(j + 1) % nPhi]) / 4;
+  }
   const nrm = new THREE.Vector3();
-  const rows = [];
+  const rows = [], hidden = [];
   for (let i = 0; i <= nG; i++) {
     const tr = i / nG;
     const row = [];
@@ -157,17 +162,20 @@ function buildHairShell(ctx, h) {
       let th = cfg.vol * (0.6 + 0.4 * smoothstep(0.02, 0.14, p.y)) * (1 + cfg.clump * pnoise(phi, 13, tr * 1.5, seed));
       if (cfg.pole === 'gather') th *= 1 + 0.5 * smoothstep(0.3, 0.0, tr);
       th = lerp(0.0022, th, smoothstep(1.0, 0.78, tr));
-      if (cover) th = lerp(th, 0.0009, smoothstep(-0.003, 0.008, cover(p)));
+      const cv = cover ? cover(p) : -1;
+      if (cover) th = lerp(th, 0.0009, smoothstep(-0.003, 0.008, cv));
       const q = p.clone().addScaledVector(nrm, th);
+      (hidden[i] ||= [])[j] = cv > 0.012;
       const tone = (0.82 + 0.26 * pnoise(phi, 31, 0.4, seed + 3) + 0.1 * pnoise(phi, 9, 0, seed + 5)) *
         lerp(0.8, 1, smoothstep(0, 0.3, tr)) * lerp(1, 0.86, smoothstep(0.85, 1, tr));
       const c = base.clone().multiplyScalar(tone);
-      if (streak && streakW[jj] > 0.01) c.lerp(streak, streakW[jj] * 0.85 * smoothstep(0.05, 0.3, tr));
+      if (streak && streakW[jj] > 0.01) c.lerp(streak.clone().multiplyScalar(0.8 + 0.25 * tone - 0.2), Math.min(1, streakW[jj] * 1.1) * 0.8 * smoothstep(0.05, 0.3, tr));
       row.push(mb.vert(toW(ctx, q), c, (j / nPhi) * cfg.tileU, tr * 1.3, sm, [['head', 1]]));
     }
     rows.push(row);
   }
   for (let i = 0; i < nG; i++) for (let j = 0; j < nPhi; j++) {
+    if (hidden[i][j] && hidden[i + 1][j] && hidden[i + 1][j + 1] && hidden[i][j + 1]) continue;
     mb.quad(rows[i][j], rows[i + 1][j], rows[i + 1][j + 1], rows[i][j + 1]);
   }
   return { edges, dirAt, nPhi, cover, cfg, base, streak, streakW };
@@ -197,6 +205,8 @@ function buildHairCards(ctx, h, shell) {
   const cards = [];
   const n = Math.round((det >= 1 ? 80 : 36) * (h.cards ?? 1));
   for (let k = 0; k < n; k++) cards.push({ phi: R() * TAU });
+  // bangs: wide clumps across the forehead, cut fairly straight
+  if (h.bangs) for (let k = 0; k < (det >= 1 ? 44 : 20); k++) cards.push({ bang: true, az: lerp(-0.8, 0.8, (k + R()) / (det >= 1 ? 44 : 20)) });
   // loose strands escaping at the temples (gathered styles)
   for (let k = 0; k < (h.wisps ?? 0); k++) cards.push({ wisp: true, az: (k % 2 ? 1 : -1) * (0.95 + R() * 0.25) });
   const nrm = new THREE.Vector3();
@@ -207,7 +217,7 @@ function buildHairCards(ctx, h, shell) {
   };
   for (const cd of cards) {
     let phi = cd.phi;
-    if (cd.wisp) {
+    if (cd.wisp || cd.bang) {
       // find the meridian whose hairline point sits at the wanted azimuth
       let best = 0, bd = 9;
       for (let j = 0; j < 64; j++) {
@@ -223,26 +233,26 @@ function buildHairCards(ctx, h, shell) {
     if (ge <= 0) continue;
     const pe = info.cast(dirAt(phi, ge));
     const az = Math.atan2(pe.x, pe.z);
-    let L = cd.wisp ? 0.05 + R() * 0.03 : lenAt(az, pe);
+    let L = cd.wisp ? 0.05 + R() * 0.03 : cd.bang ? h.bangs * (0.8 + R() * 0.35) : lenAt(az, pe);
     if (L <= 0) continue;
     // keep bangs and baby hairs off the brows and eyes
-    if (Math.abs(az) < 1.0 && pe.z > 0.03) L = Math.min(L, Math.max(0, (pe.y - 0.1) * 1.1));
+    if (Math.abs(az) < 1.0 && pe.z > 0.03) L = Math.min(L, Math.max(0, (pe.y - (cd.bang ? 0.093 : 0.1)) * 1.15));
     if (L < 0.002) continue;
     const r = pe.distanceTo(info.O);
     const g0 = ge - (0.01 + R() * 0.01) / r, g1 = ge + L / r;
     const nSeg = L > 0.025 ? 6 : 3;
     const pts = [], nrms = [], widths = [];
     let vis = !cover;
-    const w0 = (cd.wisp ? 0.0035 : 0.006 + R() * 0.006) * ctx.sc;
+    const w0 = (cd.wisp ? 0.0035 : cd.bang ? 0.012 + R() * 0.006 : pulled ? 0.003 + R() * 0.003 : 0.006 + R() * 0.006) * ctx.sc;
     for (let s = 0; s <= nSeg; s++) {
       const t = s / nSeg;
       const p = info.cast(dirAt(phi, lerp(g0, g1, t)));
       info.grad(p, nrm);
       if (cover && t > 0.4 && cover(p) < -0.002) vis = true;
-      const lift = cd.wisp ? lerp(0.0022, 0.004, t) : lerp(0.0024, 0.0006, t);
+      const lift = cd.wisp ? lerp(0.0022, 0.004, t) : cd.bang ? lerp(0.003, 0.0016, t) : lerp(0.0024, 0.0006, t);
       pts.push(toW(ctx, p.clone().addScaledVector(nrm, lift)));
       nrms.push(nrm.clone());
-      widths.push(w0 * Math.sin(lerp(0.25, 1, Math.min(1, t * 2.5)) * Math.PI * 0.5) * Math.pow(1 - t * 0.92, 0.9));
+      widths.push(cd.bang ? w0 * (1 - Math.pow(t, 3) * 0.75) : w0 * Math.sin(lerp(0.25, 1, Math.min(1, t * 2.5)) * Math.PI * 0.5) * Math.pow(1 - t * 0.92, 0.9));
     }
     if (!vis) continue;
     const sides = pts.map((p, i) => {
@@ -252,7 +262,7 @@ function buildHairCards(ctx, h, shell) {
     const tone = 0.78 + R() * 0.3;
     const c0 = base.clone().multiplyScalar(tone);
     ribbon(mb, pts, sides, widths, mat(c0, { tile: 'hair', rough: 0.5, fuzz: 0.4, tileU: 1, tileV: 6 }), () => [['head', 1]],
-      { color: (i) => c0.clone().multiplyScalar(lerp(0.85, 1.08, i / nSeg)) });
+      { color: (i) => c0.clone().multiplyScalar(lerp(0.7, 1.05, i / nSeg)) });
   }
 }
 
@@ -437,50 +447,165 @@ function buildFloatHair(ctx, h) {
 }
 
 function buildBeard(ctx, b) {
-  const { mb, info, R } = ctx;
+  const { mb, info, R, look } = ctx;
   const S = info.S;
+  const det = look.detail ?? 1;
   const bc = col(b.color || '#4a3a2c');
-  const bm = mat(bc, { tile: b.style === 'full' ? 'fur' : 'hair', rough: 0.7, fuzz: 0.7, tileU: 6, tileV: 10 });
-  const long = b.length ?? (b.style === 'full' ? 0.07 : 0.0);
+  const full = b.style === 'full', short = b.style === 'short';
+  const bm = mat(bc, { tile: 'hair', rough: 0.7, fuzz: 0.7, tileU: 14, tileV: 3 });
+  const long = b.length ?? (full ? 0.07 : 0.0);
   const skinC = col(ctx.look.skin).multiplyScalar(0.42).lerp(bc, 0.35);
-  const base = b.style === 'full' ? 0.012 : b.style === 'short' ? 0.0065 : b.style === 'thin' ? 0.0035 : 0.004;
+  const base = full ? 0.011 : short ? 0.0062 : b.style === 'thin' ? 0.0035 : 0.004;
   const mask = (p) => {
     const ax = Math.abs(p.x);
-    let m = smoothstep(0.062, 0.042, p.y - (ax > 0.045 ? 0.0 : 0)) * smoothstep(-0.02, 0.0, p.z);
+    let m = smoothstep(0.064, 0.04, p.y - (ax > 0.045 ? 0.0 : 0)) * smoothstep(-0.022, 0.002, p.z);
     // cheek line rises toward the ears (sideburns)
-    const cheekLine = lerp(0.03, 0.065, smoothstep(0.03, 0.06, ax));
-    m *= smoothstep(cheekLine + 0.014, cheekLine - 0.01, p.y);
+    const cheekLine = lerp(0.022, 0.065, smoothstep(0.034, 0.064, ax)) + 0.004 * noise1(ax * 160, 11);
+    m *= smoothstep(cheekLine + 0.018, cheekLine - 0.012, p.y);
     // keep the lips clear
-    const lip = smoothstep(0.031, 0.022, ax) * smoothstep(0.011, 0.005, Math.abs(p.y - (S.stomY - 0.001)));
+    const lip = smoothstep(0.031, 0.022, ax) * smoothstep(0.011, 0.005, Math.abs(p.y - (S.mouthY(p.x) - 0.001)));
     m *= 1 - lip;
-    if (b.style === 'mustache') m *= smoothstep(S.stomY - 0.002, S.stomY + 0.004, p.y) * smoothstep(0.034, 0.024, ax);
+    // the upper lip and nose wings are left to the mustache cards (a coarse shell there
+    // reads as slabs); mustache-only styles have no shell at all
+    if (b.style === 'mustache') return 0;
+    m *= 1 - smoothstep(0.031, 0.022, ax) * smoothstep(S.mouthY(p.x) + 0.001, S.mouthY(p.x) + 0.005, p.y);
     if (b.style === 'thin') m *= 0.6 + 0.4 * smoothstep(0.035, 0.0, ax);
     return m;
   };
-  const n = new THREE.Vector3();
-  const nAz = 32, nPol = 16;
-  const rows = [];
+  // the beard's outer surface: smooth thickness from the mask, full beards hang below the chin
+  const n0 = new THREE.Vector3();
+  const outer = (az, pol) => {
+    const p = info.cast(dirOf(az, Math.min(pol, 2.75)));
+    info.grad(p, n0);
+    const m = mask(p);
+    const hang = long * smoothstep(S.chinY + 0.02, S.chinY - 0.012, p.y) * smoothstep(0.06, 0.0, Math.abs(p.x));
+    const t = m * base * (1 + 0.2 * noise1(az * 9 + pol * 4, 7)) + hang * m - 0.0015 * (1 - m);
+    const q = p.clone().addScaledVector(n0, t);
+    if (hang > 0) q.add(V(0, -hang * 0.6, hang * 0.15));
+    if (pol > 2.75) q.y -= (pol - 2.75) * 0.09;
+    return { p, q, m, n: n0.clone() };
+  };
+  const nAz = det >= 1 ? 32 : 22, nPol = det >= 1 ? 16 : 11;
+  const rows = [], gridM = [];
   for (let i = 0; i <= nPol; i++) {
     const row = [];
     const pol = lerp(1.45, 2.75, i / nPol);
+    gridM.push([]);
     for (let j = 0; j <= nAz; j++) {
       const az = lerp(-1.75, 1.75, j / nAz);
-      const p = info.cast(dirOf(az, pol));
-      info.grad(p, n);
-      const m = mask(p);
-      const hang = long * smoothstep(S.chinY + 0.02, S.chinY - 0.012, p.y) * smoothstep(0.06, 0.0, Math.abs(p.x));
-      const t = m * (base + R() * 0.002) + hang * m - 0.0015 * (1 - m);
-      const q = p.clone().addScaledVector(n, t);
-      if (hang > 0) q.add(V(0, -hang * 0.6, hang * 0.15));
-      const shade = 0.75 + 0.25 * m;
+      const o = outer(az, pol);
+      gridM[i].push(o.m);
+      const tone = (0.75 + 0.25 * o.m) * (0.88 + 0.18 * noise1(az * 14 + pol * 2, 3));
       // the edge fades into stubbled skin instead of ending in a hard geometric step
-      const c = bc.clone().multiplyScalar(shade * (0.85 + R() * 0.3)).lerp(skinC, 1 - smoothstep(0.12, 0.7, m));
-      row.push(mb.vert(toW(ctx, q), c, j / nAz * bm.tileU, i / nPol, bm, info.skinWeights(p)));
+      const c = bc.clone().multiplyScalar(tone).lerp(skinC, 1 - smoothstep(0.12, 0.7, o.m));
+      row.push(mb.vert(toW(ctx, o.q), c, j / nAz * bm.tileU, i / nPol, bm, info.skinWeights(o.p)));
     }
     rows.push(row);
   }
   for (let i = 0; i < nPol; i++) for (let j = 0; j < nAz; j++) {
     mb.quad(rows[i][j], rows[i + 1][j], rows[i + 1][j + 1], rows[i][j + 1]);
+  }
+  // Clump cards in two layers flowing down the beard: tapered at both ends, darker inside,
+  // lighter on top, the bottom row running past the shell into pointed locks.
+  const cardMat = mat(bc, { tile: 'hair', rough: 0.65, fuzz: 0.6, tileU: 1, tileV: 5 });
+  const nCards = Math.round((full ? 110 : short ? 60 : b.style === 'mustache' ? 0 : 24) * (det >= 1 ? 1 : 0.45));
+  const sideOf = (pts, i, nrm) => {
+    const a = pts[Math.max(0, i - 1)], c2 = pts[Math.min(pts.length - 1, i + 1)];
+    return c2.clone().sub(a).normalize().cross(nrm).normalize();
+  };
+  for (let k = 0; k < nCards; k++) {
+    const layer = k % 3 === 0 ? 0 : 1;
+    const az0 = R.range(-1.5, 1.5), pol0 = R.range(1.55, 2.55);
+    if (gridM[Math.round(((pol0 - 1.45) / 1.3) * nPol)][Math.round(((az0 + 1.75) / 3.5) * nAz)] < 0.45) continue;
+    const o0 = outer(az0, pol0);
+    if (o0.m < 0.5) continue;
+    const L = full ? 0.022 + R() * 0.03 : 0.01 + R() * 0.012;
+    const nSeg = 4;
+    const dPol = L / 0.085 / nSeg;
+    const pts = [], nrms = [], widths = [], ws = [];
+    for (let s = 0; s <= nSeg; s++) {
+      const t = s / nSeg;
+      const o = outer(az0 * (1 - 0.12 * t), pol0 + dPol * s);
+      const lift = layer ? 0.0018 + 0.0012 * t : 0.0008;
+      pts.push(toW(ctx, o.q.clone().addScaledVector(o.n, lift)));
+      nrms.push(o.n);
+      widths.push((full ? 0.011 : 0.007) * ctx.sc * (0.5 + R() * 0.5) * Math.sin(lerp(0.3, 1, Math.min(1, t * 3)) * Math.PI * 0.5) * (1 - t * 0.9));
+      ws.push(info.skinWeights(o.p));
+    }
+    const sides = pts.map((p, i) => sideOf(pts, i, nrms[i]));
+    const c0 = bc.clone().multiplyScalar(layer ? 0.9 + R() * 0.3 : 0.6 + R() * 0.15);
+    ribbon(mb, pts, sides, widths, { ...cardMat, color: c0 }, (i) => ws[i], { color: (i) => c0.clone().multiplyScalar(lerp(0.85, 1.1, i / nSeg)) });
+  }
+  // soft top edge: short locks rooted on the cheek line, falling over the shell's edge
+  if (full || short) {
+    const nE = det >= 1 ? 40 : 18;
+    for (let k = 0; k < nE; k++) {
+      const az0 = (R() < 0.5 ? -1 : 1) * R.range(0.42, 1.45);
+      // walk down the nearest grid column to where the beard starts
+      const jc = Math.round(((az0 + 1.75) / 3.5) * nAz);
+      let ic = 0;
+      while (ic < nPol && gridM[ic][jc] < 0.35) ic++;
+      if (ic >= nPol - 2) continue;
+      const pol0 = lerp(1.45, 2.75, Math.max(0, ic - 0.4) / nPol);
+      const L = (full ? 0.014 : 0.008) + R() * 0.01;
+      const pts = [], nrms = [], widths = [], ws = [];
+      for (let s = 0; s <= 3; s++) {
+        const t = s / 3;
+        const o = outer(az0, pol0 + (L / 0.085) * t);
+        pts.push(toW(ctx, o.q.clone().addScaledVector(o.n, 0.0012 + 0.001 * t)));
+        nrms.push(o.n);
+        widths.push((full ? 0.009 : 0.006) * ctx.sc * Math.sin(lerp(0.2, 1, t) * Math.PI) * (0.6 + R() * 0.4) + 0.0004 * ctx.sc);
+        ws.push(info.skinWeights(o.p));
+      }
+      const sides = pts.map((p, i) => sideOf(pts, i, nrms[i]));
+      const c0 = bc.clone().multiplyScalar(0.8 + R() * 0.3);
+      ribbon(mb, pts, sides, widths, { ...cardMat, color: c0 }, (i) => ws[i]);
+    }
+  }
+  // pointed locks under the chin (full beards)
+  if (full) {
+    const nLock = det >= 1 ? 22 : 12;
+    for (let k = 0; k < nLock; k++) {
+      const az0 = lerp(-0.75, 0.75, (k + R() * 0.8) / nLock);
+      const o0 = outer(az0, 2.45 + R() * 0.2);
+      if (o0.m < 0.4) continue;
+      const tip = o0.q.clone().add(V(az0 * -0.006, -(0.018 + R() * 0.022 + long * 0.25), 0.004));
+      const pts = [], sides = [], widths = [];
+      for (let s = 0; s <= 3; s++) {
+        const t = s / 3;
+        pts.push(toW(ctx, o0.q.clone().lerp(tip, t).addScaledVector(o0.n, 0.001)));
+        sides.push(V(1, 0, 0));
+        widths.push(0.012 * ctx.sc * (1 - t * 0.92) * (0.7 + R() * 0.3));
+      }
+      const c0 = bc.clone().multiplyScalar(0.75 + R() * 0.3);
+      ribbon(mb, pts, sides, widths, { ...cardMat, color: c0 }, () => [['jaw', 1]], { double: true });
+    }
+  }
+  // mustache: locks from under the nose sweeping down and out over the lip corners
+  if (full || short || b.style === 'mustache') {
+    const nM = (det >= 1 ? 30 : 14) * (full ? 1 : 0.7);
+    for (let k = 0; k < nM; k++) {
+      const sd = k % 2 ? 1 : -1;
+      const layer = k % 3 === 0 ? 0 : 1;
+      const x0 = sd * lerp(0.002, 0.021, R());
+      const pts = [], nrms = [], widths = [];
+      const droop = (full ? 0.006 : 0.003) + R() * 0.004;
+      for (let s = 0; s <= 4; s++) {
+        const t = s / 4;
+        const x = x0 * lerp(1, 1.3, t) + sd * t * 0.005;
+        const y = lerp(S.tipY - 0.008, S.mouthY(x) - droop * smoothstep(0.012, 0.024, Math.abs(x)) - 0.0015, t);
+        const d = V(x, y, 0.1).sub(info.O).normalize();
+        const p = info.cast(d);
+        info.grad(p, n0);
+        pts.push(toW(ctx, p.clone().addScaledVector(n0, (layer ? 0.0032 : 0.0018) + 0.0014 * Math.sin(t * Math.PI))));
+        nrms.push(n0.clone());
+        widths.push(0.0075 * ctx.sc * Math.sin(lerp(0.35, 1, Math.min(1, t * 3)) * Math.PI * 0.5) * (1 - t * 0.88) * (0.7 + R() * 0.4));
+      }
+      const sides = pts.map((p, i) => sideOf(pts, i, nrms[i]));
+      const c0 = bc.clone().multiplyScalar(layer ? 0.85 + R() * 0.3 : 0.6 + R() * 0.15);
+      ribbon(mb, pts, sides, widths, { ...cardMat, color: c0 }, () => [['head', 0.6], ['jaw', 0.4]],
+        { color: (i) => c0.clone().multiplyScalar(lerp(0.85, 1.1, i / 4)) });
+    }
   }
 }
 

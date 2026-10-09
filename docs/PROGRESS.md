@@ -9,7 +9,7 @@ catches issues, and fixes them or sends a targeted fix back to the builder. No c
 | 0 | Design bible, story script, village plan, architecture, engine skeleton, harness | lead | done | n/a | docs/DESIGN.md, docs/STORY.md, docs/VILLAGE.md, docs/ARCHITECTURE.md |
 | 1 | Terrain, ice, water, rocks | opus | done, reviewed | 1 | worker-built 1025 + far grids, single instanced LOD terrain, horn-peak ranges with a sunset notch, black ice with depth, frozen river and falls, 3.8k rocks, full thaw |
 | 1 | Atmosphere, sky, weather, post | opus | done, reviewed | 1 | real sun/moon paths, 15 palettes, near+far shadows, sky with aurora, 3-layer fog, 5 weathers with snowfall, MSAA/bloom/god rays/grade, senses/echo/frost, markClue |
-| 1 | Characters, animation, horse | opus | reviewed, rework sent | 1 | 46 presets, 70 clips, skinned bodies with layered clothing and spring bones, LOD; hair, resting expressions, skin and horse body need a pass |
+| 1 | Characters, animation, horse | opus | done, reviewed | 2 | hair volume and Vesna's braid, grim resting faces, skin tone and scar, beard cards, sculpted dun horse with mane and feathering |
 | 1 | Audio and music | opus | done, reviewed | 1 | 12 moods, 7 stingers, 68 SFX, auto ambience; no clipping, loudness on target; needs human ears |
 | 1 | Vegetation | sonnet | done, reviewed | 2 | needle-card spruce and pine tufts, Bayer LOD dither, coherent far canopy, marsh reeds, spring leaves |
 | 1 | Architecture kit | sonnet | done, reviewed | 1 | full catalog incl. enterable tavern, longhouse+cellar, Hanka's house, workshop, walkable bell tower; placeBuilding with foundations, colliders, doors, lights, walk floors |
@@ -35,6 +35,7 @@ Model policy (user request): Part Two and later run on Sonnet 5.5, except a sing
 - Architecture: bell tower should lean a few degrees and look drowned (ice line stains, broken boards, frost); stone texture cartoonish up close.
 - Terrain: noon snow blown out and no distance haze (sent to atmosphere builder); ice wind streaks too regular; talus boulders read as scattered teeth; marsh pool edges look cut; bear den needs a cave opening in the escarpment (locations builder; terrain left a pattern at the falls).
 - Done: Senses routes echo clues through G.postfx.markClue in turquoise.
+- Characters: Ola's bangs read as a sawtooth up close; Bogdan's cheek beard edge slab-like at extreme close-up; braid stretches on extreme head turns. Main cast now 11k to 14k tris and 0.3 to 0.6 s to build: NPCs must spread creation over frames.
 - Vegetation: LOD1/LOD2 spruce (30 to 100 m) still read as stylized tiered cones; consider needle fringe at LOD1.
 - Integration: windows and fires need emissive about 3 to 6 x uWindowLight to bloom at night (architecture, props).
 - Integration: some unnamed mesh has NaN positions (atmosphere report); find and fix.

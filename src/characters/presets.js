@@ -58,8 +58,8 @@ const CAST = {
     skin: '#e2bba2',
     face: { missingTooth: true, iris: '#5e7656', browColor: '#5a3e28', blush: 0.75, noseRed: 0.55, freckles: 0.7, noseTip: 0.7, noseLen: 0.76, noseSize: 0.76, noseW: 0.88, jawW: 0.86, jawSq: 0.2, chin: 0.2, chinW: 0.85, faceLen: 0.86, fullCheek: 1.2, lipFull: 0.95, lipW: 0.9, eyeSize: 1.1, brow: 0.0,
       mouthDown: 0.0002, rest: { eyesWide: 0.35, browUp: 0.15, smirk: 0.55, browUpL: 0.25 } },
-    hair: { style: 'pigtails', color: '#6b4a2e', tie: '#9a2e22' },
-    hat: { type: 'knit', color: '#9a2e22', slouch: 0.008 },
+    hair: { style: 'pigtails', color: '#6b4a2e', tie: '#9a2e22', bangs: 0.05, line: -0.006 },
+    hat: { type: 'knit', color: '#9a2e22', slouch: 0.008, edge: 0.86 },
     outfit: {
       dress: { color: '#5a5e7a', tile: 'wool', length: 0.6 },
       coat: { color: '#9a7a54', tile: 'leather', length: 0.56, open: 0.2, vent: 0.0, loose: 1.5, cuffPast: 0.045, lining: '#d4c6a6', liningTile: 'fleece',
@@ -77,8 +77,8 @@ const CAST = {
     skin: '#d6b09a',
     face: { iris: '#5e6a72', browColor: '#4a3e34', gaunt: 0.45, cheek: 0.7, lipFull: 0.78, blush: 0.25, noseRed: 0.35, wrinkles: 0.45, underEye: 0.85, lidHeavy: 0.4, pale: 0.12,
       mouthDown: 0.0019, rest: { heavyLids: 0.75, browSad: 0.6, frown: 0.5, press: 0.2 } },
-    hair: { style: 'bun', color: '#4a3e34' },
-    hat: { type: 'kerchief', color: '#7a7670' },
+    hair: { style: 'bun', color: '#4a3e34', line: -0.008, peak: 0.0 },
+    hat: { type: 'kerchief', color: '#7a7670', open: 0.17 },
     outfit: {
       dress: { color: '#3e3a3a', tile: 'wool', length: 0.94, emb: 5 },
       shawl: { color: '#2e2a2c', tile: 'wool' },

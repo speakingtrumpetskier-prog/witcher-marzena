@@ -85,14 +85,32 @@ export class Springs {
     (this.lastRoot ||= new THREE.Vector3()).copy(root.position);
   }
 
+  // Colliders of a horse the character sits on (set by Character when its root is under a
+  // saddle): the barrel and the withers keep coat tails draped over the flanks.
+  _mountColliders(horse) {
+    if (this._mountFor !== horse) {
+      const hb = horse.bones;
+      this._mountFor = horse;
+      this._mountCols = [
+        { a: hb.chest, b: hb.pelvis, r: 0.28, off: new THREE.Vector3(0, -0.3, -0.04), offB: new THREE.Vector3(0, -0.2, 0) },
+        { a: hb.chest, b: null, r: 0.19, off: new THREE.Vector3(0, -0.1, -0.08) },
+      ];
+    }
+    return this._mountCols;
+  }
+
   _step(dt, wind) {
     const root = this.ch.root;
     root.updateMatrixWorld(true);
+    const cols = this.mount ? this.colliders.concat(this._mountColliders(this.mount)) : this.colliders;
     // world-space collider shapes
-    for (const c of this.colliders) {
+    for (const c of cols) {
       c.pa = (c.pa || new THREE.Vector3()).setFromMatrixPosition(c.a.matrixWorld);
       if (c.off) c.pa.copy(c.off).applyMatrix4(c.a.matrixWorld);
-      if (c.b) c.pb = (c.pb || new THREE.Vector3()).setFromMatrixPosition(c.b.matrixWorld);
+      if (c.b) {
+        c.pb = (c.pb || new THREE.Vector3()).setFromMatrixPosition(c.b.matrixWorld);
+        if (c.offB) c.pb.copy(c.offB).applyMatrix4(c.b.matrixWorld);
+      }
     }
     const t = performance.now() * 0.001;
     for (const j of this.joints) {
@@ -125,7 +143,7 @@ export class Springs {
       // length constraint
       next.sub(head).normalize().multiplyScalar(j.len).add(head);
       // colliders
-      for (const c of this.colliders) {
+      for (const c of cols) {
         let center;
         if (c.b) {
           const ab = _d.copy(c.pb).sub(c.pa);
