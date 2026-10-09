@@ -1,0 +1,29 @@
+{
+  "_about": "Polish names and words, respelled so an English text-to-speech model says them close to right. generate.py replaces whole words (case sensitive, keeps a trailing 's) in the text sent to the model only; the subtitle and the line hash never change. Add a word here when a clip mispronounces it, delete the clip (or run with --force --only speaker) and regenerate.",
+  "words": {
+    "Zbyszek": "Zbishek",
+    "Jarek": "Yarek",
+    "Wiesia": "Veesha",
+    "Wiesiu": "Veeshoo",
+    "Wrona": "Vrona",
+    "Stach": "Stahk",
+    "Kuba": "Kooba",
+    "Bolek": "Bolek",
+    "Pawlak": "Pavlak",
+    "Nowak": "Novak",
+    "Gniewko": "Nyevko",
+    "Bozena": "Bozhena",
+    "Bożena": "Bozhena",
+    "Burek": "Boorek",
+    "Marzanna": "Mazhanna",
+    "Marzena": "Mazhena",
+    "Tomasz": "Tomash",
+    "Rybak": "Ribak",
+    "Zosia": "Zosha",
+    "Kasza": "Kasha",
+    "Kazimierz": "Kazimyesh",
+    "Wit": "Veet",
+    "grosze": "grosheh",
+    "grosz": "grosh"
+  }
+}

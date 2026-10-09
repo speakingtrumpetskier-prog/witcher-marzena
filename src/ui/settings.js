@@ -2,7 +2,7 @@
 //   G.settings.mouseSens   multiplier for look speed (1 = default). The camera rig should multiply by it.
 //   G.settings.invertY     boolean
 //   G.settings.subScale    subtitle size multiplier (0.85 / 1 / 1.2)
-// Volumes live on G.audio.volumes ({ master, music, sfx, ambience }); we only persist and re-apply them.
+// Volumes live on G.audio.volumes ({ master, music, sfx, ambience, voice }); we only persist and re-apply them.
 import { store } from './dom.js';
 
 const num = (v, d) => {
@@ -10,7 +10,7 @@ const num = (v, d) => {
   return Number.isFinite(n) ? n : d;
 };
 
-export const VOLUME_KEYS = [['master', 'Master'], ['music', 'Music'], ['sfx', 'Effects'], ['ambience', 'Ambience']];
+export const VOLUME_KEYS = [['master', 'Master'], ['music', 'Music'], ['sfx', 'Effects'], ['ambience', 'Ambience'], ['voice', 'Voice']];
 
 export class Settings {
   constructor(G) {
