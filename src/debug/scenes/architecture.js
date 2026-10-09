@@ -22,6 +22,8 @@ export const ENTRIES = [
   { row: 'houses', id: 'logHouseSmall', make: (n) => buildings.logHouse({ seed: 21 + n, size: 'small' }) },
   { row: 'houses', id: 'logHousePorch', make: (n) => buildings.logHouse({ seed: 31 + n, porch: true }) },
   { row: 'houses', id: 'logHouseTall', make: (n) => buildings.logHouse({ seed: 41 + n, floors: 2, size: 'large', woodshed: true }) },
+  { row: 'big', id: 'tavern', make: () => buildings.tavern({ seed: 5 }) },
+  { row: 'big', id: 'longhouse', make: () => buildings.longhouse({ seed: 9 }) },
 ];
 
 function makeEntries(ids) {

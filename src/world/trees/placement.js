@@ -207,10 +207,8 @@ export async function placeVegetation(G, kinds, opts = {}) {
         // road verge: shrubs and the odd sapling only
         if (rd > 0.2 && rn() < 0.05 * dens) {
           const ki = pickVar(by.juniper);
-          const ny = normalAt(x, z);
           emit(inner, ki, x, h - 0.1, z, 0.7 + rn() * 0.5, 1, rn() * 6.28, 0.04, 1, 0);
           stats.bush++;
-          void ny;
         }
         continue;
       }
@@ -404,11 +402,9 @@ export async function placeVegetation(G, kinds, opts = {}) {
       const a = grid[iz * gn + ix], b = grid[iz * gn + ix + 1], c = grid[(iz + 1) * gn + ix], d = grid[(iz + 1) * gn + ix + 1];
       return lerp(lerp(a, b, tx), lerp(c, d, tx), tz);
     };
-    const farKinds = [...spruceIdx, ...pineIdx, ...birchIdx, ...snagIdx];
     for (let gz = -FAR; gz < FAR; gz += FS) {
       await maybeYield();
       for (let gx = -FAR; gx < FAR; gx += FS) {
-        if (Math.abs(gx) < R - 6 && Math.abs(gz) < R - 6) { gx += 2 * R - 12 - FS + FS; if (gx >= FAR) break; }
         const x = gx + rn() * FS, z = gz + rn() * FS;
         if (Math.abs(x) < R && Math.abs(z) < R) continue;
         const hc = gh(x, z);
@@ -429,7 +425,6 @@ export async function placeVegetation(G, kinds, opts = {}) {
         if (u < 0.1 + 0.2 * smoothstep(90, 250, h)) ki = pickVar(pineIdx);
         else if (u < 0.1 + B * 0.5 && B > 0.35 && h < 130) ki = pickVar(birchIdx);
         else ki = pickVar(spruceIdx, [1, 0.9, 0.5, 0.2]);
-        void farKinds;
         const stunt = lerp(1, 0.4, smoothstep(160, 335, h));
         const s = lerp(0.7, 1.15, rn()) * stunt * 1.12;
         tint(rn, 1, 0.3, col);
@@ -475,7 +470,6 @@ export class GroundGenerator {
         if (h > 330) continue;
         const rd = roads.edge(x, z);
         if (rd < 0.9) continue;
-        for (const e of this.cleared) if (Math.hypot(x - e.x, z - e.z) < e.r) { continue; }
         if (this.cleared.some((e) => Math.hypot(x - e.x, z - e.z) < e.r)) continue;
         const exF = EXCLUSIONS.length ? exclusionFactor(x, z, 'ground') : 1;
         if (exF <= 0) continue;

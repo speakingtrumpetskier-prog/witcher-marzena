@@ -101,8 +101,8 @@ function makeSculpt(FP) {
   const stomY = 0.0 - (fl - 1) * 0.02;
   const chinY = -0.031 - (fl - 1) * 0.03;
   const lf = FP.lipFull, lw = FP.lipW;
-  const gonL = V(0.049 * jw, 0.002 + (1 - FP.jawSq) * 0.004, -0.002);
-  const chinPL = V(0.008 * FP.chinW, chinY - 0.003, 0.08 + FP.chin * 0.004);
+  const gonL = V(0.051 * jw, 0.002 + (1 - FP.jawSq) * 0.004, -0.004);
+  const chinPL = V(0.011 * FP.chinW, chinY - 0.002, 0.079 + FP.chin * 0.004);
   const browH = 0.0075 + FP.brow * 0.004;
   const cheekS = 0.75 + FP.cheek * 0.5;
   const full = FP.fullCheek ?? (FP.child ? 1 : FP.fem ? 0.5 : 0.25);
@@ -110,13 +110,14 @@ function makeSculpt(FP) {
 
   const sdf = (x, y, z) => {
     const ax = Math.abs(x);
-    let d = sdEll(x, y, z, 0, 0.09, -0.006, 0.071 * cw, 0.097, 0.097);
+    let d = sdEll(x, y, z, 0, 0.088, -0.01, 0.071 * cw, 0.096, 0.1);
     d = smin(d, sdEll(x, y, z, 0, 0.07, -0.032, 0.064 * cw, 0.078, 0.07), 0.02);
     d = smin(d, sdEll(x, y, z, 0, 0.118, 0.045, 0.054, 0.05, 0.048), 0.02);
     d = smax(d, -sdEll(ax, y, z, 0.081 * cw, 0.096, 0.052, 0.012, 0.028, 0.026), 0.01);
-    // midface, jaw body, jawline, ramus, chin
-    d = smin(d, sdEll(x, y, z, 0, 0.045, 0.036, 0.058, 0.056 * fl, 0.058), 0.03);
-    d = smin(d, sdEll(x, y, z, 0, 0.0, 0.044, 0.046 * jw, 0.03 * fl, 0.048), 0.02);
+    // midface, zygomatic arches, jaw body, jawline, ramus, chin
+    d = smin(d, sdEll(x, y, z, 0, 0.045, 0.034, 0.061, 0.056 * fl, 0.06), 0.03);
+    d = smin(d, sdCone(ax, y, z, V(0.045, 0.053, 0.06), V(0.063, 0.05, 0.004), 0.009, 0.008), 0.02);
+    d = smin(d, sdEll(x, y, z, 0, 0.004, 0.04, 0.05 * jw, 0.032 * fl, 0.05), 0.025);
     d = smin(d, sdCone(ax, y, z, gonL, chinPL, 0.011 + FP.jawSq * 0.002, 0.012), 0.018);
     d = smin(d, sdCone(ax, y, z, V(0.048 * jw, 0.033, -0.008), gonL, 0.01, 0.011), 0.016);
     d = smin(d, sdEll(x, y, z, 0, chinY, 0.085 + FP.chin * 0.004, 0.015 * FP.chinW, 0.013, 0.011), 0.01);
@@ -342,7 +343,7 @@ export function buildHead(mb, rig, FP, look) {
       const slit = i === kStom && Math.abs(az) < azCorner * 1.12;
       if (slit) {
         const inner = smoothstep(azCorner * 1.12, azCorner * 0.4, Math.abs(az));
-        p.z -= 0.0016 * inner;
+        p.z -= 0.001 * inner;
       }
       const u = j / nAz, v = (i === kStom ? tStom : polTs[i]) * vUV;
       const wp = p.clone().multiplyScalar(scale).add(pivot);
@@ -388,7 +389,7 @@ export function hairMask(p, h) {
   const peak = h.peak ?? 0.004;
   let line = 0.142 + (h.line || 0) - peak * Math.exp(-((az / 0.18) ** 2)) + 0.004 * smoothstep(0.3, 0.8, aa);
   line = lerp(line, 0.088, smoothstep(0.92, 1.14, aa));
-  line = lerp(line, 0.038 + (h.sideburn || 0), smoothstep(1.12, 1.26, aa) * (1 - smoothstep(1.38, 1.5, aa)));
+  line = lerp(line, 0.058 + (h.sideburn || 0), smoothstep(1.16, 1.28, aa) * (1 - smoothstep(1.36, 1.46, aa)));
   line = lerp(line, 0.088, smoothstep(1.38, 1.55, aa) * (1 - smoothstep(1.8, 2.1, aa)));
   line = lerp(line, -0.012 + (h.nape || 0), smoothstep(1.85, 2.6, aa));
   if (h.style === 'fringe') {
@@ -724,8 +725,8 @@ export function paintFace(canvas, info, FP, look) {
       const t = R();
       const x = s * lerp(0.011, 0.05, t);
       const arch = Math.sin(t * Math.PI * 0.85) * 0.004 * (0.6 + FP.browArch);
-      const y = 0.0965 + arch - t * 0.0015 + (R() - 0.5) * 0.0042 * (1 - t * 0.6) * FP.browThick;
-      const z = 0.098 - t * 0.016;
+      const y = 0.0905 + arch - t * 0.002 + (R() - 0.5) * 0.0042 * (1 - t * 0.6) * FP.browThick;
+      const z = 0.094 - t * 0.016;
       const [px, py] = P(x, y, z);
       const ang = (s > 0 ? -1 : 1) * lerp(0.9, 0.15, t) + Math.PI * (s > 0 ? 0 : 1);
       const len = (5 + R() * 4) * sz;

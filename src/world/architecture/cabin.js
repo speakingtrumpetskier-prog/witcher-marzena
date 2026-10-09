@@ -23,7 +23,24 @@ const DEFAULT = {
   ceiling: false,
 };
 
+// spec.lift raises the whole cabin (granary on posts, stilt huts); metadata follows.
 export function cabin(kit, spec) {
+  if (!spec.lift) return cabinInner(kit, spec);
+  const lift = spec.lift;
+  const n0 = { lights: kit.lights.length, doors: kit.doors.length, floors: kit.walk.floors.length, extra: kit.extra.length };
+  const a0 = new Set(Object.keys(kit.anchors));
+  let res;
+  kit.frame(0, lift, 0, 0, () => { res = cabinInner(kit, { ...spec, lift: 0 }); });
+  for (let i = n0.lights; i < kit.lights.length; i++) kit.lights[i].y += lift;
+  for (let i = n0.doors; i < kit.doors.length; i++) kit.doors[i].y = (kit.doors[i].y || 0) + lift;
+  for (let i = n0.floors; i < kit.walk.floors.length; i++) kit.walk.floors[i].y += lift;
+  for (let i = n0.extra; i < kit.extra.length; i++) kit.extra[i].position.y += lift;
+  for (const k of Object.keys(kit.anchors)) if (!a0.has(k)) kit.anchors[k].y += lift;
+  res.lift = lift;
+  return res;
+}
+
+function cabinInner(kit, spec) {
   const s = { ...DEFAULT, ...spec };
   const hw = s.w / 2, hd = s.d / 2, r = s.r;
   const P = 2 * r * 0.9; // vertical pitch of courses

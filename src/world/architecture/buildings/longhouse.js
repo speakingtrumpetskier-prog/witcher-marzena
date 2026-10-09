@@ -60,7 +60,6 @@ export function longhouse(opts = {}) {
       rows.push(row);
     }
     kit.cloth.grid(rows, scaleC(PAL.red, 1.0), { flip: true, uv: [0.6, 0.6] });
-    kit.cloth.grid(rows, scaleC(PAL.red, 0.8), { uv: [0.6, 0.6] });
     kit.wood.tube([sx - 0.45, 2.52, hd + r + 2.72], [sx + 0.45, 2.52, hd + r + 2.72], 0.025, 0.025, scaleC(PAL.logDark, GAIN), { seg: 5, lenSeg: 1, ao: 0 });
   }
 

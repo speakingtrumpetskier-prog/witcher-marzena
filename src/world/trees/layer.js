@@ -165,7 +165,8 @@ export class VegLayer {
           mesh.frustumCulled = false;
           mesh.count = 0;
           mesh.visible = false;
-          mesh.castShadow = !p.noShadow && l < this.shadowLods;
+          const maxShadowLod = k.group === 'tree' ? 2 : (k.group === 'bush' || k.group === 'deadwood') ? 1 : 0;
+          mesh.castShadow = !p.noShadow && l < Math.min(this.shadowLods, maxShadowLod);
           mesh.receiveShadow = l < 2 && this.quality !== 'low';
           if (mesh.castShadow) mesh.customDepthMaterial = p.depth;
           mesh.name = `${k.id}.lod${l}`;
@@ -315,18 +316,25 @@ export class VegLayer {
   // Hide every instance whose trunk (or, for trees, the inner part of the crown) lies in the circle.
   // Returns the number of hidden instances.
   clearArea(x, z, r) {
+    return this.clearIf(x - r, z - r, x + r, z + r, (kind, px, pz, sx) => {
+      const margin = kind.group === 'tree' ? Math.max(kind.trunkR, kind.radius * sx * 0.3) : Math.min(1.5, kind.radius * sx * 0.5);
+      return Math.hypot(px - x, pz - z) < r + margin;
+    });
+  }
+
+  // Hide instances inside the bounding box for which pred(kind, x, z, scaleX) is true.
+  clearIf(minX, minZ, maxX, maxZ, pred) {
     const cs = this.chunkSize;
     let hidden = 0;
-    for (let ix = Math.floor((x - r - 12) / cs); ix <= Math.floor((x + r + 12) / cs); ix++) {
-      for (let iz = Math.floor((z - r - 12) / cs); iz <= Math.floor((z + r + 12) / cs); iz++) {
+    for (let ix = Math.floor((minX - 12) / cs); ix <= Math.floor((maxX + 12) / cs); ix++) {
+      for (let iz = Math.floor((minZ - 12) / cs); iz <= Math.floor((maxZ + 12) / cs); iz++) {
         const ch = this.chunks.get(`${ix},${iz}`);
         if (!ch) continue;
         for (let i = 0; i < ch.n; i++) {
           if (!ch.alive[i]) continue;
           const kind = this.kinds[ch.kind[i]];
           const px = ch.m[i * 16 + 12], pz = ch.m[i * 16 + 14];
-          const margin = kind.group === 'tree' ? Math.max(kind.trunkR, kind.radius * ch.sx[i] * 0.3) : Math.min(1.5, kind.radius * ch.sx[i] * 0.5);
-          if (Math.hypot(px - x, pz - z) < r + margin) {
+          if (pred(kind, px, pz, ch.sx[i])) {
             ch.alive[i] = 0;
             hidden++;
             if (ch.collider[i] >= 0) { this.onClear?.(ch.collider[i]); ch.collider[i] = -1; }
