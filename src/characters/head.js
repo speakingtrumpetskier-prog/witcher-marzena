@@ -491,13 +491,15 @@ function buildEyes(mb, rig, FP, S, sc, pivot, uvOf, look) {
       for (let r = 0; r <= nR + 1; r++) {
         const row = [];
         for (let c = 0; c <= nC; c++) {
-          const u = c / nC * 2 - 1;
+          // shells run 20% past the corners so the carved skin never shows a gap there
+          const uu = (c / nC * 2 - 1) * 1.2;
+          const u = clamp(uu, -1, 1);
           const mps = marginOf(u);
           const far = upper ? 1.0 : -0.9;
           let ps, rr = rl;
           if (r <= nR) ps = lerp(far, mps, Math.pow(r / nR, 0.75));
           else { ps = mps + (upper ? -0.06 : 0.05); rr = re + 0.0002; }
-          const ph = u * LS.phM * (r <= nR ? lerp(1.2, 1, r / nR) : 1);
+          const ph = uu * LS.phM * (r <= nR ? lerp(1.12, 1, r / nR) : 1);
           const pl = toLocal(ph, ps, rr);
           const edge = 1 - Math.pow(Math.abs(u), 6);
           const w = r > nR ? edge : (r / nR) ** 1.3 * edge;

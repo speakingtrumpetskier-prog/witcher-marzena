@@ -222,7 +222,7 @@ function buildBeard(ctx, b) {
     let m = smoothstep(0.062, 0.042, p.y - (ax > 0.045 ? 0.0 : 0)) * smoothstep(-0.02, 0.0, p.z);
     // cheek line rises toward the ears (sideburns)
     const cheekLine = lerp(0.03, 0.065, smoothstep(0.03, 0.06, ax));
-    m *= smoothstep(cheekLine + 0.006, cheekLine - 0.004, p.y);
+    m *= smoothstep(cheekLine + 0.014, cheekLine - 0.01, p.y);
     // keep the lips clear
     const lip = smoothstep(0.031, 0.022, ax) * smoothstep(0.011, 0.005, Math.abs(p.y - (S.stomY - 0.001)));
     m *= 1 - lip;
@@ -231,7 +231,7 @@ function buildBeard(ctx, b) {
     return m;
   };
   const n = new THREE.Vector3();
-  const nAz = 26, nPol = 14;
+  const nAz = 32, nPol = 16;
   const rows = [];
   for (let i = 0; i <= nPol; i++) {
     const row = [];

@@ -68,7 +68,7 @@ export class MzPostPass extends Pass {
       tFrost: { value: black }, uTexel: { value: new THREE.Vector2() }, uMaskTexel: { value: new THREE.Vector2() },
       uAspect: { value: 1 }, uExposure: { value: 1 }, uBloom: { value: 0 }, uRays: { value: 0 },
       uRaysColor: { value: new THREE.Color(1, 0.8, 0.6) }, uTint: { value: new THREE.Color(1, 1, 1) },
-      uShoulder: { value: new THREE.Vector2(0.85, 0.45) },
+      uShoulder: { value: new THREE.Vector2(0.6, 0.9) },
       uLift: { value: new THREE.Color(0, 0, 0) }, uGain: { value: new THREE.Color(1, 1, 1) },
       uSat: { value: 1 }, uContrast: { value: 1 }, uVignette: { value: 0.3 }, uGrain: { value: 0.03 },
       uTime: { value: 0 }, uSenses: { value: 0 }, uSensesTime: { value: 0 },

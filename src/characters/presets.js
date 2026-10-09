@@ -55,7 +55,7 @@ const CAST = {
     name: 'Ola',
     body: { sex: 'f', age: 11, height: 1.42, mass: 0.32 },
     skin: '#e2bba2',
-    face: { missingTooth: true, iris: '#5e7656', browColor: '#5a3e28', blush: 0.75, noseRed: 0.55, freckles: 0.7, noseTip: 0.6, lipFull: 0.95, eyeSize: 1.08 },
+    face: { missingTooth: true, iris: '#5e7656', browColor: '#5a3e28', blush: 0.75, noseRed: 0.55, freckles: 0.7, noseTip: 0.7, noseLen: 0.76, noseSize: 0.76, noseW: 0.88, jawW: 0.86, jawSq: 0.2, chin: 0.2, chinW: 0.85, faceLen: 0.86, fullCheek: 1.2, lipFull: 0.95, lipW: 0.9, eyeSize: 1.1, brow: 0.0 },
     hair: { style: 'pigtails', color: '#6b4a2e', tie: '#9a2e22' },
     hat: { type: 'knit', color: '#9a2e22', slouch: 0.008 },
     outfit: {

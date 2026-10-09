@@ -226,6 +226,7 @@ export async function init(G) {
     G.camera.fov = 36;
   }
   G.camera.updateProjectionMatrix();
+  if (P.has('nosprings')) for (const c of G.gallery.chars) c.springs.update = () => {};
 
   // Camera rig for follow / face modes (the harness 'cam' param overrides everything).
   if (!P.has('cam') && camRig.mode !== 'fixed') {

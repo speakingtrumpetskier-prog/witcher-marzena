@@ -258,7 +258,7 @@ export async function init(G) {
     gr.lift.copy(look.lift);
     gr.gain.copy(look.gain);
     gr.sat = look.sat;
-    gr.contrast = 1.0 + 0.06 * (1 - W.overcast) - 0.1 * W.fogWhite;
+    gr.contrast = 1.0 + 0.1 * (1 - W.overcast) - 0.1 * W.fogWhite;
     gr.tint.copy(look.tint);
     gr.vignette = 0.3 + 0.1 * night;
     gr.grain = 0.025 + 0.02 * night;

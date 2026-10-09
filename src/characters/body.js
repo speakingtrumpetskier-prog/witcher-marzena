@@ -188,8 +188,8 @@ function buildSleeves(ctx) {
       { c: A.el.clone(), r: M.armR * 0.97 * loose + t0 },
       { c: A.el.clone().addScaledVector(dir2, M.forearm * 0.3), r: M.armR * 1.0 * loose + t0 },
       { c: A.el.clone().addScaledVector(dir2, M.forearm * 0.7), r: M.armR * 0.82 * loose + t0 },
-      { c: wristEnd.clone().addScaledVector(dir2, -0.035 * k), r: M.armR * 0.74 * loose + t0 + (g.flare ?? 0.006) * 0.5 },
-      { c: wristEnd, r: M.armR * 0.74 * loose + t0 + (g.flare ?? 0.006) },
+      { c: wristEnd.clone().addScaledVector(dir2, -0.035 * k), r: M.armR * 0.74 * loose + t0 + (g.cuffFlare ?? 0.006) * 0.5 },
+      { c: wristEnd, r: M.armR * 0.74 * loose + t0 + (g.cuffFlare ?? 0.006) },
     ];
     const joints = [{ name: 'arm' + S, s: 0 }, { name: 'forearm' + S, s: M.upperArm }, { name: 'hand' + S, s: M.upperArm + M.forearm }];
     const sOf = (c) => {
@@ -227,7 +227,7 @@ function buildSleeves(ctx) {
       for (let i = 0; i <= 2; i++) {
         const c = wristEnd.clone().addScaledVector(dir2, -len * (1 - i / 2) + 0.004);
         const f = frame(dir2, V(0, 0, 1));
-        const rr = M.armR * 0.74 * loose + t0 + (g.flare ?? 0.006) + cuffThick * (i === 1 ? 1.15 : 1) + 0.002;
+        const rr = M.armR * 0.74 * loose + t0 + (g.cuffFlare ?? 0.006) + cuffThick * (i === 1 ? 1.15 : 1) + 0.002;
         cr.push({ c, a: f.a, b: f.b, ra: rr, rb: rr });
       }
       const cmat = cuff.emb !== undefined ? { ...cm, tile: TILE_EMB(cuff.emb), tileU: 3 } : cm;

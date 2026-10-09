@@ -31,7 +31,7 @@ function addPad(b, r, cx, cy, cz, R, lod, windPhase, tilt) {
   const ids = [];
   for (let j = 0; j < sectors; j++) {
     const a = rot + (j / sectors) * Math.PI * 2;
-    const rr = R * 0.7 * (0.85 + r() * 0.3);
+    const rr = R * 0.5 * (0.8 + r() * 0.4);
     ids.push(b.v(cx + Math.cos(a) * rr, cy - R * 0.12 + tilt * Math.cos(a) * R * 0.2, cz + Math.sin(a) * rr, Math.cos(a), 0.5, Math.sin(a), mixRGB(PAL.needleDark, PAL.needleLight, 0.25), 0, 0, 0.3, 0.6, windPhase));
   }
   for (let j = 0; j < sectors; j++) b.triFacing(apex, ids[j], ids[(j + 1) % sectors], 0, 1, 0);
