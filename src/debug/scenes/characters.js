@@ -4,7 +4,7 @@
 //   ?scene=characters                         lineup: main cast + a sample of villagers
 //   &set=villagers | children | all            other lineups
 //   &preset=vesna&clip=walk                    one character, one clip (locomotion clips move)
-//   &close=1                                   face close-up camera (tracks the head)
+//   &close=1                                   face close-up camera (tracks the head; &zoom=2 &orbit=0.35)
 //   &mid=1&preset=hanka&preset2=vesna          dialogue mid-shot, two characters facing, talking
 //   &strip=8&clip=attack_1                     N frozen copies across the clip (filmstrip)
 //   &face=smile:0.8,browUp:0.5   &talk=1  &lookcam=1  &yaw=0.6  &t=0.4 (clip start time)
@@ -48,7 +48,8 @@ export async function init(G) {
     for (const [k, v] of face) c.expression(k, parseFloat(v || '1'), 0);
     if (P.has('talk')) c.talk(true);
   };
-  const camRig = { mode: 'fixed', target: null, offset: new THREE.Vector3(), look: new THREE.Vector3() };
+  const camRig = { mode: 'fixed', target: null, offset: new THREE.Vector3(), look: new THREE.Vector3(),
+    zoom: parseFloat(P.get('zoom') || '1'), orbit: parseFloat(P.get('orbit') || '0.35') };
   G.gallery = { chars: [], camRig };
 
   if (P.has('mid')) {
@@ -245,8 +246,8 @@ export async function init(G) {
       if (camRig.mode === 'face') {
         c.bones.head.getWorldPosition(head);
         head.y += 0.075 * c.M.headK;
-        const fwd = new THREE.Vector3(Math.sin(c.yaw + 0.35), 0, Math.cos(c.yaw + 0.35));
-        G.camera.position.copy(head).addScaledVector(fwd, 0.62).add(new THREE.Vector3(0, 0.01, 0));
+        const fwd = new THREE.Vector3(Math.sin(c.yaw + camRig.orbit), 0, Math.cos(c.yaw + camRig.orbit));
+        G.camera.position.copy(head).addScaledVector(fwd, 0.62 / camRig.zoom).add(new THREE.Vector3(0, 0.01, 0));
         G.camera.lookAt(head.x, head.y - 0.012, head.z);
       } else {
         const p = c.root.position;
