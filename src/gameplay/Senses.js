@@ -434,10 +434,11 @@ export async function init(G) {
     if (!cl.object) return;
     const color = cl.kind === 'echo' ? COLORS.echo : COLORS.clue;
     const pf = G.postfx;
-    // PostFX clue layer: glows warm orange whenever uSenses > 0, so mark it while it counts.
-    if (cl.kind !== 'echo' && typeof pf?.markClue === 'function') {
+    // PostFX clue layer: glows in the clue color (orange, or turquoise for echoes) after the
+    // senses desaturation whenever uSenses > 0, so mark it while it counts.
+    if (typeof pf?.markClue === 'function') {
       const on = k > 0.02;
-      if (on !== !!cl.hl) { pf.markClue(cl.object, on); cl.hl = on; }
+      if (on !== !!cl.hl) { pf.markClue(cl.object, on, '#' + color.getHexString()); cl.hl = on; }
       return;
     }
     if (pf && typeof pf.addHighlight === 'function') {

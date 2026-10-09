@@ -8,7 +8,7 @@
 //   &mid=1&preset=hanka&preset2=vesna          dialogue mid-shot, two characters facing, talking
 //   &strip=8&clip=attack_1                     N frozen copies across the clip (filmstrip)
 //   &face=smile:0.8,browUp:0.5   &talk=1  &lookcam=1  &yaw=0.6  &t=0.4 (clip start time)
-//   &views=1 (front, 3/4, side, back of one preset)  &atmo=1 (load atmosphere, sky, postfx)
+//   &views=1 (front, 3/4, side, back of one preset)  &heads=1 (head turnaround)  &atmo=1 (load atmosphere, sky, postfx)
 //   &slope=1 (sloped ground to test foot planting)  &speed=2.5 (locomotion speed)
 //   &demo=1 (village vignette using walkTo, playUpper, talk, lookAt)  &poses=1|2 (frozen pose grids)
 //   &clip=attack_1+attack_2 (chain)  &sword=1  &onready=1  &animStep=0.08 (deterministic sheets)
@@ -153,10 +153,11 @@ export async function init(G) {
     G.camera.lookAt(0, 0.95, 0);
     G.camera.fov = 34;
   } else if (preset) {
-    const views = P.has('views') ? [0, 0.6, Math.PI / 2, Math.PI] : [parseFloat(P.get('yaw') || '0')];
+    const heads = P.has('heads');
+    const views = heads ? [0.55, -0.7, 1.75, Math.PI] : P.has('views') ? [0, 0.6, Math.PI / 2, Math.PI] : [parseFloat(P.get('yaw') || '0')];
     views.forEach((yaw, i) => {
       const c = C.create(preset);
-      c.setPosition((i - (views.length - 1) / 2) * 0.95, 0);
+      c.setPosition((i - (views.length - 1) / 2) * (heads ? 0.5 : 0.95), 0);
       c.yaw = yaw;
       G.scene.add(c.root);
       apply(c);
@@ -194,7 +195,12 @@ export async function init(G) {
     }
     if (P.has('lookcam')) for (const ch of G.gallery.chars) ch.lookAt(G.camera);
     const H = c.height;
-    if (P.has('close')) {
+    if (heads) {
+      // head turnaround: front three-quarter both sides, profile, back
+      G.camera.position.set(0, H * 0.9, 2.3);
+      G.camera.lookAt(0, H * 0.86, 0);
+      G.camera.fov = 22;
+    } else if (P.has('close')) {
       camRig.mode = 'face';
       camRig.target = c;
       G.camera.fov = 26;

@@ -11,7 +11,7 @@ catches issues, and fixes them or sends a targeted fix back to the builder. No c
 | 1 | Atmosphere, sky, weather, post | opus | done, reviewed | 1 | real sun/moon paths, 15 palettes, near+far shadows, sky with aurora, 3-layer fog, 5 weathers with snowfall, MSAA/bloom/god rays/grade, senses/echo/frost, markClue |
 | 1 | Characters, animation, horse | opus | reviewed, rework sent | 1 | 46 presets, 70 clips, skinned bodies with layered clothing and spring bones, LOD; hair, resting expressions, skin and horse body need a pass |
 | 1 | Audio and music | opus | done, reviewed | 1 | 12 moods, 7 stingers, 68 SFX, auto ambience; no clipping, loudness on target; needs human ears |
-| 1 | Vegetation | sonnet | reviewed, rework sent | 1 | 34k trees + 33k far billboards, 3 LODs, wind, marsh reeds, spring leaves; close-up spruce too faceted, dither stipple, speckled mid forest |
+| 1 | Vegetation | sonnet | done, reviewed | 2 | needle-card spruce and pine tufts, Bayer LOD dither, coherent far canopy, marsh reeds, spring leaves |
 | 1 | Architecture kit | sonnet | done, reviewed | 1 | full catalog incl. enterable tavern, longhouse+cellar, Hanka's house, workshop, walkable bell tower; placeBuilding with foundations, colliders, doors, lights, walk floors |
 | 1 | Props kit and FX | sonnet | done, reviewed | 1 | 74 props, pooled FX (fire, smoke, steam, sparks, wisps, breath), PropBatch merging; lead fixed the Collision yaw convention both kits worked around |
 | 2 | Player, camera, horse riding, player moveset | sonnet (worktree) | building | 0 | |
@@ -33,7 +33,8 @@ Model policy (user request): Part Two and later run on Sonnet 5.5, except a sing
 - Architecture: idol faces too blocky (tiki read); sculpt deeper relief, weather it, keep the silhouette.
 - Architecture: bell tower should lean a few degrees and look drowned (ice line stains, broken boards, frost); stone texture cartoonish up close.
 - Terrain: noon snow blown out and no distance haze (sent to atmosphere builder); ice wind streaks too regular; talus boulders read as scattered teeth; marsh pool edges look cut; bear den needs a cave opening in the escarpment (locations builder; terrain left a pattern at the falls).
-- Integration: Senses.js should call G.postfx.markClue instead of its hidden mask geometry.
+- Done: Senses routes echo clues through G.postfx.markClue in turquoise.
+- Vegetation: LOD1/LOD2 spruce (30 to 100 m) still read as stylized tiered cones; consider needle fringe at LOD1.
 - Integration: windows and fires need emissive about 3 to 6 x uWindowLight to bloom at night (architecture, props).
 - Integration: some unnamed mesh has NaN positions (atmosphere report); find and fix.
 - Integration: move the six extra fog uniforms from fogChunk.js into Uniforms.js.
