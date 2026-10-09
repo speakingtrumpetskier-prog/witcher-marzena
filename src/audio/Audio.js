@@ -6,7 +6,8 @@
 //   G.audio.sfx(name, { pos, volume, pitch }) one-shot, positional if pos given; names in sfxNames.js
 //   const h = G.audio.loop(name, { pos, volume, follow })  h.setPos(v), h.setVolume(v), h.stop(fade)
 //   G.audio.duck(amount, seconds)             lower music under dialogue (no seconds: hold until duck(0))
-//   G.audio.volumes = { master, music, sfx, ambience }   (each 0..1; also settable one at a time)
+//   G.audio.volumes = { master, music, sfx, ambience, voice }   (each 0..1; also settable one at a time)
+//   G.voice (also G.audio.voice)              voice-over player, see src/audio/voice.js and docs/VOICES.md
 //   G.audio.setEnvironment('hall' | 'room' | 'cave')     reverb space and muffled outdoors for interiors
 //   G.audio.mood, G.audio.ready, G.audio.info()
 // Events emitted: 'music:mood' { mood }, 'music:lyric' { mood, line, text } (procession subtitles).
@@ -16,9 +17,10 @@
 import { ORDER } from '../core/G.js';
 import { createEngine } from './engine.js';
 import { MOODS } from './sfxNames.js';
+import { Voice } from './voice.js';
 
 const VOL_KEY = 'marzena.audio.volumes';
-const DEFAULT_VOL = { master: 0.9, music: 0.75, sfx: 0.9, ambience: 0.8 };
+const DEFAULT_VOL = { master: 0.9, music: 0.75, sfx: 0.9, ambience: 0.8, voice: 1 };
 
 class FacadeLoop {
   constructor(a, name, o) {
@@ -66,6 +68,7 @@ class AudioFacade {
   _setVol(k, v) {
     this._vol[k] = Math.max(0, Math.min(1, Number(v) || 0));
     this.eng?.mixer.setVolume(k, this._vol[k]);
+    if (k === 'voice') this.voice?.setVolume(this._vol[k]);
     try { localStorage.setItem(VOL_KEY, JSON.stringify(this._vol)); } catch { /* storage blocked */ }
   }
 
@@ -176,7 +179,11 @@ function loadVolumes() {
 export async function init(G) {
   const audio = new AudioFacade(G);
   G.audio = audio;
+  // Voice-over: inert until the audio context exists and a voice/manifest.json is found.
+  audio.voice = G.voice = new Voice(G);
   if (G.shot) return;
+  audio.voice.warm();
+  G.addSystem('voice', () => audio.voice.tick(), ORDER.late + 1);
   G.addSystem('audio', (dt) => audio.update(dt), ORDER.late);
   // Fallback unlock on the first gesture, in case nobody calls unlock() explicitly.
   const gesture = () => {

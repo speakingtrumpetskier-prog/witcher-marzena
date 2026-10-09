@@ -148,6 +148,7 @@ export class NPC {
   bark(text) {
     if (!text) return;
     this.G.ui?.bark?.(this.name, text, this.character);
+    this.G.voice?.bark?.(this, text);
     this._speakGesture(text.length * 0.06 + 1.4);
   }
 

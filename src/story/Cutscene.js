@@ -13,7 +13,9 @@
 //   d.shot({ from | pos, to, via, look, lookTo, fov, fovTo, frame, frameTo, roll, dur, ease, shake })
 //   d.cut({ pos, look, fov, frame })   d.follow(actor, offset, look, dur, opts)
 //   d.orbit(center, radius, height, fromAngle, toAngle, dur, opts)
-//   d.say(speaker, text, dur?)  d.sub(text, dur, { italic })  d.wait(s)  d.fade(to, s)
+//   d.say(speaker, text, dur?)  d.sub(text, dur, { italic, voice })  d.wait(s)  d.fade(to, s)
+//     (voiced lines: when voice/manifest.json has a clip for the speaker's text, the subtitle lasts as long as the
+//      audio plus a tail, at least `dur`; d.sub voices a line only when given { voice: 'speaker_id' }; see src/audio/voice.js)
 //   d.letterbox(on)  d.titleCard(title, sub, dur = 5)  d.music(mood)  d.stinger(name)
 //   d.sfx(name, pos, opts)  d.weather(state, s)  d.time(h, { day })
 //   d.anim(actor, clip, opts) -> Promise (one-shots)  d.walk(actor, x, z, opts) -> Promise
@@ -32,6 +34,7 @@
 import * as THREE from 'three';
 import { Actor, ActorStage, displayName } from './director/Actors.js';
 import { Coverage } from './director/Coverage.js';
+import { VOICE_TAIL } from '../audio/voice.js';
 
 const CONTENT = import.meta.glob('./content/cutscenes/*.js');
 const HOLD_TO_SKIP = 0.8;
@@ -78,6 +81,7 @@ export class Cutscenes {
     ui.skipRing(null);
     ui.fade(1, 0.25);
     ui.clearSubtitle();
+    this.G.voice?.stopAll?.(0.1);
     ui.hideTitleCard?.();
     sched.instant = true;
     for (const w of this._d._walks) {
@@ -230,17 +234,31 @@ export class Cutscenes {
         const len = dur ?? Math.max(1.6, String(text).length / 14 + 0.35);
         if (sched.instant) return Promise.resolve();
         const italic = o.italic ?? (sid === 'wiesia' || sid === 'wiesia_ghost');
-        const tok = ui.subtitle(o.name ?? displayName(G, sid === 'player' ? 'vesna' : sid), text, Infinity, { italic });
-        G.audio?.duck?.(0.35, len);
-        a?.talk(true);
-        if (o.anim) a?.play(o.anim);
-        return sched.wait(len).then(() => { a?.talk(false); ui.clearSubtitle(tok); });
+        const vid = sid === 'player' ? 'vesna' : sid;
+        const show = (vl) => {
+          if (sched.instant) return Promise.resolve(); // a skip began while the clip loaded
+          const t = vl ? Math.max(vl.dur + VOICE_TAIL, dur ?? 0) : len;
+          const tok = ui.subtitle(o.name ?? displayName(G, vid), text, Infinity, { italic });
+          a?.talk(true);
+          if (vl) vl.play({ character: a?.c }); else G.audio?.duck?.(0.35, len);
+          if (o.anim) a?.play(o.anim);
+          return sched.wait(t).then(() => { a?.talk(false); vl?.stop(0.1); ui.clearSubtitle(tok); });
+        };
+        // A voiced line waits for its clip (usually already cached); an unvoiced one runs as it always did.
+        return G.voice?.canVoice?.(vid, text) && !self.skipping ? G.voice.prepare(vid, text).then(show) : show(null);
       },
       sub(text, dur, o = {}) {
         const len = dur ?? Math.max(1.6, String(text).length / 14 + 0.35);
         if (sched.instant) return Promise.resolve();
-        const tok = ui.subtitle(o.name || '', text, Infinity, { italic: !!o.italic });
-        return sched.wait(len).then(() => ui.clearSubtitle(tok));
+        const show = (vl) => {
+          if (sched.instant) return Promise.resolve();
+          const t = vl ? Math.max(vl.dur + VOICE_TAIL, dur ?? 0) : len;
+          const tok = ui.subtitle(o.name || '', text, Infinity, { italic: !!o.italic });
+          if (vl) vl.play({});
+          return sched.wait(t).then(() => { vl?.stop(0.1); ui.clearSubtitle(tok); });
+        };
+        // d.sub is narration unless the script names who speaks: d.sub('Did Mama send you?', 3, { voice: 'wiesia' }).
+        return o.voice && G.voice?.canVoice?.(o.voice, text) && !self.skipping ? G.voice.prepare(o.voice, text).then(show) : show(null);
       },
       wait(s) { return sched.wait(s); },
       fade(to, s = 1) {

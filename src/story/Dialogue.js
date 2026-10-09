@@ -20,10 +20,13 @@
 // decisive beats), inserts reaction shots on the listener after strong lines, drifts slowly
 // on long lines, and blends instead of cutting when the new angle is under 30 degrees from
 // the old one on the same subject. Speakers talk and gesture, listeners look, nod, glance.
+// Voice-over (G.voice, src/audio/voice.js): a line with a clip in voice/manifest.json is spoken, its
+// subtitle lasts as long as the audio plus a short tail, and Space still skips it. No clip, no change.
 import * as THREE from 'three';
 import { Actor, displayName } from './director/Actors.js';
 import { Coverage } from './director/Coverage.js';
 import { rng, hashString } from '../core/util.js';
+import { VOICE_TAIL } from '../audio/voice.js';
 
 const CONTENT = import.meta.glob('./content/dialogues/*.js');
 const CHARS_PER_SEC = 14;
@@ -85,6 +88,7 @@ export class Dialogue {
     const G = this.G;
     const { ui, cam, sched } = this.story;
     const def = await this.load(id);
+    if (G.voice?.ready) { await G.voice.warm(); G.voice.prefetchNodes(def, opts.start || def.start || Object.keys(def.nodes)[0], { self: true }); }
     const S = G.state;
     const nested = !!G.cutscenes?.active;
     const stage = nested ? G.cutscenes.stage : this.story.newStage();
@@ -191,6 +195,7 @@ export class Dialogue {
       }
     } finally {
       ui.clearSubtitle();
+      G.voice?.stopAll?.();
       for (const a of actors.values()) { a.talk(false); a.lookAt(null); a.relax(); }
       // Player keeps where she ended up.
       if (vesna?.isPlayer && !nested) this.story.syncPlayer(vesna);
@@ -252,7 +257,13 @@ export class Dialogue {
     const { ui, sched } = this.story;
     const { actors, vesna, cov, dir, R, speed, useCam } = ctx;
     const name = node.s === 'narrator' ? '' : (node.name || displayName(G, node.s));
-    const dur = (node.dur ?? Math.max(MIN_LINE, text.length / CHARS_PER_SEC + 0.35)) / speed;
+    // Voiced line: lasts as long as its audio plus a tail (a longer node.dur still holds the beat).
+    // Debug speed-ups and skipping play the line unvoiced.
+    let vl = null;
+    if (node.s !== 'narrator' && speed === 1 && !sched.instant && (this.story.timeScale || 1) === 1 && G.voice?.canVoice?.(node.s, text)) {
+      vl = await G.voice.prepare(node.s, text);
+    }
+    const dur = vl ? Math.max(vl.dur + VOICE_TAIL, node.dur ?? 0) : (node.dur ?? Math.max(MIN_LINE, text.length / CHARS_PER_SEC + 0.35)) / speed;
     const listeners = [...actors.values()].filter((a) => a !== spk);
     const mainListener = spk === vesna ? ctx.primary : vesna;
     const charge = this._charge(node, text, ctx);
@@ -321,8 +332,11 @@ export class Dialogue {
     const glanceAt = nodder && dur > 3.4 && R() < 0.3 ? dur * 0.35 : -1;
 
     const subTok = ui.subtitle(name, text, Infinity, { italic: !!node.italic || node.s === 'wiesia' || node.s === 'wiesia_ghost' });
-    G.audio?.duck?.(0.35, dur + 0.3);
-    G.events.emit('dialogue:line', { id: ctx.def.id, node: ctx.nodeId, s: node.s, t: text, dur });
+    if (vl) {
+      vl.play({ character: spk?.c });
+      G.voice.prefetchNodes(ctx.def, ctx.nodeId);
+    } else G.audio?.duck?.(0.35, dur + 0.3);
+    G.events.emit('dialogue:line', { id: ctx.def.id, node: ctx.nodeId, s: node.s, t: text, dur, voiced: !!vl });
 
     // Wait for the line, a skip press, or the end of the reaction beat.
     this._advance = false;
@@ -348,6 +362,7 @@ export class Dialogue {
       }
     }
     spk?.talk(false);
+    vl?.stop(0.12); // a skipped line fades out; a finished one is already done
     // Short strong line: hold a beat on the listener before moving on.
     if (reactShot && !reacted && useCam && !this._advance) {
       this._applyShot(reactShot, 1.6, dir, true);
