@@ -20,7 +20,6 @@ export default async function choice(d) {
     const { H, vesna, wiesia } = S;
     const P = (dx, dz, h = 0) => ground(G, H.x + dx, H.z + dz, h);
     const [wx, wz] = wiesia.pos0;
-    const WP = (h = 0) => ground(G, wx, wz, h);
     wiesia.hide();
     const boss = G.creatures?.boss;
     const bp = boss?.root?.position || V3(wx, 0, wz);

@@ -28,13 +28,13 @@ export default async function c1(d) {
     const hdWorld = () => { const b = kasza.c.bones?.head; return b ? b.getWorldPosition(V3(0, 0, 0)) : kasza.at(0.9, V3(0, 0, 0)); };
 
     // 1. BLACK. Wind. A horse's breath.
-    d.cut({ pos: pt(-34, 22, 0.9), look: pt(-34, -2, 5), fov: 46 });
+    d.cut({ pos: pt(-35, 15, 0.7), look: pt(-34, -1, 3.4), fov: 52 });
     d.sfx('horse_snort', null, { volume: 0.35 });
     await d.wait(2.4);
 
     // 2. EXTREME WIDE, low, through blowing snow: the rider small on the road, the walls vanishing upward.
     d.fade(0, 2.2);
-    await d.shot({ from: pt(-34, 22, 0.9), to: pt(-33, 21, 1.1), look: pt(-32, -2, 5), fov: 46, dur: 6.6, ease: 'linear', shake: 0.3 });
+    await d.shot({ from: pt(-35, 15, 0.7), to: pt(-34, 14.2, 0.9), look: pt(-34, -1, 3.4), fov: 52, dur: 6.6, ease: 'linear', shake: 0.3 });
 
     // 3. MEDIUM, tracking alongside on her scarred side, head down into the wind.
     await d.follow(kasza, [-3.3, 1.9, 0.6], lookRider, 5.6, { lag: 2.4, fov: 36, shake: 0.35, frame: [0.16, -0.02] });
@@ -52,9 +52,9 @@ export default async function c1(d) {
 
     // 5. OVER THE SHOULDER: ahead, a dark shape in the snow. An overturned cart, a dead mule half-buried.
     const wreck = S.cart.clone().add(V3(0, 0.5, 0));
-    const shoulder = () => eye().addScaledVector(V3(Math.sin(kasza.yaw), 0, Math.cos(kasza.yaw)), -1.25).addScaledVector(V3(-Math.cos(kasza.yaw), 0, Math.sin(kasza.yaw)), 0.55).add(V3(0.0, 0.22, 0));
-    const shoulderTo = () => shoulder().addScaledVector(V3(Math.sin(kasza.yaw), 0, Math.cos(kasza.yaw)), 0.5);
-    await d.shot({ from: shoulder, to: shoulderTo, look: wreck, fov: 40, frame: [0.12, 0.02], dur: 4.4, ease: 'sine', shake: 0.4 });
+    const shoulder = () => eye().addScaledVector(V3(Math.sin(kasza.yaw), 0, Math.cos(kasza.yaw)), -2.0).addScaledVector(V3(-Math.cos(kasza.yaw), 0, Math.sin(kasza.yaw)), 0.7).add(V3(0.0, 0.5, 0));
+    const shoulderTo = () => shoulder().addScaledVector(V3(Math.sin(kasza.yaw), 0, Math.cos(kasza.yaw)), 0.6);
+    await d.shot({ from: shoulder, to: shoulderTo, look: wreck, fov: 38, frame: [0.16, 0.0], dur: 4.4, ease: 'sine', shake: 0.4 });
 
     // 6. Vesna dismounts and walks to the cart. Tracking from behind, then LOW past a frozen hand.
     const spot = V3(0, 0, 0);

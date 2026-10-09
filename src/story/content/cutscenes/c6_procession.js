@@ -15,6 +15,18 @@ const LYRICS = [
   'Go down, go down, and let the green come back.',
 ];
 
+// The cut ribbon falls from her wrists to the ice.
+function dropRibbon(d, rib) {
+  if (!rib) return;
+  const G = d.G;
+  const p = rib.getWorldPosition(V3(0, 0, 0));
+  rib.parent?.remove(rib);
+  G.scene.add(rib);
+  rib.position.copy(p);
+  const y0 = G.world.heightAt(p.x, p.z) + 0.01;
+  G.story.sched.tween({ dur: 0.7, ease: 'in', step: (u) => { rib.position.y = p.y + (y0 - p.y) * u; rib.rotation.x = u * 1.2; } });
+}
+
 export default async function c6(d) {
   const G = d.G, K = kit(d);
   try {
@@ -24,6 +36,7 @@ export default async function c6(d) {
     const P = (dx, dz, h = 0) => ground(G, H.x + dx, H.z + dz, h);
     d.setup({ time: 20.0, day: 2, weather: 'snow', music: 'procession' });
     d.fade(1, 0);
+    d.atmosphere({ amount: 1, exposure: 1.55, ambientMul: 1.25 });
     d.weather('blizzard', 66);
     G.audio?.duck?.(0.5, 90);
     const spots = riteSpots(H);
@@ -34,8 +47,9 @@ export default async function c6(d) {
     vesna.c.setVisible?.(false);
 
     // The column on the ice, front to back. z grows toward the shore; they walk north (yaw PI).
-    const zLead = H.z + 49, zEnd = H.z + 17;
+    const zLead = H.z + 44, zEnd = H.z + 17;
     const col = [];
+    let ribbon = null;
     const put = (a, lat, back, o = {}) => col.push({ a, lat, back, ...o });
     put(bogdan, 0, 0, { torch: true });
     put(men[0], -1.2, 1.5, { torch: true }); put(men[1], 1.2, 1.5, { torch: true });
@@ -45,13 +59,13 @@ export default async function c6(d) {
     women.slice(2).forEach((w, i) => put(w, i % 2 ? -0.95 : 0.95, 7.4 + Math.floor(i / 2) * 1.75, { sing: true }));
     kids.forEach((k, i) => put(k, (i - 1) * 0.55, 12.6 + (i % 2) * 0.6));
     men.slice(2).forEach((m, i) => put(m, i % 2 ? 2.1 : -2.1, 9.4 + i * 1.6, { torch: true }));
-    put(hanka, 3.6, 8.2, {});
+    put(hanka, 3.3, 10.0, {});
     for (const c of col) {
       d.place(c.a, H.x + c.lat, zLead + c.back, Math.PI);
       if (c.torch) { carry(c.a, 'carry_torch'); torchFor(K, c.a, { light: true }); }
       if (c.pole) carry(c.a, 'carry_pole');
       if (c.sing) c.a.c.talk?.(true);
-      if (c.bound) { carry(c.a, 'warm_hands'); ribbonFor(K, c.a); }
+      if (c.bound) { carry(c.a, 'warm_hands'); ribbon = ribbonFor(K, c.a); }
     }
     let effigy = null;
     try {
@@ -65,14 +79,13 @@ export default async function c6(d) {
     ola.c.expression?.('eyesWide', 0.5, 0.3);
     const advance = () => Promise.all(col.map((c) => d.walk(c.a, H.x + c.lat, zEnd + c.back, { speed: 0.95 })));
     advance();
-    const eyeOf = (a) => () => a.eye(V3(0, 0, 0));
 
     // 1. WIDE from the ice looking back at the shore: a line of torches winds down onto the ice.
-    const w1 = P(5.5, 10.5, 1.9);
-    d.cut({ pos: w1, look: P(-1.5, 40, 3.0), fov: 44, shake: 0.12 });
+    const w1 = P(4.5, 3.0, 1.8);
+    d.cut({ pos: w1, look: P(-1.0, 34, 2.2), fov: 46, shake: 0.12 });
     d.fade(0, 1.6);
     d.sub(LYRICS[0], 4.2, { italic: true });
-    d.shot({ from: w1, to: P(4.2, 10.0, 2.0), look: P(-1.5, 40, 3.0), lookTo: P(1.5, 38, 2.6), fov: 44, dur: 9, ease: 'linear', shake: 0.12 });
+    d.shot({ from: w1, to: P(3.6, 3.6, 1.9), look: P(-1.0, 34, 2.2), lookTo: P(1.0, 30, 2.0), fov: 46, dur: 9, ease: 'linear', shake: 0.12 });
     await d.wait(4.6);
     d.sub(LYRICS[1], 4.2, { italic: true });
     await d.wait(4.4);
@@ -86,7 +99,7 @@ export default async function c6(d) {
 
     // 3. Dobra's effigy, tall on its pole, white dress, red knot, carried by two men.
     const effHead = () => (effigy ? effigy.getWorldPosition(V3(0, 0, 0)).add(V3(0, 2.1, 0)) : bearers[0].eye(V3(0, 0, 0)));
-    d.follow(bearers[0], [1.9, 0.55, 2.8], effHead, 0, { lag: 2.6, fov: 38, shake: 0.14 });
+    d.follow(bearers[0], [3.3, 0.7, 4.3], () => effHead().add(V3(0, -0.95, 0)), 0, { lag: 2.6, fov: 46, frame: [0.0, 0.0], shake: 0.14 });
     d.sub(LYRICS[3], 4.2, { italic: true });
     await d.wait(5.6);
 
@@ -149,6 +162,7 @@ export default async function c6(d) {
       d.anim(bogdan, 'kneel');
       await d.wait(1.8);
       cast.ola.c.stopUpper?.(0.2);
+      dropRibbon(d, ribbon);
       d.sfx('sword_sheathe');
       await d.wait(0.8);
       d.sfx('crowd_murmur', null, { volume: 0.7 });
@@ -158,12 +172,12 @@ export default async function c6(d) {
     } else {
       // Vesna walks out of the snow into the torchlight.
       vesna.c.setVisible?.(true);
-      const from = [spots.vesna[0] - 5, spots.vesna[1] + 7];
+      const from = [spots.bogdan[0] - 8.0, spots.bogdan[1] + 7.5];
       d.place(vesna, from[0], from[1], yawTo(from[0], from[1], spots.bogdan[0], spots.bogdan[1] + 2));
-      const stand = off(spots.ola[0], spots.ola[1], Math.PI, -1.8, 1.4);
+      const stand = [spots.bogdan[0] - 2.6, spots.bogdan[1] + 2.9];
       const wk = d.walk(vesna, stand[0], stand[1], { speed: 1.4 });
-      const wide = P(-7.5, -4.5, 1.7);
-      d.cut({ pos: wide, look: () => vesna.at(0.7, V3(0, 0, 0)), fov: 36, shake: 0.1 });
+      const wide = P(-9.5, -2.0, 1.7);
+      d.cut({ pos: wide, look: () => vesna.at(0.7, V3(0, 0, 0)), fov: 38, shake: 0.1 });
       await wk;
       d.face(vesna, bogdan);
       d.cut(d.ots(bogdan, vesna));
@@ -171,15 +185,19 @@ export default async function c6(d) {
       d.cut(d.ots(vesna, bogdan));
       await d.say(bogdan, 'Stay out of this, hunter.', 2.2);
       // One stroke. The ribbon falls. The crowd gives way from the drawn sword.
-      d.cut(d.two(vesna, ola, { wide: true }));
+      const toOla = [spots.ola[0] - 1.0, spots.ola[1] + 0.9];
+      const op = ola.pos(V3(0, 0, 0));
+      d.cut({ pos: V3(op.x + 2.4, op.y + 1.45, op.z + 2.5), look: () => ola.at(0.6, V3(0, 0, 0)), fov: 34, shake: 0.1 });
+      d.walk(vesna, toOla[0], toOla[1], { speed: 1.3 });
       await d.anim(vesna, 'draw_sword');
       d.face(vesna, ola);
       d.anim(vesna, 'attack_1');
       await d.wait(0.35);
+      dropRibbon(d, ribbon);
       d.sfx('sword_whoosh', vesna);
       ola.c.stopUpper?.(0.1);
       jolt(d, 0.6, 0.6);
-      women.forEach((w, i) => {
+      women.forEach((w) => {
         const p = w.pos(V3(0, 0, 0));
         const away = yawTo(vesna.pos(V3(0, 0, 0)).x, vesna.pos(V3(0, 0, 0)).z, p.x, p.z);
         const [x, z] = off(p.x, p.z, away, 0, 1.2);

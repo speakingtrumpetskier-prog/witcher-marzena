@@ -20,14 +20,12 @@ export default async function c5(d) {
     const vesna = d.player();
     vesna.c.autoGround = false;
     K.add(() => { vesna.c.autoGround = true; });
-    const up = T.yaw;
     const hatch = T.hatch;
     // She comes up out of the hatch, facing the head of the table.
     const faceYaw = T.yaw + yawTo(0, 0, -1, -0.2); // toward the head of the table (local -x)
     vesna.c.root.position.set(hatch.x, F - 1.45, hatch.z);
     vesna.yaw = faceYaw;
-    vesna.play('walk', { loop: true, fade: 0 });
-    vesna.c.setLocomotion?.(0);
+    vesna.play('idle_cold', { loop: true, fade: 0 });
 
     // 1. Vesna rises through the trapdoor. Handheld-feel slow push.
     const c1 = S(3.1, F + 0.42, 2.9);
@@ -52,13 +50,15 @@ export default async function c5(d) {
 
     // 3. CLOSE: a small music box on the table. Vesna turns the crank and lets it play to the end.
     const bx = T.box;
-    const c3 = S(2.75, F + 1.25, 0.9);
-    d.face(vesna, bx);
-    d.cut({ pos: c3, look: bx.clone().add(V3(0, 0.05, 0)), fov: 30, frame: [0.0, 0.0], shake: 0.2 });
+    const c3 = S(3.0, F + 1.6, -1.5);
+    const stand = S(2.05, F, 1.5);
+    d.place(vesna, stand.x, stand.z, yawTo(stand.x, stand.z, bx.x, bx.z));
+    d.face(vesna, bx, { instant: true });
+    d.cut({ pos: c3, look: bx.clone().add(V3(0, 0.1, 0.45)), fov: 34, frame: [0.0, 0.0], shake: 0.2 });
     d.anim(vesna, 'stir', { loop: true });
     d.music('night');
     d.stinger('echo');
-    d.shot({ from: c3, to: S(2.55, F + 1.1, 0.55), look: bx.clone().add(V3(0, 0.05, 0)), fov: 30, dur: 7.0, ease: 'sine', shake: 0.2 });
+    d.shot({ from: c3, to: S(2.8, F + 1.45, -1.0), look: bx.clone().add(V3(0, 0.1, 0.45)), fov: 34, dur: 7.0, ease: 'sine', shake: 0.2 });
     await d.wait(7.0);
     vesna.play('idle_cold', { loop: true, fade: 0.4 });
 
@@ -71,15 +71,14 @@ export default async function c5(d) {
     // 5. She looks down through the gap in the floor: three men under the clear ice, faces up.
     const ld = T.lookDown;
     d.walk(vesna, ld.x, ld.z, { speed: 1.0 });
-    const shoulder = off(ld.x, ld.z, yawTo(ld.x, ld.z, T.menCenter.x, T.menCenter.z), 0.5, -1.0);
-    d.cut({ pos: V3(shoulder[0], F + 1.9, shoulder[1]), look: () => vesna.c.root.position.clone().add(V3(0, 1.05, 0)), fov: 38, frame: [0.12, 0.0], shake: 0.2 });
+    d.cut({ pos: S(2.6, F + 2.15, 1.2), look: () => vesna.c.root.position.clone().add(V3(0, 0.9, 0)), fov: 38, frame: [0.1, -0.02], shake: 0.2 });
     await d.wait(3.0);
     d.face(vesna, T.menCenter);
     vesna.c.lookAt?.(T.menCenter.clone().setY(-0.4));
     const eye = () => vesna.eye(V3(0, 0, 0));
-    const over = eye().add(V3(0, 0.35, 0));
-    d.cut({ pos: over, look: T.menCenter.clone().add(V3(0, -0.1, 0)), fov: 46, shake: 0.2 });
-    d.shot({ from: over, to: over.clone().lerp(T.menCenter, 0.08), look: T.menCenter.clone().add(V3(0, -0.1, 0)), fov: 46, dur: 4.4, ease: 'sine', shake: 0.2 });
+    const over = S(2.2, F + 1.3, 3.25);
+    d.cut({ pos: over, look: T.menCenter.clone().add(V3(0, -0.1, 0)), fov: 52, shake: 0.2 });
+    d.shot({ from: over, to: over.clone().lerp(T.menCenter, 0.06), look: T.menCenter.clone().add(V3(0, -0.1, 0)), fov: 52, dur: 4.4, ease: 'sine', shake: 0.2 });
     await d.wait(4.2);
 
     // 6. A girl's voice, close, wet, small.
@@ -101,7 +100,7 @@ export default async function c5(d) {
     await d.wait(2.2);
     const g0 = T.glide.from, g1 = T.glide.to;
     const pale = V3(0, 0, 0);
-    const view = ld.clone().add(V3(0, 0.4, 0));
+    const view = S(2.2, F + 1.3, 3.25);
     d.cut({ pos: view, look: pale.copy(g0), fov: 52, shake: 0.2 });
     const slide = G.story.sched.tween({
       dur: 5.2, ease: 'sine',
@@ -119,8 +118,8 @@ export default async function c5(d) {
     // 8. Vesna puts the music box back exactly where it was. No line.
     const back = S(2.7, F, 1.2);
     d.walk(vesna, back.x, back.z, { speed: 1.0 });
-    const c8 = S(3.0, F + 1.5, 2.4);
-    d.cut({ pos: c8, look: () => vesna.c.root.position.clone().add(V3(0, 0.95, 0)), fov: 36, frame: [-0.12, 0.0], shake: 0.12 });
+    const c8 = S(-1.6, F + 1.75, 2.8);
+    d.cut({ pos: c8, look: () => vesna.c.root.position.clone().add(V3(0, 0.95, 0)), fov: 36, frame: [-0.05, 0.0], shake: 0.12 });
     await d.wait(2.4);
     d.face(vesna, bx);
     d.anim(vesna, 'crouch_examine');

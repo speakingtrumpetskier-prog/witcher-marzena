@@ -38,11 +38,11 @@ export default async function c3(d) {
     // Vesna rides in along the west lane, mounted, at a walk.
     const vesna = d.player(), kasza = d.horse();
     const lane = [[-58, 124], [-64, 134], [-70, 144], [yard.x + 3.2, yard.z - 4.4]];
-    const yaw0 = yawTo(lane[0][0], lane[0][1], lane[1][0], lane[1][1]);
-    d.place(kasza, lane[0][0], lane[0][1], yaw0);
+    const yaw0 = yawTo(lane[1][0], lane[1][1], lane[2][0], lane[2][1]);
+    d.place(kasza, lane[1][0], lane[1][1], yaw0);
     seat(d, vesna, kasza);
     const stopAt = [yard.x + 3.6, yard.z - 3.9];
-    const ride = moveAlong(d, kasza, [lane[0], lane[1], lane[2], stopAt], { speed: 1.5, brake: 0.3, turn: 3 });
+    const ride = moveAlong(d, kasza, [lane[1], lane[2], stopAt], { speed: 1.7, brake: 0.3, turn: 3 });
     const eye = () => vesna.eye(V3(0, 0, 0));
 
     // 1. WIDE: the yard, the doll, the song. A rider comes down the lane.
@@ -50,10 +50,10 @@ export default async function c3(d) {
     d.cut({ pos: wideFrom, look: ground(G, yard.x, yard.z, 0.9), fov: 36 });
     d.fade(0, 1.4);
     d.sub(LYRICS[0], 3.4, { italic: true });
-    d.shot({ from: wideFrom, to: wideFrom.clone().add(V3(-1.6, 0.1, 1.4)), look: ground(G, yard.x, yard.z, 0.9), fov: 36, dur: 5.5, ease: 'linear', shake: 0.1 });
-    await d.wait(3.5);
+    d.shot({ from: wideFrom, to: wideFrom.clone().add(V3(-1.6, 0.1, 1.4)), look: ground(G, yard.x, yard.z, 0.9), fov: 36, dur: 4.5, ease: 'linear', shake: 0.1 });
+    await d.wait(3.0);
     d.sub(LYRICS[1], 3.4, { italic: true });
-    await d.wait(2.0);
+    await d.wait(1.2);
 
     // 2. MEDIUM, tracking: Vesna slows.
     d.follow(kasza, [-3.0, 1.8, 1.2], () => eye().add(V3(0, -0.25, 0)), 0, { lag: 2.6, fov: 34, frame: [0.1, 0.0], shake: 0.12 });
@@ -68,19 +68,22 @@ export default async function c3(d) {
     d.cut({ pos: c3, look: f, fov: 24, frame: [0.1, 0.06] });
     d.shot({ from: c3, to: c3.clone().lerp(f, 0.12), look: () => eye(), fov: 24, frame: [0.1, 0.06], dur: 4.6, ease: 'sine', shake: 0.08 });
     d.stinger('echo');
-    await d.wait(1.3);
+    d.lookAt(vesna, ground(G, yard.x, yard.z, 0.7));
+    await d.wait(1.0);
     d.sub(LYRICS[3], 3.0, { italic: true });
     vesna.c.talk?.(true);
-    await d.wait(2.6);
+    await d.wait(2.2);
     vesna.c.talk?.(false);
     d.lookAt(ola, vesna);
     d.face(ola, vesna);
     await d.wait(0.9);
 
     // 4. Ola looks up and sees her. Vesna gets down.
-    d.cut(d.single(ola, vesna));
+    const oe = ola.eye(V3(0, 0, 0));
+    const oc = off(oe.x, oe.z, ola.yaw, 0.5, 1.5);
+    d.cut({ pos: V3(oc[0], oe.y + 0.02, oc[1]), look: oe, fov: 28, frame: [0.0, 0.05] });
     ola.play('sit_bench', { loop: true, fade: 0.2 });
-    await d.wait(1.3);
+    await d.wait(1.0);
     const dis = unseat(d, vesna, kasza);
     d.cut({ pos: ground(G, yard.x + 6.5, yard.z - 7.2, 1.7), look: () => vesna.at(0.7, V3(0, 0, 0)), fov: 36 });
     await dis;
@@ -105,10 +108,10 @@ export default async function c3(d) {
     await d.say(ola, "And that you've got cat's eyes.");
     // Vesna crouches to her level and lets her look.
     d.anim(vesna, 'kneel');
-    d.cut(d.two(vesna, ola));
-    await d.wait(2.2);
+    d.cut(d.ots(ola, vesna));
+    await d.wait(1.8);
     d.cut(d.close(ola, vesna));
-    await d.wait(1.6);
+    await d.wait(1.2);
     await d.say(ola, "They're just yellow.");
     await d.wait(0.5);
 

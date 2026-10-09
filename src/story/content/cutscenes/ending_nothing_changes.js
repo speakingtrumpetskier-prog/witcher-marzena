@@ -67,8 +67,7 @@ export async function run(d, S, K) {
       G.water?.setUnderGlow?.(wx, wz, 5, u < 0.3 ? 0.4 + u * 3 : 1.3 * (1 - (u - 0.3) / 0.7), 0x9ff5ff);
     },
   });
-  real.forEach((a, i) => { const t = [a.pos(V3(0, 0, 0))]; void t; });
-  women.forEach((w, i) => d.walk(w, sp.women[i][0], sp.women[i][1], { speed: 0.9 }));
+    women.forEach((w, i) => d.walk(w, sp.women[i][0], sp.women[i][1], { speed: 0.9 }));
   men.forEach((m, i) => d.walk(m, sp.men[i][0], sp.men[i][1], { speed: 0.9 }));
   cast.bearers.forEach((b, i) => d.walk(b, sp.bearers[i][0], sp.bearers[i][1], { speed: 0.9 }));
   d.walk(bogdan, sp.bogdan[0], sp.bogdan[1], { speed: 0.9 });
@@ -174,6 +173,7 @@ export async function run(d, S, K) {
   d.time(14.4, { day: 3 });
   await yardEpilogue(d, K);
   await d.fade(1, 1.4);
+  d.time(7.5, { day: 3 });
   void jolt;
 }
 

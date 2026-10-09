@@ -64,8 +64,9 @@ export async function init(G) {
   api.skipTest = async (id, at = 8, o = {}) => {
     parseFlags(G, o.flags);
     const t0 = G.story.sched.time;
+    // Keeps trying: a choice stops the skip, and the rest of the scene should be skipped too.
     const timer = setInterval(() => {
-      if (G.cutscenes.active && G.story.sched.time - t0 >= at) { clearInterval(timer); G.cutscenes.skip(); }
+      if (G.cutscenes.active && G.story.sched.time - t0 >= at) G.cutscenes.skip();
     }, 100);
     const res = await G.cutscenes.play(id);
     clearInterval(timer);
@@ -90,10 +91,15 @@ export async function init(G) {
     const T = () => G.story.sched.time;
     const t0 = T();
     G.story.cam.onShot = (info) => { pending = { label: info.label, t: T() }; lastLabel = info.label; };
-    const off = G.addSystem('cine-sheet', () => {
-      if (!pending && every > 0 && G.cutscenes.active && T() - lastT > every) pending = { label: `${lastLabel} +`, t: -1e9 };
-      if (!pending || T() - pending.t < settle) return;
-      lastT = T();
+    let lastLog = -1;
+    // Fast mode: no GPU work between samples. The scene logic, animation and camera still run every
+    // frame; renderer.render (shadows and every post pass go through it) only runs for the frame
+    // before a sample, which is then read back one frame later.
+    const fast = !P.has('fullrender');
+    let drawFrame = true, capture = null;
+    const origRender = G.renderer.render;
+    if (fast) G.renderer.render = (...a) => { if (drawFrame) origRender.apply(G.renderer, a); };
+    const snap = (label) => {
       const c = document.createElement('canvas');
       c.width = TW; c.height = TH;
       const g = c.getContext('2d');
@@ -110,10 +116,19 @@ export async function init(G) {
       g.textAlign = 'left';
       g.fillStyle = '#ffcf96';
       g.font = `${Math.round(TW / 34)}px monospace`;
-      g.fillText(`${tiles.length + 1} ${(T() - t0).toFixed(0)}s ${pending.label || ''}`.slice(0, 48), 6, Math.max(14, bar - 4));
+      g.fillText(`${tiles.length + 1} ${(T() - t0).toFixed(0)}s ${label || ''}`.slice(0, 48), 6, Math.max(14, bar - 4));
       tiles.push(c);
       api.tiles.push(c.toDataURL('image/jpeg', 0.86));
+    };
+    const off = G.addSystem('cine-sheet', () => {
+      if (Math.floor((T() - t0) / 5) !== lastLog) { lastLog = Math.floor((T() - t0) / 5); log('t', (T() - t0).toFixed(1), 'frame', G.clock.frame); }
+      if (capture) { snap(capture); capture = null; drawFrame = !fast; }
+      if (!pending && every > 0 && G.cutscenes.active && T() - lastT > every) pending = { label: `${lastLabel} +`, t: -1e9 };
+      if (!pending || T() - pending.t < settle) return;
+      lastT = T();
+      const label = pending.label;
       pending = null;
+      if (fast) { drawFrame = true; capture = label; } else snap(label);
     }, 0);
     let res;
     try {
@@ -121,6 +136,7 @@ export async function init(G) {
       res = await G.cutscenes.play(id);
     } finally {
       off();
+      if (fast) G.renderer.render = origRender;
       G.story.cam.onShot = null;
       ui.subtitle = origSub;
       ui.clearSubtitle = origClear;

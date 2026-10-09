@@ -313,9 +313,9 @@ export async function finaleStage(d, K, { sword = true, keepBoss = false, bird =
   const S = { H, sp, G };
   const boss = G.creatures?.boss;
   if (boss) {
-    const was = boss.root.visible;
     try { boss.passive = true; if (!keepBoss) boss.root.visible = false; } catch { /* optional */ }
-    K.add(() => { try { boss.root.visible = was; } catch { /* optional */ } });
+    // The fight is over in every ending: the body is removed for good when the scene ends.
+    K.add(() => { try { G.creatures.remove(boss); } catch { try { boss.dispose?.(); } catch { /* optional */ } } });
     S.bossAt = boss.root.position.clone();
   }
   const wx = H.x + 0.2, wz = H.z + 2.1;
@@ -400,6 +400,56 @@ export function strawDoll(K) {
   g.traverse((o) => { if (o.isMesh) o.castShadow = true; });
   K.add(() => g.parent?.remove(g));
   return g;
+}
+
+// Two small hands gripping an ice edge (C4). Local +z is the way the fingers point; the group sits at the
+// wrists on the ice. Returns { group, slip(d, secs) } where slip lets them go and sink.
+export function ghostHands(d, K, x, z, yaw = 0) {
+  const G = d.G;
+  const mat = new THREE.MeshStandardMaterial({ color: 0xd6ecf2, emissive: 0x7cc4d4, emissiveIntensity: 0.7, roughness: 0.65 });
+  const group = new THREE.Group();
+  const capsule = (r, l) => new THREE.Mesh(new THREE.CapsuleGeometry(r, l, 3, 6), mat);
+  for (const sx of [-1, 1]) {
+    const hand = new THREE.Group();
+    const palm = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.02, 0.07), mat);
+    palm.position.set(0, 0.012, 0.0);
+    hand.add(palm);
+    for (let i = 0; i < 4; i++) {
+      const f = capsule(0.0085, 0.045 - Math.abs(i - 1.5) * 0.004);
+      f.rotation.x = Math.PI / 2 + 0.55;
+      f.position.set((i - 1.5) * 0.0175, 0.003, 0.07);
+      hand.add(f);
+    }
+    const th = capsule(0.009, 0.035);
+    th.rotation.set(Math.PI / 2, 0, sx * -0.9);
+    th.position.set(sx * -0.042, 0.012, 0.015);
+    hand.add(th);
+    const wrist = capsule(0.014, 0.06);
+    wrist.rotation.x = Math.PI / 2;
+    wrist.position.set(0, 0.014, -0.085);
+    hand.add(wrist);
+    hand.position.x = sx * 0.17;
+    hand.rotation.y = sx * 0.08;
+    group.add(hand);
+  }
+  group.scale.setScalar(1.35);
+  group.position.set(x, G.world.heightAt(x, z) + 0.006, z);
+  group.rotation.y = yaw;
+  G.scene.add(group);
+  K.add(() => { group.parent?.remove(group); mat.dispose(); });
+  return {
+    group,
+    slip: (secs = 1.6) => {
+      const y0 = group.position.y;
+      const back = V3(Math.sin(yaw), 0, Math.cos(yaw));
+      const z0 = group.position.clone();
+      return G.story.sched.tween({
+        dur: secs, ease: 'in',
+        step: (u) => { group.position.set(z0.x - back.x * 0.18 * u, y0 - 0.16 * u, z0.z - back.z * 0.18 * u); },
+        done: () => { group.visible = false; },
+      });
+    },
+  };
 }
 
 // The world as the endings leave it, set at once (for scenes that follow an ending).

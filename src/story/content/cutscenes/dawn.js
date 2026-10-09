@@ -21,7 +21,7 @@ export default async function dawn(d) {
 
     // Black, then the word.
     const behind = (back, right, h) => { const [x, z] = off(spot.x, spot.z, spot.yaw, right, -back); return ground(G, x, z, h); };
-    d.cut({ pos: behind(3.4, 0.9, 1.65), look: () => eye().add(V3(0, -0.1, 12)), fov: 40 });
+    d.cut({ pos: behind(3.4, 0.9, 1.65), look: () => eye().add(V3(0, -0.1, -12)), fov: 40 });
     d.titleCard('Dawn.', '', 4.6);
     await d.wait(1.6);
     d.music('wild');

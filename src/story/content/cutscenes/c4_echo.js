@@ -4,7 +4,7 @@
 // for one heartbeat.
 // Trigger: G.senses echo clue at LOC.ritual (G.senses.addClue({ kind: 'echo', cutscene: 'c4_echo' })), night 1.
 // Sets echo_seen. Ends with Vesna standing at the hole looking at the shore; the look returns to night.
-import { kit, anchors, torchFor, carry, uncarry, off, ground, V3, jolt, spawn, yawTo, disposeProp } from './_cine.js';
+import { kit, anchors, torchFor, carry, uncarry, off, ground, V3, jolt, spawn, yawTo, disposeProp, ghostHands } from './_cine.js';
 import { props } from '../../../world/props/index.js';
 import { LOC } from '../../../world/layout.js';
 
@@ -24,6 +24,7 @@ export default async function c4(d) {
     const P = (dx, dz, h = 0) => ground(G, H.x + dx, H.z + dz, h);
     d.setup({ time: 22.0, weather: 'clear', music: 'night' });
     d.fade(1, 0);
+    G.water?.setCracks?.(H.x, H.z, 3, 0);
     const vesna = d.player();
     const west = off(H.x, H.z, Math.PI / 2, 0, -2.3);
     d.place(vesna, H.x - 2.3, H.z + 0.4, Math.PI / 2);
@@ -80,13 +81,12 @@ export default async function c4(d) {
     };
 
     // 1. Vesna kneels at the old hole: the faint circle in the ice. Senses pulse; the world drains to blue.
-    d.cut({ pos: P(-4.6, 2.3, 1.15), look: () => V3(H.x - 1.3, G.world.heightAt(H.x, H.z) + 0.55, H.z + 0.2), fov: 38, frame: [-0.08, 0.04], shake: 0.12 });
+    d.cut({ pos: P(-1.3, 4.4, 1.0), look: () => V3(H.x - 1.5, G.world.heightAt(H.x, H.z) + 0.6, H.z + 0.3), fov: 36, frame: [0.02, 0.04], shake: 0.12 });
     d.fade(0, 1.6);
     await d.wait(1.8);
     d.stinger('echo');
-    d.anim(vesna, 'senses', { loop: true });
     d.uniform('uSenses', 1, 1.4);
-    d.shot({ from: P(-4.6, 2.3, 1.15), to: P(-3.9, 1.7, 0.95), look: () => V3(H.x - 1.3, G.world.heightAt(H.x, H.z) + 0.55, H.z + 0.2), fov: 38, frame: [-0.08, 0.04], dur: 5.2, ease: 'sine', shake: 0.12 });
+    d.shot({ from: P(-1.3, 4.4, 1.0), to: P(-0.9, 3.6, 0.85), look: () => V3(H.x - 1.5, G.world.heightAt(H.x, H.z) + 0.6, H.z + 0.3), fov: 36, frame: [0.02, 0.04], dur: 5.2, ease: 'sine', shake: 0.12 });
     await d.wait(2.4);
     d.postfx('echo', 1, 3.2);
     d.music('silence');
@@ -114,7 +114,7 @@ export default async function c4(d) {
     await d.wait(3.4);
 
     // 3. MEDIUM on Wiesia, solemn, proud, the straw Marzanna on its pole, her mother walking behind her.
-    d.follow(wiesia, [0.9, 1.45, 3.1], () => wiesia.eye(V3(0, 0, 0)).add(V3(0, -0.1, 0)), 0, { lag: 3.0, fov: 34, frame: [0.0, 0.03], shake: 0.1 });
+    d.follow(wiesia, [2.4, 1.3, 2.4], () => wiesia.eye(V3(0, 0, 0)).add(V3(0, -0.12, 0)), 0, { lag: 3.0, fov: 32, frame: [-0.12, 0.03], shake: 0.1 });
     d.sub(LYRICS[2], 3.6, { italic: true });
     await Promise.all(walks);
     await d.wait(0.5);
@@ -169,22 +169,21 @@ export default async function c4(d) {
     d.cut({ pos: away, look: P(0.4, 5, 1.3), fov: 38 });
     d.shot({ from: away, to: P(-6.0, -5.1, 1.9), look: P(0.4, 5, 1.3), fov: 38, dur: 5.5, ease: 'linear', shake: 0.08 });
     const others = all.filter((a) => a !== wiesia);
-    const home = others.map((a, i) => {
+    others.forEach((a, i) => {
       const p = a.pos(V3(0, 0, 0));
       d.face(a, V3(H.x, 0, H.z + 40), { rate: 4 });
-      return d.walk(a, H.x + (i % 2 ? -0.9 : 0.9) + (i * 0.07), p.z + 9 + i * 0.8, { speed: 1.2 });
+      d.walk(a, H.x + (i % 2 ? -0.9 : 0.9) + (i * 0.07), p.z + 9 + i * 0.8, { speed: 1.2 });
     });
     await d.wait(2.6);
 
     // 7. CLOSE on the ice: two small hands on the broken edge.
-    wiesia.play('drown_reach', { loop: true, fade: 0.2 });
-    const wpos = wiesia.pos(V3(0, 0, 0));
-    wiesia.c.autoGround = false;
-    wiesia.c.root.position.y = G.world.heightAt(wpos.x, wpos.z) - 0.05;
-    const hands = V3(wpos.x, G.world.heightAt(wpos.x, wpos.z) + 0.04, wpos.z + 0.28);
-    const c7 = hands.clone().add(V3(0.5, 0.3, 0.95));
-    d.cut({ pos: c7, look: hands, fov: 28, shake: 0.12 });
-    d.shot({ from: c7, to: c7.clone().lerp(hands, 0.12), look: hands, fov: 28, dur: 3.4, ease: 'sine', shake: 0.12 });
+    wiesia.hide();
+    const hole = { x: back[0], z: back[1] };
+    const hands = ghostHands(d, K, hole.x, hole.z + 0.8, 0);
+    const hp0 = V3(hole.x, G.world.heightAt(hole.x, hole.z) + 0.03, hole.z + 0.88);
+    const c7 = V3(hole.x + 0.7, G.world.heightAt(hole.x, hole.z) + 0.2, hole.z + 1.4);
+    d.cut({ pos: c7, look: hp0, fov: 30, shake: 0.1 });
+    d.shot({ from: c7, to: V3(c7.x - 0.12, c7.y - 0.03, c7.z - 0.18), look: hp0, fov: 30, dur: 3.4, ease: 'sine', shake: 0.1 });
     await d.wait(3.2);
 
     // 8. MEDIUM on Hanka: she turns her head. Her face. She sees. She stops for one heartbeat.
@@ -206,18 +205,19 @@ export default async function c4(d) {
     await d.wait(2.2);
 
     // 10. CLOSE: the hands slip under. Slush closes. Silence.
-    d.cut({ pos: c7.clone().add(V3(-0.2, 0.05, 0.1)), look: hands, fov: 28, shake: 0.1 });
+    d.cut({ pos: c7.clone().add(V3(-0.3, 0.02, -0.2)), look: hp0, fov: 24, shake: 0.08 });
     d.music('silence');
     G.audio?.duck?.(0, 0.1);
     await d.wait(1.1);
-    d.tween(wiesia.c.root.position, 'y', wiesia.c.root.position.y - 1.3, 1.8, 'in');
-    d.sfx('splash', hands, { volume: 0.4 });
-    await d.wait(2.2);
+    const slip = hands.slip(1.9);
+    d.sfx('splash', hp0, { volume: 0.4 });
+    await slip;
+    await d.wait(1.2);
 
     // 11. The ghosts fade. Back to night colors. Vesna stays kneeling a moment, then looks to the shore.
     d.postfx('echo', 0, 3.0);
     fadeGhosts(0, 2.4);
-    d.cut({ pos: P(-4.6, 2.3, 1.15), look: () => V3(H.x - 1.3, G.world.heightAt(H.x, H.z) + 0.55, H.z + 0.2), fov: 38, frame: [-0.08, 0.04], shake: 0.1 });
+    d.cut({ pos: P(-1.3, 4.4, 1.0), look: () => V3(H.x - 1.5, G.world.heightAt(H.x, H.z) + 0.6, H.z + 0.3), fov: 36, frame: [0.02, 0.04], shake: 0.1 });
     await d.wait(3.0);
     d.music('sorrow');
     for (const id of holeIds.splice(0)) G.water?.removeHole?.(id);

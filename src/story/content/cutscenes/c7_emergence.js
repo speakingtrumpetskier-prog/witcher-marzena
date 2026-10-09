@@ -81,7 +81,6 @@ export default async function c7(d) {
     G.postfx?.flash?.(0xcfeeff, 0.7);
     d.music('boss');
     d.sfx('boss_scream', P(0, 1, 0), { volume: 0.9 });
-    const Hh = P(0, 0, 0);
     if (G.creatures?.spawnBoss) {
       boss = G.creatures.spawnBoss(H.x, H.z, { passive: true, emerge: false, yaw: Math.PI });
       boss.emerge?.();
