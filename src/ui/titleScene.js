@@ -1,9 +1,9 @@
 // The living picture behind the title menu (owned by the lead). One composed image held for as long
 // as the player sits on the menu: the ritual ring on the lake in late afternoon, looking into the
 // low sun over the layered south-west ranges, the village roofs and their smoke between. A straw
-// Marzanna stands in the ring with her back to us. Nothing in it is still: ribbons and ground snow
-// stream in the wind, smoke leans, a few ravens cross against the light now and then, and every
-// minute or so the drowned bell sounds under the ice behind the camera.
+// Marzanna stands in the ring, turned toward us against the light. Nothing in it is still: ribbons
+// and ground snow stream in the wind, smoke leans, a few ravens cross against the light now and
+// then, and every minute or so the drowned bell sounds under the ice behind the camera.
 //
 // The camera never cuts. It opens further back and low, settles in over the first seconds, then
 // arcs around the effigy on slow, unrelated sines, so she holds still in the frame while the near
@@ -22,10 +22,10 @@ export const TITLE_SHOT = {
   fov: 40,
   cam: new THREE.Vector3(14.19, 1.25, -36.23),
   look: new THREE.Vector3(-57.7, 9.5, 33.3),
-  // She faces straight away from the camera, toward the light.
-  effigy: { x: LOC.ritual.x, z: LOC.ritual.z, yaw: Math.atan2(LOC.ritual.x - 14.19, LOC.ritual.z + 36.23), scale: 1.12 },
+  // She faces us, turned a little: backlit, her face in shadow (her support stakes stay hidden behind).
+  effigy: { x: LOC.ritual.x, z: LOC.ritual.z, yaw: Math.atan2(14.19 - LOC.ritual.x, -36.23 - LOC.ritual.z) + 0.38, scale: 1.12 },
   // A ribbon pole of our own close on the right, cut by the frame edge: it carries the parallax.
-  pole: { x: 9.92, z: -34.6 },
+  pole: { x: 9.61, z: -34.93 },
 };
 
 const ease = (u) => u * u * u * (u * (u * 6 - 15) + 10);
@@ -139,7 +139,7 @@ export class TitleScene {
       if (W.params) { W.params.wind = 0.5; W.params.gust = 0.4; W.params.drift = 0.55; }
     }
 
-    // The effigy in the ring, back to us, facing the light.
+    // The effigy in the ring, turned toward us against the light.
     try {
       const { props } = await import('../world/props/index.js');
       if (!this.active) return;
