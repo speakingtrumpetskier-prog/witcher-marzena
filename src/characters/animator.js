@@ -38,6 +38,12 @@ const FACE = {
   eyesClosed: { lidUL: { r: [40, 0, 0] }, lidUR: { r: [40, 0, 0] }, lidLL: { r: [-6, 0, 0] }, lidLR: { r: [-6, 0, 0] } },
   jawOpen: { jaw: { r: [16, 0, 0] }, mouthL: [-0.001, -0.004, 0], mouthR: [0.001, -0.004, 0] },
   mouthNarrow: { mouthL: [-0.005, 0, 0.003], mouthR: [0.005, 0, 0.003] },
+  // resting-face shapes
+  heavyLids: { lidUL: { r: [13, 0, 0] }, lidUR: { r: [13, 0, 0] }, browOL: [0, -0.001, 0], browOR: [0, -0.001, 0] },
+  eyesWide: { lidUL: { r: [-7, 0, 0] }, lidUR: { r: [-7, 0, 0] }, lidLL: { r: [4, 0, 0] }, lidLR: { r: [4, 0, 0] }, browIL: [0, 0.0012, 0], browIR: [0, 0.0012, 0] },
+  smirk: { mouthL: [0.0014, 0.0024, -0.0008], cheekL: [0.0004, 0.0013, 0.0005], lidLL: { r: [-4, 0, 0] } },
+  press: { mouthL: [-0.0012, -0.0007, 0.0004], mouthR: [0.0012, -0.0007, 0.0004], cheekL: [0, -0.0004, 0], cheekR: [0, -0.0004, 0], jaw: { r: [-1.2, 0, 0] } },
+  browUpL: { browIL: [0, 0.0022, 0.0003], browOL: [0, 0.0034, 0] },
 };
 const FACE_BONES = ['jaw', 'mouthL', 'mouthR', 'cheekL', 'cheekR', 'browIL', 'browIR', 'browOL', 'browOR', 'lidUL', 'lidUR', 'lidLL', 'lidLR'];
 
@@ -71,6 +77,8 @@ export class Animator {
     this.look = { target: null, yaw: 0, pitch: 0, eyeYaw: 0, eyePitch: 0, w: 0 };
     this.blink = { t: 1 + Math.random() * 3, v: 0 };
     this.expr = {}; // name -> { v, target, rate }
+    // resting face (character temperament); any expression set through the API overrides it
+    this.rest = { ...(ch.look?.FP?.rest || {}) };
     this.talking = false;
     this.talkS = { jaw: 0, target: 0, next: 0, narrow: 0, nod: 0, nodV: 0, gestureT: 2 + Math.random() * 2 };
     this.lean = 0;
@@ -441,11 +449,15 @@ export class Animator {
     if (!by.jaw) return;
     const F = this.faceTmp;
     // expressions set through the API
+    let api = 0;
     for (const nm in this.expr) {
       const e = this.expr[nm];
       e.v = approach(e.v, e.target, e.rate * dt);
       F[nm] = (F[nm] || 0) + e.v;
+      if (nm !== 'browUp' || !this.talking) api = Math.max(api, e.v);
     }
+    const restK = 1 - Math.min(1, api * 1.4);
+    if (restK > 0) for (const nm in this.rest) F[nm] = (F[nm] || 0) + this.rest[nm] * restK;
     // talking: syllable-like jaw flaps
     const ts = this.talkS;
     if (this.talking) {

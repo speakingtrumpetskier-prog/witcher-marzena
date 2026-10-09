@@ -36,6 +36,7 @@ varying vec2 vMzUv;
 varying vec4 vMzRect;
 varying vec4 vMzMat;
 varying vec3 vMzObjN;
+varying vec3 vMzObjP;
 #ifdef MZ_FLOAT
 attribute vec2 aFloat;
 uniform float uTime;
@@ -64,14 +65,27 @@ varying vec2 vMzUv;
 varying vec4 vMzRect;
 varying vec4 vMzMat;
 varying vec3 vMzObjN;
+varying vec3 vMzObjP;
 uniform sampler2D uMzAtlas;
 uniform sampler2D uMzFace;
 uniform vec3 uMzHeadUp;
 uniform vec4 uMzRim;
 uniform vec3 uMzGlow;
+float mzHash( vec3 p ) {
+  p = fract( p * 0.3183099 + 0.1 );
+  p *= 17.0;
+  return fract( p.x * p.y * p.z * ( p.x + p.y + p.z ) );
+}
+float mzVNoise( vec3 x ) {
+  vec3 i = floor( x ), f = fract( x );
+  f = f * f * ( 3.0 - 2.0 * f );
+  return mix( mix( mix( mzHash( i ), mzHash( i + vec3( 1, 0, 0 ) ), f.x ), mix( mzHash( i + vec3( 0, 1, 0 ) ), mzHash( i + vec3( 1, 1, 0 ) ), f.x ), f.y ),
+    mix( mix( mzHash( i + vec3( 0, 0, 1 ) ), mzHash( i + vec3( 1, 0, 1 ) ), f.x ), mix( mzHash( i + vec3( 0, 1, 1 ) ), mzHash( i + vec3( 1, 1, 1 ) ), f.x ), f.y ), f.z );
+}
 `;
 
 const ALBEDO_FRAG = /* glsl */ `
+float mzPore = 0.0;
 {
   vec4 rr = vMzRect;
   if ( rr.x < 0.0 ) {
@@ -93,6 +107,15 @@ const ALBEDO_FRAG = /* glsl */ `
     // Eyes: the upper lid shadows the top of the eyeball, corners fall off.
     float up = dot( normalize( vMzObjN ), uMzHeadUp );
     diffuseColor.rgb *= 1.0 - 0.5 * smoothstep( -0.05, 0.55, up ) - 0.18 * smoothstep( -0.25, -0.75, up );
+  }
+  // skin up close: pores and fine mottling in bind space (fades out by a few meters)
+  if ( vMzMat.x > 0.5 ) {
+    float fade = 1.0 - smoothstep( 0.7, 2.6, length( vViewPosition ) );
+    if ( fade > 0.0 ) {
+      float n1 = mzVNoise( vMzObjP * 1500.0 ), n2 = mzVNoise( vMzObjP * 420.0 + 7.0 );
+      mzPore = ( ( n1 - 0.5 ) * 0.11 + ( n2 - 0.5 ) * 0.08 ) * fade;
+      diffuseColor.rgb *= 1.0 + mzPore * vec3( 1.0, 1.08, 1.12 );
+    }
   }
 }
 `;
@@ -138,13 +161,13 @@ export function patchCharShader(shader, mat) {
   shader.uniforms.uTime = U.uTime;
   let vs = shader.vertexShader, fs = shader.fragmentShader;
   vs = VERT_PARS + vs;
-  vs = vs.replace('#include <color_vertex>', '#include <color_vertex>\n vMzUv = aUv; vMzRect = aRect; vMzMat = aMat;');
+  vs = vs.replace('#include <color_vertex>', '#include <color_vertex>\n vMzUv = aUv; vMzRect = aRect; vMzMat = aMat; vMzObjP = position;');
   vs = vs.replace('#include <skinnormal_vertex>', '#include <skinnormal_vertex>\n vMzObjN = objectNormal;');
   vs = vs.replace('#include <begin_vertex>', '#include <begin_vertex>\n' + FLOAT_VERT);
   fs = FRAG_PARS + fs;
   fs = fs.replace('#include <lights_physical_pars_fragment>', physChunk);
   fs = fs.replace('#include <color_fragment>', '#include <color_fragment>\n' + ALBEDO_FRAG);
-  fs = fs.replace('#include <roughnessmap_fragment>', 'float roughnessFactor = max( 0.05, vMzMat.y );');
+  fs = fs.replace('#include <roughnessmap_fragment>', 'float roughnessFactor = max( 0.05, vMzMat.y - mzPore * 1.2 );');
   fs = fs.replace('#include <metalnessmap_fragment>', 'float metalnessFactor = abs( vMzMat.w * 3.0 - 1.0 ) < 0.4 ? 0.85 : 0.0;');
   fs = fs.replace('#include <opaque_fragment>', OUT_FRAG + '\n#include <opaque_fragment>');
   shader.vertexShader = vs;

@@ -27,7 +27,8 @@ export const BODY_BONES = [
   'shoulderR', 'armR', 'forearmR', 'handR', 'fingersR', 'fingers2R', 'thumbR',
   'thighL', 'shinL', 'footL', 'toeL', 'thighR', 'shinR', 'footR', 'toeR',
 ];
-export const FACE_KEYS = ['smile', 'frown', 'browUp', 'browDown', 'browSad', 'squint', 'eyesClosed', 'jawOpen', 'mouthNarrow'];
+export const FACE_KEYS = ['smile', 'frown', 'browUp', 'browDown', 'browSad', 'squint', 'eyesClosed', 'jawOpen', 'mouthNarrow',
+  'heavyLids', 'eyesWide', 'smirk', 'press', 'browUpL'];
 
 const _e = new THREE.Euler();
 const _q = new THREE.Quaternion();

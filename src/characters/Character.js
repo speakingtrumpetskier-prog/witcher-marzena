@@ -5,7 +5,7 @@
 //   c.playUpper(clip, opts), c.stopUpper(fade), c.setLocomotion(mps), c.walkTo(x, z | path, opts) -> Promise(true on arrival, false if interrupted)
 //   c.lookAt(target | null), c.talk(bool), c.gesture(name), c.attach(socket, obj), c.detach(obj)
 //   c.setVisible(bool), c.dispose()
-// Extras: c.expression(name, amount, fade), c.setFace({ smile, ... }), c.drawSword(kind),
+// Extras: c.expression(name, amount, fade), c.setFace({ smile, ... }), c.setRestFace({ frown, ... }), c.drawSword(kind),
 //   c.sheatheSword(), c.swordDrawn, c.onEvent(fn) (clip events: 'hit', 'step', 'sword_draw'...),
 //   c.stop(), c.locoSet({ idle, walk, run, sprint }), c.cold (bool), c.ground (fn override).
 import * as THREE from 'three';
@@ -136,6 +136,8 @@ export class Character {
   }
   expression(name, amount = 1, fade = 0.3) { this.anim.setExpression(name, amount, fade); return this; }
   setFace(map, fade = 0.3) { for (const k in map) this.anim.setExpression(k, map[k], fade); return this; }
+  // Resting face (temperament), e.g. { frown: 0.3, squint: 0.4 }; expression() overrides it while active.
+  setRestFace(map) { this.anim.rest = { ...map }; return this; }
   onEvent(fn) { this._listeners.push(fn); return () => { this._listeners = this._listeners.filter((f) => f !== fn); }; }
   _clipEvent(name, clip) {
     if (name === 'sword_draw') this._setSword(true);
