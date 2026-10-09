@@ -17,7 +17,7 @@ catches issues, and fixes them or sends a targeted fix back to the builder. No c
 | 2 | Player, camera, horse riding, player moveset | sonnet (worktree) | done, merged | 1 | locomotion with ice slide, moveset events, stats and warmth, W3 camera with lock-on, Kasza call/mount/gallop/ice refusal/road assist |
 | 2 | UI | sonnet | done, reviewed | 1 | HUD, compass, subtitles, barks, choices, journal, parchment map, notes, pause, settings, title, credits |
 | 2 | Dialogue, cutscene director, quests, interaction, senses, flow | opus (single agent) | done, reviewed | 1 | TV-director coverage, skippable cutscenes, all quests, senses trails and echoes, title/new game/continue/rest |
-| 2 | NPCs and animals | sonnet (worktree) | building | 0 | |
+| 2 | NPCs and animals | sonnet (worktree) | done, merged | 1 | schedules, A* paths over colliders, pairs chatting, head turns, barks, indoors at night and in blizzards; dogs, hens, goat on a roof, cat, ravens |
 | 2 | Combat, creatures, signs, boss mechanics | sonnet (worktree) | building | 0 | |
 | 3 | Village composition | sonnet (worktree) | building | 0 | |
 | 3 | Lake set pieces and wilderness nooks | sonnet (worktree) | building | 0 | |
@@ -38,6 +38,7 @@ Model policy (user request): Part Two and later run on Sonnet 5.5, except a sing
 - Fixed (lead): striped shadow acne on low-sun snow (near shadow normalBias); snow micro-normals now fade with pixel footprint.
 - Integration: 'Multiple instances of Three.js being imported' warning in the playground scene; find the stray import.
 - Gameplay: no strafe or turn-in-place clips for lock-on; mount clip has an 8 cm seat pop; no mounted combat.
+- NPCs: the cat is small and weak at distance; goat is pale with stick legs; net mender and well tool poses unconfirmed.
 - Characters: Ola's bangs read as a sawtooth up close; Bogdan's cheek beard edge slab-like at extreme close-up; braid stretches on extreme head turns. Main cast now 11k to 14k tris and 0.3 to 0.6 s to build: NPCs must spread creation over frames.
 - Vegetation: LOD1/LOD2 spruce (30 to 100 m) still read as stylized tiered cones; consider needle fringe at LOD1.
 - Integration: windows and fires need emissive about 3 to 6 x uWindowLight to bloom at night (architecture, props).
