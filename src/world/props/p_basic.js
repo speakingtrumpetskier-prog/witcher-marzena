@@ -18,11 +18,11 @@ export function barrel(o = {}) {
   if (lie) k.push({ pos: [0, -h / 2, 0] });
   const prof = [];
   for (let i = 0; i <= 6; i++) { const y = (h * i) / 6; prof.push([R(y), y]); }
-  k.lathe('planks', prof, { radial: 16, flat: true, uRepeat: 4, tint: wood, grime: 0.5 });
+  k.lathe('planks', prof, { radial: 12, flat: true, uRepeat: 4, tint: wood, grime: 0.5 });
   // Liner so open barrels have an inside.
   const open = variant === 'open' || variant === 'salt';
   if (open) {
-    k.lathe('planks', prof.map((p) => [p[0] - 0.014, p[1] - 0.0]).reverse(), { radial: 16, flat: true, uRepeat: 4, tint: 0x5a4c40, grime: 0 });
+    k.lathe('planks', prof.map((p) => [p[0] - 0.014, p[1] - 0.0]).reverse(), { radial: 12, flat: true, uRepeat: 4, tint: 0x5a4c40, grime: 0 });
     const fill = variant === 'salt' ? 'salt' : k.pick(['ice', 'dark']);
     const fy = h - (variant === 'salt' ? 0.1 : 0.12 + k.r(0, 0.18));
     if (fill === 'ice') k.cyl('ice', rEnd - 0.02, rEnd - 0.02, 0.02, { pos: [0, fy, 0], radial: 14, tint: 0xcfe6f4, grime: 0 });
@@ -32,7 +32,7 @@ export function barrel(o = {}) {
     // Lid: planks sunk below the rim, with a worn center.
     const ajar = variant === 'lidAjar';
     k.with({ pos: [ajar ? 0.1 : 0, h - 0.045, 0], rot: ajar ? [0.12, 0, 0.18] : [0, 0, 0] }, () => {
-      k.cyl('planks', rEnd - 0.014, rEnd - 0.014, 0.03, { radial: 14, tint: wood, grime: 0.1, tile: 0.9 });
+      k.cyl('planks', rEnd - 0.014, rEnd - 0.014, 0.03, { radial: 12, tint: wood, grime: 0.1, tile: 0.9 });
     });
   }
   // Hoops: iron bands that follow the bulge; one slipped low on some barrels.
@@ -40,7 +40,7 @@ export function barrel(o = {}) {
   if (k.chance(0.25)) hy[3] -= 0.04;
   for (let i = 0; i < hy.length; i++) {
     const y = hy[i];
-    k.cyl('iron', R(y) + 0.013, R(y) + 0.013, 0.038, { pos: [0, y, 0], radial: 16, open: true, tint: k.pick(IRON), jitter: 0.002, grime: 0.15 });
+    k.cyl('iron', R(y) + 0.013, R(y) + 0.013, 0.038, { pos: [0, y, 0], radial: 12, open: true, tint: k.pick(IRON), jitter: 0.002, grime: 0.15 });
   }
   if (lie) k.pop();
   // Snow lump on the lid.

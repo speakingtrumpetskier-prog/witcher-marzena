@@ -61,3 +61,10 @@ Every porch: at least 3 props (firewood, bucket, sled, broom, skis, lantern). Ev
 woodpile and one thing that tells a story (a broken cart, a child's snowman, frozen laundry).
 Lanterns on posts along the main street (lit at dusk). Chimney smoke on every inhabited house.
 Paths of trampled snow. No two adjacent houses identical.
+
+Streets and approaches (density pass, see docs/PROGRESS.md): every street has a lane with two dark ruts, flagged stakes down
+its edges and a small scene every 9 to 12 m on alternating sides (woodyard, sledge of billets, carter's halt, hay rack, fish
+sledge, tools, barrels, a broken cart); every yard that faces the main street has a split-rail fence with a gap where its door
+path crosses. The gates open on a carters' halt and a mud apron; the pass road and the mill road carry stakes with red rags,
+a wayside cross, a hay yard or pasture behind a rail fence and the woodcutters' sledges. Hanka's milk stands on a two-tier shelf
+behind her house. Dress with dark things (timber, rope, cloth, straw, tools); white additions do not read against the snow.

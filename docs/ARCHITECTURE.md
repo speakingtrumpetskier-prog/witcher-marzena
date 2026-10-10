@@ -168,6 +168,10 @@ effigyHead, strawPile, ribbonPole (birch with red ribbons), iceFishingHole, fish
 windbreak, tent, signpost, gravePostSmall, offering (bowl, bread, candle), bones, skull,
 dogKennel, chickenCoop, beehive (snowed), cartWheel, pot, cauldron, shelf, bed, chest, rug,
 tapestry (folk pattern), barrelStack, crateStack, logs, stump, rockSmall, music box, bird carving.
+Yard and roadside props (`p_yard.js`, added in the density pass): hitchingRail, trough (iced), plankWalk (duckboards,
+`length` along local z), hayRack, waysideCross (roofed, painted sun, ribbons, ledge for a bowl), logSledge
+(`loaded` or `empty`), sawbuck, snowFence (lath panel, drift on the lee side), railFence (one 2.4 m split-rail section),
+plus `cart` variant `broken` and `stake` option `flag: true` (a long red strip, readable at 100 m).
 Fire, smoke and steam emitters: `props.fx.fire(opts)`, `props.fx.smoke(opts)`, `props.fx.steam(opts)` (cheap particle or billboard systems, one shared update).
 
 ### Locations (phase 3, `src/world/locations/`)

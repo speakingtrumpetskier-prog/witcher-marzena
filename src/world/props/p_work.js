@@ -41,12 +41,16 @@ export function cart(o = {}) {
   const k = new Kit('cart', o);
   const variant = o.variant || k.pick(['firewood', 'sacks', 'straw', 'empty', 'empty']);
   const R = 0.46;
+  // 'broken': the left wheel is off, the axle end has dropped to the ground and the wheel stands against the side.
+  const broken = variant === 'broken';
   k.push({ yaw: o.yaw || 0, pos: [0, -0.02, 0] });
+  if (broken) { k.push({ pos: [0.7, 0, 0] }); k.push({ rot: [0, 0, 0.2] }); k.push({ pos: [-0.7, 0, 0] }); }
   k.anchor('hitch', 0, 0.35, 2.15); k.anchor('load', 0, 0.8, 0);
   const wood = k.pick(WOOD);
   // Axle and wheels (one wheel slightly canted).
   k.cyl('wood', 0.04, 0.04, 1.5, { pos: [0, R, -0.1], rot: [0, 0, Math.PI / 2], radial: 6, tint: 0x8a7a6a });
   for (const sx of [-1, 1]) {
+    if (broken && sx < 0) continue;
     k.with({ pos: [sx * 0.7, R, -0.1], rot: [0, 0, Math.PI / 2 + k.rs(0.04)] }, () => wheelFlat(k, R, 0.07, 8, k.pick(WOOD)));
   }
   // Frame
@@ -83,7 +87,13 @@ export function cart(o = {}) {
     k.blob('straw', 0.5, { pos: [0, 0.9, 0], scale: [0.9, 0.55, 1.5], detail: 2, tint: 0xe6d8a8 });
   }
   if (!o.indoor) {
-    k.mound(0.95, 0.12 + k.r(0, 0.1), 1.6, { pos: [0, variant === 'empty' ? 0.7 : 1.0, 0], jseed: 3 });
+    k.mound(0.95, 0.12 + k.r(0, 0.1), 1.6, { pos: [0, variant === 'empty' || broken ? 0.7 : 1.0, 0], jseed: 3 });
+  }
+  if (broken) {
+    k.pop(); k.pop(); k.pop();
+    k.with({ pos: [-1.5, R, 0.35], rot: [Math.PI / 2 - 0.15, 0.5, 0] }, () => wheelFlat(k, R, 0.07, 8, k.pick(WOOD)));
+    k.box('planks', 0.18, 0.04, 0.9, { pos: [-1.1, 0.04, -0.6], rot: [0, 0.4, 0.1], tint: 0xb8a890, jitter: 0.004 });
+    if (!o.indoor) k.mound(0.55, 0.06, 0.2, { pos: [-1.5, R * 1.85, 0.3], jseed: 2 });
   }
   k.pop();
   k.boxCollider(0.8, 1.05, { z: 0.15, h: 1.0 });

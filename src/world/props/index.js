@@ -32,8 +32,9 @@ import * as household from './p_household.js';
 import * as fishing from './p_fishing.js';
 import * as ritual from './p_ritual.js';
 import * as misc from './p_misc.js';
+import * as yard from './p_yard.js';
 
-const MODULES = [basic, work, household, fishing, ritual, misc];
+const MODULES = [basic, work, household, fishing, ritual, misc, yard];
 const HELPERS = new Set(['folkRect', 'fishShape', 'addFish', 'linenFace', 'strawWreath']);
 
 const raw = {};
@@ -90,8 +91,8 @@ props.categories = {
   forge: ['anvil', 'quenchBarrel', 'grindstone', 'brazier', 'torch', 'woodpile', 'barrel'],
   fishing: ['dryingRack', 'fishBasket', 'fishString', 'net', 'boat', 'iceFishingHole', 'fishingStool', 'rodRest', 'windbreak', 'tent', 'bucket', 'campfire', 'barrel', 'skinFrame'],
   ritual: ['effigy', 'effigyHead', 'ribbonPole', 'handBell', 'offering', 'gravePostSmall', 'strawPile', 'bones', 'skull', 'horseHead', 'roofFinial', 'signpost'],
-  farm: ['hayBale', 'haystack', 'woodpile', 'cart', 'cartWheel', 'sled', 'strawPile', 'dogKennel', 'chickenCoop', 'beehive', 'skinFrame'],
-  wilderness: ['rockSmall', 'logs', 'stump', 'bones', 'skull', 'campfire', 'tent', 'signpost', 'torch', 'cart'],
+  farm: ['hayBale', 'haystack', 'woodpile', 'cart', 'cartWheel', 'sled', 'strawPile', 'dogKennel', 'chickenCoop', 'beehive', 'skinFrame', 'hayRack', 'logSledge', 'trough', 'hitchingRail', 'sawbuck'],
+  wilderness: ['rockSmall', 'logs', 'stump', 'bones', 'skull', 'campfire', 'tent', 'signpost', 'torch', 'cart', 'stake', 'snowFence', 'waysideCross', 'plankWalk'],
   fire: ['campfire', 'brazier', 'torch', 'lantern', 'cauldron', 'offering'],
 };
 

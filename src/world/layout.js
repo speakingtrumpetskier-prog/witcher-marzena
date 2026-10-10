@@ -46,6 +46,15 @@ export const LOC = {
   waterfall: { name: 'Frozen Falls', x: 446, z: -82, r: 16, map: true },
 };
 
+// Where the roadside encounters (src/story/controller/roadside) put people and things, for the village and
+// approach dressing to keep clear of: [x, z, radius]. The encounters own the exact positions; keep these in step.
+export const ENCOUNTER_SPOTS = [
+  [-249, 243, 7], // the tinker's sledge on the pass road, the runner scrap left after
+  [-19.5, 113.5, 2.6], // the tinker's morning spot by the stalls
+  [-158.7, 168.2, 3.2], // the old woman at the milk shrine
+  [-107, 133, 4.5], // Zofia at the west gate, and her goat on its rope after
+];
+
 // Roads as polylines of [x, z]. Width in meters (packed snow and ruts).
 export const ROADS = [
   {

@@ -5,7 +5,6 @@ import { ROADS } from '../../layout.js';
 import { frame, seeded } from './util.js';
 import { makeSign } from './signs.js';
 import { SQUARE } from './plan.js';
-import { addMound } from './mounds.js';
 
 const PI = Math.PI;
 
@@ -200,13 +199,18 @@ export function dressHeroes(D) {
     place('laundryLine', f, -4.6, 3.4, { opts: { length: 3.6 }, id: 'hanka_laundry' }, 2.0);
     place('stool', f, 1.5, 1.4, {}, 0.4);
     place('snowDrift', f, 0, 3.4, { collide: false, opts: { width: 3.2, depth: 1, height: 0.5 } }, 0.2);
-    // The shelf of trodden snow where the milk bowls stand (the kit sets them at floor height behind the
-    // house, usually a little above the beach), and two more bowls out on the ice for the story.
+    // The milk shelf itself is part of the house kit (buildings/hanka.js, milkShelf); two more bowls stand out on
+    // the shore where she kneels.
     const m = A('hanka', 'milk');
-    const gm = V.h(m.x, m.z);
-    if (m.y - gm > 0.03) addMound(V, m.x + 0.2, m.z, gm, m.y + 0.04, 2.5, 1.7, 77);
     for (const [dx, dz, v] of [[0.3, -3.6, 'bowl'], [-0.9, -4.4, 'bowl']]) {
       D.add('offering', m.x + dx, m.z + dz, { opts: { variant: v }, yaw: dx, collide: false, fxOpts: { light: false } });
+    }
+    // The way she walks every evening: round the east side of the house (clear of the lean-to) to the shelf, then
+    // down the beach to where she kneels. Worn to the earth, a little wider at the shelf.
+    {
+      const d = V.byId.hanka.p.doors[0];
+      V.paths.push({ pts: [[d.x + 0.5, d.z + 0.8], [d.x + 3.9, d.z + 0.5], [d.x + 4.6, d.z - 3.2], [d.x + 4.0, d.z - 6.6], [m.x + 1.3, m.z + 0.9], [m.x + 0.1, m.z - 0.4], [m.x, m.z - 3.6]], width: 0.95, kind: 'mud', alpha: 0.6 });
+      V.paths.push({ pts: [[m.x - 2.0, m.z + 0.2], [m.x, m.z + 0.5], [m.x + 2.2, m.z + 0.2]], width: 1.6, kind: 'mud', alpha: 0.55 });
     }
   }
 

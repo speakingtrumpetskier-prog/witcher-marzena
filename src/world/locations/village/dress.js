@@ -10,7 +10,8 @@ import { buildRibbons } from './paths.js';
 import { dressHeroes } from './dress_heroes.js';
 import { dressEdges } from './dress_edges.js';
 import { dressStreets } from './dress_streets.js';
-import { nearestRoad } from '../../layout.js';
+import { dressLanes } from './dress_lanes.js';
+import { nearestRoad, ENCOUNTER_SPOTS } from '../../layout.js';
 import { SQUARE } from './plan.js';
 
 const PI = Math.PI;
@@ -29,22 +30,26 @@ function makeSpots(V) {
       if (o.id) D.named[o.id] = h;
       return h;
     },
-    // true when a prop of radius r fits at (x, z)
-    free(x, z, r = 0.6, o = {}) {
-      if (roadGap(x, z) < r + (o.roadPad ?? 0.5)) return false;
-      if (G.world.lakeSDF(x, z) < (o.lake ?? 0.8)) return false;
-      for (const s of V.placed) {
-        if (s.meta.prop && !o.vsProps) continue;
-        if (inRect(x, z, s.rect.x, s.rect.z, s.rect.hw, s.rect.hd, s.rect.yaw, r + 0.2)) return false;
-      }
-      for (const u of used) if (Math.hypot(u.x - x, u.z - z) < u.r + r) return false;
-      for (const b of V.barriers || []) {
-        for (let i = 0; i < b.length - 1; i++) {
-          if (distToSegment(x, z, b[i][0], b[i][1], b[i + 1][0], b[i + 1][1]).d < r + 0.5) return false;
+    // true when a prop of radius r fits at (x, z); `why` is the reason it does not (for the debug log)
+    free(x, z, r = 0.6, o = {}) { return !D.blocked(x, z, r, o); },
+    // o.noRects: skip the building footprints (ground cover laid by a door: planks, mats)
+    blocked(x, z, r = 0.6, o = {}) {
+      if (roadGap(x, z) < r + (o.roadPad ?? 0.5)) return 'road';
+      if (G.world.lakeSDF(x, z) < (o.lake ?? 0.8)) return 'lake';
+      if (!o.noRects) {
+        for (const s of V.placed) {
+          if (s.meta.prop && !o.vsProps) continue;
+          if (inRect(x, z, s.rect.x, s.rect.z, s.rect.hw, s.rect.hd, s.rect.yaw, r + 0.2)) return `building ${s.id}`;
         }
       }
-      if (!o.trees && G.vegetation?.treeAt?.(x, z, r)) return false;
-      return true;
+      for (const u of used) if (Math.hypot(u.x - x, u.z - z) < u.r + r) return `prop at ${u.x.toFixed(0)},${u.z.toFixed(0)}`;
+      for (const b of V.barriers || []) {
+        for (let i = 0; i < b.length - 1; i++) {
+          if (distToSegment(x, z, b[i][0], b[i][1], b[i + 1][0], b[i + 1][1]).d < r + 0.5) return 'fence';
+        }
+      }
+      if (!o.trees && G.vegetation?.treeAt?.(x, z, r)) return 'tree';
+      return null;
     },
     claim(x, z, r) { used.push({ x, z, r }); },
     // place the first candidate [x, z, yaw?] that fits; returns the handle or null
@@ -55,8 +60,10 @@ function makeSpots(V) {
           return D.add(name, c[0], c[1], { yaw: c[2] ?? 0, ...o });
         }
       }
+      D.fails.push(`${name}@${cands[0][0].toFixed(0)},${cands[0][1].toFixed(0)}(${D.blocked(cands[0][0], cands[0][1], r, o)})`);
       return null;
     },
+    fails: [],
     // place unconditionally (hero places where the spot is planned by hand)
     put(name, x, z, o = {}, r = 0.5) {
       D.claim(x, z, r);
@@ -194,6 +201,8 @@ export async function buildDressing(V) {
   const D = makeSpots(V);
   D.batch = new V.PropBatch(G, 'village', { chunk: 'auto' });
   V.dress = D;
+  // The roadside encounters stand people here (layout.js ENCOUNTER_SPOTS): no pass may put a prop on them.
+  for (const [x, z, r] of ENCOUNTER_SPOTS) D.claim(x, z, r);
 
   // houses first (they claim yard space), then the hero places
   let i = 0;
@@ -208,6 +217,15 @@ export async function buildDressing(V) {
   await tick();
   dressEdges(D);
   await tick();
+  // The density pass comes last so the props the other passes registered keep their order (life.js picks
+  // stations from the first chopping blocks, racks and laundry lines it finds).
+  const failsBefore = D.fails.length;
+  D.firstDensity = D.handles.length; // handles from here on belong to the density pass (checked against stations in the tests)
+  if (V.G.quality !== 'low') {
+    dressLanes(D);
+    await tick();
+  }
+  if (G.params.has('vdebug')) console.warn(`[village] density pass placements that did not fit (${D.fails.length - failsBefore}): ${D.fails.slice(failsBefore).join(' ')}`);
 
   const t0 = performance.now();
   await D.batch.buildAsync({ budgetMs: 8 });
