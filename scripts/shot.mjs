@@ -25,7 +25,9 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 async function loadPlaywright() {
   try { return await import('playwright'); } catch { /* fall through */ }
-  return await import('/opt/node-tools/node_modules/playwright/index.mjs');
+  try { return await import('/opt/node-tools/node_modules/playwright/index.mjs'); } catch { /* fall through */ }
+  console.error('Playwright is not installed. Run:  npm install --no-save playwright  then  npx playwright install chromium');
+  process.exit(2);
 }
 
 function parseArgs(argv) {
