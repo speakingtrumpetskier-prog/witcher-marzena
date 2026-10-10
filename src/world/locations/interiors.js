@@ -2,7 +2,8 @@
 // location registers its rooms).
 //
 //   G.world.indoors(x, z)        true inside any registered interior (village: tavern, Hanka's house, longhouse
-//                                and its cellar, workshop, banya). G.world.indoorRoom(x, z) returns the id or null.
+//                                and its cellar, workshop, banya). G.world.indoorRoom(x, z) returns the id or null,
+//                                G.world.roomAt(x, z, y) the room record (with its env) or null.
 //   G.world.registerInterior({ id, box: { x, z, hw, hd, yaw } | polygon: [[x, z], ...], env: 'room' | 'hall' | 'cave',
 //                              y0?, y1? })    -> handle { id, remove() }. y0..y1 is the height window in which the
 //                              viewer counts as inside (default: any height); lights registered with the same
@@ -39,6 +40,8 @@ export function installInteriors(G) {
   };
   G.world.indoors = (x, z) => !!roomAt(x, z);
   G.world.indoorRoom = (x, z) => roomAt(x, z)?.id || null;
+  G.world.roomAt = roomAt; // (x, z, y?) -> { id, env, ... } | null; the atmosphere dims the sky light inside
+
   G.world.currentRoom = null;
   G.world.rooms = rooms;
   G.world.registerInterior = (o) => {

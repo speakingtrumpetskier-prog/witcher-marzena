@@ -82,6 +82,22 @@ async function wolfDen(W) {
 }
 
 // ---------------------------------------------------------------------------------------------
+// Deep, clouded blue at the root, clearing to pale ice at the tip; the cave material glows with the
+// vertex color, so tips shine and roots stay dark instead of every shard glowing one flat blue.
+const CRYSTAL_ROOT = new THREE.Color(0x163f63), CRYSTAL_MID = new THREE.Color(0x4f9fd2), CRYSTAL_TIP = new THREE.Color(0xd6f2ff);
+function tintCrystal(g, h, hue) {
+  const p = g.attributes.position, c = new Float32Array(p.count * 3), col = new THREE.Color();
+  for (let v = 0; v < p.count; v++) {
+    const t = Math.min(1, Math.max(0, p.getY(v) / h));
+    col.copy(CRYSTAL_ROOT).lerp(CRYSTAL_MID, Math.min(1, t * 1.6));
+    if (t > 0.55) col.lerp(CRYSTAL_TIP, (t - 0.55) / 0.45);
+    col.offsetHSL(hue, 0, 0);
+    c[v * 3] = col.r; c[v * 3 + 1] = col.g; c[v * 3 + 2] = col.b;
+  }
+  g.setAttribute('color', new THREE.BufferAttribute(c, 3));
+  return g;
+}
+
 function crystalGeometry(rnd, count, baseR) {
   // Hexagonal prisms with pointed tips fanned from the origin along +y; merged. Colors by vertex.
   const parts = [];
@@ -92,7 +108,8 @@ function crystalGeometry(rnd, count, baseR) {
     body.translate(0, h * 0.37, 0);
     const tip = new THREE.ConeGeometry(r * 0.92, h * 0.3, 6, 1, false);
     tip.translate(0, h * 0.74 + h * 0.15, 0);
-    const g = mergeGeometries([body.toNonIndexed(), tip.toNonIndexed()], false);
+    const hue = rnd.range(-0.03, 0.03);
+    const g = mergeGeometries([tintCrystal(body.toNonIndexed(), h, hue), tintCrystal(tip.toNonIndexed(), h, hue)], false);
     g.rotateY(rnd.range(0, 6.28));
     const tilt = i === 0 ? rnd.range(0, 0.15) : rnd.range(0.2, 0.75);
     g.rotateZ(tilt * (rnd.chance(0.5) ? 1 : -1));
@@ -168,7 +185,8 @@ async function iceCave(W) {
   geo.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
   geo.setIndex(idx);
   geo.computeVertexNormals();
-  const shellMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.28, metalness: 0.05, side: THREE.DoubleSide, flatShading: true, emissive: 0x0a2c4a, emissiveIntensity: 0.55 });
+  // A low self-glow only, so the crystals carry the light and the cave does not read as lit.
+  const shellMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.28, metalness: 0.05, side: THREE.DoubleSide, flatShading: true, emissive: 0x0a2c4a, emissiveIntensity: 0.32 });
   const shell = new THREE.Mesh(geo, shellMat);
   shell.name = 'wild:iceCaveShell';
   shell.receiveShadow = false;
@@ -188,7 +206,10 @@ async function iceCave(W) {
 
   // ---- crystals on the walls and floor: emissive blue ---------------------------------------------------------
   const crystalList = [];
-  const baseMat = new THREE.MeshStandardMaterial({ color: 0x86c8ee, emissive: 0x2a84cc, emissiveIntensity: 1.5, roughness: 0.1, metalness: 0.1, flatShading: true });
+  const baseMat = new THREE.MeshStandardMaterial({ color: 0xffffff, vertexColors: true, emissive: 0xffffff, emissiveIntensity: 0.85, roughness: 0.08, metalness: 0.0, flatShading: true });
+  baseMat.onBeforeCompile = (shader) => {
+    shader.fragmentShader = shader.fragmentShader.replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\n  totalEmissiveRadiance *= vColor.rgb * vColor.rgb * 1.6;');
+  };
   const geos = [];
     const place = (px, py, pz, nx, ny, nz, count, baseR) => {
     const g = crystalGeometry(rnd, count, baseR);
@@ -224,7 +245,7 @@ async function iceCave(W) {
   // a few halos for bloom
   for (let i = 0; i < crystalList.length; i += 7) {
     const q = crystalList[i];
-    W.fx?.glow?.({ position: [q.x, q.y + 0.4, q.z], parent: G.scene, size: 2.4, color: [0.3, 0.65, 1.0], strength: 0.55, lamp: false });
+    W.fx?.glow?.({ position: [q.x, q.y + 0.4, q.z], parent: G.scene, size: 2.2, color: [0.3, 0.65, 1.0], strength: 0.4, lamp: false });
   }
 
   // ---- stalactites and ice plates, the stash ----------------------------------------------------------------------

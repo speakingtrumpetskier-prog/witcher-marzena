@@ -130,6 +130,7 @@ export async function init(G) {
   const nearAt = new THREE.Vector3(1e9, 0, 0);
   const nearDir = new THREE.Vector3(0, 1, 0);
   let nearFrame = 0;
+  let indoorAmb = 1, indoorSun = 1; // eased sky-light factors while the camera is in a room or cave
 
   function updateShadowFrustum(dt) {
     // Focus: the player's hint while the gameplay rig is the view, else the ground in front of the
@@ -187,6 +188,20 @@ export async function init(G) {
     samplePalette(h, look);
     applyWeather(look, W);
 
+    // Inside a registered cave (the ice cave, the bear den) the open sky is blocked by rock that the
+    // shadow maps do not cover: the ambient (environment map and hemisphere fill) and the sun ease
+    // down so the crystals and torches carry the light. Rooms are left alone: their walls and roofs
+    // shadow the sun and their scenes are lit for the full ambient. Only the lights change, never
+    // A.keyIntensity, which the sky reads when it bakes the environment map.
+    {
+      const c = G.camera.position;
+      const room = G.world?.roomAt ? G.world.roomAt(c.x, c.z, c.y) : null;
+      const cave = room && room.env === 'cave';
+      const k = Math.min(1, dt * 2.5);
+      indoorAmb += ((cave ? 0.3 : 1) - indoorAmb) * k;
+      indoorSun += ((cave ? 0.15 : 1) - indoorSun) * k;
+    }
+
     // Key light: the sun while it is near or above the horizon, the moon at night. Both are
     // nearly dark at the handover (around -3 degrees), so the switch is invisible.
     const useSun = sunDir.y > -0.05;
@@ -206,7 +221,7 @@ export async function init(G) {
     // shadow edges crawl; tiny discrete steps are invisible.
     if (shadowDir.angleTo(A.keyDir) > 0.0025) shadowDir.copy(A.keyDir);
     key.color.copy(look.key);
-    key.intensity = keyI;
+    key.intensity = keyI * indoorSun;
     key.shadow.intensity = clamp(W.shadow, 0, 1) * (useSun ? 1 : 0.8);
     key.shadow.radius = useSun ? 1.6 : 3.5;
     if (shadows) updateShadowFrustum(dt);
@@ -230,8 +245,8 @@ export async function init(G) {
     if (!hasEnv) hemi.color.add(tmp.copy(look.zen).multiplyScalar(0.75)).add(tmp.copy(look.hor).multiplyScalar(0.25));
     if (aur > 0) hemi.color.add(tmp.copy(AURORA_TINT).multiplyScalar(aur * 0.012));
     hemi.groundColor.copy(look.hemiGround);
-    let ambMul = 1;
-    if (o && o.ambientMul !== undefined) ambMul = lerp(1, o.ambientMul, ok);
+    let ambMul = indoorAmb;
+    if (o && o.ambientMul !== undefined) ambMul *= lerp(1, o.ambientMul, ok);
     hemi.intensity = Math.PI * ambMul;
     G.scene.environmentIntensity = ambMul;
 
