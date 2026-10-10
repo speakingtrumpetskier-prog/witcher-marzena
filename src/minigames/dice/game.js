@@ -115,6 +115,7 @@ export class DiceSession {
     return true;
   }
 
+  // A small movement of the upper body (the opponent stays seated or behind the bar).
   react(gesture) {
     const c = this.npc?._c;
     try { c?.playUpper?.(gesture, { loop: false, fade: 0.25 }); } catch { /* optional */ }
@@ -241,7 +242,7 @@ export class DiceSession {
     const pool = G.world?.lights;
     if (pool) {
       const p = this.site.toWorld(0, 0.85, 0.25);
-      this.light = pool.add({ x: p.x, y: p.y, z: p.z, color: 0xffc079, intensity: 0.1, radius: 3.2, kind: 'candle', room: 'tavern', indoor: true, importance: 3 });
+      this.light = pool.add({ x: p.x, y: p.y, z: p.z, color: 0xffc079, intensity: 0.05, radius: 3.2, kind: 'candle', room: 'tavern', indoor: true, importance: 3 });
     }
     G.cameraOwner = 'dice';
     this.removeSystem = G.addSystem('dice-session', (dt) => this.update(dt), ORDER.camera + 2);
@@ -279,7 +280,6 @@ export class DiceSession {
     const cap = Math.max(opp.stakes[0], Math.min(opp.stakes[1], Math.floor(coins0 / 2), Math.floor(purse.coins / 2)));
     ui.header({ round: 0, wins: { player: 0, opp: 0 }, coins: coins0, purse: purse.coins });
     await this.sleep(0.4);
-    this.bark('roll', { chance: 0.6 });
     const ante = await this.ask('stake', { min: opp.stakes[0], max: cap, coins: coins0, purse: purse.coins, opp });
     if (ante === LEAVE || ante == null) return { played: false, reason: 'declined' };
 
@@ -323,7 +323,7 @@ export class DiceSession {
       ui.hands({ player: evaluate(first.player).name, opp: evaluate(first.opp).name });
       // the opponent has a feeling about it
       const mood = match.mood();
-      if (mood === 'good') this.bark('good', { chance: 0.85 }); else if (mood === 'bad') this.bark('bad', { chance: 0.85 });
+      if (mood === 'good') this.bark('good', { chance: 0.85 }); else if (mood === 'bad') { this.bark('bad', { chance: 0.85 }); this.react('shrug'); }
       if (this.barkBusy > 0 && !this.drive) { stage.view('rival'); await this.sleep(1.5); stage.view('table'); await this.sleep(0.4); }
       if (await this.checkLeave()) { left = true; break; }
 
@@ -435,8 +435,8 @@ export class DiceSession {
     await this.sleep(0.5);
     const to = r.winner === 'draw' ? 'split' : r.winner;
     const t = stage.pot.sweep(to);
-    if (r.winner === 'opp') this.bark('win', { force: true, chance: 1 });
-    else if (r.winner === 'player') this.bark('lose', { force: true, chance: 1 });
+    // a fold was already answered with the fold line
+    if (r.how === 'fold') { /* said already */ } else if (r.winner === 'opp') { this.bark('win', { force: true }); this.react('nod'); } else if (r.winner === 'player') { this.bark('lose', { force: true }); this.react('shake_head'); }
     if (this.barkBusy > 0 && !this.drive) { stage.view('rival'); await this.sleep(1.4); stage.view('table'); }
     await this.sleep(Math.max(0.4, t - 1.0));
     ui.hands({ player: hp.name, opp: ho.name }, { winner: r.winner });

@@ -1,7 +1,7 @@
 // The Drowned Bell: the village tavern. Big log hall, deep porch with benches, a hanging sign with
 // a bell, a stone fireplace and a warm, crowded interior. Enterable.
-//   anchors: door, porch, sign, hearth, bar, keeper, table1..table4, smoke, chimney, barTop and tableTop2 (the counter
-//   and the middle table at table height: where the dice are played, src/minigames/dice/sites.js)
+//   anchors: door, porch, sign, hearth, bar, keeper, table1..table4, smoke, chimney, barTop and tableTop2 (a clear stretch
+//   of the counter and the middle table, at counter and table height: where the dice are played, src/minigames/dice/sites.js)
 import * as THREE from 'three';
 import { Kit, PAL, GAIN } from '../kit.js';
 import { mixC, scaleC } from '../mb.js';
@@ -104,7 +104,7 @@ export function tavern(opts = {}) {
   // Anchors for NPC placement.
   kit.anchor('bar', bx, y, bz + 0.8);
   kit.anchor('keeper', bx + 0.4, y, bz - 0.7);
-  kit.anchor('barTop', bx, y + 1.115, bz);
+  kit.anchor('barTop', bx + 1.3, y + 1.115, bz); // a clear stretch of counter, to the right of the mugs
   kit.anchor('tableTop2', tbl[1][0], y + 0.78, tbl[1][1]);
   kit.anchor('door', info.doorRecs[0].x, 0, info.doorRecs[0].z);
   kit.anchor('doorInside', 0, y, hd - 1.2);

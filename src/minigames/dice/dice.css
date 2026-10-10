@@ -54,6 +54,9 @@
 .dc-num.cur::after, .dc-num.pick::after { transform: scaleX(1); }
 .dc-num.pick { color: var(--mz-red-text); }
 
+/* In the reaction shot the table is out of frame: its labels and the result wait. */
+.mz-dice.rival .dc-banner, .mz-dice.rival .dc-hand, .mz-dice.rival .dc-pot, .mz-dice.rival .dc-num { opacity: 0 !important; }
+
 /* ---------------------------------------------------------------- the question */
 .dc-panel { position: absolute; left: 50%; bottom: 2.6vh; width: min(900px, 94vw); box-sizing: border-box; padding: clamp(12px, 2.2vh, 20px) 30px clamp(10px, 1.8vh, 16px) 30px; background: linear-gradient(180deg, rgba(14, 17, 23, 0.9), rgba(9, 11, 16, 0.93)); border: 1px solid rgba(236, 230, 218, 0.14); box-shadow: 0 26px 54px rgba(0, 0, 0, 0.55);
   opacity: 0; transform: translate(-50%, 12px); pointer-events: none; transition: opacity 0.3s ease, transform 0.5s var(--mz-ease); }

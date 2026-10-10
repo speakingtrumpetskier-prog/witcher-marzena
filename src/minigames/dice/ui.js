@@ -170,6 +170,8 @@ export class DiceUI {
     if (this._bannerT > 0 && (this._bannerT -= dt) <= 0) this.clearBanner();
     const st = this.stage;
     if (!st || !this.el?.isConnected) return;
+    // in the reaction shot (the camera on the opponent's face) the labels that belong to the table step aside
+    this.el.classList.toggle('rival', st.camTarget === 'rival');
     const place = (el, p) => { el.style.transform = `translate(${p.x.toFixed(1)}px, ${p.y.toFixed(1)}px) translate(-50%, -50%)`; };
     place(this.elPot, st.screenOfPoint(-0.3, 0, 0.085));
     if (this._hand.player) place(this.elHandYou, st.screenOfPoint(0, 0, 0.075));

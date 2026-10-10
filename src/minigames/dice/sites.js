@@ -11,7 +11,7 @@ import * as THREE from 'three';
 
 const SITES = {
   // The tavern's own anchors: barTop is the middle of the counter top, tableTop2 the middle table.
-  bar: { anchor: 'barTop', yawOffset: 0, width: 1.0, depth: 0.52, standLocal: [0, 0.95], cam: { back: 0.84, up: 0.8, fov: 30, lookZ: 0.09 } },
+  bar: { anchor: 'barTop', yawOffset: 0, width: 1.0, depth: 0.52, standLocal: [0, 1.2], cam: { back: 0.84, up: 0.8, fov: 30, lookZ: 0.09 } },
   table: { anchor: 'tableTop2', yawOffset: -0.03, width: 1.0, depth: 0.6, standLocal: [0, 1.55], cam: { back: 0.86, up: 0.82, fov: 30, lookZ: 0.09 } },
 };
 

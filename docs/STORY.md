@@ -74,6 +74,9 @@ reads like writing, cut it or make it plainer.
 | `planetnicy_night`, `planetnicy_sparks`, `planetnicy_low`, `matka_seen`, `matka_pulse` | Bestiary observations: herders looked at after dark, a crowd of the small ones, one hanging low over the ice, Matka Chmur looked at for a while, watched her swell (world.js `sky()`) |
 | `herders_counted` | Ola's counting talk, or the children's picture read |
 | `herders_over_yard`, `bozena_after`, `handbell_asked`, `handbell_taken`, `handbell_rung`, `handbell_paid` | The Hand-Bell (side quest, below) |
+| `dice_known`, `dice_zbyszek_met`, `dice_met_wojtek`, `dice_met_halina` | Kosci: somebody has explained the dice game to her (starts the side quest), Zbyszek's explanation, her first talk at the middle table |
+| `dice_beat_zbyszek`, `dice_beat_wojtek`, `dice_beat_halina` | A whole match won against that player (set by the game, src/minigames/dice/game.js; a lost or abandoned match sets nothing) |
+| `dice_all_beaten`, `dice_bone_set` | She has beaten all three; Zbyszek has given her the bone dice (her dice are bone with red pips from then on) |
 
 ---
 
@@ -125,6 +128,7 @@ Journal voice: Vesna's working notes. Who, what, where, what it pays, what she s
 - `side_wisps` **Lights in the Reeds.** At night in the west marsh, three pale lights drift away when approached; follow them to a smuggler frozen in the reeds with a note and a key. The stash is in the third charcoal kiln. Reward: 35 grosze, 2 Thaw draughts.
 - `side_wolves` **Wolves at the Mill.** Second paper on the notice board. Miller Gniewko: wolves took his dog. Track them to a den at the foot of the frozen falls; 4 wolves and a scarred alpha. Reward: 40 grosze, and Gniewko says his father never let anyone fish near the poles: "Warm water comes up there. The ice is never as thick as it looks." (`miller_warm_water`; Vesna can use it with Bogdan.)
 - `side_handbell` **The Hand-Bell.** Optional, after the wolves at the mill. Bożena, Gniewko's wife, wants her father-in-law's brass hand-bell rung at the ritual ring at dusk, three times, the way it was done against the spring hail on the orchard. He left it hanging on a pole of the ring and died the second winter. Journal: *Bożena, the miller's wife, wants her father-in-law's hand-bell rung at the ritual ring at dusk, three times, the way it was done against the hail. He left it tied to one of the poles. Pays 20 grosze.* Stages: take the bell from the pole (it is only an Examine until Bożena has asked), ring it inside the ring between 16:00 and 18:30 (at any other hour Vesna says "Dusk, she said." or "Past dusk." and nothing happens), tell Bożena. The sky answers: after the third ring a handful of herders (`G.spirits.gather`) drift in from all sides and hang over the ring for about a minute and a half, whatever the weather, then go back to their own business; the bell is tied back on its pole. Bożena: "And?" "Some of them came down." "They do that." Pays 20 grosze once. No main-story flag reads any of it.
+- `side_dice` **Dice at the Drowned Bell.** Optional, from day 1 (whenever somebody has explained Kosci to her). Zbyszek keeps the dice behind the bar and plays across it for a grosze or two; Wojtek the woodcutter and Halina sit at the middle table from noon (they go home at 23:00 and 22:30). Beat each of them at a whole match (best of three rounds), then tell Zbyszek. Journal: *Zbyszek keeps the dice behind the bar. He plays across the counter for small stakes, and Wojtek and Halina sit at the middle table from noon. Best of three rounds.* Then one line each as she beats them: *Beat Zbyszek across the bar. He never goes above three grosze. / Beat Wojtek, the woodcutter. He raises on almost anything and rolls most of his dice again. / Beat Halina. She goes up on nothing now and then.* Reward: Zbyszek gives her his father's bone dice (*Zbyszek gave me his father's bone dice. Says he never won with them.*). Details in section 8. Nothing in the main story reads any of it.
 - `side_snow` **Snow Fight.** Day 2 morning, sledding hill. Ola and two kids ambush Vesna. 60-second snowball fight. Afterward, sitting on the sled, Ola asks: "Does it hurt? Drowning?" Choice: *the truth* ("For a bit. Then it doesn't.") or *a lie* ("It won't happen.") (`ola_truth` / `ola_lie`). Ola's last line in ending C changes with it.
 
 ---
@@ -384,6 +388,7 @@ Morning. Vesna saddles Kasza at the west gate. Weather matches the ending (sprin
 - **note_smuggler** (marsh corpse): "Key to the burners' kilns, third mound. Do not drink it all before I'm back. B."
 - **note_wit** (bear den, inscription on the silver sword): "For Wit of the Lynx. Paid in full." (Vesna, examining it, quietly: "Wit." Nothing else.)
 - **The herders (section 7):** `note_almanac` (a ledger page nailed up beside the tavern's front door: weather signs read from the herders), `note_slate` (a fisherman's chalk slate on a stake at the ice camp, last row unfinished), `note_child_herders` (the children's second picture in the fort: "the herders. i counted 19. one is pink. dont go past 20."), `note_shrine_bells` (a complaint under the offering bowl on the shrine altar), `note_island_sky` (a second carving on the north side of the stone circle), `item_hand_bell`. Copy lives in `src/ui/content.js`; placement in `src/story/controller/clues.js` (`herders()`) and `side.js`.
+- **note_dice_rules** (chalked on the beam over the bar, readable at the bar and added to her notes the first time she sits down to play): the rules of Kosci in Zbyszek's own words, signed Z. **item_bone_dice**: five dice of old bone, the pips cut deep and rubbed with red.
 - **item_ring**: "A thin wedding ring on a string. Hanka's."
 - **item_bird**: "A waxwing carved from birch, the crest done with care. Never given."
 - **item_music_box**: "A tin music box with a crank. It plays one tune."
@@ -446,3 +451,38 @@ What was added (all optional; no existing node id, flag, condition or outcome ch
 | `src/world/Spirits.js` | `G.spirits.gather(x, z, opts)` for the bell. |
 
 Needs voicing: every new dialogue line, bark and the Vesna asides above (run `node scripts/voice/extract.mjs --report`).
+
+---
+
+## 8. Kosci, the dice at the Drowned Bell
+
+The game is in the village the way cards are in any tavern: three people play it, nobody explains what it means, and it pays small
+money. The rules are in docs/ARCHITECTURE.md ("Kosci"); this is how it sits in the script. Rules for anyone adding to it: the three
+talk about the dice, the stakes, what they have in their pockets and what is on the table, never about luck or fate; a bark is a
+sentence somebody at a bar says without looking up.
+
+| Who | Where and when | How they play | What they stake |
+|---|---|---|---|
+| **Zbyszek** | behind the bar, as always | cautious; keeps what he has, raises only on a strong hand, folds the weak ones to a raise | one to three grosze a round, twenty-four on him a day ("it's the till's money, not mine") |
+| **Wojtek**, woodcutter | the middle table, from 11:30 to 23:00 (home to `bed_n11`) | bold; raises on anything decent, rolls most of his dice again, calls light, stubborn | three to ten, seventy a day ("that's the week's wages gone") |
+| **Halina**, sells the smoked fish | the middle table, from 12:30 to 22:30 (home to `bed_n14`) | raises on nothing now and then, and says the roll is good when she does (it shows in what she says) | two to six, forty-five a day ("I've flour to buy at the end of the month") |
+
+Their purses are full each morning and move with the matches. Nobody plays on the evening of the rite (Zbyszek is shutting at seven,
+the other two are walking down to the shore) until the ending; each of them turns her away with a line.
+
+Where the lines are:
+- `src/story/content/dialogues/zbyszek_hub.js`: the last choice of the hub (an exit). The first time ("I heard dice when I came in"): who plays and when, the game in a
+  line, what he will put out, a word on each of the others (nodes `dice1` to `dice8`; sets `dice_zbyszek_met`, `dice_known`). After that,
+  "Play a round of dice?" (`da1`, `da2`) goes straight to the checks (`dice_start`: too late in the day, he is out of money, she is) and
+  `dice_go`. After all three are beaten his next visit opens with the bone dice (`bz1` to `bz7`).
+- `src/story/content/dialogues/dice_wojtek.js` and `dice_halina.js`: a first talk (sets `dice_met_*`, `dice_known`), "How does it go?" once, "Deal me in", a line
+  for a return visit and for after she has beaten them, a refusal when she cannot cover the stake and when they cannot, and the evening of the rite.
+- `src/minigames/dice/opponents.js`: the barks, nine situations each, three or four lines: as they roll, a good first roll, a bad one, raising, calling, folding,
+  winning a round, losing one, and being out of money. A bluffer raising on a weak hand says a line from "good". They show over the table and are read by
+  G.voice.bark under the speaker's own id.
+- Notes: `note_dice_rules` (chalked on the beam over the bar), `item_bone_dice`. Journal: quest `side_dice` (section 2).
+
+What was added (nothing existing changed outcome): the topic and the nodes `dice1` to `bz7` in `zbyszek_hub.js` (and an `entry` check for `dice_all_beaten`), two new dialogue
+files, the notes, the quest, two NPCs and the stations the cast table already named for Zbyszek (cast.js, life.js), the dice flags above, the voice cast entries `wojtek` and `halina`.
+
+Needs voicing: every line in the two new dialogues, the dice nodes of `zbyszek_hub.js` and all the barks in `opponents.js` (run `node scripts/voice/extract.mjs --report`).

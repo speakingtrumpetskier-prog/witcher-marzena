@@ -119,6 +119,7 @@ async function testMatch() {
   const cursorTitle = await page.evaluate(() => document.querySelector('.dc-panel .opt.sel .lab')?.textContent);
   check('the button counts the dice picked', /three/.test(cursorTitle || ''), cursorTitle);
   const before = await page.evaluate(() => window.__dice.G.dice.session.match.dice.player.slice());
+  const pickedNow = (await state(page)).picked;
   await press(page, 'Space');
   await until(page, 'roll2');
   await page.waitForTimeout(500);
@@ -127,7 +128,7 @@ async function testMatch() {
   await settle(page, 1500);
   await shot(page, '05_showdown');
   const after = await page.evaluate(() => window.__dice.G.dice.session.match.dice.player.slice());
-  check('only the picked dice changed (kept dice keep their values)', [1, 3].every((i) => before[i] === after[i]), `${before} -> ${after}`);
+  check('only the picked dice changed (kept dice keep their values)', pickedNow.every((p, i) => p || before[i] === after[i]), `${pickedNow} ${before} -> ${after}`);
   await until(page, 'next');
   await settle(page, 800);
   await shot(page, '06_next');

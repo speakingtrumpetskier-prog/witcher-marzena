@@ -78,7 +78,8 @@ export function createAI(personality = 'cautious', rand = Math.random) {
     const h = evaluate(mine);
     const { pw } = assess(mine, theirs);
     if (h.rank >= RANK.three || pw >= 0.68) return 'good';
-    if (h.rank === RANK.nothing || pw <= 0.3) return 'bad';
+    // only an empty hand is called bad out loud: a pair that is behind is not "nothing"
+    if (h.rank === RANK.nothing) return 'bad';
     return 'plain';
   }
 

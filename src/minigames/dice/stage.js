@@ -182,7 +182,7 @@ class DieView {
     } else {
       this.lift += (this.liftTarget - this.lift) * (1 - Math.exp(-14 * dt));
       this.pos.copy(this.restPos);
-      this.pos.y += this.lift * LIFT;
+      this.pos.y += this.lift * LIFT + this.glow * 0.008;
       this.quat.copy(this.restQuat);
     }
     this.appear = Math.min(1, this.appear + dt * 9);
@@ -194,7 +194,6 @@ class DieView {
     // look: glow and dim
     this.glow += (this.glowTarget - this.glow) * (1 - Math.exp(-8 * dt));
     this.dim += (this.dimTarget - this.dim) * (1 - Math.exp(-8 * dt));
-    this.material.emissive.setRGB(1, 0.72, 0.4).multiplyScalar(this.glow * 0.055);
     const k = 1 - this.dim * 0.5;
     this.material.color.setRGB(k, k, k);
 
@@ -205,15 +204,16 @@ class DieView {
     this.shadow.scale.set(spread, spread, 1);
     this.shadow.material.opacity = 0.62 * (1 - smooth(0.0, 0.3, h)) * s;
 
-    // ring: the cursor, the pick
-    const on = this.focus || this.selected;
+    // ring: the cursor, the pick, the dice that made the winning hand
+    const made = this.glow > 0.05;
+    const on = this.focus || this.selected || made;
     const m = this.ring.material;
     this.ring.visible = on;
     if (on) {
       this.ringPulse += dt * 4;
-      const pulse = this.focus && !this.selected ? 0.75 + 0.25 * Math.sin(this.ringPulse) : 1;
-      m.opacity = (this.selected ? 0.95 : 0.8) * pulse;
-      m.color.set(this.selected ? 0xd0614b : 0xf4ecda);
+      const pulse = this.focus && !this.selected && !made ? 0.75 + 0.25 * Math.sin(this.ringPulse) : 1;
+      m.opacity = (made ? 0.9 * this.glow : this.selected ? 0.95 : 0.8) * pulse;
+      m.color.set(made ? 0xe9c47e : this.selected ? 0xd0614b : 0xf4ecda);
       this.ring.position.x = this.restPos.x;
       this.ring.position.z = this.restPos.z;
       const sc = this.selected ? 1.08 : 1;
@@ -231,10 +231,11 @@ class DieView {
 }
 
 // ---- the pot ---------------------------------------------------------------------------------------------------------
-const COIN_R = 0.0118, COIN_T = 0.0019;
-const STACK = 8;
+const COIN_R = 0.0148, COIN_T = 0.0024;
+const STACK = 6;
 const POT_X = -0.3; // the pot sits at the left of the cloth, clear of the rows and the hand names
-const POT_COLS = [[-0.066, -0.012], [-0.039, 0.016], [-0.012, -0.012], [0.015, 0.016], [0.042, -0.012], [0.069, 0.016], [-0.066, 0.044], [-0.039, -0.04], [-0.012, 0.044], [0.015, -0.04], [0.042, 0.044], [0.069, -0.04]];
+// the first stack is the middle one, the next ones grow round it
+const POT_COLS = [[0, 0], [0.034, 0.022], [-0.034, 0.022], [0.034, -0.026], [-0.034, -0.026], [0.068, 0], [-0.068, 0], [0, 0.05], [0, -0.05], [0.068, 0.05], [-0.068, 0.05], [0.068, -0.05], [-0.068, -0.05], [0.102, 0.022], [-0.102, 0.022], [0.102, -0.026]];
 
 class Pot {
   constructor(stage) {
@@ -268,7 +269,7 @@ class Pot {
     for (let k = 0; k < n && this.count < this.max; k++) {
       const i = this.count++;
       const to = this.slot(i);
-      const from = new THREE.Vector3(((k - n / 2) * 0.012) + (this.r() - 0.5) * 0.04, 0.14 + this.r() * 0.05, z0);
+      const from = new THREE.Vector3(POT_X + ((k - n / 2) * 0.014) + (this.r() - 0.5) * 0.05, 0.14 + this.r() * 0.05, z0);
       this.coins.push({ i, from, to, t: -(delay + k * (quick ? 0.03 : 0.07)), dur: 0.38 + this.r() * 0.08, apex: 0.05 + this.r() * 0.04, spin: (this.r() - 0.5) * 14, q: randomQuat(this.r), done: false, gone: false, pos: from.clone() });
     }
     return (n * (quick ? 0.03 : 0.07)) + delay + 0.5;

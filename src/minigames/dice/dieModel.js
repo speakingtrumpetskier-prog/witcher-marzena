@@ -17,8 +17,8 @@ export const DIE = 0.05;
 const CELL = 256;
 
 export const STYLES = {
-  house: { body: '#cdb98e', kind: 'wood', grain: '#8a6c40', pip: '#2b1d12', rough: 0.72, wear: 0.16 },
-  bone: { body: '#e7dcc2', kind: 'bone', grain: '#bba984', pip: '#2a1d16', rough: 0.55, wear: 0.1 },
+  house: { body: '#d6b878', kind: 'wood', grain: '#8a6a34', pip: '#241810', rough: 0.72, wear: 0.16 }, // boxwood: the dice she is dealt at every table
+  bone: { body: '#d8d1be', kind: 'bone', grain: '#a89f86', pip: '#2f241c', rough: 0.55, wear: 0.1 }, // old, grey and handled
   walnut: { body: '#5c3a24', kind: 'wood', grain: '#2e1a0e', pip: '#ebdcb8', rough: 0.6, wear: 0.12 },
   horn: { body: '#c08a3e', kind: 'horn', grain: '#6a3d16', pip: '#2a160c', rough: 0.45, wear: 0.1 },
   redbone: { body: '#efe5ca', kind: 'bone', grain: '#c8b88e', pip: '#9c2a1c', rough: 0.5, wear: 0.08 },

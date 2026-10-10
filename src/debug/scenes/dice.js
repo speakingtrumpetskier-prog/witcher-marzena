@@ -8,7 +8,7 @@
 //   &controller=1                           also load the story controller (dialogue topics, quest)
 //
 //   window.__dice.start({ seed, opp, drive? })     begin a match and return at once (the match's promise is __dice.result)
-//   await __dice.until('stake' | 'roll1' | 'bet' | 'respond' | 'reroll' | 'roll2' | 'showdown' | 'next' | 'end')
+//   await __dice.until('stake' | 'roll1' | 'bet' | 'respond' | 'reroll' | 'roll2' | 'showdown' | 'next' | 'end')   (until('showdown', 9e4, true) waits for the next one)
 //   __dice.press('Digit2')                          a key down and up on the window (what the keyboard and the pad send)
 //   __dice.state()                                  { phase, mode, picked, focus, ... }
 //   __dice.view('table' | 'rival' | 'closeup')       camera
@@ -38,8 +38,8 @@ export async function init(G) {
       const opts = { seed: P.get('seed') ? +P.get('seed') : undefined, ...o };
       api.result = G.dice.play(o.opp || P.get('opp') || 'wojtek', opts);
     },
-    until(name, ms = 90000) {
-      if (phase?.phase === name && G.dice.active) return Promise.resolve(phase);
+    until(name, ms = 90000, fresh = false) {
+      if (!fresh && phase?.phase === name && G.dice.active) return Promise.resolve(phase);
       return new Promise((resolve, reject) => {
         const w = { name, resolve };
         waiters.push(w);
