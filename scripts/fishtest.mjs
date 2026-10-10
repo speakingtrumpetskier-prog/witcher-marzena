@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env node
+#!/usr/bin/env node
 // Pure-logic test of the fishing model (no browser): bite tables, the strike, the fight against a few kinds of player,
 // the old pike's patience, prices and cooking values.   node scripts/fishtest.mjs [--verbose]
 // Exits 1 if a check fails.

@@ -1,4 +1,4 @@
-﻿// The fish of the lake: six species and the one old pike. Pure data (no THREE, no DOM) so the bite
+// The fish of the lake: six species and the one old pike. Pure data (no THREE, no DOM) so the bite
 // tables and the fight model can be tested in Node (scripts/fishtest.mjs).
 //
 // Per species:
