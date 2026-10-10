@@ -31,8 +31,10 @@ export function stake(o = {}) {
   k.box('wood', 0.07, H, 0.05, { pos: [0, H / 2 - 0.15, 0], tint: k.pick(WOOD), jitter: 0.006, seg: [1, 4, 1], grain: 'y' });
   k.cone('wood', 0.05, 0.08, { pos: [0, H - 0.15 + 0.03, 0], radial: 4, tint: 0xa08a74 });
   if (o.rag !== false) {
-    k.blob('cloth', 0.035, { pos: [0, H - 0.27, 0.03], scale: [1.4, 0.8, 1.0], detail: 0, tint: 0x9a2e22, grime: 0.1 });
-    k.hang('ribbon', 0.045, k.r(0.18, 0.32), { pos: [0.01, H - 0.28, 0.04], yaw: k.r(0, TAU), tint: 0xa8352a, sway: 1.0, wave: 0.02, sy: 3, grime: 0.05 });
+    // flag: a long wide strip knotted at the top, so a stake reads from a hundred metres (road marking in drifts)
+    const big = !!o.flag;
+    k.blob('cloth', big ? 0.05 : 0.035, { pos: [0, H - 0.27, 0.03], scale: [1.4, 0.8, 1.0], detail: 0, tint: 0x9a2e22, grime: 0.1 });
+    k.hang('ribbon', big ? 0.1 : 0.045, big ? k.r(0.42, 0.6) : k.r(0.18, 0.32), { pos: [0.01, H - 0.28, 0.04], yaw: k.r(0, TAU), tint: 0xa8352a, sway: 1.0, wave: 0.02, sy: 3, grime: 0.05 });
   }
   if (!o.indoor) k.mound(0.22, 0.06, 0.22, { pos: [0, 0, 0], jseed: 5 });
   k.pop();

@@ -56,4 +56,12 @@ export const ROWS = [
       ['crateStack', { seed: 1 }], ['laundryLine', { seed: 1 }], ['icicles', { seed: 1 }], ['brazier', { seed: 1 }], ['brazier', { seed: 2, variant: 'tall' }], ['torch', { seed: 1 }],
     ],
   },
+  {
+    name: 'yard',
+    items: [
+      ['hitchingRail', { seed: 1, variant: 'single' }], ['hitchingRail', { seed: 2, variant: 'double' }], ['trough', { seed: 1 }], ['plankWalk', { seed: 1 }], ['hayRack', { seed: 1 }],
+      ['waysideCross', { seed: 1 }], ['logSledge', { seed: 1 }], ['logSledge', { seed: 2, variant: 'empty' }], ['sawbuck', { seed: 1 }], ['snowFence', { seed: 1 }], ['stake', { seed: 1 }],
+      ['cart', { seed: 3, variant: 'broken' }],
+    ],
+  },
 ];

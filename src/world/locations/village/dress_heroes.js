@@ -5,7 +5,6 @@ import { ROADS } from '../../layout.js';
 import { frame, seeded } from './util.js';
 import { makeSign } from './signs.js';
 import { SQUARE } from './plan.js';
-import { addMound } from './mounds.js';
 
 const PI = Math.PI;
 
@@ -200,11 +199,9 @@ export function dressHeroes(D) {
     place('laundryLine', f, -4.6, 3.4, { opts: { length: 3.6 }, id: 'hanka_laundry' }, 2.0);
     place('stool', f, 1.5, 1.4, {}, 0.4);
     place('snowDrift', f, 0, 3.4, { collide: false, opts: { width: 3.2, depth: 1, height: 0.5 } }, 0.2);
-    // The shelf of trodden snow where the milk bowls stand (the kit sets them at floor height behind the
-    // house, usually a little above the beach), and two more bowls out on the ice for the story.
+    // The milk shelf itself is part of the house kit (buildings/hanka.js, milkShelf); two more bowls stand out on
+    // the shore where she kneels.
     const m = A('hanka', 'milk');
-    const gm = V.h(m.x, m.z);
-    if (m.y - gm > 0.03) addMound(V, m.x + 0.2, m.z, gm, m.y + 0.04, 2.5, 1.7, 77);
     for (const [dx, dz, v] of [[0.3, -3.6, 'bowl'], [-0.9, -4.4, 'bowl']]) {
       D.add('offering', m.x + dx, m.z + dz, { opts: { variant: v }, yaw: dx, collide: false, fxOpts: { light: false } });
     }
