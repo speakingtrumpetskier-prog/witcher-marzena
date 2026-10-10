@@ -17,7 +17,7 @@ export const STEEP = 0.64;
 const GENTLE = 0.93;
 
 export function slopeAt(x, z, dx, dz, out = {}) {
-  G.world.normalAt(x, z, _n);
+  (G.world.walkNormalAt || G.world.normalAt).call(G.world, x, z, _n);
   const h = Math.hypot(_n.x, _n.z);
   out.ny = _n.y;
   // The normal's horizontal part points downhill, so uphill is its negation.

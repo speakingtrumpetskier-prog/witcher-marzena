@@ -16,7 +16,7 @@
 // Triangulation (shared by terrainAt, the terrain mesh and the shader sampler): each cell is
 // split along the (i+1, j) to (i, j+1) diagonal.
 import * as THREE from 'three';
-import { computeHeight, lakeSDF, riverInfo } from './heightfield.js';
+import { computeHeight, lakeSDF, riverInfo, FALLS } from './heightfield.js';
 import { WORLD, RIVER, nearestRoad } from './layout.js';
 import { startGridJobs, mainThreadJobs, FAR } from './terrain/gridBuilder.js';
 
@@ -117,12 +117,20 @@ export class World {
     const h = this.terrainAt(x, z);
     if (this.thawed) return h;
     if (h < WORLD.iceLevel) return WORLD.iceLevel;
-    // Frozen river: walk on the ice ribbon (Water.js puts it 0.3 m under the bed line).
-    if (x > 280 && x < 700 && z > -110 && z < -40) {
-      const r = riverInfo(x, z);
-      if (r && r.d < RIVER.width * 0.5 + 1 && (r.seg !== 2 || r.t > 0.25)) return Math.max(h, r.bed - 0.3);
-    }
-    return h;
+    // Frozen river: walk on the ice ribbon (Water.js puts it 0.3 m under the bed line, RIVER.width / 2 + 5.5 either
+    // side of the centerline, flat across). Out to the ribbon's own edge, so the banks that dip under the ice are ice
+    // underfoot too; where a bank rises above the ice the terrain wins. Same gaps as the ribbon: none on the falls
+    // drop, none on the upper river within 8 m of the lip.
+    const ice = this.riverIceAt(x, z);
+    return ice != null ? Math.max(h, ice) : h;
+  }
+
+  // Height of the frozen river's ice at (x, z), or null off the ribbon (or after the thaw).
+  riverIceAt(x, z) {
+    if (this.thawed || x <= 280 || x >= 700 || z <= -110 || z >= -40) return null;
+    const r = riverInfo(x, z);
+    if (!r || r.d >= RIVER.width * 0.5 + 5.5 || (r.seg === 2 && r.t <= 0.25) || (r.seg < 2 && x < FALLS.x + 8)) return null;
+    return r.bed - 0.3;
   }
 
   normalAt(x, z, out = new THREE.Vector3()) {
@@ -132,12 +140,23 @@ export class World {
     return out.set(hl - hr, 2 * e, hd - hu).normalize();
   }
 
+  // Normal of the surface she walks on (lake and river ice count as flat ground), for slope checks. Placement keeps
+  // normalAt, the terrain itself.
+  walkNormalAt(x, z, out = new THREE.Vector3()) {
+    const e = this.cell || 1.5;
+    const hl = this.heightAt(x - e, z), hr = this.heightAt(x + e, z);
+    const hd = this.heightAt(x, z - e), hu = this.heightAt(x, z + e);
+    return out.set(hl - hr, 2 * e, hd - hu).normalize();
+  }
+
   isLake(x, z) {
     return lakeSDF(x, z) < 0;
   }
 
   surfaceAt(x, z) {
     if (lakeSDF(x, z) < 0) return this.thawed ? 'water' : 'ice';
+    const ice = this.riverIceAt(x, z);
+    if (ice != null && this.terrainAt(x, z) < ice + 0.02) return 'ice';
     const r = nearestRoad(x, z);
     if (r && r.d < r.road.width * 0.5) return 'road';
     const n = this.normalAt(x, z);

@@ -77,6 +77,7 @@ Checks (a throwaway harness under `node_modules/.mz-tmp`, not committed): no den
 Rough: the south lane clusters are mostly behind the camera in the usual view from the shrine end of the square, the east approach thins out past 150 m by design, and the snow fence drifts are white on white. The roadside-encounters builder works in `src/story`; nothing here touches it, but encounters that spawn props on the pass road will not know about the stakes and clusters.
 
 ## Polish list (lead, integration pass)
+- Done (playtest fixes): river ice is walkable out to the ribbon's edge (the banks under the ice were 0.3 to 0.9 m below it; `World.riverIceAt`, `walkNormalAt` for slopes on ice, river ice reads as 'ice' underfoot); the Kosci rules are a chalk slate on the tavern's east wall by the middle table instead of an invisible prompt in front of Zbyszek.
 - Controls: needs a human with a real pad (feel of the dead zones, the look ramp, rumble strength, glyph sets for Xbox and PlayStation; the mock-pad test covers the logic). Pads without the standard mapping are not special-cased. Nothing handles touch. Photo mode on a pad (sticks fly, D-pad works the panel) is untested with real hardware.
 - Spirits: comb jelly rainbow bands are faint at distance; seq sheets of the cathedral pulse not reviewed in motion.
 - Trees: odd trees never checked as far billboards (beyond 100 m); weeping birch bark bands look too regular close up; larch stays gold in the thaw ending; knot tree thread thickened by lead but not re-rendered.

@@ -191,6 +191,57 @@ export function makeSlate({ w = 0.34, h = 0.25, seed = 7 } = {}) {
   return group;
 }
 
+// The rules of Kosci chalked on a slate for the tavern wall: the word at the top, then the hands from the best
+// down, each as a row of dice faces with a scrawl after it.
+export function makeRulesSlate({ w = 0.5, h = 0.62, seed = 11 } = {}) {
+  const W = 400, H = Math.round(400 * (h / w));
+  const c = document.createElement('canvas');
+  c.width = W; c.height = H;
+  const g = c.getContext('2d');
+  let s = seed;
+  const rnd = () => { s = (s * 16807) % 2147483647; return s / 2147483647; };
+  g.fillStyle = '#33383a';
+  g.fillRect(0, 0, W, H);
+  for (let i = 0; i < 50; i++) {
+    g.fillStyle = `rgba(190,196,190,${0.02 + rnd() * 0.05})`;
+    g.fillRect(rnd() * W, rnd() * H, 30 + rnd() * 90, 4 + rnd() * 18);
+  }
+  const chalk = 'rgba(232,230,220,0.88)';
+  g.fillStyle = chalk;
+  g.font = 'bold 54px Georgia, serif';
+  g.textAlign = 'center';
+  g.fillText('KO\u015aCI', W / 2, 62);
+  g.strokeStyle = chalk;
+  g.lineCap = 'round';
+  g.lineWidth = 2.4;
+  g.beginPath(); g.moveTo(70, 78); g.lineTo(W - 70, 76); g.stroke();
+  // a die face, chalked: a square and its pips
+  const PIPS = { 1: [[0, 0]], 2: [[-1, -1], [1, 1]], 3: [[-1, -1], [0, 0], [1, 1]], 4: [[-1, -1], [1, -1], [-1, 1], [1, 1]], 5: [[-1, -1], [1, -1], [0, 0], [-1, 1], [1, 1]], 6: [[-1, -1], [1, -1], [-1, 0], [1, 0], [-1, 1], [1, 1]] };
+  const die = (x, y, n) => {
+    const r = 11;
+    g.lineWidth = 2;
+    g.strokeRect(x - r + (rnd() - 0.5), y - r + (rnd() - 0.5), r * 2, r * 2);
+    for (const [px, py] of PIPS[n]) { g.beginPath(); g.arc(x + px * 6, y + py * 6, 2, 0, Math.PI * 2); g.fill(); }
+  };
+  const hands = [[6, 6, 6, 6, 6], [5, 5, 5, 5, 2], [2, 3, 4, 5, 6], [4, 4, 4, 1, 1], [3, 3, 3, 5, 2], [6, 6, 2, 2, 4], [5, 5, 1, 3, 4]];
+  hands.forEach((hand, i) => {
+    const y = 118 + i * ((H - 150) / (hands.length - 1));
+    hand.forEach((n, k) => die(34 + k * 28, y, n));
+    scribbleRows(g, 1, 190, y, 0, 150 + rnd() * 40, rnd, chalk, 2.2);
+  });
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.anisotropy = 4;
+  const group = new THREE.Group();
+  const frame = new THREE.Mesh(new THREE.BoxGeometry(w + 0.06, h + 0.06, 0.03), new THREE.MeshStandardMaterial({ color: 0x3a2e24, roughness: 1 }));
+  const face = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshStandardMaterial({ map: tex, color: 0xb8bcc0, roughness: 0.9 }));
+  face.position.z = 0.0165;
+  frame.castShadow = true;
+  group.add(frame, face);
+  group.name = 'dice_rules_slate';
+  return group;
+}
+
 // A second child's drawing for the fort (the herders over the roofs), same paper and hand as the ice lady.
 export function makeChildPicture() {
   const W = 512, H = 384;

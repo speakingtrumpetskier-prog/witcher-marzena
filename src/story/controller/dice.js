@@ -13,7 +13,9 @@
 // bone dice; her dice are bone with red pips from then on).
 // Quest: side_dice, "Dice at the Drowned Bell" (quests.js): beat the three, then tell Zbyszek.
 // Notes: note_dice_rules (read at the tavern, or the first time she sits down), item_bone_dice.
+import * as THREE from 'three';
 import { OPPONENTS } from '../../minigames/dice/opponents.js';
+import { makeRulesSlate } from '../../world/locations/village/signs.js';
 
 const IDS = ['zbyszek', 'wojtek', 'halina'];
 
@@ -65,12 +67,19 @@ export function install(C) {
     S.readNote('item_bone_dice');
   });
 
-  // ---- the rules, chalked on the beam over the bar ------------------------------------------------------------------
+  // ---- the rules, chalked on a slate on the east wall by the middle table (over the chest, between two windows) --------
+  // Kept well away from the bar, so standing at the counter offers Zbyszek, not the slate; she has to face it to read.
   const tavern = G.world?.locations?.village?.buildings?.tavern?.p;
-  if (tavern) {
-    const at = tavern.localToWorld(-0.9, 1.7, -3.2);
+  if (tavern?.root) {
+    const slate = makeRulesSlate();
+    slate.position.set(4.18, 1.6, 1.6);
+    slate.rotation.y = -Math.PI / 2;
+    tavern.root.add(slate);
+    slate.updateMatrixWorld(true);
+    const at = slate.getWorldPosition(new THREE.Vector3());
+    at.y -= 0.9;
     C.interact({
-      id: 'dice_rules', pos: at, radius: 2.4, facing: false, verb: 'Read', label: 'The rules of Kosci',
+      id: 'dice_rules', pos: at, radius: 1.8, facing: true, priority: -0.5, verb: 'Read', label: 'The rules of Kosci',
       onUse: async () => { await C.read('note_dice_rules'); },
     });
   }
