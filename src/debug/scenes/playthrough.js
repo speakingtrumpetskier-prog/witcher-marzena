@@ -655,7 +655,7 @@ async function run(G, O, report) {
     ok('the children threw back and hit her', SF.score.kids >= 1, `score ${SF.score.vesna} to ${SF.score.kids}`);
     god();
     await waitFor(() => !SF.active, 30, 'fight over');
-    await waitFor(() => S.flag('snowfight_done'), 60, 'ola talk');
+    await waitFor(() => S.flag('ola_truth') || S.flag('ola_lie'), 90, 'ola talk');
     flagOK(['snowfight_done'], 'snow fight finished');
     ok(`Ola's question: ${O.ola}`, O.ola === 'lie' ? !!S.flag('ola_lie') : !!S.flag('ola_truth'));
     ok('side_snow done', G.quests.isDone('side_snow'), `stage=${stage('side_snow')}`);
