@@ -15,8 +15,14 @@
 // K.persist puts back what the world remembers after a load. No per-frame work runs while no encounter is live.
 import { createKit } from './kit.js';
 import * as tinker from './tinker.js';
+import * as carcass from './carcass.js';
+import * as goat from './goat.js';
+import * as scarf from './scarf.js';
+import * as sled from './sled.js';
+import * as poacher from './poacher.js';
+import * as fishers from './fishers.js';
 
-const ENCOUNTERS = [['tinker', tinker]];
+const ENCOUNTERS = [['tinker', tinker], ['carcass', carcass], ['goat', goat], ['scarf', scarf], ['sled', sled], ['poacher', poacher], ['fishers', fishers]];
 
 export function install(C) {
   const K = createKit(C);

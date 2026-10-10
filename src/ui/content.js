@@ -40,6 +40,12 @@ export const QUEST_FALLBACK = {
   side_hanged: { title: 'Three Loaves', kind: 'side', order: 16 },
   side_dice: { title: 'Dice at the Drowned Bell', kind: 'side', order: 17 },
   side_tinker: { title: "The Tinker's Sledge", kind: 'side', order: 18 },
+  side_carcass: { title: 'Wolves on the Forest Track', kind: 'side', order: 19 },
+  side_goat: { title: 'The Strayed Goat', kind: 'side', order: 20 },
+  side_scarf: { title: "Jasiek's Scarf", kind: 'side', order: 21 },
+  side_sled: { title: 'A Sled on the Bank', kind: 'side', order: 22 },
+  side_poacher: { title: 'A Lantern in the Forest', kind: 'side', order: 23 },
+  side_fishers: { title: 'Whose Hole', kind: 'side', order: 24 },
 };
 
 // kind: letter | diary | ledger | scrawl | carving | drawing | inscription | object
@@ -128,6 +134,12 @@ export const NOTES = {
     sign: 'Z.',
   },
   item_bone_dice: { title: 'Bone Dice', where: 'Zbyszek', kind: 'object', text: 'Five dice of old bone, the pips cut deep and rubbed with red. Worn round at the corners by somebody else’s hand. They roll true.' },
+  // The roadside encounters (src/story/controller/roadside).
+  item_scarf: { title: 'A Frozen Scarf', where: 'The pass road', kind: 'object', text: 'Grey wool with a red stripe, knitted too long. It froze in the shape it was lying in.' },
+  note_poacher: {
+    title: 'A Tally in a Satchel', where: 'The forest track', kind: 'ledger',
+    text: 'Snares: six, along the track.\nHares this week: four.\nPawlak, the widow: two.\nThe Nowak children: one.\nWrona girl: one, left on the step.\nNot a word to B.',
+  },
   item_ring: { title: 'A Wedding Ring', where: 'Hanka', kind: 'object', text: 'A thin wedding ring on a string. Hanka’s.' },
   item_bird: { title: 'The Waxwing', where: 'Jarek', kind: 'object', text: 'A waxwing carved from birch, the crest done with care. Never given.' },
   item_music_box: { title: 'Music Box', where: 'The belfry', kind: 'object', text: 'A tin music box with a crank. It plays one tune.' },

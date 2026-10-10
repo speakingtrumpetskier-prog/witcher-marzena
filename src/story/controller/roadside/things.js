@@ -181,23 +181,22 @@ export function deerKill({ seed = 4 } = {}) {
 }
 
 // ---- the boy's scarf --------------------------------------------------------------------------------------
-// A long grey scarf with a red stripe, lying in the shape it froze in. Mostly drifted over: a hand of it shows.
+// A long grey scarf with a red stripe, lying in the shape it froze in: a stiff wavy band half sunk in the drift, one end curled up
+// where it caught on a crust of ice. Enough shows to be noticed by someone looking for it (and picked out by hunter senses).
 export function frozenScarf({ seed = 3 } = {}) {
   const k = new Kit('frozenScarf', { seed });
-  // the part that shows: two folds of grey with the red stripe on the edge
-  k.push({ rot: [-Math.PI / 2 + 0.12, 0.2, 0.0] });
-  k.plane('cloth', 0.17, 0.62, { pos: [0, 0, 0.02], sx: 1, sy: 9, bend: (x, y) => [0, 0, Math.sin(y * 9) * 0.03 + 0.04 * Math.cos(y * 4)], tint: 0x8a8a8a, grime: 0.2, var: 0.1 });
-  k.plane('cloth', 0.035, 0.62, { pos: [0.045, 0, 0.045], sx: 1, sy: 9, bend: (x, y) => [0, 0, Math.sin(y * 9) * 0.03 + 0.04 * Math.cos(y * 4)], tint: 0x8c2e24, grime: 0.1, var: 0.05 });
-  k.plane('cloth', 0.035, 0.62, { pos: [-0.045, 0, 0.045], sx: 1, sy: 9, bend: (x, y) => [0, 0, Math.sin(y * 9) * 0.03 + 0.04 * Math.cos(y * 4)], tint: 0x8c2e24, grime: 0.1, var: 0.05 });
-  k.pop();
-  // fringe at one end
-  for (let i = 0; i < 7; i++) {
-    k.blade('cloth', 0.012, 0.09, { pos: [-0.07 + i * 0.023, 0.03, 0.34], rot: [-Math.PI / 2 + 0.3, 0, 0.1 * (i - 3)], tint: 0x8a8a8a, grime: 0.1 });
+  // a flat band lying in the snow: x is across it, y along it (turned flat by the rotation); the wave and the frozen folds are in the bend
+  const wave = (lift) => (x, y) => [Math.sin(y * 6.5) * 0.13, 0, lift + Math.max(0, Math.sin(y * 9 + 0.7)) * 0.035 + (y > 0.36 ? (y - 0.36) * 0.95 : 0)];
+  k.plane('cloth', 0.16, 1.1, { rot: [-Math.PI / 2, 0, 0], sx: 2, sy: 24, bend: wave(0.02), tint: 0x8c8c90, grime: 0.05, var: 0.06 });
+  for (const sx of [-0.058, 0.058]) {
+    k.plane('cloth', 0.028, 1.1, { pos: [sx, 0.004, 0], rot: [-Math.PI / 2, 0, 0], sx: 1, sy: 24, bend: wave(0.027), tint: 0xa42c22, grime: 0.03, var: 0.03 });
   }
-  // the drift that covers the rest, and frost on what shows
-  k.mound(0.9, 0.12, 0.8, { pos: [0.1, 0.0, -0.45], jseed: 1 });
-  k.mound(0.5, 0.05, 0.4, { pos: [0.0, 0.03, 0.05], jseed: 2 });
-  for (let i = 0; i < 5; i++) k.blob('ice', 0.02, { pos: [-0.06 + i * 0.03, 0.05, 0.1 + (i % 2) * 0.15], scale: [1, 0.5, 1.2], detail: 0, tint: 0xe4f0f8, flat: true });
+  // the fringe, frozen into spikes at the curled end
+  for (let i = 0; i < 6; i++) k.blade('cloth', 0.012, 0.1, { pos: [Math.sin(0.55 * 6.5) * 0.13 - 0.05 + i * 0.02, 0.19, -0.58], rot: [-0.8, 0, 0.12 * (i - 2.5)], tint: 0x8c8c90, grime: 0.1 });
+  // the drift over the middle of it, and rime on what shows
+  k.mound(0.5, 0.1, 0.5, { pos: [0.0, 0.0, 0.05], jseed: 1 });
+  k.mound(0.34, 0.06, 0.34, { pos: [0.1, 0.0, -0.3], jseed: 2 });
+  for (let i = 0; i < 6; i++) k.blob('ice', 0.018, { pos: [(i % 3 - 1) * 0.06, 0.07, 0.35 - i * 0.12], scale: [1, 0.4, 1.2], detail: 0, tint: 0xe4f0f8, flat: true });
   return k.build();
 }
 

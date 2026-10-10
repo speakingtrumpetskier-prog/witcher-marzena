@@ -7,7 +7,6 @@
 //   when    8:00 to 17:00, any weather but a blizzard; once (flag tinker_helped)
 //   flags   tinker_met, tinker_helped, tinker_day / tinker_hour (when), tinker_stock (draughts he has left, 3 to begin)
 //   state   C.roadside.tinker { zone, sled, tinker, haul, village }
-import * as THREE from 'three';
 import { tinkerSledge, runnerScrap } from './things.js';
 import { SPECS } from './people.js';
 
@@ -73,11 +72,13 @@ export function install(C, K) {
       }
       sled.setLift(1);
       // He ties it off: three blows with the mallet, rope pulled tight.
+      const mallet = K.tool(c, 'hammer');
       c.playUpper('hammer', { loop: true, fade: 0.25 });
       C.sfx('effigy_creak', { volume: 0.5, pos: c.root.position });
       for (let i = 0; i < 3; i++) { await C.sleep(0.8); C.sfx('forge_hammer', { volume: 0.35, pos: c.root.position }); }
       await C.sleep(0.9);
       sled.setFixed(true);
+      c.detach(mallet);
       c.stopUpper(0.3);
       c.play('stand_up', { loop: false, fade: 0.25 });
       K.bark(c, 'tinker', 'Tinker', 'Down. Slowly.');
@@ -96,26 +97,9 @@ export function install(C, K) {
 
   // ---- the sledge goes on down the road ---------------------------------------------------------
   function haul(bag, c, sled) {
-    const hb = K.bag();
-    hb.adopt(bag, { chars: [c], objs: [sled.root] });
+    // he goes on down the pass road toward the village at a walk; she can follow him
+    const hb = K.haul(bag, c, sled.root, { path: K.roadPath('pass', ARC, 700, 8, 1.6), speed: 1.1, gap: 2.9, len: 2.3, wid: 0.8, yaw, onFree: () => { if (st.haul === hb) st.haul = null; } });
     st.haul = hb;
-    hb.onFree(() => { if (st.haul === hb) st.haul = null; });
-    c.lookAt(null);
-    const path = K.roadPath('pass', ARC, 700, 8, 1.6);
-    c.walkTo(path, { speed: 1.1 });
-    const heading = new THREE.Vector3();
-    let yawS = yaw;
-    hb.system('tinker-haul', (dt) => {
-      const p = c.root.position;
-      heading.set(Math.sin(c.yaw), 0, Math.cos(c.yaw));
-      const tx = p.x - heading.x * 2.9, tz = p.z - heading.z * 2.9;
-      let d = Math.atan2(heading.x, heading.z) - yawS;
-      d = Math.atan2(Math.sin(d), Math.cos(d));
-      yawS += d * Math.min(1, dt * 3);
-      K.settle(sled.root, tx, tz, yawS, 2.3, 0.8);
-      // he has reached the village end of his road, or she has left him far behind
-      if (C.dist(p.x, p.z) > 110 || c._walk == null) hb.free();
-    });
   }
 
   // ---- the encounter -----------------------------------------------------------------------------
@@ -127,7 +111,7 @@ export function install(C, K) {
       K.settle(sled.root, site.x, site.z, yaw, 2.3, 0.8);
       bag.mesh(sled.root);
       const [bx, bz] = at(0, 0);
-      bag.box(bx, bz, 0.62, 1.25, yaw, { tag: 'sledge' });
+      const colId = bag.box(bx, bz, 0.62, 1.25, yaw, { tag: 'sledge' });
       const [tx, tz] = at(-1.05, 0.5);
       const c = bag.char(SPECS.tinker(), { x: tx, z: tz, yaw: Math.atan2(site.x - tx, site.z - tz) + 0.35, anim: 'kneel_idle', lowDetail: false });
       st.sled = sled;
@@ -147,6 +131,7 @@ export function install(C, K) {
           K.finish('tinker_helped');
           const r2 = await C.talk('rs_tinker', { start: 'd1', actors: { tinker: c } });
           if (r2?.end === 'buy') sell(c);
+          G.physics?.remove(colId); // the sledge is on the move
           haul(bag, c, sled);
         },
       });
@@ -167,7 +152,7 @@ export function install(C, K) {
     g.position.set(sx, C.ground(sx, sz) + 0.02, sz);
     g.rotation.y = yaw + 0.9;
     return g;
-  });
+  }, ['tinker_helped']);
 
   // ---- later: the village ----------------------------------------------------------------------
   // He is at the stalls from an hour or so after he left the road until half past five, every day after.

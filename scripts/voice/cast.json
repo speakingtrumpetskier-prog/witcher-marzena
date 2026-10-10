@@ -33,7 +33,16 @@
     "DOBRA": ["dobra"],
     "BOGDAN": ["bogdan"],
     "HANKA": ["hanka"],
-    "JAREK": ["jarek"]
+    "JAREK": ["jarek"],
+    "GOAT_HOME": ["villager_m1", "villager_m2", "villager_f1", "villager_f2"],
+    "TINKER_HERE": ["villager_m1", "villager_m2", "villager_f1", "villager_f2"],
+    "HARE": ["villager_m1", "villager_m2", "villager_f1", "villager_f2"],
+    "WOLVES_GONE": ["villager_m1", "villager_m2", "villager_m3"],
+    "SHRINE_SCARF": ["villager_f1", "villager_f2", "villager_m2"],
+    "FISH_OLD": ["villager_m3"],
+    "FISH_YOUNG": ["villager_m3"],
+    "FISH_BOTH": ["villager_m3"],
+    "SLED_PAIR": ["child_f1", "child_m1"]
   },
   "speakers": {
     "vesna": {
@@ -263,6 +272,90 @@
       "kokoro": { "voice": { "bm_daniel": 0.8, "bf_lily": 0.2 }, "speed": 1.1 },
       "chatterbox": { "exag_scale": 1.0, "cfg_weight": 0.4 },
       "post": { "pitch": 4.5 }
+    },
+    "tinker": {
+      "name": "The tinker",
+      "age": "fifty",
+      "role": "A tinker who has come over the pass with a loaded sledge (roadside encounter, src/story/controller/roadside/tinker.js); later at the stalls in the square.",
+      "character": "Practical, a little worn, pleased to be asked about the beer. Talks about his load and his back and what things cost.",
+      "delivery": "Level and unhurried, a half beat of dry in the plain lines. Never a pitch.",
+      "weak": "As the other adult men: the blend and a small pitch drop carry him.",
+      "engine": "kokoro",
+      "kokoro": { "voice": { "bm_lewis": 0.5, "bm_fable": 0.5 }, "speed": 0.98 },
+      "chatterbox": { "exag_scale": 0.9, "cfg_weight": 0.5 },
+      "post": { "pitch": -1.0 }
+    },
+    "old_woman": {
+      "name": "Old woman",
+      "age": "seventies",
+      "role": "Kneels at the wayside shrine on the pass road with a bowl of milk for her son, who has not come back (roadside encounter, scarf.js).",
+      "character": "Plain, tired, careful with her words. She repeats what she has already said and does not cry.",
+      "delivery": "Quiet and slow, close to flat. The pauses are the performance.",
+      "weak": "Age is speed and pitch only.",
+      "engine": "kokoro",
+      "kokoro": { "voice": { "bf_isabella": 0.8, "bf_emma": 0.2 }, "speed": 0.9 },
+      "chatterbox": { "exag_scale": 0.8, "cfg_weight": 0.5 },
+      "post": { "pitch": -1.5 }
+    },
+    "goat_owner": {
+      "name": "Zofia",
+      "age": "late thirties",
+      "role": "Stands outside the west gate by day, looking for her goat (roadside encounter, goat.js).",
+      "character": "Brisk, put upon, fond of the goat in spite of herself. Her husband Jan is a constant small trial.",
+      "delivery": "Quick, flat and dry; the relief when the goat comes back is in the speed of the lines, not in any warmth of tone.",
+      "weak": "None specific.",
+      "engine": "kokoro",
+      "kokoro": { "voice": { "bf_emma": 0.6, "bf_alice": 0.4 }, "speed": 1.02 },
+      "chatterbox": { "exag_scale": 0.95, "cfg_weight": 0.45 },
+      "post": { "pitch": 0.0 }
+    },
+    "sled_boy": {
+      "name": "Boy",
+      "age": "nine",
+      "role": "A boy stuck on the river bank with a sled of firewood (roadside encounter, sled.js).",
+      "character": "Insists nothing is wrong. Practical about the wood and the reeve. Unimpressed that her eyes do not glow.",
+      "delivery": "Quick and flat, a little defensive; no sing-song.",
+      "weak": "As child_m1: a male voice pitched up.",
+      "engine": "kokoro",
+      "kokoro": { "voice": { "bm_daniel": 0.8, "bf_lily": 0.2 }, "speed": 1.08 },
+      "chatterbox": { "exag_scale": 1.0, "cfg_weight": 0.4 },
+      "post": { "pitch": 4.5 }
+    },
+    "fisher_old": {
+      "name": "Wacław",
+      "age": "mid sixties",
+      "role": "An old fisherman who has cut the same hole at the river mouth for thirty winters (roadside encounter, fishers.js).",
+      "character": "Gruff, stubborn, wounded rather than angry. Says little and says it twice.",
+      "delivery": "Slow and gravelly, short phrases.",
+      "weak": "As villager_m3.",
+      "engine": "kokoro",
+      "kokoro": { "voice": { "bm_george": 1.0 }, "speed": 0.9 },
+      "chatterbox": { "exag_scale": 0.9, "cfg_weight": 0.5 },
+      "post": { "pitch": -2.5 }
+    },
+    "fisher_young": {
+      "name": "Franek",
+      "age": "mid twenties",
+      "role": "A young fisherman who has been on the same hole since before light (roadside encounter, fishers.js).",
+      "character": "Quick to say the thing that is technically true. Not a bad sort.",
+      "delivery": "Fast and flat, a shrug in every line.",
+      "weak": "None specific.",
+      "engine": "kokoro",
+      "kokoro": { "voice": { "bm_daniel": 0.6, "bm_lewis": 0.4 }, "speed": 1.04 },
+      "chatterbox": { "exag_scale": 1.0, "cfg_weight": 0.45 },
+      "post": { "pitch": 0.5 }
+    },
+    "poacher": {
+      "name": "Man",
+      "age": "thirties",
+      "role": "A man with a lantern setting snares at night, who runs when he is seen (roadside encounter, poacher.js). One line.",
+      "character": "Startled, not a fighter.",
+      "delivery": "A low, sharp question, not shouted.",
+      "weak": "None specific.",
+      "engine": "kokoro",
+      "kokoro": { "voice": { "bm_lewis": 0.7, "bm_daniel": 0.3 }, "speed": 1.0 },
+      "chatterbox": { "exag_scale": 1.0, "cfg_weight": 0.45 },
+      "post": { "pitch": 0.0 }
     }
   }
 }

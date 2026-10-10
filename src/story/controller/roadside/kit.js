@@ -9,7 +9,9 @@
 //   K.bag()                        a Bag: everything an encounter puts in the world, taken out again by bag.free()
 //   K.quietly(fn)                  run fn with quest toasts and stingers off (small encounters write to the journal quietly)
 //   K.bark(char, id, name, text)   a floating line over a character (and a voice clip if there is one)
-//   K.persist(flagFn, build)       a prop group that exists while flagFn() holds (placed again after a load, removed on a reset)
+//   K.tool(char, name, socket)     a hand tool (hammer, rod, axe) in a hand; K.haul(...) a person leaving with a sledge; K.settle(...)
+//   K.persist(flagFn, build, flags)  a prop group that exists while flagFn() holds: built at once, after a load, or when one of the
+//                                  named flags changes; removed on a reset. build returns a group or { obj, own }
 //   K.hold(text, secs, window, onProgress)   the hold ring; resolves true when E was held long enough
 //
 // A Bag costs nothing while it is empty. While no encounter is live the only per-frame work is the zone check
@@ -19,6 +21,7 @@ import { ROADS } from '../../../world/layout.js';
 import { alongPath, pathLength, spotOk } from '../../../world/locations/wilderness/compose.js';
 import { createCharacter } from '../../../characters/index.js';
 import { getLightPool } from '../../../world/locations/lights.js';
+import { makeTool, TOOL_POSE } from '../../../gameplay/npcs/tools.js';
 
 const ROAD = Object.fromEntries(ROADS.map((r) => [r.id, r]));
 
@@ -244,6 +247,21 @@ export function createKit(C) {
     G.ui?.bark?.(name, text, c);
     try { G.voice?.bark?.({ id, preset: id, character: c }, text); } catch { /* voices are optional */ }
   };
+  // One of Vesna's remarks: the subtitle, and her voice clip if there is one (the lines are listed in docs/STORY.md section 5).
+  K.say = (text, secs) => {
+    C.say(text, secs);
+    try { G.voice?.say?.('vesna', text, { duck: false, volume: 0.9 }); } catch { /* voices are optional */ }
+  };
+
+  // A hand tool (hammer, rod, axe...) from the villagers' tool set in a character's hand; returns it (c.detach(t) puts it down).
+  K.tool = (c, name, socket = 'handR') => {
+    const t = makeTool(name);
+    const p = TOOL_POSE[name] || [0, 0, 0, 0, 0, 0];
+    t.position.set(p[0], p[1], p[2]);
+    t.rotation.set(p[3], p[4], p[5]);
+    c.attach(socket, t);
+    return t;
+  };
   K.face = (a, b) => {
     const pa = a.root.position, pb = b.isObject3D ? b.position : b.root ? b.root.position : b;
     a.yaw = Math.atan2(pb.x - pa.x, pb.z - pa.z);
@@ -251,6 +269,29 @@ export function createKit(C) {
   K.facePlayer = (c) => {
     const p = C.ppos();
     c.yaw = Math.atan2(p.x - c.root.position.x, p.z - c.root.position.z);
+  };
+
+  // ---- a person leaving with a sledge ------------------------------------------------------------
+  // The character walks `path` pulling `root` (a sledge) behind him by a rope: the sledge sits `gap` metres behind him, turns
+  // with his heading and lies on the slope. They move to their own Bag so the zone that built them can go; the Bag frees itself
+  // at the end of the path or when she is more than `far` metres away. Returns the Bag.
+  K.haul = (bag, c, root, { path, speed = 1.1, gap = 2.9, len = 2.3, wid = 0.8, yaw = 0, far = 110, onFree } = {}) => {
+    const hb = K.bag();
+    hb.adopt(bag, { chars: [c], objs: [root] });
+    c.lookAt(null);
+    c.walkTo(path, { speed });
+    let yawS = yaw;
+    hb.system('haul', (dt) => {
+      const p = c.root.position;
+      const hx = Math.sin(c.yaw), hz = Math.cos(c.yaw);
+      let d = Math.atan2(hx, hz) - yawS;
+      d = Math.atan2(Math.sin(d), Math.cos(d));
+      yawS += d * Math.min(1, dt * 3);
+      K.settle(root, p.x - hx * gap, p.z - hz * gap, yawS, len, wid);
+      if (C.dist(p.x, p.z) > far || c._walk == null) hb.free();
+    });
+    if (onFree) hb.onFree(onFree);
+    return hb;
   };
 
   // ---- the hold ring ------------------------------------------------------------------------
@@ -299,7 +340,13 @@ export function createKit(C) {
       onLeave: () => {
         const b = h.bag;
         if (!b) return;
-        C.later(grace, () => { if (h.bag === b && !b.busy && !inside()) drop(); });
+        // gone for good after a short grace, unless she is back or the encounter is still in the middle of something
+        const check = () => {
+          if (h.bag !== b || !b.live || inside()) return;
+          if (b.busy) { C.later(3, check); return; }
+          drop();
+        };
+        C.later(grace, check);
       },
     });
     h.drop = drop;
@@ -310,7 +357,7 @@ export function createKit(C) {
 
   // A group that stays in the world while a flag holds. Built when the flag is first seen true (after a load, or the
   // moment it is set) and taken out again when it is cleared (a new game).
-  K.persist = (flagFn, build) => {
+  K.persist = (flagFn, build, flags = []) => {
     const rec = { obj: null, own: false };
     const sync = () => {
       const want = !!flagFn();
@@ -329,6 +376,7 @@ export function createKit(C) {
     };
     K.persists.push(sync);
     C.restore(sync);
+    for (const f of flags) C.watch(f, sync);
     return sync;
   };
 
