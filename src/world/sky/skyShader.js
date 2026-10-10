@@ -40,6 +40,8 @@ uniform vec2 uCirrusOffset;
 uniform vec2 uWindDir;
 uniform vec3 uCloudLit;
 uniform vec3 uCloudShade;
+uniform vec4 uSpiritGlow;
+uniform vec3 uSpiritCol;
 uniform float uEnvMode;
 uniform vec3 uGroundColor;
 uniform float uPixelAngle;
@@ -258,6 +260,13 @@ void main() {
     vec4 ci = cirrus(rd, mu);
     sky = mix(sky, ci.rgb, ci.a);
     vec4 cl = cloudDeck(rd, mu);
+    // The big sky spirit lights the clouds around it from within, a pale wash on the air.
+    if (uSpiritGlow.w > 0.0005) {
+      float sg = max(dot(rd, uSpiritGlow.xyz), 0.0);
+      float sgl = uSpiritGlow.w * (pow(sg, 120.0) * 0.5 + pow(sg, 22.0) * 0.22 + pow(sg, 4.0) * 0.035);
+      sky += uSpiritCol * sgl * 0.25;
+      cl.rgb += uSpiritCol * sgl * 1.4;
+    }
     sky = mix(sky, cl.rgb, cl.a);
     sunMask = (1.0 - cl.a) * (1.0 - ci.a * 0.5);
   }

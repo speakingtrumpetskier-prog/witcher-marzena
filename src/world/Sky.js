@@ -52,6 +52,8 @@ export async function init(G) {
     uGroundColor: { value: new THREE.Color(0.6, 0.62, 0.66) },
     uPixelAngle: { value: 0.001 },
     uSkyFog: { value: 0.8 },
+    uSpiritGlow: { value: new THREE.Vector4(0, 1, 0, 0) }, // xyz toward the big sky spirit, w strength (Spirits.js)
+    uSpiritCol: { value: new THREE.Color(1, 0.9, 0.62) },
     uTime: U.uTime,
   };
   for (const n of FOG_UNIFORM_NAMES) uniforms[n] = U[n];
@@ -80,7 +82,7 @@ export async function init(G) {
   G.scene.add(mesh);
 
   // Environment capture: a separate scene with an env-mode copy of the sky.
-  const envUniforms = { ...uniforms, uEnvMode: { value: 1 }, uStars: { value: 0 }, uPixelAngle: { value: 0.01 } };
+  const envUniforms = { ...uniforms, uEnvMode: { value: 1 }, uStars: { value: 0 }, uPixelAngle: { value: 0.01 }, uSpiritGlow: { value: new THREE.Vector4(0, 1, 0, 0) } };
   const envMaterial = material.clone();
   envMaterial.uniforms = envUniforms;
   const envMesh = new THREE.Mesh(geo, envMaterial);

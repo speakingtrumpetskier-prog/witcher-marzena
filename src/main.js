@@ -30,6 +30,7 @@ const MODULES = [
   ['water', () => import('./world/Water.js')],
   ['rocks', () => import('./world/Rocks.js')],
   ['weather', () => import('./world/Weather.js')],
+  ['spirits', () => import('./world/Spirits.js')],
   ['vegetation', () => import('./world/Vegetation.js')],
   ['locations', () => import('./world/locations/index.js')],
   ['characters', () => import('./characters/index.js')],
