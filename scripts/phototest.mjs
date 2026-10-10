@@ -133,7 +133,8 @@ check(after.hoursBack && after.vesna && after.exposure === 1, 'the hour, Vesna a
 check(await ev(() => window.__G.weather?.snowfall?.mesh?.visible !== false), 'and the snow is back');
 await wait(1000);
 const runs = await ev(() => { const t = window.__G.clock.elapsed; return new Promise((r) => setTimeout(() => r(window.__G.clock.elapsed - t), 800)); });
-check(runs > 0.3, 'the world runs again after leaving', `clock advanced ${runs.toFixed(2)} s in 0.8 s`);
+// The clock caps a frame at 0.1 s, so on a loaded machine it can lag real time; it only has to move.
+check(runs > 0.1, 'the world runs again after leaving', `clock advanced ${runs.toFixed(2)} s in 0.8 s`);
 await shot('p10_back');
 
 // The pause menu entry.
