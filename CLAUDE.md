@@ -44,6 +44,10 @@ voice clips generated offline. Work happens on the branch `claude/optimistic-boh
   `node scripts/shot.mjs --w 480 --h 270 --timeout 1500000 --q "scene=playthrough&lite=1&choice=strike&quality=low" --eval "await window.__playthrough.promise; console.warn('SUMMARY', window.__playthrough.pass, window.__playthrough.fail)" --out shots/pt.png`
   (also `choice=call` and `choice=step`); expect zero fails and zero errors.
 - `node scripts/gpu-demo.mjs` times one frame on the local GPU against software.
+- `node scripts/perf.mjs boot|flicker|cost` (with MZ_CHROME=1 or MZ_GPU=1): boot milestones and title
+  frame times; per-frame brightness with single-frame spike and step detection plus a change log of
+  uniforms and lights (`--run 1` lets the clock run); per-group frame cost by hiding scene groups.
+  The `[boot]` console line reports module, shader warm-up, first-frame and title warm-up times.
 
 ## Voices
 - `node scripts/voice/extract.mjs` refreshes `scripts/voice/lines.json` after dialogue or cutscene edits.
