@@ -6,7 +6,7 @@
 // Reads: hanka_hired (she knows the dress and the broom practice only makes sense once Vesna has met
 //        Hanka; the "picked" topic is hidden until then).
 // Sets:  knows_wiesia (the bowl topic: Ola says her sister's name).
-// Topics (all `once`): what she is making, the horse, the song, the bowl at home, carrying it.
+// Topics (all `once`): what she is making, the horse, the song, the bowl at home, being picked.
 export default {
   id: 'ola_day1',
   cast: ['ola'],
