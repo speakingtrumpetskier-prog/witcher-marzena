@@ -220,6 +220,9 @@ async function fight(G) {
       for (const s of G.systems.slice()) {
         try { s.update(dt, G.clock.elapsed); } catch (err) { if (!s._errored) { console.error(`[system ${s.name}]`, err); s._errored = true; G.errors.push(`system ${s.name}: ${err.message}`); } }
       }
+      // A real frame renders here, which refreshes the camera's matrices; the characters pick their detail level
+      // (and whether they animate every frame) from them.
+      G.camera.updateMatrixWorld();
     }
   };
   A.render = (dt = 0.016) => { if (G.postfx?.render) G.postfx.render(dt); else G.renderer.render(G.scene, G.camera); };

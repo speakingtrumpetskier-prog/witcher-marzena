@@ -7,7 +7,7 @@
 //   c.setVisible(bool), c.dispose()
 // Extras: c.expression(name, amount, fade), c.setFace({ smile, ... }), c.setRestFace({ frown, ... }), c.drawSword(kind),
 //   c.sheatheSword(), c.swordDrawn, c.onEvent(fn) (clip events: 'hit', 'step', 'sword_draw'...),
-//   c.stop(), c.locoSet({ idle, walk, run, sprint }), c.cold (bool), c.ground (fn override).
+//   c.stop(), c.locoSet({ idle, walk, run, sprint, strafe }), c.setStrafe(on, lx, lz), c.cold (bool), c.ground (fn override).
 import * as THREE from 'three';
 import { G } from '../core/G.js';
 import { buildCharacter } from './build.js';
@@ -16,6 +16,7 @@ import { Springs } from './springs.js';
 import { armJoints } from './rig.js';
 import { makeSword } from './gear.js';
 import { getClip } from './clips/index.js';
+import { strafeSet } from './clips/strafe.js';
 
 const _v = new THREE.Vector3(), _v2 = new THREE.Vector3(), _v3 = new THREE.Vector3();
 const _q = new THREE.Quaternion(), _q2 = new THREE.Quaternion();
@@ -111,8 +112,18 @@ export class Character {
     if (speed > 0.05) this.anim.toLoco(0.25);
     return this;
   }
+  // { idle, walk, run, sprint } clip names; strafe: 'guard' | 'free' | null picks the lock-on clip set (clips/strafe.js).
   locoSet(set) {
-    Object.assign(this.anim.loco.set, set);
+    const { strafe, ...names } = set;
+    Object.assign(this.anim.loco.set, names);
+    if (strafe !== undefined) this.anim.loco.dirs = strafe ? strafeSet(strafe) : null;
+    return this;
+  }
+  // Lock-on locomotion: while on, the feet step in the direction of (lx, lz), her velocity in her own frame (x = left,
+  // z = ahead, m/s), and turn on the spot when the body turns, instead of the forward gaits. Player calls it each frame.
+  setStrafe(on, lx = 0, lz = 0) {
+    const L = this.anim.loco;
+    L.strafe = !!on; L.lx = lx; L.lz = lz;
     return this;
   }
 

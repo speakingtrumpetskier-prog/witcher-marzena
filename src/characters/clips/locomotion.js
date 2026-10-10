@@ -40,7 +40,7 @@ export function legIK(hip, ank, psi, side, sgn) {
 }
 
 // Foot state for local phase p in [0,1): returns ankle {y, z} and pitch psi (rad).
-function footAt(p, g) {
+export function footAt(p, g) {
   const B = g.beta;
   const Db = g.D * B;
   const flat = (s) => g.a0 - Db * s;
