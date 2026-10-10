@@ -6,7 +6,7 @@
 //   ACTIONS                     [{ id, label, group, ctx, fixed, hold, mode }] in display order
 //   keyLabel(code) / padLabel(code, style)   plain text for a code ('W', 'Space', 'RMB', 'LB')
 //
-// ctx says where an action is read: 'game' (free play) or 'scene' (cutscenes and dialogue). Two actions
+// ctx says where an action is read: 'game' (free play), 'scene' (cutscenes and dialogue) or 'dice' (the tavern dice game). Two actions
 // only conflict when they share a code AND a context; `mode` marks the pair that is exclusive by design
 // (heavy attack needs the sword drawn, hunter senses need it sheathed, so both sit on the right mouse button).
 
@@ -43,6 +43,9 @@ export const DEFAULT_KBM = {
   pause: ['Escape'],
   skip: ['Space'],
   advance: ['Space', 'Enter', 'Mouse0', 'KeyE'],
+  dice_pick: ['KeyE'],
+  dice_roll: ['Space', 'Enter'],
+  dice_raise: ['KeyR'],
   debugCam: ['F1'],
 };
 
@@ -70,13 +73,17 @@ export const DEFAULT_PAD = {
   pause: ['PadStart'],
   skip: ['PadB'],
   advance: ['PadA'],
+  dice_pick: ['PadA'],
+  dice_roll: ['PadX', 'PadStart'],
+  dice_raise: ['PadY'],
   debugCam: [],
 };
 
-export const GROUPS = ['Movement', 'Camera', 'Combat', 'Signs', 'Horse', 'Interaction and senses', 'Menus'];
+export const GROUPS = ['Movement', 'Camera', 'Combat', 'Signs', 'Horse', 'Interaction and senses', 'Menus', 'Dice'];
 
 const G_ = ['game'];
 const S_ = ['scene'];
+const D_ = ['dice']; // the tavern dice game (src/minigames/dice): read from its screen's key events, so they never clash with free play
 export const ACTIONS = [
   { id: 'forward', label: 'Move forward', group: 'Movement', ctx: G_, stick: 'Left stick' },
   { id: 'back', label: 'Move back', group: 'Movement', ctx: G_, stick: 'Left stick' },
@@ -104,6 +111,9 @@ export const ACTIONS = [
   { id: 'journal', label: 'Journal', group: 'Menus', ctx: G_ },
   { id: 'map', label: 'Map', group: 'Menus', ctx: G_ },
   { id: 'pause', label: 'Pause menu', group: 'Menus', ctx: G_, fixed: true },
+  { id: 'dice_pick', label: 'Pick a die, or put it back (also 1 to 5 and a click)', group: 'Dice', ctx: D_ },
+  { id: 'dice_roll', label: 'Roll the dice you picked', group: 'Dice', ctx: D_ },
+  { id: 'dice_raise', label: 'Raise the stake', group: 'Dice', ctx: D_ },
 ];
 export const ACTION = Object.fromEntries(ACTIONS.map((a) => [a.id, a]));
 

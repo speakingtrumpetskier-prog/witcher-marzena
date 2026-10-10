@@ -2,7 +2,7 @@
 // day right now (first meeting, hub, later, short), then makes sure the flags and items the
 // conversation owes the quests are in place even if the written scene left one out.
 //
-// NPC ids: zbyszek, bogdan, hanka, dobra, jarek, ola, miller, miller_wife (src/gameplay/npcs/cast.js).
+// NPC ids: zbyszek, bogdan, hanka, dobra, jarek, ola, miller, miller_wife, wojtek, halina (src/gameplay/npcs/cast.js).
 // Scenes that stage an NPC pause it and release it themselves (Actors.js); nothing here has to.
 
 export function install(C) {
@@ -15,6 +15,19 @@ export function install(C) {
       C.set('met_zbyszek');
       // "Is there a bed?" ends on rest_dusk; resting waits until the dialogue has closed.
       if (r?.end === 'rest_dusk') await C.rest();
+      // "A round, then." ends on dice_go: the match across the bar (src/minigames/dice, controller/dice.js).
+      else if (r?.end === 'dice_go') await C.dice?.play('zbyszek');
+    },
+
+    // The regulars of the Drowned Bell, at the middle table.
+    async wojtek() {
+      const r = await C.talk('dice_wojtek');
+      if (r?.end === 'dice_go') await C.dice?.play('wojtek');
+    },
+
+    async halina() {
+      const r = await C.talk('dice_halina');
+      if (r?.end === 'dice_go') await C.dice?.play('halina');
     },
 
     async bogdan() {

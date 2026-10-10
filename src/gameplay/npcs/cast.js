@@ -63,6 +63,21 @@ export const NAMED = [
       at(18, 2, 'tavern_corner', { anim: 'sit_bench' }),
     ],
   },
+  // The tavern regulars (src/minigames/dice): at the middle table of the Drowned Bell from noon, home to bed late.
+  {
+    id: 'wojtek', preset: 'villager_m_8', name: 'Wojtek', anchor: LOC.tavern, hardy: 0.9,
+    schedule: [
+      at(23, 11.5, 'bed_n11', { hidden: true }),
+      at(11.5, 23, 'wojtek_seat', { anim: 'sit_bench' }),
+    ],
+  },
+  {
+    id: 'halina', preset: 'villager_f_7', name: 'Halina', anchor: LOC.tavern, hardy: 0.9,
+    schedule: [
+      at(22.5, 12.5, 'bed_n14', { hidden: true }),
+      at(12.5, 22.5, 'halina_seat', { anim: 'sit_bench' }),
+    ],
+  },
   {
     id: 'ola', preset: 'ola', name: 'Ola', anchor: LOC.hanka, hardy: 0.5, child: true,
     schedule: [
@@ -121,12 +136,14 @@ const ROLES = [
   { role: 'seller', pool: 'mf', count: 1, work: ['market', 'porch'], wake: 7.4, home: 17.0, evening: 'social', hardy: 0.4, noErrand: true },
 ];
 
+// Presets already taken by the named cast stay out of the crowd (two people with one face).
 function makePools(rand) {
+  const taken = new Set([...NAMED, ...MILL].map((d) => d.preset));
   const shuffle = (a) => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(rand() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
   const nums = (n) => Array.from({ length: n }, (_, i) => i + 1);
   return {
-    m: shuffle(nums(12).map((i) => `villager_m_${i}`)),
-    f: shuffle(nums(12).map((i) => `villager_f_${i}`)),
+    m: shuffle(nums(12).map((i) => `villager_m_${i}`).filter((p) => !taken.has(p))),
+    f: shuffle(nums(12).map((i) => `villager_f_${i}`).filter((p) => !taken.has(p))),
     fisher: shuffle(nums(4).map((i) => `fisherman_${i}`)),
     child: shuffle(['child_a', 'child_b', 'child_c', 'child_d']),
     elder_m: ['elder_m'],

@@ -36,6 +36,7 @@ export const QUEST_FALLBACK = {
   side_wolves: { title: 'Wolves at the Mill', kind: 'side', order: 13 },
   side_snow: { title: 'Snow Fight', kind: 'side', order: 14 },
   side_handbell: { title: 'The Hand-Bell', kind: 'side', order: 15 },
+  side_dice: { title: 'Dice at the Drowned Bell', kind: 'side', order: 16 },
 };
 
 // kind: letter | diary | ledger | scrawl | carving | drawing | inscription | object
@@ -118,6 +119,12 @@ export const NOTES = {
     title: 'The Higher Carvings', where: 'Stone Circle Isle', kind: 'carving',
     text: 'Higher on the same stones, above the women: a row of round shapes with lines hanging down, like lamps on chains. One is cut far larger than the rest and runs across two stones.\nIts left end is cut shorter than the right, as if the mason ran out of stone.',
   },
+  note_dice_rules: {
+    title: 'House Rules, Kosci', where: 'The Drowned Bell', kind: 'inscription',
+    text: 'KOSCI\nFive dice each. Everyone puts in the stake.\nRoll all five and look. After that anyone may raise, once, by the stake, and the other may fold.\nThen each takes up the dice he does not like and rolls those again. Once.\nBest hand takes the pot.\nPair. Two pairs. Three the same. Small run, one to five. Big run, two to six. Three and a pair. Four the same. Five.\nSame hand: the higher dice win. Still the same: stakes back, again.\nBest of three. Nothing on credit.',
+    sign: 'Z.',
+  },
+  item_bone_dice: { title: 'Bone Dice', where: 'Zbyszek', kind: 'object', text: 'Five dice of old bone, the pips cut deep and rubbed with red. Worn round at the corners by somebody else’s hand. They roll true.' },
   item_ring: { title: 'A Wedding Ring', where: 'Hanka', kind: 'object', text: 'A thin wedding ring on a string. Hanka’s.' },
   item_bird: { title: 'The Waxwing', where: 'Jarek', kind: 'object', text: 'A waxwing carved from birch, the crest done with care. Never given.' },
   item_music_box: { title: 'Music Box', where: 'The belfry', kind: 'object', text: 'A tin music box with a crank. It plays one tune.' },

@@ -174,19 +174,21 @@ export function planRoll(o) {
   return wrap(segs, events, { pos: start.clone(), quat: qStart });
 }
 
-// Dice shaken in a closed hand above the table: each wobbles around `center` for `dur` seconds.
+// Dice shaken in a closed hand above the table: each wobbles around `center` for `dur` seconds, starting and ending
+// exactly at rest in `center` with orientation q0 (so a hop can lead into it and a throw can follow it).
 export function planShake({ center, q0, dur, rand, amp = 0.012, rate = 1, delay = 0 }) {
   const ph = [rand() * 6.28, rand() * 6.28, rand() * 6.28, rand() * 6.28];
   const c = center.clone();
   const qa = q0.clone();
   const ax = new THREE.Vector3(rand() - 0.5, rand() - 0.5, rand() - 0.5).normalize();
+  const total = delay + dur;
   const seg = {
-    t0: 0, t1: delay + dur,
+    t0: 0, t1: total,
     at(k, pos, quat) {
-      const tt = k * (delay + dur) * rate;
-      const w = Math.min(1, k * 6) * (1 - 0.15 * k);
+      const tt = k * total * rate;
+      const w = Math.min(1, k * 6) * (1 - k * k * k);
       pos.set(c.x + Math.sin(tt * 34 + ph[0]) * amp * w, c.y + Math.sin(tt * 29 + ph[1]) * amp * 0.8 * w, c.z + Math.sin(tt * 31 + ph[2]) * amp * w);
-      quat.setFromAxisAngle(ax, Math.sin(tt * 22 + ph[3]) * 0.6 * w + tt * 2).multiply(qa);
+      quat.setFromAxisAngle(ax, Math.sin(tt * 22 + ph[3]) * 0.7 * w).multiply(qa);
     },
   };
   return wrap([seg], [], { pos: c, quat: qa });

@@ -87,6 +87,14 @@ export async function buildLife(V) {
     station('tavern_bed', bx, bz, t.yaw + PI / 2, 'lie_dead', 'bed', { indoor: true });
     const door = t.p.doors[0];
     station('tavern_door', door.x, door.z, door.yaw, 'idle', 'wander');
+    // The people who live in the tavern: Zbyszek behind the bar (the dice are played across the counter), the two
+    // regulars on the far bench of the middle table (src/minigames/dice). These ids are named in cast.js.
+    const out = { x: door.x, z: door.z };
+    station('tavern_bar', ...f.at(-2.3, -4.2), t.yaw, 'hands_hips', 'work', { indoor: true, tag: 'bar', door: out });
+    station('zbyszek_bed', ...f.at(-3.7, 2.2), t.yaw + PI / 2, 'lie_dead', 'bed', { indoor: true });
+    station('tavern_porch', ...f.at(1.9, 6.15), t.yaw, 'lean_wall', 'work');
+    station('wojtek_seat', ...f.at(0.2, -0.08), t.yaw, 'sit_bench', 'sit', { indoor: true, door: out });
+    station('halina_seat', ...f.at(1.0, -0.08), t.yaw, 'sit_bench', 'sit', { indoor: true, door: out });
     const [o1x, o1z] = f.at(-5.2, 3.0);
     station('tavern_bench_out1', o1x, o1z, t.yaw, 'sit_bench', 'sit');
     const [o2x, o2z] = f.at(-7.0, 2.3);

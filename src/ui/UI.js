@@ -262,7 +262,8 @@ class UI {
         try { G.audio?.stinger?.('discover'); } catch { /* optional */ }
       }
     });
-    G.events.on('inventory', ({ item, n }) => {
+    G.events.on('inventory', ({ item, n, quiet }) => {
+      if (quiet) return;
       if (n > 0 && item === 'coins') this.overlays.notify(`+${n} grosze`, 'coin');
       else if (n > 0 && item === 'thaw') this.overlays.notify(`Thaw draught${n > 1 ? ` x${n}` : ''}`, 'item');
     });

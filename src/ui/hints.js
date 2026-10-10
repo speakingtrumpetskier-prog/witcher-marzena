@@ -191,7 +191,7 @@ export class Hints {
   _rowEl(row) {
     const G = this.G;
     let glyph;
-    if (row.glyph) glyph = row.glyph();
+    if (row.glyph) glyph = row.glyph(G);
     else if (row.kind === 'move') glyph = moveGlyph(G);
     else if (row.kind === 'look') glyph = lookGlyph(G);
     else glyph = actionGlyph(G, row.action);

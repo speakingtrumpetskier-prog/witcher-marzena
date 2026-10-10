@@ -35,6 +35,7 @@ export const SFX_GROUPS = {
   ],
   creatures: ['dog_bark', 'deer_bark', 'fox_scream', 'crow', 'raven', 'chicken', 'goat', 'child_laugh', 'owl', 'bird'],
   ui: ['ui_select', 'ui_hover', 'ui_open', 'ui_close'],
+  dice: ['dice_land', 'dice_rattle', 'dice_tumble', 'dice_tick', 'coin_pile', 'coin_slide'],
 };
 
 export const SFX_NAMES = Object.values(SFX_GROUPS).flat();

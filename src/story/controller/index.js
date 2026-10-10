@@ -6,13 +6,13 @@
 //
 //   import('./controller/index.js').then((m) => m.init(G))    called once from src/story/index.js
 //   G.storyCtl           the shared context (context.js): flags, zones, interactions, C.scene, C.talk, C.rest,
-//                        C.buy, C.snowfight, C.finale
+//                        C.buy, C.snowfight, C.finale, C.dice
 //
 // Files by area:  context.js (toolbox)  scenes.js stubs.js (scenes with placeholders and end-state guarantees)
 //   act1.js (pass, wolves, valley, village arrival, notice board)   act2.js (night, ice, echo, tower, belfry, dawn)
 //   npcs.js (what each person says and what it owes the quests)    side.js (bird, ledger, wisps, wolves, bear, island)
 //   clues.js (nooks and readable things)   world.js (rest, weather, gear, doors, ambient)
-//   snowfight.js   finale.js (rite, boss, choice, endings, credits)
+//   snowfight.js   finale.js (rite, boss, choice, endings, credits)   dice.js (Kosci in the tavern: who plays, the quest)
 // Flags and quests: docs/STORY.md sections 1 and 2; quest definitions in src/story/content/quests.js.
 import { createContext } from './context.js';
 import * as scenes from './scenes.js';
@@ -24,10 +24,11 @@ import * as clues from './clues.js';
 import * as world from './world.js';
 import * as snowfight from './snowfight.js';
 import * as finale from './finale.js';
+import * as dice from './dice.js';
 
 const MODULES = [
   ['scenes', scenes], ['npcs', npcs], ['act1', act1], ['act2', act2], ['side', side],
-  ['clues', clues], ['world', world], ['snowfight', snowfight], ['finale', finale],
+  ['clues', clues], ['world', world], ['snowfight', snowfight], ['finale', finale], ['dice', dice],
 ];
 
 export async function init(G) {

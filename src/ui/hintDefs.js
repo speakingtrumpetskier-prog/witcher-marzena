@@ -13,12 +13,14 @@
 // (metres), c.inCombat, c.enemies(r), c.since(event), c.down(a), c.pressed(a), c.sprinted ...
 // Text is plain and short. The card never says what the prompt on screen already says twice.
 import { LOC } from '../world/layout.js';
+import { diceNumbers } from './glyphs.js';
 
 // Events the hint system listens to. 'ui:open' also fires as 'ui:open:<name>'.
 export const EVENTS = [
   'combat:start', 'player:hit', 'player:dodge', 'player:parry', 'player:block', 'player:cast', 'player:draw',
   'player:drink', 'player:lock', 'camera:retarget', 'horse:call', 'horse:mount', 'horse:dismount',
   'interact:use', 'senses:on', 'ui:open:journal', 'ui:open:map', 'ui:open:pause',
+  'dice:pick', 'dice:roll', 'dice:raise',
 ];
 
 const near = (c, x, z, r) => c.P && Math.hypot(c.P.position.x - x, c.P.position.z - z) < r;
@@ -155,6 +157,22 @@ export const HINTS = [
     id: 'pause', prio: 8, delay: 3, seconds: 10,
     rows: [{ action: 'pause', text: 'Pause menu: save, settings, controls', done: 'ui:open:pause' }],
     watch: (c) => c.play > 300 && !c.inCombat,
+  },
+  // The tavern dice game (src/minigames/dice/ui.js) shows these itself, with G.hints.show(id, { force: true }), the first
+  // time dice can be picked and the first time a raise is possible, and emits the dice:* events the rows wait for.
+  {
+    id: 'dice_pick', prio: 9, delay: 0, seconds: 14, watch: () => false,
+    rows: [
+      {
+        action: 'dice_pick', text: 'Pick the dice to roll again', done: 'dice:pick',
+        kbm: { glyph: (G) => diceNumbers(G, 'kbm') }, pad: { glyph: (G) => diceNumbers(G, 'pad') },
+      },
+      { action: 'dice_roll', text: 'Roll them', done: 'dice:roll' },
+    ],
+  },
+  {
+    id: 'dice_raise', prio: 9, delay: 0, seconds: 12, watch: () => false,
+    rows: [{ action: 'dice_raise', text: 'Raise the stake, or keep it', done: 'dice:raise' }],
   },
 ];
 

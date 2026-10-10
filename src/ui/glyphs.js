@@ -8,6 +8,7 @@
 //   navGlyph(G, kind, device)                  menu controls: 'updown' 'leftright' 'confirm' 'back' 'clear' 'tabs'
 //   hintBar(G, [[kind, 'Select'], ...])        a row of navGlyph + label pairs for a screen footer
 //   glyphText(G, action)                       the binding as plain text ('Space', 'RMB', 'LB')
+//   diceNumbers(G, device)                     the dice game's picking keys (1 to 5, or D-pad and A)
 import { h, svg } from './dom.js';
 import { keyLabel, padLabel, codeLabel, isPad, isMouse } from '../core/bindings.js';
 
@@ -188,6 +189,14 @@ export function navGlyph(G, kind, device = 'auto') {
       case 'centre': return pad ? padGlyph('PadX', style) : cap('Space');
       default: return cap(String(kind));
     }
+  });
+}
+
+// The dice game's way of picking a die: the number keys, or the D-pad to move and A to pick.
+export function diceNumbers(G, device = 'auto') {
+  return liveBox(G, 'mz-glyph', () => {
+    if (dev(G, device) === 'pad') return h('span', { class: 'mz-caps' }, dpad(['left', 'right']), padGlyph('PadA', styleOf(G)));
+    return h('span', { class: 'mz-caps' }, ...['1', '2', '3', '4', '5'].map((n) => cap(n)));
   });
 }
 

@@ -46,6 +46,7 @@ export class Match {
     this.dice = { player: [1, 1, 1, 1, 1], opp: [1, 1, 1, 1, 1] };
     this.first = { player: null, opp: null }; // the first roll, kept for the screen
     this.mask = { player: [false, false, false, false, false], opp: [false, false, false, false, false] };
+    this.plan = null;
     this.raised = null; // { by: 'player' | 'opp' }
     this.bluff = false; // the opponent raised on a hand it does not believe in
     this.over = false;
@@ -93,8 +94,19 @@ export class Match {
     this.dice.opp = rollDice(this.rand);
     this.first.player = [...this.dice.player];
     this.first.opp = [...this.dice.opp];
+    // The opponent's mind is made up once the dice are down: what it would do if the player holds (raise or not, and
+    // whether that is a bluff) and if the player raises (call or fold). The screen reads mood() for what it says.
+    this.plan = {
+      raise: this.ai.decideRaise(this.dice.opp, this.dice.player),
+      call: this.ai.decideCall(this.dice.opp, this.dice.player),
+    };
     this.phase = 'bet';
     return { player: [...this.dice.player], opp: [...this.dice.opp] };
+  }
+
+  // How the opponent feels about its first roll: 'good' | 'bad' | 'plain' (a bluffer who means to raise says 'good').
+  mood() {
+    return this.ai.moodAfterRoll(this.dice.opp, this.dice.player, !!(this.plan?.raise.raise && this.plan.raise.bluff));
   }
 
   // What the player is allowed to do right now.
@@ -125,9 +137,8 @@ export class Match {
 
   aiBet() {
     this._need('ai');
-    const mine = this.dice.opp, theirs = this.dice.player;
     if (this.raised?.by === 'player') {
-      const d = this.ai.decideCall(mine, theirs);
+      const d = this.plan.call;
       if (d.call && this.coins.opp >= this.raiseAmount) {
         this._pay('opp', this.raiseAmount);
         this.phase = 'select';
@@ -136,7 +147,7 @@ export class Match {
       this._fold('opp');
       return { action: 'fold', pw: d.pw, bluff: false };
     }
-    const d = this.ai.decideRaise(mine, theirs);
+    const d = this.plan.raise;
     if (d.raise && this.coins.opp >= this.raiseAmount) {
       this._pay('opp', this.raiseAmount);
       this.raised = { by: 'opp' };

@@ -35,7 +35,7 @@ export async function init(G) {
     placeholderFactory: null,
     noAutosave: false,
     get busy() {
-      return !!(G.dialogue?.active || G.cutscenes?.active || story.flow?.resting);
+      return !!(G.dialogue?.active || G.cutscenes?.active || story.flow?.resting || G.dice?.active);
     },
     newStage() {
       const s = new ActorStage(G);
