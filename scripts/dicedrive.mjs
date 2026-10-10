@@ -8,7 +8,7 @@
 //   pad     the same screens from a mocked pad: D-pad moves, A picks, X rolls, Y raises, B leaves; pad glyphs in the footer
 //   leave   Esc asks first, Stay returns to the question, Leave loses the round and hands everything back cleanly
 // Needs `npm install --no-save playwright-core` and Google Chrome (MZ_CHROME=1), like shot.mjs. Pictures: shots/dice/drive_*.png
-/* global window, document, KeyboardEvent */
+/* global window, document */
 import { createServer } from 'vite';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -57,16 +57,6 @@ const press = async (page, code) => { await page.evaluate((c) => window.__dice.p
 const state = (page) => page.evaluate(() => window.__dice.state());
 const btn = async (page, i, ms = 140) => { await page.evaluate((k) => window.__btn(k, true), i); await page.waitForTimeout(ms); await page.evaluate((k) => window.__btn(k, false), i); await page.waitForTimeout(110); };
 const settle = (page, ms = 700) => page.waitForTimeout(ms);
-
-// Play to the end of the round the player is in, holding and rolling nothing, so tests can reach the next one.
-async function finishRound(page) {
-  const p = await page.evaluate(() => window.__dice.phase()?.phase);
-  if (p === 'bet') await press(page, 'Enter');
-  await page.waitForFunction(() => ['reroll', 'respond', 'showdown', 'next', 'end'].includes(window.__dice.phase()?.phase), null, { timeout: 60000 });
-  let ph = await page.evaluate(() => window.__dice.phase().phase);
-  if (ph === 'respond') { await press(page, 'Enter'); await page.waitForFunction(() => ['reroll', 'showdown', 'next', 'end'].includes(window.__dice.phase()?.phase), null, { timeout: 60000 }); ph = await page.evaluate(() => window.__dice.phase().phase); }
-  if (ph === 'reroll') { await press(page, 'Enter'); await until(page, 'showdown'); }
-}
 
 async function testMatch() {
   console.log('--- a match from the keyboard and the mouse');

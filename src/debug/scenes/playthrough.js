@@ -86,7 +86,7 @@ async function run(G, O, report) {
   const step = (name) => { currentStep = name; console.log(`[pt] --- ${name}`); };
 
   if (!C) { ok('controller installed', false, 'G.storyCtl missing'); return; }
-  ok('controller installed', C.installed?.length === 9, (C.installed || []).join(','));
+  ok('controller installed', C.installed?.length === 10, (C.installed || []).join(','));
 
   // ---- the simulation clock -----------------------------------------------------------------
   const gate = { on: false };
@@ -572,6 +572,115 @@ async function run(G, O, report) {
     delete G.spirits;
     ok('barks: nobody speaks while Matka swells', spoke === 0, `spoke=${spoke}`);
     G.time.setHours(17.9);
+
+    // ---- Kosci, the dice game in the Drowned Bell: the three who play, the quest, and the bone dice ----
+    // Seeded matches played by a scripted player (stake the least, hold, call, roll again every die that is not in a
+    // pair), so the dice are the same every run: seed 3 beats Zbyszek (+2), seed 2 loses to Wojtek (-9), seed 3 beats
+    // him (+6), seed 3 beats Halina (+4). The screen, the keys and the pad are checked by scripts/dicedrive.mjs.
+    step('side: dice');
+    G.time.setHours(17.9);
+    await C.dice.load();
+    ok('the dice game loads on demand and is not active', !!G.dice && !G.dice.active, `active=${G.dice?.active}`);
+    const keepCoins = S.count('coins');
+    S.data.inventory.coins = 40;
+    const scripted = {
+      stake: (r) => r.min,
+      bet: () => 'hold',
+      respond: () => 'call',
+      reroll: (dice) => { const c = {}; for (const v of dice) c[v] = (c[v] || 0) + 1; return dice.map((v) => c[v] < 2); },
+      next: () => 'next',
+    };
+    const playWith = (seed) => { C.dice.test = { seed, speed: 8, drive: scripted }; };
+    const pickText = (...res) => (node, items) => {
+      const text = items.map((it) => String(it.text ?? it.t).toLowerCase());
+      for (const re of res) { const i = text.findIndex((t) => re.test(t)); if (i >= 0) return i; }
+      return Math.max(0, text.findIndex((t) => /^that's all|^not now/.test(t)));
+    };
+    const talkWith = async (npcId, picker, secs = 300) => {
+      const before = dlgLog.length;
+      const prev = G.dialogue.autopick;
+      G.dialogue.autopick = picker;
+      const n = G.npcs.get(npcId);
+      const c = n.character;
+      placeAt(c.root.position.x, c.root.position.z + 2.5, Math.PI);
+      await waitFor(() => n.visible, 8, `${npcId} visible`);
+      const p0 = c.root.position, iid = `npc_${npcId}`;
+      for (const [ox, oz] of [[0, 1.4], [1.4, 0], [0, -1.4], [-1.4, 0], [1, 1], [-1, 1]]) {
+        placeAt(p0.x + ox, p0.z + oz, yawTo(p0.x + ox, p0.z + oz, p0.x, p0.z));
+        await tick(0.1); await tick(0.1);
+        if (G.interact.current?.id === iid) break;
+      }
+      await drive(G.interact.use(iid), secs);
+      await tick();
+      G.dialogue.autopick = prev;
+      return dlgLog.slice(before);
+    };
+    const handedBack = () => G.input.context === 'game' && G.cameraOwner === 'rig' && P().control && P().character.visible && !G.dice.active && !G.story.busy && !G.time.frozen;
+
+    // Nobody plays for coin she has not got.
+    S.data.inventory.coins = 1;
+    ok('refused: one grosze does not cover a stake', G.dice.canPlay('wojtek').reason === 'player_short', JSON.stringify(G.dice.canPlay('wojtek')));
+    S.data.inventory.coins = 40;
+    ok('and with forty grosze every table is open', ['zbyszek', 'wojtek', 'halina'].every((o) => G.dice.canPlay(o).ok));
+    ok('the side quest has not started before anyone has explained the game', !G.quests.rec('side_dice'));
+
+    // Zbyszek: the explanation, then a match across the bar.
+    playWith(3);
+    const coinsA = S.count('coins');
+    const dlgA = await talkWith('zbyszek', pickText(/heard dice/, /^a round, then/));
+    ok('Zbyszek explains the game and she sits down: dice_zbyszek_met, dice_known', !!S.flag('dice_zbyszek_met') && !!S.flag('dice_known') && dlgA.includes('zbyszek_hub'), dlgA.join(','));
+    ok('the side quest started: Dice at the Drowned Bell', G.quests.isActive('side_dice') && stage('side_dice') === 'play', `stage=${stage('side_dice')}`);
+    ok('the house rules are in her notes', S.data.notes.includes('note_dice_rules'));
+    const rA = G.dice.last;
+    ok('match one: she beats Zbyszek across the bar', rA?.played && rA.verdict === 'player' && rA.opp === 'zbyszek' && rA.net === 2, JSON.stringify({ v: rA?.verdict, net: rA?.net, wins: rA?.wins }));
+    ok('the coins follow the match: +2', S.count('coins') === coinsA + rA.net && S.count('coins') === 42, `coins ${coinsA} -> ${S.count('coins')}`);
+    flagOK(['dice_beat_zbyszek'], 'beating Zbyszek is remembered');
+    ok('everything is handed back: input, camera, Vesna, clock', handedBack(), `ctx=${G.input.context} owner=${G.cameraOwner} control=${P().control} vis=${P().character.visible} active=${G.dice.active} busy=${G.story.busy} frozen=${G.time.frozen}`);
+    ok('the record is kept in the save', G.dice.record().matches.won === 1 && G.dice.record().by.zbyszek.won === 1 && G.dice.record().grosze.won === 2, JSON.stringify(G.dice.record().matches));
+
+    // Wojtek: a loss first, then a win.
+    playWith(2);
+    const coinsB = S.count('coins');
+    const dlgB = await talkWith('wojtek', pickText(/^deal me in/));
+    const rB = G.dice.last;
+    ok('Wojtek greets her and deals her in', dlgB.includes('dice_wojtek') && !!S.flag('dice_met_wojtek'), dlgB.join(','));
+    ok('match two: Wojtek beats her, 9 grosze down', rB?.verdict === 'opp' && rB.net === -9 && S.count('coins') === coinsB - 9, JSON.stringify({ v: rB?.verdict, net: rB?.net, coins: S.count('coins') }));
+    ok('a lost match sets no flag', !S.flag('dice_beat_wojtek') && G.dice.record().matches.lost === 1);
+    ok('his purse took her nine grosze', G.dice.purse('wojtek') === 70 + 9, `purse=${G.dice.purse('wojtek')}`);
+    playWith(3);
+    const coinsC = S.count('coins');
+    await talkWith('wojtek', pickText(/^deal me in/));
+    const rC = G.dice.last;
+    ok('match three: she beats Wojtek, +6', rC?.verdict === 'player' && rC.net === 6 && S.count('coins') === coinsC + 6, JSON.stringify({ v: rC?.verdict, net: rC?.net }));
+    flagOK(['dice_beat_wojtek'], 'beating Wojtek is remembered');
+    ok('still two to go: not all beaten yet', !S.flag('dice_all_beaten') && stage('side_dice') === 'play');
+
+    // Halina.
+    playWith(3);
+    const coinsD = S.count('coins');
+    await talkWith('halina', pickText(/^deal me in/));
+    const rD = G.dice.last;
+    ok('match four: she beats Halina, +4', rD?.verdict === 'player' && rD.net === 4 && S.count('coins') === coinsD + 4, JSON.stringify({ v: rD?.verdict, net: rD?.net }));
+    flagOK(['dice_beat_halina', 'dice_met_halina', 'dice_all_beaten'], 'Halina beaten, all three beaten');
+    ok('the quest moves to telling Zbyszek', stage('side_dice') === 'tell', `stage=${stage('side_dice')}`);
+    ok('everything handed back after four matches', handedBack());
+
+    // Zbyszek gives her the bone dice.
+    await talkWith('zbyszek', pickText(/^that's all/));
+    flagOK(['dice_bone_set'], 'Zbyszek gave her the bone dice');
+    ok('the bone dice are in the pack and the note is read', S.count('bone_dice') === 1 && S.data.notes.includes('item_bone_dice'), `bone_dice=${S.count('bone_dice')}`);
+    ok('the side quest is done', G.quests.isDone('side_dice'), `stage=${stage('side_dice')}`);
+    ok('the main story did not move', stage('main_straw') === 'night', `main_straw=${stage('main_straw')}`);
+
+    // The tavern at the end of the rite day: nobody plays.
+    const dayNow = G.time.day;
+    G.time.day = 2; G.time.setHours(19.2);
+    S.data.inventory.coins = 40;
+    const dlgLate = await talkWith('wojtek', pickText(/^deal me in/));
+    ok('on the evening of the rite Wojtek will not play', dlgLate.includes('dice_wojtek') && G.dice.last === rD, `last=${G.dice.last?.opp}`);
+    G.time.day = dayNow; G.time.setHours(17.9);
+    C.dice.test = null;
+    S.data.inventory.coins = Math.max(keepCoins, S.count('coins'));
   }
 
   // ---- Q3: night one ------------------------------------------------------------------------------------

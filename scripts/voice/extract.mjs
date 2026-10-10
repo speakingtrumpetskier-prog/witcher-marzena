@@ -435,6 +435,17 @@ function fromBarks() {
   }
 }
 
+// The tavern dice game (src/minigames/dice/opponents.js): what the three players say while they play. Each line is
+// said by its own speaker (zbyszek, wojtek, halina); G.voice.bark looks for a clip under the NPC's id first.
+async function fromDice() {
+  const p = path.join(ROOT, 'src/minigames/dice/opponents.js');
+  if (!fs.existsSync(p)) return;
+  try {
+    const mod = await import(pathToFileURL(p).href);
+    for (const [speaker, text] of mod.voiceLines()) push({ speaker, text, kind: 'bark', source: 'src/minigames/dice/opponents.js', node: `dice ${speaker}`, hint: { pool: 'dice' } });
+  } catch (e) { warnings.push(`dice lines: cannot import (${e.message})`); }
+}
+
 function fromStoryDoc() {
   const p = path.join(ROOT, 'docs/STORY.md');
   if (!fs.existsSync(p)) return;
@@ -465,6 +476,11 @@ const RULES = [
   { d: /^miller_wife/, s: 'miller_wife', dir: 'short and worried, then easier', x: 0.34, p: 1.0 },
   { d: /^miller/, s: 'miller', dir: 'plain, anxious, honest', x: 0.33, p: 0.97 },
   { d: /^zbyszek_/, s: 'zbyszek', dir: 'brisk, put upon, dry', x: 0.35, p: 1.0 },
+  { d: /^dice_wojtek/, s: 'wojtek', dir: 'loud, certain, a woodcutter at his table', x: 0.38, p: 1.04 },
+  { d: /^dice_halina/, s: 'halina', dir: 'dry, level, in no hurry', x: 0.3, p: 0.96 },
+  { k: 'bark', s: 'wojtek', dir: 'to the dice, loud and quick, then flat when it goes wrong', x: 0.4, p: 1.04 },
+  { k: 'bark', s: 'halina', dir: 'low and level, a half beat slow, nothing given away', x: 0.28, p: 0.96 },
+  { k: 'bark', s: 'zbyszek', dir: 'brisk, put upon, over the bar', x: 0.34, p: 1.0 },
   { c: /^c[3-9]/, s: 'ola', dir: 'child, matter of fact', x: 0.38, p: 1.04 },
   { s: 'wiesia', dir: 'small, close, slow; a question, not a threat', x: 0.28, p: 0.9, l: -2 },
   { k: 'bark', dir: 'muttered in passing, flat', x: 0.28, p: 1.0, l: -3 },
@@ -498,6 +514,7 @@ function direct(e) {
 await fromDialogues();
 fromCutscenes();
 fromBarks();
+await fromDice();
 fromStoryDoc();
 
 const byHash = new Map();

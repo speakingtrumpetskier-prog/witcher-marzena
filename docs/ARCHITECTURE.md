@@ -35,7 +35,7 @@ atmosphere 90, late 100. The engine calls `G.postfx.render(dt)` (or a plain rend
 | Field | Owner (file) | What |
 |---|---|---|
 | `G.renderer`, `G.scene`, `G.camera` | core/Engine.js | single renderer, scene, perspective camera |
-| `G.cameraOwner` | whoever drives the camera | `'rig'` gameplay, `'cutscene'`, `'debug'`, `'shot'`, `'title'`. Only the owner writes the camera |
+| `G.cameraOwner` | whoever drives the camera | `'rig'` gameplay, `'cutscene'`, `'debug'`, `'shot'`, `'title'`, `'dice'` (the dice table). Only the owner writes the camera |
 | `G.uniforms` | render/Uniforms.js | shared shader uniforms (see below) |
 | `G.events` | core/Events.js | `on(name, fn)`, `once`, `off`, `emit(name, payload)`, `wait(name, pred) -> Promise` |
 | `G.state` | core/State.js | flags, inventory, notes, discoveries, save/load |
@@ -43,6 +43,7 @@ atmosphere 90, late 100. The engine calls `G.postfx.render(dt)` (or a plain rend
 | `G.input` | core/Input.js | `down/pressed/released(action)`, `move {x,y}`, `look {dx,dy}`, `lookPad {x,y}`, `device` ('kbm' or 'pad'), `context`, `requestLock()`, rebinding (see "Input, controls and hints") |
 | `G.settings` | ui/settings.js | persisted player settings: camera, look, controller, hints, subtitles, volumes (see "Input, controls and hints") |
 | `G.hints` | ui/hints.js | first-use hint cards, `show(id)`, `prompt(items)`, `reset()` |
+| `G.dice` | minigames/dice/index.js | the tavern dice game, created by the story controller on first use: `play(id)`, `canPlay(id)`, `purse(id)`, `record()`, `active` (see "Kosci") |
 | `G.world` | world/World.js | `heightAt`, `terrainAt`, `normalAt`, `isLake`, `surfaceAt`, `lakeSDF`, `stations`, `thawed` |
 | `G.physics` | core/Collision.js | `addCircle`, `addBox`, `remove`, `resolve(pos, r)`, `raycast`, `query` |
 | `G.atmosphere` | world/Atmosphere.js | lights, time-of-day look, `shadowFocus` |
@@ -387,7 +388,7 @@ from `G.world` heights with LOC labels and markers.
   `Mouse1` (middle) `Mouse2` (right), pad `PadA` `PadB` `PadX` `PadY` `PadLB` `PadRB` `PadLT` `PadRT` `PadBack` `PadStart`
   `PadL3` `PadR3` `PadUp` `PadDown` `PadLeft` `PadRight` (Gamepad API standard mapping). Pad buttons live in the same sets as keys.
   Actions: forward back left right sprint walk dodge attack heavy senses draw sign sign1 sign2 sign3 lock shoulder parry
-  interact horse potion journal map pause skip advance (defaults and the table the Controls screen is built from: bindings.js).
+  interact horse potion journal map pause skip advance, and dice_pick dice_roll dice_raise (the dice game, context `'dice'`; defaults and the table the Controls screen is built from: bindings.js).
 - `G.input.move` is digital from the keys and analog from the left stick (radial dead zone, curve), so its length picks walk or
   run. `G.input.lookPad` is the right stick in [-1, 1] (the camera integrates it with dt). The sprint button latches while the stick is held.
 - `G.input.device` is `'kbm'` or `'pad'`, switched by the last meaningful input; `input:device` announces it. `padConnected`, `padName`, `padStyle` ('xbox' or 'playstation').
@@ -413,12 +414,66 @@ dismount, draw, attack, dodge, parry, lock-on and switching, each sign, potion, 
 never during cutscenes, dialogue, menus, the title; shown once per profile (`marzena.hints.seen`); `G.settings.hints = false` silences them.
 `G.hints.show(id, { force })`, `prompt(items, seconds)` (story cards), `reset()`. Add one by appending to `HINTS` in hintDefs.js. In shot mode they are off unless the URL has `&hints`.
 
+## Kosci, the tavern dice game (`src/minigames/dice/`)
+Dice poker for two, played in the Drowned Bell against Zbyszek (across the bar) and the two regulars Wojtek and Halina
+(middle table). Rules, AI and match logic are pure (no DOM, no three.js) and tested by `scripts/dicetest.mjs`; the table, the
+screen and the story hooks sit on top.
+
+```js
+G.dice.play('zbyszek' | 'wojtek' | 'halina', { seed?, speed?, drive? })  // -> Promise<result>; loads on demand (story/controller/dice.js)
+// result: { played: false, reason: 'player_short' | 'opp_short' | 'declined' | 'busy' | 'no_table' }
+//       | { played: true, verdict: 'player' | 'opp' | 'draw' | 'left', ante, net, wins, rounds, best, opp, reason }
+G.dice.canPlay(id) -> { ok, reason }     G.dice.purse(id)     G.dice.record()     G.dice.active     G.dice.last     G.dice.session
+```
+- **Rules** (`rules.js`): five dice each, best of three rounds (drawn rounds replayed, five at most). Hands low to high: nothing,
+  pair, two pairs, three, small straight (1 to 5), big straight (2 to 6), full house, four, five. Ties go to the values that
+  make the hand (higher pair first, the triple before the pair), then the remaining dice from the top; straights have nothing
+  to compare. `evaluate(dice)`, `compare(a, b)`, `scoreOf`, `distribution`, `evaluateRerolls`.
+- **Round** (`match.js`, a state machine: `beginRound`, `rollFirst`, `playerBet`, `aiBet`, `playerRespond`, `setPlayerReroll`,
+  `aiReroll`, `rollSecond`, `settle`, `leave`): both stake the ante; both roll five; the player may raise once by the ante
+  (the opponent calls or folds) or hold, in which case the opponent may raise and the player calls or folds; each side picks
+  any dice and rolls them again once; the better hand takes the pot. A side needs twice the ante (stake and one raise) to
+  start a round; the match ends when one cannot.
+- **Opponents** (`opponents.js`, `ai.js`): `zbyszek` (cautious, stakes 1 to 3, purse 24), `wojtek` (bold, 3 to 10, purse 70),
+  `halina` (bluffer, 2 to 6, purse 45); purses refill each day and are kept in `G.state.data.dice.purse`. The AI scores each of
+  the 32 ways to roll again by the average chance of beating a sensible rival (exact, by enumeration) and a personality tilts
+  the choice (spread of outcomes), the raise and call thresholds, a bluff rate and a slip rate. Barks per situation (roll, good,
+  bad, raise, call, fold, win, lose, broke), three to four each, are unvoiced and read by `scripts/voice/extract.mjs`.
+- **Table** (`stage.js`, `dieModel.js`, `roll.js`, `sites.js`): dice are rounded cubes with carved pips (one shared geometry, a
+  painted colour and normal atlas per style: house, bone, walnut, horn, redbone). A roll is a scripted path ending on the
+  chosen face (shake in a hand, a flight, two bounces, tumbles over the leading edge). Coins, a woollen cloth, contact shadows.
+  The frame is placed on the tavern's own table or bar (`barTop` and `tableTop2` anchors in `architecture/buildings/tavern.js`).
+  While it is up it owns the camera: `G.cameraOwner = 'dice'` (restored after, with the fov); Vesna is hidden and put at
+  the table, the opponent's NPC is paused, the HUD is hidden and the screen is a modal (`G.input.context = 'ui'`, clock held).
+  `G.story.busy` is true while `G.dice.active`.
+- **Screen and controls** (`ui.js`, `dice.css`): stake, round score, hand names, the question. Keyboard: 1 to 5 pick a die, arrows or A and D
+  move the cursor, E picks the die under it, Space or Enter rolls, R raises, Esc leaves (asks first). Mouse: click a die. Pad:
+  D-pad or left stick moves, A picks, X or Start rolls, Y raises, B leaves. The actions `dice_pick`, `dice_roll`, `dice_raise`
+  (bindings.js, context `'dice'`, group Dice on the Controls screen) are rebindable; the screen reads key events, and a pad button
+  is turned into the key of the same action by `scr.padKey(button)` (a hook of `ui.openScreen`'s return value, used by `UI._padNavKey`).
+  First-use hints `dice_pick` and `dice_raise` (hintDefs.js) are shown with `G.hints.show(id, { force: true })`.
+- **Story** (`story/controller/dice.js`, dialogues `dice_wojtek`, `dice_halina`, `zbyszek_hub`): each talk ends at the node `dice_go` and
+  the controller starts the match. Flags `dice_known`, `dice_zbyszek_met`, `dice_met_<id>`, `dice_beat_<id>` (a whole match won),
+  `dice_all_beaten`, `dice_bone_set`; side quest `side_dice`; notes `note_dice_rules`, `item_bone_dice`. Details in STORY.md.
+- **Save**: `G.state.data.dice = { matches: { won, lost, drawn, left }, rounds, grosze: { won, lost }, best, by: { <id>: {...} }, purse }`.
+- **Events**: `dice:start`, `dice:phase { phase }` (stake, roll1, bet, respond, reroll, roll2, showdown, next, end), `dice:round`, `dice:match`;
+  `dice:pick`, `dice:roll`, `dice:raise` for the hints. `G.state.give/take(item, n, quiet)` skips the pickup toast.
+- **Sounds** (`audio/sfx/recipes/dice.js`): `dice_land`, `dice_rattle`, `dice_tumble`, `dice_tick`, `coin_pile`, `coin_slide`.
+- **NPCs and stations**: `wojtek` and `halina` are in `gameplay/npcs/cast.js` (presets `villager_m_8`, `villager_f_7`, kept out of the
+  ambient crowd) with stations `wojtek_seat`, `halina_seat` on the far bench of table 2; `life.js` also registers the stations the
+  cast table already named for the keeper (`tavern_bar`, `zbyszek_bed`, `tavern_porch`), which did not exist before (he stood at a
+  random spot in the tavern, under the floor).
+- **Tests and tools**: `node scripts/dicetest.mjs` (rules, tie breaks, AI, matches, rolls: 159 checks, no browser);
+  `MZ_CHROME=1 node scripts/dicedrive.mjs [match|pad|leave]` (the real screen from keys, the mouse and a mocked pad, with pictures in
+  `shots/dice/`); `?scene=dice` (`src/debug/scenes/dice.js`: `__dice.start`, `until(phase)`, `press(code)`); the logic playthrough plays four
+  seeded matches and the quest (`side: dice`); `scripts/inputtest.mjs` still passes with the new actions.
+
 ## Event names
 `flag`, `inventory`, `note`, `discover`, `saved`, `loaded`, `reset`, `time:hour`, `time:day`,
 `time:jump`, `weather:change`, `resize`, `game:ready`, `player:hit`, `player:death`,
 `enemy:death`, `combat:start`, `combat:end`, `quest:update`, `dialogue:start`, `dialogue:end`,
 `cutscene:start`, `cutscene:end`, `senses:on`, `senses:off`, `location:enter`, `location:leave`,
-`input:device`, `input:pad`, `input:bindings`, `settings`, `camera:retarget`, `camera:shoulder`.
+`input:device`, `input:pad`, `input:bindings`, `settings`, `camera:retarget`, `camera:shoulder`, `dice:start`, `dice:phase`, `dice:round`, `dice:match`.
 
 ## Test hooks and the screenshot harness
 `window.__G` is the context. `window.__MZ_READY` turns true when loaded. `window.__MZ_STATS`

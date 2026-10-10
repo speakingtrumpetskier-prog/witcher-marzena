@@ -54,7 +54,11 @@ export class DiceSession {
     this.G = G;
     this.opts = opts;
     this.opp = typeof opts.opp === 'string' ? OPPONENTS[opts.opp] : opts.opp;
-    this.rand = rng(opts.seed ?? ((Math.random() * 2 ** 31) | 0));
+    const seed = opts.seed ?? ((Math.random() * 2 ** 31) | 0);
+    // The dice and the opponent's decisions draw from one stream, the remarks from another, so how long a pause was
+    // never changes what comes up (the same seed plays the same match).
+    this.rand = rng(seed);
+    this.barkRand = rng(seed ^ 0x5eed);
     this.speed = opts.speed || 1;
     this.timers = [];
     this.lastLine = null;
@@ -95,8 +99,8 @@ export class DiceSession {
 
   // The opponent says a line for a situation (not over another one).
   bark(situation, { force = false, chance = 1 } = {}) {
-    if (!force && (this.barkBusy > 0 || this.rand() > chance)) return false;
-    const text = pickLine(this.opp, situation, this.rand, this.lastLine);
+    if (!force && (this.barkBusy > 0 || this.barkRand() > chance)) return false;
+    const text = pickLine(this.opp, situation, this.barkRand, this.lastLine);
     if (!text) return false;
     this.lastLine = text;
     this.ui.say(this.opp.name, text);
@@ -105,7 +109,7 @@ export class DiceSession {
     try { this.G.voice?.bark?.(npc, text); } catch { /* optional */ }
     const c = npc?._c;
     if (c) {
-      try { c.talk(true); c.playUpper?.(['talk_1', 'talk_2', 'talk_3'][Math.floor(this.rand() * 3)], { loop: false, fade: 0.3 }); } catch { /* optional */ }
+      try { c.talk(true); c.playUpper?.(['talk_1', 'talk_2', 'talk_3'][Math.floor(this.barkRand() * 3)], { loop: false, fade: 0.3 }); } catch { /* optional */ }
       setTimeout(() => { try { c.talk(false); } catch { /* optional */ } }, Math.min(3200, 900 + text.length * 55));
     }
     return true;
@@ -125,7 +129,7 @@ export class DiceSession {
     const d = this.drive;
     if (d && d[kind]) {
       await this.sleep(0.2);
-      const v = await d[kind](info);
+      const v = kind === 'reroll' ? await d.reroll(info.dice, info) : await d[kind](info);
       return v === undefined ? null : v;
     }
     const u = this.ui;

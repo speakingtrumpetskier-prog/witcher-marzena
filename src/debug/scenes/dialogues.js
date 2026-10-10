@@ -121,6 +121,16 @@ export async function init(G) {
         ['herders: miller_wife asks for the bell', 'miller_wife', { picker: text(/company|What bell|look for it/), flags: { wolves_mill_done: true, planetnicy_seen: true } }, (r, S) => S.flag('handbell_asked') && S.flag('herders_over_yard') && !S.flag('handbell_paid')],
         ['herders: miller_wife declines, nothing set', 'miller_wife', { picker: inOrder(/Is there anything/, /Not today/), flags: { wolves_mill_done: true } }, (r, S) => !S.flag('handbell_asked') && r.text.some((l) => /out there two years/.test(l))],
         ['herders: miller_wife pays once', 'miller_wife', { picker: 'first', flags: { wolves_mill_done: true, handbell_asked: true, handbell_rung: true } }, (r, S) => S.flag('handbell_paid') && S.count('coins') === 170],
+        // Kosci, the dice game in the Drowned Bell (the match itself starts from the controller on end === 'dice_go')
+        ['dice: zbyszek explains the game and sits down to it', 'zbyszek_hub', { picker: inOrder(/heard dice/, /^A round, then/), flags: { met_zbyszek: true } }, (r, S) => r.end === 'dice_go' && S.flag('dice_known') && S.flag('dice_zbyszek_met') && r.text.some((l) => /Five dice, best of three/.test(l))],
+        ['dice: zbyszek asks again, shorter', 'zbyszek_hub', { picker: inOrder(/Play a round of dice/), flags: { met_zbyszek: true, dice_zbyszek_met: true } }, (r) => r.end === 'dice_go' && r.text.length < 12],
+        ['dice: zbyszek will not play on the evening of the rite', 'zbyszek_hub', { picker: inOrder(/Play a round of dice/), flags: { met_zbyszek: true, dice_zbyszek_met: true }, day: 2, hour: 19.2 }, (r) => r.end !== 'dice_go' && r.text.some((l) => /shutting at seven/.test(l))],
+        ['dice: zbyszek gives her the bone dice', 'zbyszek_hub', { picker: exitNow, flags: { met_zbyszek: true, dice_all_beaten: true } }, (r, S) => S.flag('dice_bone_set') && S.count('bone_dice') === 1 && r.text.some((l) => /father's/.test(l))],
+        ['dice: wojtek deals her in', 'dice_wojtek', { picker: text(/^Deal me in/), flags: {} }, (r, S) => r.end === 'dice_go' && S.flag('dice_met_wojtek') && S.flag('dice_known')],
+        ['dice: wojtek explains the rules first', 'dice_wojtek', { picker: inOrder(/^How does it go/, /^Deal me in/), flags: {} }, (r) => r.end === 'dice_go' && r.text.some((l) => /pick the ones you don't like/.test(l))],
+        ['dice: wojtek after a loss to her', 'dice_wojtek', { picker: text(/^Deal me in/), flags: { dice_met_wojtek: true, dice_beat_wojtek: true } }, (r) => r.end === 'dice_go' && r.text.some((l) => /angry about last time/.test(l))],
+        ['dice: halina deals her in', 'dice_halina', { picker: text(/^Deal me in/), flags: {} }, (r, S) => r.end === 'dice_go' && S.flag('dice_met_halina') && S.flag('dice_known')],
+        ['dice: halina will not play on the evening of the rite', 'dice_halina', { picker: 'first', flags: { dice_met_halina: true }, day: 2, hour: 19.2 }, (r) => r.end !== 'dice_go' && r.text.some((l) => /walking down with the rest/.test(l))],
       ];
       const results = [];
       window.__MZ_ERRORS = window.__MZ_ERRORS || [];
