@@ -6,6 +6,7 @@ const SPEAKERS = {
   vesna: 'Vesna', ola: 'Ola', hanka: 'Hanka', bogdan: 'Bogdan', dobra: 'Dobra', zbyszek: 'Zbyszek',
   jarek: 'Jarek', wiesia: 'Wiesia', wiesia_ghost: 'Wiesia', marzanna: 'Wiesia', miller: 'Gniewko',
   miller_wife: 'Bożena', kasza: 'Kasza', narrator: '', villagers: 'Villagers',
+  tinker: 'Tinker', old_woman: 'Old woman', goat_owner: 'Zofia', sled_boy: 'Boy', fisher_old: 'Wacław', fisher_young: 'Franek', poacher: 'Man',
 };
 
 // Turns a speaker id ('hanka', 'villager_m_3', 'child_b') or an already-readable name into a label.
@@ -38,6 +39,7 @@ export const QUEST_FALLBACK = {
   side_handbell: { title: 'The Hand-Bell', kind: 'side', order: 15 },
   side_hanged: { title: 'Three Loaves', kind: 'side', order: 16 },
   side_dice: { title: 'Dice at the Drowned Bell', kind: 'side', order: 17 },
+  side_tinker: { title: "The Tinker's Sledge", kind: 'side', order: 18 },
 };
 
 // kind: letter | diary | ledger | scrawl | carving | drawing | inscription | object

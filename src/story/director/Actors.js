@@ -28,6 +28,8 @@ const TALK_CLIPS = ['talk_1', 'talk_2', 'talk_3'];
 const NAMES = {
   vesna: 'Vesna', ola: 'Ola', hanka: 'Hanka', bogdan: 'Bogdan', dobra: 'Dobra', zbyszek: 'Zbyszek',
   jarek: 'Jarek', wiesia: 'Wiesia', wiesia_ghost: 'Wiesia', miller: 'Gniewko', miller_wife: 'Bożena', narrator: '',
+  // the roadside encounters (src/story/controller/roadside)
+  tinker: 'Tinker', old_woman: 'Old woman', goat_owner: 'Zofia', sled_boy: 'Boy', fisher_old: 'Wacław', fisher_young: 'Franek', poacher: 'Man',
 };
 
 export function displayName(G, id) {

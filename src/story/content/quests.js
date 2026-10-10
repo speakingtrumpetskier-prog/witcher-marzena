@@ -332,6 +332,20 @@ const QUESTS = {
     ],
   },
 
+  // Optional roadside encounters (src/story/controller/roadside/*.js, docs/STORY.md section 9). Nothing in the main
+  // story reads any of these flags. The small ones are started and settled quietly (a journal toast, no fanfare).
+  side_tinker: {
+    title: "The Tinker's Sledge", kind: 'side',
+    stages: [
+      {
+        id: 'lift', objective: 'Hold up the tinker\'s sledge', marker: (S, G) => G.storyCtl?.roadside?.tinker?.site,
+        journal: 'A tinker on the pass road, his sledge down on one runner. He needs the corner held up while he lashes the split.',
+        log: 'Held the sledge up while he lashed the runner. He sells Thaw draughts for eight grosze, four under the tavern, and says he will be at the stalls in the square.',
+        done: (S) => !!S.flag('tinker_helped'), sets: ['tinker_met', 'tinker_helped'],
+      },
+    ],
+  },
+
   side_snow: {
     title: 'Snow Fight', kind: 'side',
     stages: [
