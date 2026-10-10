@@ -116,6 +116,12 @@ uniforms from `G.uniforms`).
 - `G.vegetation.clearArea(x, z, r)` hides instances at runtime.
 - Registers tree trunk colliders with `G.physics.addCircle`.
 - Exposes `G.vegetation.treeAt(x, z, r)` for placement checks by other builders.
+- Extra species beyond spruce, pine, birch and snags (see the header of `src/world/trees/placement.js` and `rare.js`):
+  common larch (golden, tall and wind-bent), rowan (red berries), veteran broken-top spruce and krummholz
+  (dwarf pine on the treeline); rare odd trees (corkscrew pine, hollow oak with a red ribbon, weeping birch,
+  bottle tree, knot tree, ice tree, gate tree). `G.vegetation.rare` lists them: `{ heroes: [{ id, species, x, z, y,
+  yaw, note }], counts, removed }`. Odd trees are ordinary vegetation kinds with their own glades, so other builders
+  can treat them like any tree (`treeAt`, `clearArea`). Kinds with several trunks publish `kind.colliders`.
 
 ### Architecture kit (`src/world/architecture/`, architecture builder)
 Pure builders that return groups at the origin plus metadata; they do not add to the scene:
