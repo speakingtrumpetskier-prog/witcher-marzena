@@ -563,7 +563,7 @@ void main() {
     float bead = pow(max(0.0, sin(s * (part == 6 ? 16.0 : 38.0) - tm * 2.4 + rnd * 20.0 + seed * 9.0)), 12.0);
     float tip = smoothstep(0.9, 1.0, s);
     float fade = (1.0 - 0.72 * s) * (part == 6 ? 0.7 : 1.0);
-    em = mix(c1, spark, 0.25 * uS.w) * ((0.3 + 1.6 * bead + 0.9 * tip) * core + halo * (0.12 + 0.5 * bead)) * wf * fade * bright * uF3.z;
+    em = mix(c1, spark, 0.5 * uS.w) * ((0.3 + 1.6 * bead + 0.9 * tip) * core + halo * (0.12 + 0.5 * bead)) * wf * fade * bright * uF3.z;
     a = (0.55 * core + 0.1 * halo) * wf * fade;
     T = mix(skyB, pearl * 1.05, 0.55) * mix(vec3(1.0), c0, 0.3);
   } else if (part == 7) {
