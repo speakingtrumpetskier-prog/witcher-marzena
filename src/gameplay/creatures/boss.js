@@ -124,9 +124,11 @@ export class Boss extends Creature {
     this.line = new LineTelegraph();
     this.claw = new Band(TUNE.claw.half, [0.45, 0.95, 1.0]);
     this.cone = new Band(TUNE.scream.half, [0.55, 1.0, 1.0]);
-    this.light = new THREE.PointLight(0x7fe8ff, 0, 22, 1.5);
-    this.light.position.set(0, 2.4, 0.6);
-    this.body.add(this.light);
+    // The shared glow light lives in the scene (G.creatures.bossLight); it follows this point on the body.
+    this.light = G.creatures?.bossLight || new THREE.PointLight(0x7fe8ff, 0, 22, 1.5);
+    if (!this.light.parent) G.scene.add(this.light);
+    this.lightAt = new THREE.Vector3(0, 2.4, 0.6);
+    this.lightHidden = false;
     // Eyes: bright turquoise glints that catch the bloom.
     this.eyeGlow = [];
     for (const k of ['eyeL', 'eyeR']) {
@@ -720,7 +722,8 @@ export class Boss extends Creature {
     this.diving = hide;
     this.char.setVisible(!hide);
     this.ribbons.mesh.visible = !hide;
-    this.light.visible = !hide;
+    this.lightHidden = hide;
+    if (hide) this.light.intensity = 0;
     if (hide) { G.scene.remove(this.root); this.engaged = true; } else if (!this.root.parent) G.scene.add(this.root);
   }
 
@@ -938,8 +941,10 @@ export class Boss extends Creature {
     rim.set(this.baseRim.x + k * 1.2 + this.scream * 0.5, this.baseRim.y + k * 1.0 + this.scream * 0.4, this.baseRim.z + k * 1.0 + this.scream * 0.4, this.baseRim.w);
     this.armor.mat.emissiveIntensity = 1.1 + k * 2.5 + (this.armored ? 0 : 0);
     this.armor.clawMat.emissiveIntensity = 1.6 + this.clawGlow * 3.5 + k;
-    this.light.intensity = (4 + this.clawGlow * 6 + this.scream * 8 + k * 6 + this.glowI * 3) * (this.state === 'yield' ? 0.4 : 1);
+    this.light.intensity = this.lightHidden ? 0 : (4 + this.clawGlow * 6 + this.scream * 8 + k * 6 + this.glowI * 3) * (this.state === 'yield' ? 0.4 : 1);
     this.light.color.setRGB(0.5 + k * 0.4, 0.92, 1.0);
+    this.body.updateWorldMatrix(true, false);
+    this.body.localToWorld(this.light.position.copy(this.lightAt));
     for (const s of this.eyeGlow) s.scale.setScalar(0.1 + 0.04 * Math.sin(this.t * 3) + this.scream * 0.15 + this.clawGlow * 0.06);
     this.char.root.position.set(this.position.x, this.position.y + this.body.position.y, this.position.z);
     this.char.root.rotation.y = this.heading;
@@ -981,6 +986,7 @@ export class Boss extends Creature {
     W?.setUnderGlow?.(0, 0, 1, 0);
     W?.setCracks?.(0, 0, 1, 0);
     G.combat?.setBoss?.(null);
+    this.light.intensity = 0; // shared, stays in the scene
     this.spikes.dispose(); this.cage.dispose(); this.line.dispose(); this.claw.dispose(); this.cone.dispose(); this.ribbons.dispose();
     this.armor.dispose();
     for (const a of this.armorOld) a.dispose();

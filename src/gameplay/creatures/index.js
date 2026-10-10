@@ -8,6 +8,7 @@
 //   G.creatures.wolves / effigies / bears / boss      live lists
 //   G.creatures.all()    every creature      G.creatures.clear()    dispose them all      G.creatures.remove(c)
 // Every creature registers itself with G.combat. Per frame: ORDER.ai updates AI and animation.
+import * as THREE from 'three';
 import { G, ORDER } from '../../core/G.js';
 import { Wolf, WolfPack } from './wolf.js';
 import { Effigy } from './effigy.js';
@@ -139,6 +140,12 @@ class Creatures {
 export async function init(G_) {
   const C = new Creatures();
   G_.creatures = C;
+  // The boss's glow, made once at boot and never removed or hidden (intensity 0 when unused): adding
+  // or hiding a light changes the light count, and every lit shader recompiles, a long freeze at the
+  // emergence on slow shader compilers.
+  C.bossLight = new THREE.PointLight(0x7fe8ff, 0, 22, 1.5);
+  C.bossLight.name = 'boss-glow';
+  G_.scene.add(C.bossLight);
   G_.addSystem('creatures', (dt) => C.update(dt), ORDER.ai);
 }
 
