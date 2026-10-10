@@ -76,7 +76,7 @@ function drawLarch(ctx, ox, oy, r, droop) {
 function drawCurtain(ctx, ox, oy, r) {
   const w = 256, h = 512;
   const bx = ox + w / 2, by = oy + h - 4;
-  const tones = ['#a8987c', '#8f8068', '#9d8f78', '#b8a98c', '#7d705c'];
+  const tones = ['#c9bd9c', '#b3a584', '#d3cab0', '#ddd6c2', '#9d9078'];
   const nS = 20;
   for (let s = 0; s < nS; s++) {
     const fx = (s / (nS - 1) - 0.5) * 2;
@@ -103,7 +103,7 @@ function drawCurtain(ctx, ox, oy, r) {
         }
       }
       // rime: tiny bright beads along the strand
-      if (r() < 0.2) { ctx.fillStyle = 'rgba(245,248,250,0.9)'; ctx.fillRect(nx - 1.2, ny - 1.2, 2.6, 2.6); }
+      if (r() < 0.36) { ctx.fillStyle = 'rgba(247,249,251,0.95)'; ctx.fillRect(nx - 1.4, ny - 1.4, 3.0, 3.0); }
       px = nx; py = ny;
     }
   }

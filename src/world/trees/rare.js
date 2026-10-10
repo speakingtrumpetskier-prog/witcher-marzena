@@ -154,34 +154,34 @@ export function placeRare(G, kinds, placed) {
     const cx = -262, cz = 18;
     const mix = ['cork_a', 'cork_b', 'cork_a', 'cork_c', 'cork_b', 'cork_a', 'cork_b', 'cork_c', 'cork_a'];
     let placedN = 0;
-    for (let i = 0; i < 24 && placedN < mix.length; i++) {
+    for (let i = 0; i < 48 && placedN < mix.length; i++) {
       const a = i * 2.399963 + 0.7;
-      const rr = 1.5 + 12.5 * Math.sqrt((i + 0.5) / 24);
+      const rr = 1.5 + 14 * Math.sqrt((i + 0.5) / 48);
       const x = cx + Math.cos(a) * rr * 1.15, z = cz + Math.sin(a) * rr * 0.9;
-      if (near(x, z, 4.6)) continue;
+      if (near(x, z, 6.4)) continue;
       if (!usable(x, z, { loc: 6, road: 6, lake: 6, slope: 0.3, rock: 2 })) continue;
-      const rec = add(mix[placedN], x, z, { hero: placedN === 0, s: placedN === 0 ? 1.25 : lerp(0.8, 1.2, rg()), note: 'corkscrew grove on the south edge of the marsh' });
+      const rec = add(mix[placedN], x, z, { hero: placedN === 0, s: placedN === 0 ? 1.7 : lerp(1.15, 1.6, rg()), note: 'corkscrew grove on the south edge of the marsh' });
       if (rec) placedN++;
     }
     // the grove stands in a glade, open toward the marsh (north) where it is seen from
-    glade(cx, cz, 13, 22, { dx: 0, dz: -1, len: 34, half: 17 });
+    glade(cx, cz, 15, 25, { dx: 0, dz: -1, len: 38, half: 19 });
   }
   // hollow oak on the rise south of the crossroads, the doorway turned to face the junction
-  hero('oak_a', -230, 270, { yaw: yawToward(-0.94, -0.35), s: 1.12, clear: 13, thin: 26, lane: { dx: -0.94, dz: -0.35, len: 42, half: 12 }, note: 'hollow oak, doorway toward the pass road, red ribbon at the mouth' });
+  hero('oak_a', -230, 270, { yaw: yawToward(-0.94, -0.35), s: 1.3, clear: 15, thin: 30, lane: { dx: -0.94, dz: -0.35, len: 42, half: 12 }, note: 'hollow oak, doorway toward the pass road, red ribbon at the mouth' });
   // weeping birch by the hot spring, its doorway opening toward the pools
-  hero('weep_a', -56, -322, { yaw: yawToward(-20, -16), s: 1.1, clear: 12, thin: 22, lane: { dx: -0.78, dz: -0.62, len: 26, half: 8 }, note: 'weeping birch curtain, 25 m from the hot spring pools' });
+  hero('weep_a', -56, -322, { yaw: yawToward(-20, -16), s: 1.5, clear: 14, thin: 28, lane: { dx: -0.78, dz: -0.62, len: 26, half: 8 }, note: 'weeping birch curtain, 25 m from the hot spring pools' });
   // ice tree on the lake shore
   hero('ice_a', 176, 31, { s: 1.45, clear: 8, thin: 14, rules: { lake: 3 }, note: 'glazed ice tree on the south-east shore' });
   // knot tree on the way to the graveyard
-  hero('knot_a', 136, 128, { s: 1.1, clear: 10, thin: 18, note: 'knot tree east of the village' });
+  hero('knot_a', 136, 128, { s: 1.55, clear: 10, thin: 18, note: 'knot tree east of the village' });
   // bottle tree on the village approach
-  hero('bottle_a', -165, 212, { s: 1.1, clear: 9, thin: 16, note: 'bottle tree on the pass road down to the village' });
+  hero('bottle_a', -165, 212, { s: 1.7, clear: 10, thin: 18, note: 'bottle tree on the pass road down to the village' });
   // gate tree: the forest track runs through it
   {
     const road = ROADS.find((r) => r.id === 'forest');
     const p = along(road.pts, 148);
     const yaw = yawToward(p.tx, p.tz);
-    const rec = add('arch_a', p.x, p.z, { hero: true, yaw, s: 1.0, sink: 0.12, note: 'gate tree, the forest track passes between the trunks' });
+    const rec = add('arch_a', p.x, p.z, { hero: true, yaw, s: 1.25, sink: 0.12, note: 'gate tree, the forest track passes between the trunks' });
     if (rec) {
       // the road runs through the gate: keep a corridor of 11 m each side and 24 m before and behind it open
       const c = Math.cos(yaw), sn = Math.sin(yaw);
@@ -204,11 +204,11 @@ export function placeRare(G, kinds, placed) {
 
   // ---------------------------------------------------------------- scattered specimens
   const SPEC = [
-    { species: 'corkscrew', n: 12, same: 90, clear: 3.2, score: (c) => (0.8 * smoothstep(35, 110, c.h) * (1 - smoothstep(230, 340, c.h)) + 0.5 * smoothstep(0.93, 0.78, c.ny)) * (0.35 + 0.65 * smoothstep(0.55, 0.15, c.F)) },
+    { species: 'corkscrew', n: 12, same: 90, clear: 4, scale: [1.0, 1.5], score: (c) => (0.8 * smoothstep(35, 110, c.h) * (1 - smoothstep(230, 340, c.h)) + 0.5 * smoothstep(0.93, 0.78, c.ny)) * (0.35 + 0.65 * smoothstep(0.55, 0.15, c.F)) },
     { species: 'oak', n: 5, same: 170, clear: 7.5, scale: [0.72, 1.0], score: (c) => smoothstep(0.93, 0.98, c.ny) * smoothstep(110, 160, c.dv) * (1 - smoothstep(380, 520, c.dv)) * smoothstep(0.1, 0.35, c.F) * (1 - smoothstep(0.6, 0.8, c.F)) * (1 - smoothstep(60, 120, c.h)) },
-    { species: 'weeping', n: 5, same: 130, clear: 5.5, score: (c) => smoothstep(75, 10, c.sd) * smoothstep(0.1, 0.5, c.B) * smoothstep(0.9, 0.96, c.ny) * smoothstep(0.1, 0.3, c.F + 0.2) },
-    { species: 'bottle', n: 6, same: 120, clear: 4.5, score: (c) => smoothstep(0.92, 0.97, c.ny) * smoothstep(0.12, 0.3, c.F) * (1 - smoothstep(0.5, 0.7, c.F)) * (1 - smoothstep(110, 190, c.h)) },
-    { species: 'knot', n: 4, same: 200, clear: 4.5, score: (c) => smoothstep(8, 45, c.h) * (1 - smoothstep(170, 290, c.h)) * smoothstep(0.88, 0.95, c.ny) * smoothstep(0.1, 0.4, c.F) },
+    { species: 'weeping', n: 5, same: 130, clear: 6.5, scale: [1.2, 1.6], score: (c) => smoothstep(75, 10, c.sd) * smoothstep(0.1, 0.5, c.B) * smoothstep(0.9, 0.96, c.ny) * smoothstep(0.1, 0.3, c.F + 0.2) },
+    { species: 'bottle', n: 6, same: 120, clear: 5.5, scale: [1.3, 1.7], score: (c) => smoothstep(0.92, 0.97, c.ny) * smoothstep(0.12, 0.3, c.F) * (1 - smoothstep(0.5, 0.7, c.F)) * (1 - smoothstep(110, 190, c.h)) },
+    { species: 'knot', n: 4, same: 200, clear: 5.5, scale: [1.25, 1.6], score: (c) => smoothstep(8, 45, c.h) * (1 - smoothstep(170, 290, c.h)) * smoothstep(0.88, 0.95, c.ny) * smoothstep(0.1, 0.4, c.F) },
     { species: 'ice', n: 5, same: 120, clear: 4, scale: [1.05, 1.4], score: (c) => smoothstep(18, 6, c.sd) * smoothstep(0.9, 0.97, c.ny), rules: { lake: 3.2, slope: 0.18, road: 4 }, lakeOnly: true },
     { species: 'arch', n: 1, same: 500, clear: 6, score: (c) => smoothstep(0.93, 0.98, c.ny) * smoothstep(0.15, 0.4, c.F) * (1 - smoothstep(0.55, 0.75, c.F)), ids: ['arch_a'] },
   ];
