@@ -140,11 +140,12 @@ export const BESTIARY = [
     id: 'planetnicy', name: 'Płanetnicy', sub: 'The cloud herders', sketch: 'planetnik',
     unlock: (S) => !!S.flag('planetnicy_seen'),
     text: [
-      'Lights that drift over the valley like jellyfish in dark water. Pale, soft, some the size of a hand, some of a cart. They come out thick on clear nights and thin when it snows. On the worst days they go up into the cloud and are not seen.',
+      'Lights that drift over the valley like jellyfish in dark water. Pale, soft, some the size of a hand, some the size of a cart. They come out thick on clear nights and thin when it snows. On the worst days they go up into the cloud and are not seen.',
       'The old people say they herd the weather. A płanetnik walks the clouds over the pass and the weather follows it home. Nobody here is afraid of them. Nobody talks about them much either.',
-      'They do not come to the ground and they do not mind you. Dobra says there is one over the lake as big as a church, and that it has never once looked down.',
+      'Then there is the big one. The old people call her Matka Chmur, the Mother of Clouds. She is bigger than the church and bigger than the hill behind it, and she goes the long way round the valley, slow as a funeral, with her threads hanging down toward the lake. By day she is only a paleness in the haze, like the moon. At night you can see the windows in her. Dobra says she has never once looked down.',
+      'When she swells, the old ones stop where they stand, take their caps off and say nothing until she lets her breath out. It takes about half a minute. Nobody remembers who started it. On the first clear night of the year they leave a heel of bread on the ice for her. The ravens eat it and nobody minds.',
     ],
-    beware: 'Do not point at them, and do not whistle. That is how you lose a day, or a year.',
+    beware: 'Do not point at them, and do not whistle. That is how you lose a day, or a year. When Matka Chmur swells, cap off and mouth shut.',
   },
 ];
 

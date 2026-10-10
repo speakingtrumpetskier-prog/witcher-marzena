@@ -313,6 +313,7 @@ uniform vec3 uSkyGlow;
 uniform vec4 uF0;        // canal count, canal width, gonad intensity, spot amount
 uniform vec4 uF1;        // comb rows, ring canal, rim power, body opacity
 uniform vec4 uF2;        // interior glow (front, back), stained panes, gonad band
+uniform vec4 uF3;        // glow gain of: panes, arms and veils, filaments, halo
 uniform vec3 uPane0;
 uniform vec3 uPane1;
 uniform vec3 uPane2;
@@ -486,7 +487,7 @@ void main() {
       em += mix(c0, c1, 0.5) * ring * 0.9 * bright;
       em += mix(c1, spark, 0.5) * beads * 1.8 * bright;
       em += c1 * band * (0.5 + 0.7 * glimmer) * bright;
-      em += paneCol * pane * 1.1 * bright + mix(c0, spark, 0.5) * paneFrame * 0.8 * bright;
+      em += (paneCol * pane * 1.1 + mix(c0, spark, 0.5) * paneFrame * 0.8) * bright * uF3.x;
       em += spark * spot * 0.5 * bright;
       em += c1 * inner * (back ? uF2.y : uF2.x) * bright;
       if (back) { em *= 0.65; a *= 0.75; }
@@ -507,7 +508,7 @@ void main() {
     if (vAux2.z > 0.5) {
       // wide faint halo: the light spilling into the air, a night effect
       float h = exp(-d * d * 4.0) * (1.0 - smoothstep(0.75, 1.0, d));
-      em = mix(c0, c1, 0.5) * h * rnd * breathe * bright * (0.35 + 0.65 * uDark);
+      em = mix(c0, c1, 0.5) * h * rnd * breathe * bright * (0.35 + 0.65 * uDark) * uF3.w;
       a = 0.0;
     } else {
       float g = exp(-d * d * 4.5) * (1.0 - smoothstep(0.8, 1.0, d));
@@ -545,7 +546,7 @@ void main() {
     float fade = 1.0 - 0.6 * s;
     a = (0.2 * ef + 0.12 * edge) * fade;
     T = mix(skyB * mix(vec3(1.0), c1, 0.5), pearl, 0.3 + 0.4 * edge);
-    em = mix(c0, c1, 0.5 + 0.5 * s) * (0.14 * ef + 0.95 * edge * (0.45 + 0.55 * fl)) * fade * bright;
+    em = mix(c0, c1, 0.5 + 0.5 * s) * (0.14 * ef + 0.95 * edge * (0.45 + 0.55 * fl)) * fade * bright * uF3.y;
   } else if (part == 5 || part == 6) {
     // ---- tentacle or pinnule: a thin line of light with a faint halo and beads running down it
     float x = vAux2.x;
@@ -556,7 +557,7 @@ void main() {
     float bead = pow(max(0.0, sin(s * (part == 6 ? 16.0 : 38.0) - tm * 2.4 + rnd * 20.0 + seed * 9.0)), 12.0);
     float tip = smoothstep(0.9, 1.0, s);
     float fade = (1.0 - 0.72 * s) * (part == 6 ? 0.7 : 1.0);
-    em = c1 * ((0.3 + 1.6 * bead + 0.9 * tip) * core + halo * (0.12 + 0.5 * bead)) * wf * fade * bright;
+    em = c1 * ((0.3 + 1.6 * bead + 0.9 * tip) * core + halo * (0.12 + 0.5 * bead)) * wf * fade * bright * uF3.z;
     a = (0.55 * core + 0.1 * halo) * wf * fade;
     T = mix(skyB, pearl * 1.05, 0.55) * mix(vec3(1.0), c0, 0.3);
   } else if (part == 7) {

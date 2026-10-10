@@ -78,6 +78,7 @@ export function createSpirits(G, opts = {}) {
       uF1: { value: new THREE.Vector4(...sh.f1) },
       uF2: { value: new THREE.Vector4(...(sh.f2 || [0.14, 0.4, 0, 0])) },
       uS: { value: new THREE.Vector4(sh.s?.[0] ?? 1, sh.s?.[1] ?? 0, 0, 0) },
+      uF3: { value: new THREE.Vector4(...(sh.f3 || [1, 1, 1, 1])) },
       uPane0: { value: new THREE.Color(def.panes?.[0] || '#ffffff') },
       uPane1: { value: new THREE.Color(def.panes?.[1] || '#ffffff') },
       uPane2: { value: new THREE.Color(def.panes?.[2] || '#ffffff') },

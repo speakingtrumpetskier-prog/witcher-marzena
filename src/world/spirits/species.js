@@ -193,16 +193,16 @@ export const SPECIES = [
   },
   {
     // The one. Not a species: a single behemoth on a long circuit of the valley (see Spirits.js).
-    // Size is the bell radius in meters: a bell about 175 m across, tentacles 300 to 500 m long.
+    // Size is the bell radius in meters: a bell about 190 m across and 215 m tall, threads 260 to 500 m long.
     id: 'cathedral',
     name: 'Cathedral',
     kind: 0,
     count: 1,
-    size: [88, 88],
+    size: [95, 95],
     rate: [0.034, 0.034], // one pulse in about 29 s
     alt: [520, 520],
     speed: 0,
-    extent: 6.4,
+    extent: 5.0,
     lodRatio: 1e9,
     maxDist: 9000,
     order: 1,
@@ -214,25 +214,26 @@ export const SPECIES = [
     tentLen: [1, 1],
     recipe: {
       profile: 'cathedral', shell: [96, 36], cluster: 1.5, skirt: [160, 3],
-      core: { y: 0.8, size: 1.0, halo: 3.6, haloI: 0.24 },
-      gonads: [0.2, 0.4, 0.6].map((r, i) => ({ cx: 0, cz: 0, radius: r, halfW: 0.016, v: 0.2 + i * 0.18, segs: 72 })),
+      core: { y: 1.0, size: 1.0, halo: 3.0, haloI: 0.14 },
+      gonads: [0.46, 0.62, 0.78].map((v) => ({ cx: 0, cz: 0, rel: 0.82, halfW: 0.016, v, segs: 72, dy: 0.97 })),
       arms: [
         // inner frilled pillars hanging from the nave
-        { n: 10, rootR: 0.22, rootV: 0.3, rootY: 0.55, segs: 26, across: 4, len: 3.4, width: 0.15, off: 0.1 },
+        { n: 10, rootR: 0.22, rootV: 0.3, rootY: 0.97, segs: 26, across: 4, len: 2.8, width: 0.15, off: 0.1 },
         // the veils: wide curtains hanging from the rim, following it
-        { n: 28, rootR: 0.94, rootV: 0.97, rootY: 1, segs: 30, across: 4, len: 4.3, width: 0.2, off: 0.05, tangent: Math.PI / 2 },
+        { n: 30, rootR: 0.98, rootV: 0.97, rootY: 1, segs: 30, across: 4, len: 3.4, width: 0.2, off: 0.05, tangent: Math.PI / 2 },
       ],
-      tent: { n: 72, segs: 26, width: 0.005, len: 5.0, rootR: 0.97 },
+      tent: { n: 72, segs: 26, width: 0.005, len: 3.9, rootR: 0.98 },
       // slow thick ropes among the threads
-      fringe: { n: 14, segs: 26, width: 0.013, len: 5.4, rootR: 0.88 },
+      fringe: { n: 14, segs: 26, width: 0.013, len: 4.2, rootR: 0.9 },
       lamps: { n: 20, rings: [0.2, 0.42, 0.66], drop: [0.14, 0.34], size: 0.075, chain: 0.0025 },
-      gut: { y: 0.95, segs: 14, width: 0.018, len: 3.4 },
+      gut: { y: 1.15, segs: 14, width: 0.018, len: 3.8 },
     },
     shader: {
-      p0: [0.12, 0.05, 16, 0.04], p1: [0.01, 24, 0.9, 0.05], p2: [0.55, 0.9, 0.8, 0.03], p3: [0, 0.18, 0.04, 0.02], p4: [0.06, 16, 0, 0],
+      p0: [0.12, 0.05, 16, 0.04], p1: [0.01, 24, 0.9, 0.05], p2: [0.55, 0.9, 0.8, 0.03], p3: [0, 0.18, 0.04, 0.02], p4: [0.1, 16, 0, 0],
       f0: [16, 0.03, 1, 0.2], f1: [0, 1, 2.4, 0.9], f2: [0.25, 0.55, 1.0, 0.5],
+      f3: [2.4, 0.45, 0.55, 1.0],
       s: [0.12, 0.9],
-      bright: 0.95,
+      bright: 0.42,
     },
   },
 ];

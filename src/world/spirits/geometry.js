@@ -29,6 +29,37 @@ const sm = (a, b, x) => {
   return t * t * (3 - 2 * t);
 };
 
+// Smooth profile through control points [r, y] listed from the apex to the margin. v is the
+// fraction of arc length, so rings stay evenly spaced along the surface.
+function splineProfile(pts) {
+  const P = (i) => pts[Math.max(0, Math.min(pts.length - 1, i))];
+  const dense = [];
+  for (let i = 0; i < pts.length - 1; i++) {
+    const p0 = P(i - 1), p1 = P(i), p2 = P(i + 1), p3 = P(i + 2);
+    for (let k = 0; k < 24; k++) {
+      const t = k / 24, t2 = t * t, t3 = t2 * t;
+      const f = (a) => 0.5 * (2 * p1[a] + (-p0[a] + p2[a]) * t + (2 * p0[a] - 5 * p1[a] + 4 * p2[a] - p3[a]) * t2 + (-p0[a] + 3 * p1[a] - 3 * p2[a] + p3[a]) * t3);
+      dense.push([Math.max(0, f(0)), f(1)]);
+    }
+  }
+  dense.push(pts[pts.length - 1].slice());
+  const cum = [0];
+  for (let i = 1; i < dense.length; i++) cum.push(cum[i - 1] + Math.hypot(dense[i][0] - dense[i - 1][0], dense[i][1] - dense[i - 1][1]));
+  const total = cum[cum.length - 1];
+  return (v) => {
+    const s = Math.min(Math.max(v, 0), 1) * total;
+    let lo = 0, hi = cum.length - 1;
+    while (hi - lo > 1) { const m = (lo + hi) >> 1; if (cum[m] <= s) lo = m; else hi = m; }
+    const f = (s - cum[lo]) / Math.max(cum[hi] - cum[lo], 1e-9);
+    return [dense[lo][0] + (dense[hi][0] - dense[lo][0]) * f, dense[lo][1] + (dense[hi][1] - dense[lo][1]) * f];
+  };
+}
+// The nave: a pointed arch with a needle spire, near vertical walls and a flared foot.
+const CATHEDRAL_PROFILE = splineProfile([
+  [0, 2.3], [0.02, 2.02], [0.07, 1.84], [0.2, 1.7], [0.38, 1.52], [0.56, 1.3], [0.72, 1.04],
+  [0.84, 0.77], [0.92, 0.5], [0.97, 0.28], [1.03, 0.12], [1.1, 0],
+]);
+
 // Shell profiles: v 0 (apex) .. 1 (margin) -> [radius, height]. The margin sits at y = 0 and
 // the apex is up. Ovoid is a closed body: v 0 top pole .. 1 bottom pole.
 const PROFILES = {
@@ -48,11 +79,7 @@ const PROFILES = {
     const a = v * Math.PI * 0.5;
     return [Math.pow(Math.sin(a), 0.9) * (1 - 0.1 * sm(0.8, 1, v)), 0.8 * Math.pow(Math.cos(a), 0.95)];
   },
-  cathedral: (v) => {
-    const a = v * Math.PI * 0.5;
-    const spire = 0.5 * Math.pow(1 - v, 7);
-    return [Math.pow(Math.sin(a), 0.78) * (1 + 0.1 * sm(0.82, 1, v)), 1.25 * Math.pow(Math.cos(a), 1.1) + spire];
-  },
+  cathedral: (v) => CATHEDRAL_PROFILE(v),
   ovoid: (v) => {
     const a = v * Math.PI;
     return [0.5 * Math.pow(Math.sin(a), 0.55) * (1 + 0.22 * (0.5 - v)), 0.75 - 1.5 * v];
@@ -276,7 +303,7 @@ function addLamps(acc, prof, L, rnd, detail) {
 // recipe: {
 //   profile, shell: [nu, nv], cluster, skirt: [nu, rows] | null,
 //   core: { y, size, halo } | null (lamp quad and an optional wide halo quad),
-//   gonads: [{ cx, cz, radius, halfW, v, segs, tilt }...] (height taken from the profile),
+//   gonads: [{ cx, cz, radius | rel (of the profile radius at v), halfW, v, segs, tilt, dy }...] (height taken from the profile),
 //   arms: { n, rootR, rootV, rootY, off, segs, across, len, width, tangent } | [groups] | null,
 //         (tangent: radians added to the direction the sheet is wide in; PI/2 hangs it as a curtain)
 //   lamps: { n, rings: [radii], drop: [min, max], size, chain } | null (hanging lanterns),
@@ -300,7 +327,8 @@ export function buildGeometry(recipe, detail = 1, seed = 1) {
   if (recipe.gonads) {
     for (const g of recipe.gonads) {
       const py = PROFILES[prof](g.v)[1];
-      addGonad(acc, g.cx, py * 0.9, g.cz, g.radius, g.halfW, d(g.segs || 22, 8), g.v, rnd(), g.tilt || 0);
+      const gr = g.rel ? PROFILES[prof](g.v)[0] * g.rel : g.radius;
+      addGonad(acc, g.cx, py * (g.dy ?? 0.9), g.cz, gr, g.halfW, d(g.segs || 22, 8), g.v, rnd(), g.tilt || 0);
     }
   }
 
