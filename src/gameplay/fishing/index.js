@@ -159,9 +159,10 @@ export async function init(G) {
   // The interaction at each stool.
   const addSpotInteractions = () => {
     for (const spot of F.spots) {
+      const at = new THREE.Vector3();
       G.interact?.add({ // (a thin spot has no hole until it is cut: story/controller/side.js)
         id: `fish:${spot.id}`,
-        pos: () => _pos.set(spot.seat.x, (G.world.heightAt(spot.seat.x, spot.seat.z) || 0) + 0.9, spot.seat.z),
+        pos: () => at.set(spot.seat.x, (G.world.heightAt(spot.seat.x, spot.seat.z) || 0) + 0.9, spot.seat.z),
         radius: 2.3,
         facing: false,
         verb: 'Fish',
@@ -183,9 +184,10 @@ export async function init(G) {
   // a spare rod standing in the rest by the eastern hole on the shelf: left behind, and nobody has come back for it
   const rest = F.spot('shelf_east');
   if (rest) {
+    const at = new THREE.Vector3();
     G.interact?.add({
       id: 'fish:take_rod',
-      pos: () => _pos.set(rest.rest.x, (G.world.heightAt(rest.rest.x, rest.rest.z) || 0) + 0.9, rest.rest.z),
+      pos: () => at.set(rest.rest.x, (G.world.heightAt(rest.rest.x, rest.rest.z) || 0) + 0.9, rest.rest.z),
       radius: 1.9,
       facing: false,
       verb: 'Take',
@@ -217,8 +219,6 @@ export async function init(G) {
   installTestHooks(F);
 }
 
-const _pos = new THREE.Vector3();
-
 // ---- test hooks -------------------------------------------------------------------------------------------------------------------
 // F.test.land(id, kg, spotId)   put a fish in the basket exactly as landing it would (log, flags, events) without the fight
 // F.test.play(policy)           drive a running session with a policy bot until it ends; policy(fight) -> { reel, slack }
@@ -242,21 +242,29 @@ function installTestHooks(F) {
     // Run one whole session headless: sit at a spot, sink the jig, wait for what comes (or force a species), fight it with a
     // bot that reels when the fish rests and gives line on a run, and stand up. Needs the frame loop running (the playthrough
     // ticks it). Resolves with what happened.
-    async play({ spotId = 'shelf_mid', force = null, minutes = 3, step = () => new Promise((r) => setTimeout(r, 0)), bot = null } = {}) {
+    // Options: spotId, force (species id: bite as soon as the jig is down), minutes (give up after), step (advance the game by
+    // 0.1 s), bot (fight policy), depthFrac (how deep to hang the jig as a fraction of the water), until (stand up when it
+    // returns true; the default is the first catch).
+    async play({ spotId = 'shelf_mid', force = null, minutes = 3, step = () => new Promise((r) => setTimeout(r, 0)), bot = null, depthFrac = 0.5, until = null } = {}) {
       const spot = F.spot(spotId);
       if (!spot) return { error: 'no such spot' };
       F.testInput = { reel: false, slack: false, jig: false, leave: false };
       const done = F.begin(spot);
       const s = F.session;
-      const out = { hooked: null, result: null };
-      let t = 0;
+      if (!s) { F.testInput = null; return { error: 'no session' }; }
+      const out = { hooked: null, hooks: [], result: null };
+      const stop = until || (() => s.catches > 0);
+      let t = 0, wasFight = false;
       while (!s.ended && t < minutes * 60) {
         await step();
         t += 0.1;
         const inp = F.testInput;
+        if (!inp) break;
+        if (s.phase === 'fight' && !wasFight) out.hooks.push(s.fight.sp.id);
+        wasFight = s.phase === 'fight';
         if (s.phase === 'fish') {
           // lower the jig to where the fish will be, then wait; force a bite when asked
-          const want = force ? Math.min(spot.depth - 0.3, spot.depth * (SPECIES[force]?.depth.pref ?? 0.5)) : spot.depth * 0.5;
+          const want = force ? Math.min(spot.depth - 0.3, spot.depth * (SPECIES[force]?.depth.pref ?? 0.5)) : spot.depth * depthFrac;
           inp.slack = s.line.depth < want - 0.05;
           inp.reel = s.line.depth > want + 0.2;
           if (force && !s.bite && s.cool <= 0) {
@@ -272,7 +280,7 @@ function installTestHooks(F) {
         } else if (s.phase === 'land') {
           inp.reel = inp.slack = false;
         }
-        if (s.phase === 'fish' && s.catches > 0) { inp.leave = true; }
+        if (s.phase === 'fish' && stop(s)) { inp.leave = true; }
       }
       F.testInput = null;
       if (!s.ended) F.abort('test', true);

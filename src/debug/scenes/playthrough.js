@@ -429,6 +429,162 @@ async function run(G, O, report) {
     await wait(0.5);
     stageIs('main_ice', 'hanka', 'Q2 find Hanka');
   }
+  // ---- fishing and the old pike (side_oldone) --------------------------------------------------------------
+  // Between the reeve and Hanka: night one cannot begin before she is hired, so the clock can be set freely here and is put
+  // back afterwards. The bites and fights run through the real session (G.fishing.test.play) with a bot at the line.
+  if (G.fishing && wants('main_ice:hanka') && stage('main_ice') === 'hanka') {
+    const F = G.fishing;
+    const caught = [], sold = [], cooked = [], cuts = [];
+    G.events.on('fish:caught', (e) => caught.push(e));
+    G.events.on('fish:sold', (e) => sold.push(e));
+    G.events.on('fish:cooked', (e) => cooked.push(e));
+    G.events.on('fish:cut', (e) => cuts.push(e));
+    const fishStep = () => tick(0.1);
+    const baseAuto = G.dialogue.autopick;
+    const topics = [/^i need a rod/, /^i have fish/, /^what bites/, /^about the pike/];
+    // With the reeve she asks about each fish topic once, then takes her leave (the generic picker would wander off to the
+    // ordinary talk).
+    G.dialogue.autopick = (node, items) => {
+      const text = items.map((it) => String(it.text ?? it.t ?? '').toLowerCase());
+      const out = text.findIndex((t) => /^that's all/.test(t));
+      if (out < 0) return baseAuto(node, items);
+      for (const re of topics) {
+        const i = text.findIndex((t) => re.test(t) && !picked.has(t));
+        if (i >= 0) { picked.add(text[i]); return i; }
+      }
+      picked.add(text[out]);
+      return out;
+    };
+    const journalFish = () => G.uiImpl?.journal?.fishRows?.() || [];
+    const handedBack = (label) => ok(`${label}: she stands, the camera and her hands are hers again`, !F.active && G.cameraOwner === 'rig' && P().control === true, `active=${F.active} owner=${G.cameraOwner} control=${P().control}`);
+
+    step('fishing: rod');
+    ok('the lake has its fishing places', F.spots.length >= 8 && F.spots.some((s) => s.zone === 'tower'), `n=${F.spots.length}`);
+    ok('no rod yet', S.count('rod') === 0);
+    G.time.setHours(12);
+    await useIt('fish:shelf_mid');
+    flagOK(['fish_wants_rod'], 'a hole without a rod turns her away');
+    ok('no session without a rod', !F.active);
+    await talkTo('bogdan', 'rod and pike');
+    ok('bogdan_fish ran', dlgLog.includes('bogdan_fish'), dlgLog.slice(-3).join(','));
+    ok('Bogdan lent a rod', S.count('rod') === 1 && !!S.flag('rod_lent'), `rod=${S.count('rod')}`);
+    flagOK(['oldone_heard', 'oldone_asked'], 'he told her about the pike and she took it on');
+    ok('his father\'s line is in the pack', S.count('strong_line') === 1, `strong_line=${S.count('strong_line')}`);
+    ok('side_oldone started at cut', stage('side_oldone') === 'cut', `stage=${stage('side_oldone')}`);
+    ok('the spare rod in the rest is not offered once she has one', G.interact.get('fish:take_rod') && !G.interact.get('fish:take_rod').enabled());
+
+    step('fishing: the shelf');
+    F.seed(20260);
+    await approach('fish:shelf_mid');
+    const r1 = await F.test.play({ spotId: 'shelf_mid', minutes: 12, step: fishStep });
+    ok('a perch or a roach takes the jig by day on the shelf', r1.catches >= 1 && caught.length >= 1 && ['perch', 'roach'].includes(caught[0].id), JSON.stringify({ catches: r1.catches, hooks: r1.hooks, reason: r1.result?.reason, caught: caught.map((c) => c.id) }));
+    handedBack('shelf session');
+    flagOK(['fished'], 'first catch recorded');
+    ok('the catch is in the basket and the pack count', F.count() === caught.length && S.count('fish') === F.count(), `basket=${F.count()} pack=${S.count('fish')}`);
+    const lg = caught[0] && F.log[caught[0].id];
+    ok('the species log has its best weight', !!lg && lg.n === 1 && lg.best === caught[0].w, JSON.stringify(lg || {}).slice(0, 100));
+    ok('first catch is marked first', caught[0]?.first === true);
+
+    step('fishing: the deep');
+    G.time.setHours(23);
+    const nCaught = caught.length;
+    const r2 = await F.test.play({ spotId: 'deep_west', force: 'burbot', minutes: 4, step: fishStep });
+    ok('a burbot takes the jig at night on the deep side and is landed', r2.hooks.includes('burbot') && caught.length === nCaught + 1 && caught[nCaught].id === 'burbot', JSON.stringify({ hooks: r2.hooks, reason: r2.result?.reason, catches: r2.catches }));
+    handedBack('deep session');
+    const r3 = await F.test.play({ spotId: 'far', force: 'pike', minutes: 4, step: fishStep });
+    ok('the lonely hole gives a pike', r3.hooks.includes('pike'), JSON.stringify({ hooks: r3.hooks, reason: r3.result?.reason, catches: r3.catches }));
+    handedBack('lonely hole session');
+    F.test.land('roach', 0.35, 'shelf_west');
+    F.test.land('bream', 1.4, 'deep_east');
+    F.test.land('whitefish', 0.9, 'deep_east');
+    const open = journalFish().filter((b) => b.open).map((b) => b.id);
+    ok('the journal has a page for each species landed', ['burbot', 'roach', 'bream', 'whitefish'].every((id) => open.includes(id)) && journalFish().length === 6, open.join(','));
+    ok('the pages are drawn and have notes', journalFish().every((b) => b.sketch && b.paras.length >= 1));
+
+    step('fishing: the fire');
+    const fires = (G.world.fires || []).filter((f) => !f.indoor);
+    ok('there are open fires to roast at', fires.length > 0, `n=${fires.length}`);
+    if (fires.length) {
+      const pp = P().position;
+      fires.sort((a, b) => Math.hypot(a.x - pp.x, a.z - pp.z) - Math.hypot(b.x - pp.x, b.z - pp.z));
+      placeAt(fires[0].x + 1.5, fires[0].z, Math.PI * 1.5);
+      await tick(0.1); await tick(0.1);
+      P().health = Math.round(P().maxHealth * 0.4);
+      P().warmth = 0.35;
+      const hp0 = P().health, w0 = P().warmth, n0 = F.count(), eaten = F.basket[F.test.cookable()]?.id;
+      await useIt('fish:cook');
+      ok('roasting a fish: health and warmth come back', P().health > hp0 && P().warmth > w0 && cooked.length === 1, `hp ${hp0}->${P().health} warmth ${w0.toFixed(2)}->${P().warmth.toFixed(2)} cooked=${cooked.length}`);
+      ok('the roasted fish leaves the basket (the cheapest first)', F.count() === n0 - 1 && cooked[0]?.id === eaten, `basket ${n0}->${F.count()} ${cooked[0]?.id}/${eaten}`);
+      ok('she is back on her feet after the meal', P().control === true && !F.cooking, `control=${P().control}`);
+    }
+
+    step('fishing: the scales');
+    const coins0 = S.count('coins'), expect = F.basket.reduce((t, e) => t + F.test.price(e.id, e.w), 0), n1 = F.count();
+    G.time.setHours(12.5); // the reeve is up and about by day
+    await wait(0.5);
+    await talkTo('bogdan', 'fish to sell');
+    ok('Bogdan bought the fish at the table price', sold.length === 1 && sold[0].n === n1 && S.count('coins') - coins0 === expect && sold[0].coins === expect, `n=${n1} coins ${coins0}->${S.count('coins')} expect +${expect} sold=${JSON.stringify(sold)}`);
+    ok('the basket is empty', F.count() === 0 && S.count('fish') === 0, `basket=${F.count()}`);
+
+    const { chooseBark } = await import('../../gameplay/npcs/barks.js');
+    const seen = new Set();
+    let bs = 11;
+    const brnd = () => { bs = (bs * 16807) % 2147483647; return bs / 2147483647; };
+    for (let i = 0; i < 160; i++) { const l = chooseBark(G, { id: 'fisherman_1', preset: 'fisherman_1', station: { tag: 'ice_hole' }, def: {} }, brnd); if (l) seen.add(l); }
+    ok('fishermen talk fish to someone with a rod', [...seen].some((l) => /Nobody sits under the tower|Keep the jig high|Burbot want the bottom/.test(l)), [...seen].join(' | ').slice(0, 140));
+
+    step('fishing: the old one');
+    const tower = F.spot('tower');
+    ok('the thin spot is closed until it is cut', !!tower && tower.thin && !tower.open, `open=${tower?.open}`);
+    ok('there is nothing to fish at the tower yet', !!G.interact.get('fish:tower') && !G.interact.get('fish:tower').enabled());
+    await useIt('ctl:oldone_cut');
+    ok('the hole is cut with the sword', tower.open && cuts.length === 1, `open=${tower.open} cuts=${cuts.length}`);
+    flagOK(['oldone_hole'], 'the hole by the tower is cut');
+    ok('side_oldone waits for the night', stage('side_oldone') === 'wait', `stage=${stage('side_oldone')}`);
+    ok('she is not left holding the sword out', !P().character.swordDrawn, `drawn=${P().character.swordDrawn}`);
+
+    // By day nothing like it comes to the jig; at night, near the bottom, patience pays.
+    G.time.setHours(13);
+    const d1 = await F.test.play({ spotId: 'tower', minutes: 3, depthFrac: 0.95, step: fishStep, until: () => false });
+    ok('by day the old pike does not come', !d1.hooks.includes('oldone') && !S.flag('oldone_landed'), `hooks=${d1.hooks.join(',')}`);
+    handedBack('tower by day');
+    G.time.setHours(23);
+    F.seed(4242);
+    let tries = 0, natural = null;
+    while (!S.flag('oldone_landed') && tries < 4) {
+      tries++;
+      const r = await F.test.play({ spotId: 'tower', minutes: 6, depthFrac: 0.97, force: tries > 1 ? 'oldone' : null, step: fishStep, until: () => !!S.flag('oldone_landed') });
+      if (tries === 1) natural = r;
+      logLine(`old one try ${tries}: hooks=${r.hooks.join(',')} reason=${r.result?.reason} landed=${!!S.flag('oldone_landed')}`);
+    }
+    ok('at night, hanging near the bottom, the old pike takes the jig on its own', !!natural && natural.hooks.includes('oldone'), `hooks=${natural?.hooks.join(',')}`);
+    ok('the old pike is landed on the strong line', !!S.flag('oldone_landed') && caught.some((c) => c.special), `tries=${tries}`);
+    handedBack('tower at night');
+    const oldFish = F.basket.find((e) => e.special);
+    ok('the pike is in the basket, 19 to 25 kilos', !!oldFish && oldFish.w >= 19 && oldFish.w <= 25, `w=${oldFish?.w}`);
+    F.sellAll();
+    ok('the scales leave the old pike for the reeve to weigh himself', F.count() === 1 && F.basket[0].special && !F.canSell(), `basket=${F.basket.map((e) => e.id).join(',')}`);
+    ok('side_oldone is waiting for Bogdan', stage('side_oldone') === 'bring', `stage=${stage('side_oldone')}`);
+
+    step('fishing: the reeve pays');
+    const c0 = S.count('coins'), price = oldFish ? F.test.price('oldone', oldFish.w) : -1;
+    G.time.setHours(12.5);
+    await wait(0.5);
+    await talkTo('bogdan', 'old pike');
+    flagOK(['oldone_paid'], 'Bogdan weighed the pike and paid');
+    ok('paid by the kilo', S.count('coins') - c0 === price && price > 40, `coins ${c0}->${S.count('coins')} price=${price}`);
+    ok('the strong line goes back', S.count('strong_line') === 0, `strong_line=${S.count('strong_line')}`);
+    ok('the basket is empty again', F.count() === 0);
+    ok('side_oldone done', G.quests.isDone('side_oldone'), `stage=${stage('side_oldone')}`);
+    ok('the journal remembers the old one on the pike page', journalFish().find((b) => b.id === 'pike')?.paras.some((p) => /bell tower/.test(p)), '');
+    ok('the main story did not move', stage('main_ice') === 'hanka', `main_ice=${stage('main_ice')}`);
+
+    G.dialogue.autopick = baseAuto;
+    G.time.setHours(17.2);
+    P().warmth = 1;
+    P().health = P().maxHealth;
+  }
+
   if (wants('main_ice:hanka') && stage('main_ice') === 'hanka') {
     step('hanka');
     G.time.setHours(17.3);

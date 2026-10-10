@@ -14,10 +14,11 @@ import { cookValue, kg } from './model.js';
 import { fishData, cookable, takeFish } from './store.js';
 
 const REACH = 3.1;
-const _v = new THREE.Vector3(), _w = new THREE.Vector3();
+const _w = new THREE.Vector3();
 
 export function installCook(F) {
   const G = F.G, S = G.state;
+  const firePos = new THREE.Vector3();
   const near = { f: null, d: 99, frame: -1 };
 
   F.nearestFire = () => {
@@ -48,7 +49,7 @@ export function installCook(F) {
 
   G.interact?.add({
     id: 'fish:cook',
-    pos: () => { const f = F.nearestFire().f; return f ? _v.set(f.x, (G.world.heightAt(f.x, f.z) || 0) + 1, f.z) : _v.set(1e5, 0, 1e5); },
+    pos: () => { const f = F.nearestFire().f; return f ? firePos.set(f.x, (G.world.heightAt(f.x, f.z) || 0) + 1, f.z) : firePos.set(1e5, 0, 1e5); },
     radius: REACH,
     facing: false,
     verb: 'Cook',
