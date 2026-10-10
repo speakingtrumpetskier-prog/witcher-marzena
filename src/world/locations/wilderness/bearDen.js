@@ -68,10 +68,14 @@ export async function build(W) {
   c.circle(hp.x, hp.z, 0.6, floor - 1, floor + 1.6, 'remains');
   // the silver sword at his right hand, half under the bones; a pack, a snapped steel blade and a lantern
   const sw = { x: hp.x + 0.95, z: hp.z + 0.75 };
-  c.at(sw.x, sw.z, { yaw: 1.9, dy: 0.03 }, (k) => silverSword(k, { rot: [Math.PI / 2 - 0.04, 0, 0], pos: [0, 0.03, 0] }));
   c.prop('sack', hp.x - 0.1, hp.z + 1.4, { seed: 3, yaw: 0.3 });
   c.prop('lantern', hp.x + 0.45, hp.z + 2.0, { seed: 1, rot: [0, 0, 1.4], dy: 0.1, opts: { mount: 'ground' } });
   c.build();
+  // The sword is built on its own, not merged into the den, so taking it takes it away
+  // (story/controller/side.js hides it on pickup and when a save already has it).
+  const cs = new Composer(G, W.ctx, 'bearDenSword', sw.x, sw.z, { seed: 16, y: floor });
+  cs.at(sw.x, sw.z, { yaw: 1.9, dy: 0.03 }, (k) => silverSword(k, { rot: [Math.PI / 2 - 0.04, 0, 0], pos: [0, 0.03, 0] }));
+  const swordGroup = cs.build();
 
   // a faint warm breath out of the dark
   W.fx?.steam?.({ position: [P.x + 0.4, floor + 2.2, P.z + 4.8], parent: G.scene, height: 3.2, rate: 1.4, spread: 1.8, size: 1.5, opacity: 0.1 });
@@ -94,6 +98,7 @@ export async function build(W) {
     bearSleep: { x: bearAt.x, y: floor, z: bearAt.z, yaw: 2.4, radius: 7 },
     hunter: v(hp.x, floor + 0.5, hp.z),
     silverSword: v(sw.x, floor + 0.12, sw.z), // note_wit: "For Wit of the Lynx. Paid in full."
+    silverSwordObj: swordGroup, // the sword's own group (hide it once taken)
     skulls: [v(P.x + 2.2, floor, P.z + 4.6), v(P.x - 0.9, floor, P.z + 2.6), v(P.x + 0.6, floor, P.z + 7.2)],
     bones: v(P.x - 0.2, floor, P.z + 5.6),
     bedding: v(bearAt.x, floor, bearAt.z),

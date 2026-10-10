@@ -174,6 +174,10 @@ function bear(C) {
   C.on('enemy:death', (e) => { if (e.kind === 'bear') C.set('bear_dead'); });
   C.on('player:respawn', () => { if (bear && !bear.disposed) { G.creatures?.remove?.(bear); bear = null; } });
 
+  // The sword on the den floor goes when she takes it (and stays gone in a save that has it).
+  const showSword = () => { if (bd.silverSwordObj) bd.silverSwordObj.visible = !C.has('wit_sword'); };
+  showSword();
+  C.on('loaded', showSword);
   C.interact({
     id: 'silver_sword', pos: bd.silverSword, radius: 2.2, verb: 'Take', label: "The hunter's sword",
     enabled: () => !C.has('wit_sword'),
@@ -183,6 +187,7 @@ function bear(C) {
       await C.read('note_wit');
       C.say('Wit.', 2.2);
       C.set('wit_sword');
+      showSword();
       C.pickup('silver_sword', 'Silver sword');
     },
   });
