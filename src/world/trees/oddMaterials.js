@@ -60,13 +60,13 @@ const ICE_F = /* glsl */ `
   vec3 mzCell = floor(vVegWPos * 26.0) + floor(mzCv * 7.0);
   float mzG = fract(sin(dot(mzCell, vec3(12.9898, 78.233, 37.719))) * 43758.5453);
   totalEmissiveRadiance += vec3(1.0, 0.97, 0.9) * smoothstep(0.992, 1.0, mzG) * (0.6 + 0.8 * mzFr) * smoothstep(-0.02, 0.2, uVegSunDir.y);
-  diffuseColor.a = mix(0.3, 0.8, mzFr);
+  diffuseColor.a = mix(0.42, 0.9, mzFr);
 }
 `;
 
 export function makeIceMaterial(lu, wind) {
   const m = makeVegMaterial({ mode: 'bark', wind, lod: lu, transparent: true });
-  m.opacity = 0.6;
+  m.opacity = 0.72;
   addCompileHook(m, 'odd:ice', (shader) => {
     shader.fragmentShader = shader.fragmentShader.replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\n' + ICE_F);
   });

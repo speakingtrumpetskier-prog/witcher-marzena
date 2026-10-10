@@ -171,7 +171,7 @@ export function placeRare(G, kinds, placed) {
   // weeping birch by the hot spring, its doorway opening toward the pools
   hero('weep_a', -56, -322, { yaw: yawToward(-20, -16), s: 1.1, clear: 12, thin: 22, lane: { dx: -0.78, dz: -0.62, len: 26, half: 8 }, note: 'weeping birch curtain, 25 m from the hot spring pools' });
   // ice tree on the lake shore
-  hero('ice_a', 176, 31, { s: 1.15, clear: 8, thin: 14, rules: { lake: 3 }, note: 'glazed ice tree on the south-east shore' });
+  hero('ice_a', 176, 31, { s: 1.45, clear: 8, thin: 14, rules: { lake: 3 }, note: 'glazed ice tree on the south-east shore' });
   // knot tree on the way to the graveyard
   hero('knot_a', 136, 128, { s: 1.1, clear: 10, thin: 18, note: 'knot tree east of the village' });
   // bottle tree on the village approach
@@ -209,7 +209,7 @@ export function placeRare(G, kinds, placed) {
     { species: 'weeping', n: 5, same: 130, clear: 5.5, score: (c) => smoothstep(75, 10, c.sd) * smoothstep(0.1, 0.5, c.B) * smoothstep(0.9, 0.96, c.ny) * smoothstep(0.1, 0.3, c.F + 0.2) },
     { species: 'bottle', n: 6, same: 120, clear: 4.5, score: (c) => smoothstep(0.92, 0.97, c.ny) * smoothstep(0.12, 0.3, c.F) * (1 - smoothstep(0.5, 0.7, c.F)) * (1 - smoothstep(110, 190, c.h)) },
     { species: 'knot', n: 4, same: 200, clear: 4.5, score: (c) => smoothstep(8, 45, c.h) * (1 - smoothstep(170, 290, c.h)) * smoothstep(0.88, 0.95, c.ny) * smoothstep(0.1, 0.4, c.F) },
-    { species: 'ice', n: 5, same: 120, clear: 4, score: (c) => smoothstep(18, 6, c.sd) * smoothstep(0.9, 0.97, c.ny), rules: { lake: 3.2, slope: 0.18, road: 4 }, lakeOnly: true },
+    { species: 'ice', n: 5, same: 120, clear: 4, scale: [1.05, 1.4], score: (c) => smoothstep(18, 6, c.sd) * smoothstep(0.9, 0.97, c.ny), rules: { lake: 3.2, slope: 0.18, road: 4 }, lakeOnly: true },
     { species: 'arch', n: 1, same: 500, clear: 6, score: (c) => smoothstep(0.93, 0.98, c.ny) * smoothstep(0.15, 0.4, c.F) * (1 - smoothstep(0.55, 0.75, c.F)), ids: ['arch_a'] },
   ];
   const ctx = {};

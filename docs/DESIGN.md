@@ -138,6 +138,16 @@ someone made something. Walk 80 meters in the wild and find a small story.
   between doors, fences, pens, goats, chickens, dogs, a cat on a roof.
 - **Wilderness:** fallen logs, boulders with snow caps, animal tracks, birch groves among pines,
   frozen streams, wayside shrines, abandoned sledges, ravens on dead trees.
+- **Odd trees (folk-fantasy, rare):** the valley's wood has a little strangeness in it, always made of
+  wood, snow and ice and always a landmark you can read from 50 m away. Common variety: golden larch
+  groves on the cold slopes, red-berried rowan on forest edges, veteran broken-top spruce, dwarf mountain
+  pine creeping over the treeline. Rare, a handful each: corkscrew pines wrung like cloth, a hollow oak
+  split by lightning with a doorway and a red ribbon at its mouth (votive strips on its lintel), a weeping
+  birch whose whips make a dome you walk into, bottle trees with a fountain of red-ochre whips, knot trees
+  whose branches curl into the story's red-knot rings, a tree glazed in clear ice, and a gate tree (two
+  trunks crossed overhead, the forest track runs through it). Heroes stand at memorable spots: a corkscrew
+  grove on the marsh edge, the oak on the rise south of the crossroads, the weeping birch by the hot
+  spring, the ice tree on the south-east lake shore. They never sit on roads, buildings or set pieces.
 
 ---
 
