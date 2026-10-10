@@ -7,6 +7,7 @@
 //   the bear      asleep in its den; the silver sword of Wit of the Lynx beside the old hunter (flag wit_sword)
 //   island        the carved stones (note_island), Bogdan's boot prints, the place of power (flag island_power)
 //   side_handbell Bozena's hand-bell: take it off its pole at the ritual ring, ring it there at dusk, tell her
+//   side_hanged   the hanged man at the crossroads: his sister's note asks for him to be cut down
 import { props } from '../../world/props/index.js';
 
 export function install(C) {
@@ -17,6 +18,48 @@ export function install(C) {
   bear(C);
   island(C);
   handbell(C);
+  hanged(C);
+}
+
+// ---- Three Loaves -------------------------------------------------------------------------------
+// A grain thief hanged at the crossroads for three loaves; his sister Agnieszka pinned a note to his coat
+// asking for someone to cut him down (clues.js opens the quest when it is read, flag hanged_read). Vesna
+// cuts the rope; under a fade he is laid beside the tree with his coat over his face (flag hanged_cut).
+// Villagers mention it afterwards (gameplay/npcs/barks.js). Nothing in the main story reads these flags.
+function hanged(C) {
+  const { G } = C;
+  const cr = C.L.crossroads;
+  if (!cr?.setCut) return;
+  const apply = () => { cr.setCut(C.has('hanged_cut')).catch((e) => console.warn('[story controller] hanged man', e.message)); };
+  C.restore(apply);
+  let busy = false;
+  C.interact({
+    id: 'hanged_cut', pos: cr.notePrompt, radius: 2.8, verb: 'Cut down', label: 'The hanged man',
+    enabled: () => C.has('hanged_read') && !C.has('hanged_cut') && !busy,
+    onUse: async () => {
+      busy = true;
+      const P = G.player;
+      P?.setControl?.(false);
+      try {
+        C.sfx('sword_draw', { volume: 0.7 });
+        await C.sleep(0.6);
+        C.sfx('sword_whoosh', { volume: 0.8 });
+        await C.sleep(0.15);
+        await C.ui()?.fade?.(1, 0.55);
+        C.sfx('body_fall', { volume: 0.75, pos: cr.hanged.laidAt });
+        C.set('hanged_cut');
+        await cr.setCut(true);
+        await C.sleep(0.9);
+        C.sfx('sword_sheathe', { volume: 0.6 });
+        await C.sleep(0.4);
+        await C.ui()?.fade?.(0, 1.1);
+        if (!G.quests.rec('side_hanged')) G.quests.start('side_hanged');
+      } finally {
+        P?.setControl?.(true);
+        busy = false;
+      }
+    },
+  });
 }
 
 // ---- A Bird for Wiesia ------------------------------------------------------------------------

@@ -296,6 +296,19 @@ const QUESTS = {
     ],
   },
 
+  // Optional. The hanged man at the crossroads (src/story/controller/side.js and clues.js).
+  side_hanged: {
+    title: 'Three Loaves', kind: 'side',
+    stages: [
+      {
+        id: 'cut', objective: 'Cut the hanged man down at the crossroads', marker: 'crossroads',
+        journal: 'A man hanged at the crossroads for taking three loaves. His sister, Agnieszka, pinned a note to his coat asking for someone to cut him down. She could not reach.',
+        log: 'Cut the rope and laid him beside the tree with his coat over his face. The ground is too hard to dig.',
+        done: (S) => !!S.flag('hanged_cut'), sets: ['hanged_read', 'hanged_cut'],
+      },
+    ],
+  },
+
   side_snow: {
     title: 'Snow Fight', kind: 'side',
     stages: [

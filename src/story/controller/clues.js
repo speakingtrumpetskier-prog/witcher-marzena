@@ -19,7 +19,7 @@ export function install(C) {
   const readAt = (id, pos, label, note, extra = {}) => {
     if (!pos) return;
     C.interact({
-      id, pos, radius: extra.radius ?? 2.3, verb: extra.verb || 'Read', label,
+      id, pos, radius: extra.radius ?? 2.3, verb: extra.verb || 'Read', label, enabled: extra.enabled,
       onUse: async () => { await C.read(note); extra.after?.(); },
     });
   };
@@ -40,9 +40,16 @@ export function install(C) {
     });
   }
 
-  // Crossroads: the hanged man
+  // Crossroads: the hanged man. His sister's note asks for someone to cut him down; once it is read the
+  // prompt under him becomes that (side.js, "Three Loaves").
   const cr = L.crossroads;
-  if (cr) readAt('hanged_note', cr.notePrompt, 'Note on the hanged man', 'note_hanged', { radius: 2.8 });
+  if (cr) {
+    readAt('hanged_note', cr.notePrompt, 'Note on the hanged man', 'note_hanged', {
+      radius: 2.8,
+      enabled: () => !C.has('hanged_read') && !C.has('hanged_cut'),
+      after: () => { C.set('hanged_read'); if (!G.quests.rec('side_hanged')) G.quests.start('side_hanged'); },
+    });
+  }
 
   // Charcoal burners' camp
   const ch = L.charcoal;

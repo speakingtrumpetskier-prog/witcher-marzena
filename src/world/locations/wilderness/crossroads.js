@@ -4,13 +4,14 @@
 // in the snow, his sister's note pinned to his coat, candle stubs she left and could not reach him to take down.
 //
 // G.world.locations.crossroads:
-//   junction, signpost, tree { x, z, y }, hanged { character, chest, feet, notePrompt }, note (note_hanged clue at the coat),
-//   notePrompt (a reachable point under his feet for the interact radius), raven (perch on the limb), loaves, candles
+//   junction, signpost, tree { x, z, y }, hanged { character, chest, feet, tip, laidAt }, note (note_hanged clue at the coat),
+//   notePrompt (a reachable point under his feet for the interact radius), raven (perch on the limb), loaves, candles,
+//   setCut(bool) (async: cut him down and lay him beside the tree, or hang him back for a reset)
 import * as THREE from 'three';
 import { LOC, ROADS } from '../../layout.js';
 import { Composer, rngOf, rot2 } from './compose.js';
 import { gallowsTree } from './objects.js';
-import { hangedMan, frostFace } from './figures.js';
+import { hangedMan, frostFace, frozenChar, nudge } from './figures.js';
 import { signBoard, groundRibbon, tex } from './decals.js';
 import { Kit } from '../../props/kit.js';
 
@@ -123,12 +124,78 @@ export async function build(W) {
   }
   const footY = tip.y - hang - (man.height || 1.7) * 0.86;
   const chest = new THREE.Vector3(tip.x, footY + (man.height || 1.7) * 0.72, tip.z);
+
+  // ---- cut down (side quest "Three Loaves", story/controller/side.js) -------------------------------
+  // The rope's cut end stays on the limb; he is laid on his back beside the tree with his coat drawn up
+  // over his face. The lying figure is built the first time it is needed (a character costs ~0.4 s, and
+  // the controller does it under a fade).
+  const stub = (() => {
+    const k = new Kit('hangStub', { seed: 6 });
+    k.tube('rope', [[0.0, 0.05, 0], [0.01, -0.16, 0.0], [0.03, -0.3, 0.02]], 0.026, { radial: 6, tint: 0xb89c6c, grime: 0 });
+    k.sph('rope', 0.032, { pos: [0.03, -0.31, 0.02], scale: [1, 0.6, 1], tint: 0xc8b088, grime: 0 });
+    const g = k.build();
+    g.position.copy(tip);
+    g.visible = false;
+    G.scene.add(g);
+    return g;
+  })();
+  // Beside the tree, off the road side of the limb, lying along it.
+  const side = { x: -tdz, z: tdx };
+  const sl = Math.hypot(side.x, side.z) || 1;
+  const laidAt = { x: tp.x + tdx * 0.55 + (side.x / sl) * 1.25, z: tp.z + tdz * 0.55 + (side.z / sl) * 1.25 };
+  let laid = null, building = null;
+  async function layBody() {
+    const gy = c.ground(laidAt.x, laidAt.z);
+    // His own limp standing pose, laid on its back: arms stay at his sides, the head straightened and rolled
+    // a little to one side, the feet relaxed.
+    const lc = await frozenChar(G, 'villager_m_8', {
+      x: laidAt.x, z: laidAt.z, y: gy, yaw: 0, base: 'idle', steps: 1.2, tint: [0.88, 0.93, 1.0],
+      pose: (ch) => {
+        nudge(ch, 'neck', 4, 0, 6);
+        nudge(ch, 'head', -2, 18, 14);
+        nudge(ch, 'shoulderL', 0, 0, 10);
+        nudge(ch, 'shoulderR', 0, 0, -8);
+        nudge(ch, 'thighL', 0, 0, 5);
+        nudge(ch, 'thighR', 0, 0, -4);
+        nudge(ch, 'footL', -12, 0, 14);
+        nudge(ch, 'footR', -10, 0, -12);
+      },
+    });
+    // Tilt back about his own right axis first, then turn him to lie along the limb (Euler YXZ).
+    lc.root.rotation.set(-Math.PI / 2, yawT + Math.PI / 2, 0, 'YXZ');
+    lc.root.position.set(laidAt.x, gy + 0.13, laidAt.z);
+    lc.root.updateMatrixWorld(true);
+    // His coat drawn up over his face: a dark wool drape over the head and chest, laid along the body.
+    const head = new THREE.Vector3(), chest = new THREE.Vector3();
+    (lc.bones.head || lc.root).getWorldPosition(head);
+    (lc.bones.chest || lc.bones.spine || lc.root).getWorldPosition(chest);
+    const along = head.clone().sub(chest).setY(0);
+    const len = Math.max(0.05, along.length());
+    const k = new Kit('laidCoat', { seed: 9 });
+    k.blob('cloth', 0.26, { pos: [0, 0, 0], scale: [1.3, 0.42, 1.75], detail: 2, tint: 0x4a3c30, jitter: 0.025, grime: 0.25 });
+    k.blob('cloth', 0.17, { pos: [0.1, 0.03, -0.3], scale: [1.4, 0.4, 1.1], detail: 1, tint: 0x3f3328, jitter: 0.02, grime: 0.25 });
+    k.blob('cloth', 0.1, { pos: [-0.22, -0.03, 0.28], scale: [1.2, 0.5, 1.6], detail: 1, tint: 0x3f3328, jitter: 0.02, grime: 0.2 });
+    const coat = k.build();
+    const mid = chest.clone().lerp(head, 0.55);
+    coat.position.set(mid.x, gy + 0.2, mid.z);
+    coat.rotation.y = Math.atan2(along.x / len, along.z / len);
+    coat.traverse((m) => { if (m.isMesh) m.castShadow = true; });
+    G.scene.add(coat);
+    return { c: lc, coat };
+  }
+  async function setCut(cut) {
+    man.pivot.visible = !cut;
+    stub.visible = cut;
+    if (cut && !laid) { building ||= layBody(); laid = await building; }
+    if (laid) { laid.c.root.visible = cut; laid.coat.visible = cut; }
+  }
   W.loc('crossroads', {
     id: 'crossroads',
     junction: new THREE.Vector3(J.x, c.ground(J.x, J.z), J.z),
     signpost: new THREE.Vector3(sp.x, spY, sp.z),
     tree: { x: tp.x, z: tp.z, y: tY },
-    hanged: { character: man, chest, feet: new THREE.Vector3(tip.x, footY, tip.z), tip },
+    hanged: { character: man, chest, feet: new THREE.Vector3(tip.x, footY, tip.z), tip, laidAt: new THREE.Vector3(laidAt.x, c.ground(laidAt.x, laidAt.z), laidAt.z) },
+    setCut, // setCut(true) takes him down and lays him beside the tree (async), setCut(false) puts him back
     note: chest.clone(), // note_hanged, pinned to his coat
     notePrompt: new THREE.Vector3(tip.x, c.ground(tip.x, tip.z) + 1.3, tip.z), // reachable under his feet
     raven: new THREE.Vector3(tip.x - tdx * 0.45, tip.y + 0.12, tip.z - tdz * 0.45), // perch on the limb

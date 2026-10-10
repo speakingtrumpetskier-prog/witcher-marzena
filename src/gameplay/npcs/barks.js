@@ -73,6 +73,19 @@ const SKY_CHILD = [
   "Don't talk to me, I'm at seventeen.",
 ];
 
+// Once Vesna has cut down the hanged man at the crossroads (flag hanged_cut): said in passing for a day or so,
+// by grown-ups in daylight, now and then. Nobody thanks her and nobody says it was right.
+const HANGED = [
+  "Somebody's cut Agnieszka's brother down.",
+  "He'll keep till the thaw. Can't dig in this.",
+  'Agnieszka took bread out to the crossroads this morning.',
+];
+const HANGED_BOGDAN = ["I'll send the sledge for him when the road's clear."];
+const HANGED_PAIRS = [
+  ['Who cut him down?', "Nobody's saying."],
+  ['Bogdan went out to the crossroads.', 'And?', 'Stood there. Came back.'],
+];
+
 // Pairs: lines alternate A, B, A...
 const SKY_PAIRS = [
   ['Where are they today?', 'Up. Snow by evening.'],
@@ -119,6 +132,7 @@ function swelling(G) {
 }
 
 const seenSky = (G) => !!G.state?.flag('planetnicy_seen');
+const cutDown = (G) => !!G.state?.flag('hanged_cut');
 
 // A line about the herders for this person now, or null (most of the time). Named people keep their own.
 function skyPool(G, npc, preset, tag, rand) {
@@ -143,7 +157,7 @@ export function chooseBark(G, npc, rand = Math.random) {
   if (sky) pool = sky;
   else if (id === 'zbyszek') pool = ZBYSZEK;
   else if (id === 'dobra') pool = DOBRA;
-  else if (id === 'bogdan') pool = BOGDAN;
+  else if (id === 'bogdan') pool = cutDown(G) && rand() < 0.4 ? HANGED_BOGDAN : BOGDAN;
   else if (id === 'hanka') pool = HANKA;
   else if (id === 'jarek') pool = JAREK;
   else if (/^(ola|child_)/.test(preset)) pool = CHILD;
@@ -151,6 +165,7 @@ export function chooseBark(G, npc, rand = Math.random) {
   else if (tag === 'market') pool = SELLER;
   else if (tag === 'forge') pool = SMITH;
   else if (isNight(G)) pool = NIGHT;
+  else if (cutDown(G) && rand() < 0.22) pool = HANGED;
   else if (G.state && G.state.flag('lair_seen') && rand() < 0.5) pool = DAY2;
   else pool = DAY;
   if (npc.def.barks) pool = Array.isArray(npc.def.barks) ? npc.def.barks : pool;
@@ -166,6 +181,7 @@ export function chooseExchange(G, a, b, rand = Math.random) {
   if (kids) return seenSky(G) && rand() < 0.35 ? pick(SKY_CHILD_PAIRS, rand) : pick(CHILD_PAIRS, rand);
   if (isNight(G)) return null;
   if (seenSky(G) && rand() < 0.3) return pick(SKY_PAIRS, rand);
+  if (cutDown(G) && rand() < 0.25) return pick(HANGED_PAIRS, rand);
   if (G.state && G.state.flag('lair_seen')) return pick(PAIRS_DAY2, rand);
   return pick(PAIRS, rand);
 }

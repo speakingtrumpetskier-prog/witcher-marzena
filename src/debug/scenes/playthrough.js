@@ -540,6 +540,24 @@ async function run(G, O, report) {
     ok('side_handbell done', G.quests.isDone('side_handbell'), `stage=${stage('side_handbell')}`);
     ok('the main story still did not move', stage('main_straw') === 'night', `main_straw=${stage('main_straw')}`);
 
+    // ---- Three Loaves: the hanged man's note asks for him to be cut down (optional) ----
+    step('side: three loaves');
+    const CR = G.world.locations.crossroads;
+    if (CR?.setCut) {
+      ok('no Three Loaves quest before the note', !G.quests.rec('side_hanged'));
+      await useIt('ctl:hanged_note', { wantPrompt: true });
+      ok('note read: note_hanged', notesRead.includes('note_hanged'));
+      flagOK(['hanged_read'], 'read the note pinned to his coat');
+      ok('side_hanged started at cut', stage('side_hanged') === 'cut', `stage=${stage('side_hanged')}`);
+      await useIt('ctl:hanged_cut', { wantPrompt: true });
+      await waitFor(() => S.flag('hanged_cut') && !CR.hanged.character.pivot.visible, 20, 'cut down');
+      flagOK(['hanged_cut'], 'cut him down');
+      ok('he is down: the hanging figure is hidden', !CR.hanged.character.pivot.visible);
+      ok('side_hanged done', G.quests.isDone('side_hanged'), `stage=${stage('side_hanged')}`);
+      ok('the read prompt is gone with him', G.interact.get('ctl:hanged_note')?.enabled?.() === false);
+      ok('the main story still did not move', stage('main_straw') === 'night', `main_straw=${stage('main_straw')}`);
+    } else ok('crossroads location loaded', false, 'no G.world.locations.crossroads.setCut', 'warn');
+
     // ---- the herders: five small notes, the bestiary that grows with them, and what the villagers say ----
     step('side: herders');
     for (const [iid, nid] of [['ctl:almanac', 'note_almanac'], ['ctl:slate', 'note_slate'], ['ctl:child_herders', 'note_child_herders'], ['ctl:shrine_paper', 'note_shrine_bells'], ['ctl:island_sky', 'note_island_sky']]) {

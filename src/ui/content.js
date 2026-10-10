@@ -36,6 +36,7 @@ export const QUEST_FALLBACK = {
   side_wolves: { title: 'Wolves at the Mill', kind: 'side', order: 13 },
   side_snow: { title: 'Snow Fight', kind: 'side', order: 14 },
   side_handbell: { title: 'The Hand-Bell', kind: 'side', order: 15 },
+  side_hanged: { title: 'Three Loaves', kind: 'side', order: 16 },
 };
 
 // kind: letter | diary | ledger | scrawl | carving | drawing | inscription | object
