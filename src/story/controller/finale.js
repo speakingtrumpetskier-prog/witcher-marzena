@@ -173,6 +173,16 @@ export function install(C) {
       clearField();
       if (P) P.invulnerable = true;
       await C.sleep(1.1);
+      // In play the authored scene asks (the marzanna shatters, Wiesia kneels, the scripted lines) and
+      // runs the ending it picks inline; tests that force an ending, and builds without it, ask here.
+      let authored = false;
+      if (!picked && G.cutscenes?.has?.('finale_choice')) {
+        FIN.phase = 'ending';
+        await C.scene('finale_choice');
+        const got = String(G.state.flag('ending') || '');
+        picked = Object.keys(ENDINGS).find((k) => ENDINGS[k].ending === got) || 'call';
+        authored = true;
+      }
       if (!picked) picked = await askChoice(boss);
       const E = ENDINGS[picked] || ENDINGS.call;
       // The marzanna is gone from the ice; what the endings show is Wiesia herself.
@@ -181,18 +191,24 @@ export function install(C) {
       C.set('ending', E.ending);
       FIN.phase = 'ending';
       if (P) P.invulnerable = false;
-      const sc = C.scene(E.scene);
-      await C.sleep(0.4);
-      G.story.ui.fade(0, 1.0);
-      await sc;
+      if (!authored) {
+        const sc = C.scene(E.scene);
+        await C.sleep(0.4);
+        G.story.ui.fade(0, 1.0);
+        await sc;
+      }
       releaseWitnesses();
       FIN.phase = 'epilogue';
+      // The epilogue rolls the credits itself (except in shot mode); roll them here only if it did not.
+      let rolled = false;
+      const credits = G.ui?.credits;
+      if (G.ui && credits) G.ui.credits = (...a) => { rolled = true; return credits(...a); };
       const ep = C.scene('epilogue_knot');
       await C.sleep(0.4);
       G.story.ui.fade(0, 1.0);
-      await ep;
+      try { await ep; } finally { if (G.ui && credits) G.ui.credits = credits; }
       FIN.phase = 'credits';
-      await G.ui?.credits?.();
+      if (!rolled) await G.ui?.credits?.();
       C.set('game_complete');
       G.quests.complete('main_rite');
       FIN.phase = 'done';

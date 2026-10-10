@@ -49,7 +49,7 @@ export async function init(G) {
       const P = G.player;
       if (!P || !actor) return;
       const r = actor.root.position;
-      if (typeof P.teleport === 'function') P.teleport(r.x, r.z, actor.yaw);
+      if (typeof P.teleport === 'function') P.teleport(r.x, r.z, actor.yaw, r.y);
       else if (P.position) { P.position.copy(r); if ('yaw' in P) P.yaw = actor.yaw; }
     },
   };

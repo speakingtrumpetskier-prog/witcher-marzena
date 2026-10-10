@@ -22,7 +22,7 @@
 //   d.choice(options, { timer, default, decisive }) -> index   (skipping stops here)
 //   d.tween(obj, prop, to, s, ease)  d.uniform(name, to, s, ease)  d.postfx(prop, to, s, ease)
 //   d.atmosphere(override | null)    d.parallel(...promises)   d.skipping (bool)
-//   d.end({ player: { x, z, yaw }, fadeIn = 1 })
+//   d.end({ player: { x, z, yaw, y? }, fadeIn = 1 })   y: stand on the floor nearest that height
 // Helpers: d.ground(x, z, h) d.rel(actor, [right, up, forward]) d.head(actor) d.at(actor, frac)
 //   d.two(a, b, { wide }) d.ots(subject, over) d.close(subject, toward) d.single(subject, toward)
 //   d.ghost(actor, on, { color, opacity }) d.hide(actor) d.show(actor) d.dialogue(id, opts)
@@ -166,7 +166,7 @@ export class Cutscenes {
     ui.hideTitleCard?.();
     const playerActor = this.stage.has('vesna') ? this.stage.get('vesna') : null;
     for (const a of this.stage.list()) { a.talk(false); a.lookAt(null); }
-    if (endOpts.player && G.player?.teleport) G.player.teleport(endOpts.player.x, endOpts.player.z, endOpts.player.yaw ?? G.player.yaw);
+    if (endOpts.player && G.player?.teleport) G.player.teleport(endOpts.player.x, endOpts.player.z, endOpts.player.yaw ?? G.player.yaw, endOpts.player.y);
     else if (playerActor?.isPlayer) this.story.syncPlayer(playerActor);
     this.stage.releaseAll();
     this.stage = null;

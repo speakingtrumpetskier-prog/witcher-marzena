@@ -727,7 +727,8 @@ async function run(G, O, report) {
     report.ending = S.flag('ending');
     step('ending');
     await waitFor(() => C.finale.phase === 'epilogue' || C.finale.phase === 'credits' || C.finale.phase === 'done', 150, 'ending over');
-    ok(`ending scene played: ending_${want}`, report.scenes.includes(`ending_${want}`), report.scenes.join(','));
+    // The authored finale_choice runs the picked ending inline; without it the ending plays as its own scene.
+    ok(`ending scene played: ending_${want}`, report.scenes.includes(`ending_${want}`) || (report.scenes.includes('finale_choice') && S.flag('ending') === want), report.scenes.join(','));
     step('epilogue');
     await waitFor(() => C.finale.phase === 'credits' || C.finale.phase === 'done', 150, 'epilogue over');
     ok('epilogue played', report.scenes.includes('epilogue_knot'));

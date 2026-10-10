@@ -5,7 +5,8 @@
 //   state   'explore' | 'combat' | 'mounted' | 'scripted' | 'dead'      swordDrawn, mounted, target, surface
 //   setControl(bool)   false: input-driven movement freezes and the character root is never written
 //                      (the story drives it); true: the player resumes from the root's pose
-//   teleport(x, z, yaw)            clean snap (resets actions, locomotion, camera)
+//   teleport(x, z, yaw, y?)        clean snap (resets actions, locomotion, camera); y picks the floor
+//                                  nearest that height (a belfry, a cellar) instead of the ground
 //   mount() / dismount()           with Kasza (G.horse)
 //   damage(amount, { from, knockback, stagger }) -> { result, dealt }     heal(n)
 //   isInvulnerable() / isParrying() / isBlocking()      setTarget(enemy | null)      respawn()
@@ -124,12 +125,12 @@ class Player {
     G.events.emit('player:control', { control: on });
   }
 
-  teleport(x, z, yaw = this.yaw) {
+  teleport(x, z, yaw = this.yaw, y) {
     if (this.mounted) this.dismountInstant();
     const c = this.character;
     this.moves.cancelAll();
     this.loco.reset(yaw);
-    this.position.set(x, groundY(x, z), z);
+    this.position.set(x, groundY(x, z, Number.isFinite(y) ? y + 0.05 : undefined), z);
     c.setPosition(x, z, this.position.y);
     c.yaw = yaw;
     c.stop(0.1);

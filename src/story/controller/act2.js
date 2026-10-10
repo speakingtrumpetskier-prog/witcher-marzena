@@ -46,7 +46,8 @@ export function install(C) {
   }
   function makeRing() {
     if (ring || !G.creatures || C.has('effigies_fought')) return;
-    ring = { list: G.creatures.spawnEffigyRing(RING.x, RING.z, 5, RING.r, { angle: 0.4 }), woke: 0 };
+    // wake: 0 so the controller paces them (three, then two); their own proximity wake would raise all five.
+    ring = { list: G.creatures.spawnEffigyRing(RING.x, RING.z, 5, RING.r, { angle: 0.4, wake: 0 }), woke: 0 };
   }
   function wake(n) {
     if (!ring) return;
@@ -74,7 +75,8 @@ export function install(C) {
     tick += dt;
     if (tick < 0.5 || !ring) return;
     tick = 0;
-    const live = ring.list.filter(alive).length;
+    // Standing ones only: the dormant pair waiting in the drift do not count.
+    const live = ring.list.filter((e) => alive(e) && e.state !== 'dormant').length;
     if (ring.woke >= 3 && ring.woke < 5 && live <= 1) { wake(2); C.log('marzanny rise: 2 more'); }
     if (ring.woke >= 5 && live === 0) {
       C.set('effigies_fought');
