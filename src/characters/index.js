@@ -15,9 +15,11 @@ import { Character } from './Character.js';
 import { presetSpec, PRESET_IDS, MAIN_CAST } from './presets.js';
 import { clipNames, registerClips, getClip } from './clips/index.js';
 import { buildLibrary } from './clips/library.js';
+import { buildFishing } from './clips/fishing.js';
 import { createHorse as makeHorse } from './horse.js';
 
 registerClips(buildLibrary);
+registerClips(buildFishing);
 
 const live = [];
 const _frustum = new THREE.Frustum();

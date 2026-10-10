@@ -296,6 +296,33 @@ const QUESTS = {
     ],
   },
 
+  // Optional. Bogdan wants the pike under the bell tower on a table; he lends his father's line (src/story/content/dialogues/
+  // bogdan_fish.js, src/story/controller/side.js, src/gameplay/fishing). Nothing in the main story reads these flags.
+  side_oldone: {
+    title: 'The Old One', kind: 'side',
+    stages: [
+      {
+        id: 'cut', objective: 'Cut a hole at the thin ice by the bell tower', marker: 'bellTower',
+        journal: "Bogdan, the reeve, wants the old pike out from under the bell tower. It has broken every line put down there for years. His father's line, waxed horsehair and flax, is in my pack. The ice is thin by the tower where a rag is tied to a stake. Cut a hole there, no wider than a bucket. Go at night.",
+        log: 'Cut a hole at the thin place by the tower. About as wide as a bucket.',
+        done: (S) => !!S.flag('oldone_hole'), sets: ['oldone_heard', 'oldone_asked', 'oldone_hole'], give: { strong_line: 1 },
+        debug: { day: 1, time: 23, weather: 'clear', at: [108, -142, 2.6] },
+      },
+      {
+        id: 'wait', objective: 'Fish the hole at night, with the jig on the bottom', marker: 'bellTower',
+        log: 'Landed it. A pike nearly as long as I am tall, three old hooks in its jaw, one with red wool still tied to it.',
+        done: (S) => !!S.flag('oldone_landed'), sets: ['oldone_landed'],
+        debug: { day: 1, time: 23.5, weather: 'clear', at: [112, -150, 2.6] },
+      },
+      {
+        id: 'bring', objective: 'Take the pike to Bogdan', marker: 'longhouse',
+        log: "Bogdan weighed it on the grain scale and paid by the kilo. The first of it goes to Pawlak's house. The red wool was Stach's.",
+        done: (S) => !!S.flag('oldone_paid'), sets: ['oldone_paid'], give: { coins: 66 },
+        debug: { day: 2, time: 9, weather: 'overcast', at: [5, 104, 3.14] },
+      },
+    ],
+  },
+
   side_snow: {
     title: 'Snow Fight', kind: 'side',
     stages: [

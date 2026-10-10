@@ -1,8 +1,9 @@
 // Lake ice and water, the frozen river and the frozen waterfall (owner: terrain builder).
 //
 // Public API (G.water):
-//   addHole(x, z, r = 0.6) -> id    dark open-water hole in the ice with a slush ring (max 16, -1 if full)
+//   addHole(x, z, r = 0.6) -> id    dark open-water hole in the ice with a slush ring (max 24, -1 if full)
 //   removeHole(id)
+//   setHoleRadius(id, r)            widen or shrink a hole (chipping a new one open)
 //   setUnderGlow(x, z, radius, intensity, color?)   pale light under the ice (intensity 0 = off)
 //   setCracks(x, z, radius, amount) crack network on the ice, amount 0..1 grows it (animatable)
 //   setThaw(t)                      0 frozen .. 1 open water; sets G.world.thawed when t > 0.5
@@ -223,6 +224,9 @@ export async function init(G) {
     },
     removeHole(id) {
       if (holes[id]) holes[id].w = 0;
+    },
+    setHoleRadius(id, r) {
+      if (holes[id] && holes[id].w > 0.5) holes[id].z = Math.max(0.01, r);
     },
     setUnderGlow(x, z, radius, intensity, color) {
       uniforms.uMzGlow.value.set(x, z, radius, intensity);

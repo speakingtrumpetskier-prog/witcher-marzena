@@ -554,7 +554,7 @@ export async function init(G) {
       // Without a player (debug scenes), measure from the camera.
       if (!P) U.uPlayerPos.value.set(G.camera.position.x, ground(G.camera.position.x, G.camera.position.z), G.camera.position.z);
       const canUse = !G.story?.busy && (!G.input || G.input.context === 'game')
-        && !(P?.swordDrawn) && P?.state !== 'dead' && P?.state !== 'combat';
+        && !(P?.swordDrawn) && P?.state !== 'dead' && P?.state !== 'combat' && !G.fishing?.active;
       const want = forced != null ? forced : canUse && !!G.input?.down('senses');
       const wasActive = active;
       const prevLevel = level;

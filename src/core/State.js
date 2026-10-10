@@ -21,6 +21,7 @@ function fresh() {
     clock: null, // { day, hours }
     weather: null,
     stats: { kills: 0 },
+    fish: { basket: [], log: {}, caught: 0, sold: 0, line: 'normal' }, // gameplay/fishing
   };
 }
 

@@ -20,7 +20,7 @@ const elbowBack = (S) => v3((S === 'L' ? 1 : -1) * 0.25, -0.4, -1);
 const SW = (base, w, dir, extra) => aimHand(R(mergePose(base, extra), 'R', w, { elbow: v3(-0.5, -0.6, -0.4) }), 'R', v3(...dir));
 
 // Legs solved for a pelvis drop and foot placements (root space).
-function legs(pose, drop, fl, fr, o = {}) {
+export function legs(pose, drop, fl, fr, o = {}) {
   const hipY = HIPJ + drop;
   const out = { ...pose, $hips: [o.x ?? 0, drop, o.z ?? 0] };
   for (const [sgn, S, f] of [[1, 'L', fl], [-1, 'R', fr]]) {
@@ -33,7 +33,7 @@ function legs(pose, drop, fl, fr, o = {}) {
   }
   return out;
 }
-const A = 0.081; // ankle height
+export const A = 0.081; // ankle height
 
 export function buildLibrary(lib, lazy) {
   // Lazy blocks: a block bakes (all its clips) the first time any of its clips is requested.

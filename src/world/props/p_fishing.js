@@ -244,14 +244,30 @@ export function iceFishingHole(o = {}) {
   const r = (o.radius || 0.26) + k.rs(0.03);
   k.push({ yaw: k.r(0, TAU) });
   k.anchor('stand', 0, 0, 0.75); k.anchor('hole', 0, 0.01, 0);
-  // Dark water (glossy ice material, near black)
-  k.cyl('water', r, r, 0.004, { pos: [0, 0.006, 0], radial: 14, tint: 0x0a1822, grime: 0, var: 0.0, cap: 'water' });
-  // Slush ring: lumpy flattened mounds around the rim.
-  const n = 8;
-  for (let i = 0; i < n; i++) {
-    const a = (i / n) * TAU + k.rs(0.1);
-    const rr = r * (1.05 + k.rs(0.08));
-    k.mound(r * k.r(0.8, 1.3), r * 0.28, r * k.r(0.6, 0.9), { pos: [Math.cos(a) * rr, 0.004, Math.sin(a) * rr], rot: [0, -a, 0], tint: k.pick([0xc8d4dc, 0xd8e2e8, 0xb8c6d0]), jseed: i });
+  // Dark water (glossy ice material, near black). A hole cut through G.water (o.open) is real open water in the ice shader,
+  // so the prop only dresses the rim.
+  if (!o.open) k.cyl('water', r, r, 0.004, { pos: [0, 0.006, 0], radial: 14, tint: 0x0a1822, grime: 0, var: 0.0, cap: 'water' });
+  if (o.open) {
+    // A hole cut with a spud: a ragged rim of chopped plates lying flat round the water, greenish where the ice is thick,
+    // and a lip of slush on the cut edge.
+    const n = 11;
+    for (let i = 0; i < n; i++) {
+      const a = (i / n) * TAU + k.rs(0.22);
+      const rr = r * (1.16 + k.r(0, 0.4));
+      k.blob('ice', r * k.r(0.2, 0.36), { pos: [Math.cos(a) * rr, 0.012, Math.sin(a) * rr], scale: [1.3, 0.2, 0.85], rot: [k.rs(0.06), -a + k.rs(0.4), k.rs(0.06)], detail: 0, flat: true, jitter: 0.014, tint: k.pick([0xd0e4ee, 0xdcecf4, 0xc2d8e6, 0xe4f0f6]), grime: 0 });
+    }
+    for (let i = 0; i < 7; i++) {
+      const a = k.r(0, TAU), rr = r * (1.0 + k.r(0, 0.12));
+      k.mound(r * k.r(0.35, 0.6), r * 0.1, r * k.r(0.25, 0.4), { pos: [Math.cos(a) * rr, 0.004, Math.sin(a) * rr], rot: [0, -a, 0], tint: 0xe2ecf2, jseed: i });
+    }
+  } else {
+    // Slush ring: lumpy flattened mounds around the rim.
+    const n = 8;
+    for (let i = 0; i < n; i++) {
+      const a = (i / n) * TAU + k.rs(0.1);
+      const rr = r * (1.05 + k.rs(0.08));
+      k.mound(r * k.r(0.8, 1.3), r * 0.28, r * k.r(0.6, 0.9), { pos: [Math.cos(a) * rr, 0.004, Math.sin(a) * rr], rot: [0, -a, 0], tint: k.pick([0xc8d4dc, 0xd8e2e8, 0xb8c6d0]), jseed: i });
+    }
   }
   // Chopped ice chunks flung to one side.
   for (let i = 0; i < 6; i++) {
@@ -259,7 +275,7 @@ export function iceFishingHole(o = {}) {
     k.blob('ice', 0.07, { pos: [Math.cos(a) * d, 0.03, Math.sin(a) * d], scale: [1, 0.6, 1.2], rot: [k.rs(0.4), k.r(0, TAU), k.rs(0.4)], detail: 0, flat: true, jitter: 0.015, tint: k.pick([0xd8ecf8, 0xe8f4fc]) });
   }
   // Skim of new ice with radial cracks over part of the hole (the "slush skin").
-  if (o.skim !== false) {
+  if (o.skim !== false && !o.open) {
     const ph = k.r(0, TAU);
     k.sph('ice', r * 1.02, { pos: [0, 0.008, 0], scale: [1, 0.01, 1], ws: 8, hs: 3, p0: ph, p1: 2.0, t0: 0, t1: Math.PI / 2, tint: 0xdde8ee, grime: 0, jitter: 0.002 });
     k.cyl('snowMound', r * 0.3, r * 0.3, 0.006, { pos: [Math.cos(ph + 1) * r * 0.45, 0.012, Math.sin(ph + 1) * r * 0.45], radial: 8, tint: 0xd0dce4, grime: 0.1, cap: 'snowMound' });
@@ -269,6 +285,24 @@ export function iceFishingHole(o = {}) {
     k.cyl('wood', 0.012, 0.012, r * 3.2, { pos: [0, 0.03, 0], rot: [0, 0, Math.PI / 2], radial: 5, tint: 0xb8a088, cap: null });
     k.tube('rope', [[0, 0.03, 0], [0.01, -0.1, 0.02]], 0.003, { radial: 3, tint: 0xe0e0d8 });
   }
+  k.pop();
+  k.ud.align = 0.2;
+  return k.build();
+}
+
+// A forked branch on a stake driven into the snow, with a spare rod laid in the fork and a coil of line on the stake.
+// Stands at the elbow of a fishing hole (gameplay/fishing).
+export function rodRest(o = {}) {
+  const k = new Kit('rodRest', o);
+  k.push({ yaw: o.yaw || 0 });
+  k.cyl('wood', 0.016, 0.024, 0.6, { pos: [0, 0.27, 0], rot: [0.08, 0, 0.06], radial: 5, tint: 0x8a7a68, jitter: 0.004, cap: 'logEnd' });
+  for (const s of [-1, 1]) k.cyl('wood', 0.01, 0.013, 0.26, { pos: [s * 0.075, 0.6, 0], rot: [0, 0, -s * 0.55], radial: 4, tint: 0x9a8a76, jitter: 0.003, cap: 'logEnd' });
+  if (o.rod !== false) {
+    k.cyl('wood', 0.006, 0.011, 0.95, { pos: [0, 0.66, 0.38], rot: [1.42, 0, 0.04], radial: 4, tint: 0x6a5238, cap: null });
+    k.cyl('wood', 0.013, 0.013, 0.2, { pos: [0, 0.62, -0.08], rot: [1.42, 0, 0.04], radial: 5, tint: 0xc4ae98, cap: 'logEnd' });
+  }
+  k.torus('rope', 0.05, 0.007, { pos: [0.02, 0.38, 0.03], rot: [Math.PI / 2, 0, 0], seg: 10, rseg: 3, tint: 0xd8d8cc });
+  if (!o.indoor) k.mound(0.3, 0.07, 0.3, { pos: [0, 0.0, 0], jseed: 1 });
   k.pop();
   k.ud.align = 0.2;
   return k.build();

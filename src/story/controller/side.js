@@ -7,6 +7,8 @@
 //   the bear      asleep in its den; the silver sword of Wit of the Lynx beside the old hunter (flag wit_sword)
 //   island        the carved stones (note_island), Bogdan's boot prints, the place of power (flag island_power)
 //   side_handbell Bozena's hand-bell: take it off its pole at the ritual ring, ring it there at dusk, tell her
+//   side_oldone   Bogdan's pike: cut the thin place by the bell tower (G.fishing.cutHole), fish it at night with his line
+//                 (gameplay/fishing lands the pike and sets oldone_landed), take it to him (bogdan_fish.js pays)
 import { props } from '../../world/props/index.js';
 
 export function install(C) {
@@ -17,6 +19,7 @@ export function install(C) {
   bear(C);
   island(C);
   handbell(C);
+  oldone(C);
 }
 
 // ---- A Bird for Wiesia ------------------------------------------------------------------------
@@ -310,4 +313,31 @@ function handbell(C) {
       });
     },
   });
+}
+
+// ---- The Old One --------------------------------------------------------------------------------------------------
+// Bogdan (bogdan_fish.js) tells her about the pike under the bell tower and lends his father's line (oldone_asked, item
+// strong_line). By the tower a stake with a rag marks thin ice: until she has been asked it is only an Examine; after, she
+// can cut a hole there with the sword (fishing/cut.js) and sit at it. The pike takes the line only at night and only on a
+// jig held near the bottom (fishing/model.js OldOne); landing it sets oldone_landed; Bogdan pays by the kilo and takes the
+// line back (oldone_paid). A saved game that had cut the hole gets it back.
+function oldone(C) {
+  const { G } = C;
+  const spot = G.world?.locations?.fishing?.byId?.tower;
+  if (!spot || !G.fishing) return;
+  const near = C.v3(spot.cutAt.x, 1, spot.cutAt.z);
+  C.interact({
+    id: 'oldone_look', pos: near, radius: 3.4, facing: false, verb: 'Examine', label: 'Marked ice',
+    enabled: () => !spot.open && !C.has('oldone_asked'),
+    onUse: async () => { C.say('Thin here. Somebody tied a rag to the stake.', 3.2); },
+  });
+  C.interact({
+    id: 'oldone_cut', pos: near, radius: 3.4, facing: false, verb: 'Cut', label: 'Thin ice by the tower',
+    enabled: () => !spot.open && C.has('oldone_asked') && !G.fishing.cutting,
+    onUse: async () => {
+      const ok = await G.fishing.cutHole(spot);
+      if (ok) C.set('oldone_hole');
+    },
+  });
+  C.restore(() => { if (C.has('oldone_hole') && !spot.open) spot.cutInstant?.(); });
 }

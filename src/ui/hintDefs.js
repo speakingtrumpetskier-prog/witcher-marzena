@@ -1,7 +1,7 @@
 // The first-use hints: what each one says, when it becomes relevant, and what counts as the player
 // having done it. The machinery (queue, card, persistence) is in hints.js.
 //
-// A hint is { id, prio, delay, seconds, side, scene, rows, watch }:
+// A hint is { id, prio, delay, seconds, side, scene, fishing, until, rows, watch }:
 //   prio      lower shows first when several are ready
 //   watch(c)  true while the hint is relevant. It must stay true for `delay` seconds (default 0.8) to appear
 //   rows      what the card lists. A row is { action, text, hold } for a binding, or { kind: 'move' | 'look', text }.
@@ -9,6 +9,7 @@
 //             show time whether the row is needed; `done` is an event name or a function(c) saying it was done
 //             (default: the action was pressed, or held for `hold` rows)
 //   scene     shown during a skippable cutscene instead of free play (the skip hint)
+//   fishing   shown while sitting at a fishing hole (c.fishing is G.fishing); until(c) closes the card early
 // c is the context built in hints.js: c.G, c.P, c.live (seconds of uninterrupted play), c.walked and c.rode
 // (metres), c.inCombat, c.enemies(r), c.since(event), c.down(a), c.pressed(a), c.sprinted ...
 // Text is plain and short. The card never says what the prompt on screen already says twice.
@@ -150,6 +151,30 @@ export const HINTS = [
     id: 'walk', prio: 7, delay: 2, seconds: 9,
     rows: [{ action: 'walk', text: 'Walk, press to toggle', pad: { kind: 'move', text: 'Tilt the stick gently to walk' } }],
     watch: (c) => c.seen('sprint') && !c.mounted && near(c, LOC.village.x, LOC.village.z, LOC.village.r) && c.walked > 60,
+  },
+  // Sitting at a fishing hole (fishing: true cards show only then, see hints.js _fishing). `until` closes a card early.
+  {
+    id: 'fish_line', prio: 2, delay: 0.5, seconds: 16, fishing: true,
+    rows: [
+      { action: 'fishSlack', hold: true, text: 'Let the line down' },
+      { action: 'fishJig', text: 'Jig it. Strike when the tip twitches' },
+    ],
+    watch: (c) => c.fishing?.phase === 'fish',
+    until: (c) => c.fishing?.phase === 'fight',
+  },
+  {
+    id: 'fish_fight', prio: 1, delay: 0.1, seconds: 15, fishing: true,
+    rows: [
+      { action: 'fishReel', hold: true, text: 'Reel while it rests' },
+      { action: 'fishSlack', hold: true, text: 'Let line out when it runs' },
+    ],
+    watch: (c) => c.fishing?.phase === 'fight',
+    until: (c) => c.fishing?.phase !== 'fight',
+  },
+  {
+    id: 'fish_stand', prio: 3, delay: 1.5, seconds: 9, fishing: true,
+    rows: [{ action: 'fishLeave', text: 'Stand up when you are done' }],
+    watch: (c) => c.fishing?.phase === 'fish' && c.fishing.catches > 0,
   },
   {
     id: 'pause', prio: 8, delay: 3, seconds: 10,

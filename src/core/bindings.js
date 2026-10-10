@@ -6,7 +6,7 @@
 //   ACTIONS                     [{ id, label, group, ctx, fixed, hold, mode }] in display order
 //   keyLabel(code) / padLabel(code, style)   plain text for a code ('W', 'Space', 'RMB', 'LB')
 //
-// ctx says where an action is read: 'game' (free play) or 'scene' (cutscenes and dialogue). Two actions
+// ctx says where an action is read: 'game' (free play), 'scene' (cutscenes and dialogue) or 'fish' (sitting at a hole). Two actions
 // only conflict when they share a code AND a context; `mode` marks the pair that is exclusive by design
 // (heavy attack needs the sword drawn, hunter senses need it sheathed, so both sit on the right mouse button).
 
@@ -43,6 +43,11 @@ export const DEFAULT_KBM = {
   pause: ['Escape'],
   skip: ['Space'],
   advance: ['Space', 'Enter', 'Mouse0', 'KeyE'],
+  // Fishing: read only while Vesna sits at a hole (context 'fish'), so these may share keys with the game actions.
+  fishReel: ['Mouse0'],
+  fishSlack: ['Mouse2'],
+  fishJig: ['Space'],
+  fishLeave: ['KeyQ'],
   debugCam: ['F1'],
 };
 
@@ -70,13 +75,18 @@ export const DEFAULT_PAD = {
   pause: ['PadStart'],
   skip: ['PadB'],
   advance: ['PadA'],
+  fishReel: ['PadRT'],
+  fishSlack: ['PadLT'],
+  fishJig: ['PadA'],
+  fishLeave: ['PadB'],
   debugCam: [],
 };
 
-export const GROUPS = ['Movement', 'Camera', 'Combat', 'Signs', 'Horse', 'Interaction and senses', 'Menus'];
+export const GROUPS = ['Movement', 'Camera', 'Combat', 'Signs', 'Horse', 'Interaction and senses', 'Fishing', 'Menus'];
 
 const G_ = ['game'];
 const S_ = ['scene'];
+const F_ = ['fish'];
 export const ACTIONS = [
   { id: 'forward', label: 'Move forward', group: 'Movement', ctx: G_, stick: 'Left stick' },
   { id: 'back', label: 'Move back', group: 'Movement', ctx: G_, stick: 'Left stick' },
@@ -101,6 +111,10 @@ export const ACTIONS = [
   { id: 'senses', label: 'Hunter senses', group: 'Interaction and senses', ctx: G_, hold: true, mode: 'sheathed' },
   { id: 'skip', label: 'Skip a cutscene', group: 'Interaction and senses', ctx: S_, hold: true },
   { id: 'advance', label: 'Continue a dialogue line', group: 'Interaction and senses', ctx: S_, fixed: true },
+  { id: 'fishReel', label: 'Reel in, raise the jig', group: 'Fishing', ctx: F_, hold: true },
+  { id: 'fishSlack', label: 'Let line out, lower the jig', group: 'Fishing', ctx: F_, hold: true },
+  { id: 'fishJig', label: 'Jig, and strike', group: 'Fishing', ctx: F_ },
+  { id: 'fishLeave', label: 'Stand up from the hole', group: 'Fishing', ctx: F_ },
   { id: 'journal', label: 'Journal', group: 'Menus', ctx: G_ },
   { id: 'map', label: 'Map', group: 'Menus', ctx: G_ },
   { id: 'pause', label: 'Pause menu', group: 'Menus', ctx: G_, fixed: true },
