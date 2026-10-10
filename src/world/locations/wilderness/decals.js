@@ -506,9 +506,11 @@ export function groundRibbon(G, o) {
       uv.push(s < 0 ? 0 : 1, acc / repeat);
     }
   }
+  // a is the right edge (s = -1), b the left: (a, b, c) is counter-clockwise from above, so the strip faces
+  // up. The old (a, c, b) faced down and the front-sided decal material culled every ribbon.
   for (let i = 0; i < path.length - 1; i++) {
     const a = i * 2, b = a + 1, c = a + 2, e = a + 3;
-    idx.push(a, c, b, b, c, e);
+    idx.push(a, b, c, b, e, c);
   }
   const geo = new THREE.BufferGeometry();
   geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
