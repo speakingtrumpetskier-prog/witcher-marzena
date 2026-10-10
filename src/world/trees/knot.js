@@ -166,7 +166,7 @@ export function buildKnot(v, lod = 0) {
   finish(b, v0, t0, [0.4, 0.78, 0.95]);
   // the red thread wound round hoop A, and its loose tail
   if (lod < 2) {
-    const turns = 15;
+    const turns = 9;
     const arc = [];
     const n = lod === 0 ? 70 : 30;
     const a0 = lA.a + 0.7, a1 = a0 + 2.1;
@@ -182,8 +182,8 @@ export function buildKnot(v, lod = 0) {
     const end = arc[arc.length - 1];
     // a loose tail
     const tail = [end, [end[0] + 0.05, end[1] - 0.5, end[2] + 0.12], [end[0] - 0.1, end[1] - 1.1, end[2] + 0.2], [end[0] + 0.06, end[1] - 1.7, end[2] + 0.1]];
-    sweep(b, arc, 4, { radius: () => 0.016 * S + 0.004, color: () => PAL.red, flex: 0.1, phase: 5 });
-    sweep(b, spline(tail, 3), 4, { radius: (i, t) => 0.018 * S * (1 - 0.4 * t) + 0.004, color: () => PAL.red, flex: (t) => 0.2 + 0.8 * t, phase: 7 });
+    sweep(b, arc, 4, { radius: () => 0.042 * S + 0.008, color: () => PAL.red, flex: 0.1, phase: 5 });
+    sweep(b, spline(tail, 3), 4, { radius: (i, t) => 0.046 * S * (1 - 0.4 * t) + 0.008, color: () => PAL.red, flex: (t) => 0.2 + 0.8 * t, phase: 7 });
   }
 
   return {
