@@ -52,7 +52,7 @@ export const HINTS = [
     watch: (c) => !!c.G.interact?.current && c.live > 2,
   },
   {
-    id: 'senses', prio: 2, delay: 1.5, seconds: 11,
+    id: 'senses', prio: 2, delay: 4, seconds: 11, // the story teaches it first at the cart (G.ui.hint); this covers the other clues
     rows: [{ action: 'senses', hold: true, text: 'Hunter senses', done: 'senses:on' }],
     watch: (c) => {
       const S = c.G.senses;

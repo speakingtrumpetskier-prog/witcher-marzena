@@ -2,7 +2,8 @@
 // player's real binding for the device in hand (keycaps for keyboard and mouse, button glyphs for a pad).
 //
 // What shows when is data in hintDefs.js. This file is the machinery:
-//   - one card at a time, the most urgent first, with a pause of a few seconds between cards;
+//   - one card at a time on the left (the most urgent first, a pause of a few seconds between cards) and one on
+//     the right, which only the skip-the-cutscene hint uses, so a story card and the skip hint can share a scene;
 //   - a card ends when the player does the thing (the row ticks, then it fades), or after its timeout;
 //   - nothing appears during cutscenes, dialogue, menus, the title, letterbox or a fade, and a card on screen
 //     leaves at once when one of those begins (it comes back later unless it had been there for a while);
@@ -13,6 +14,7 @@
 //   G.hints.prompt([[key, label]], s) a card for story code (G.ui.hint): immediate, not persisted, null clears it.
 //                                     key names a default key ('E', 'Hold RMB', 'Move') and shows the real binding
 //   G.hints.hide()  G.hints.seen(id)  G.hints.markSeen(id)  G.hints.reset()  G.hints.ids  G.hints.enabled
+//   G.hints.cur                       the card on screen (left, else right) or null
 // In shot mode (the harness) the automatic hints stay off unless the URL has &hints; show() still works.
 import { h, svg, clear, store } from './dom.js';
 import { actionGlyph, moveGlyph, lookGlyph, labelGlyph, labelAction } from './glyphs.js';
@@ -22,6 +24,7 @@ const SEEN_KEY = 'marzena.hints.seen';
 const TICK = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.6l3.2 3.2L13 4.6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 const ENDING = 0.9; // seconds a finished card stays before it fades
 const SCAN = 0.2;
+const SLOTS = ['left', 'right'];
 
 function loadSeen() {
   try {
@@ -37,9 +40,9 @@ export class Hints {
     this.defs = new Map(HINTS.map((d) => [d.id, { ...d, _t: 0 }]));
     this.ids = HINTS.map((d) => d.id);
     this.seenSet = new Set(loadSeen());
-    this.cur = null;
-    this.gap = 1.5;
-    this.last = {}; // event -> game time it last fired
+    this.slot = { left: null, right: null };
+    this.gap = { left: 1.5, right: 0 };
+    this.last = {}; // event -> clock time it last fired
     this.payload = {};
     this.liveT = 0; // seconds of uninterrupted play
     this.play = 0; // seconds of play this session
@@ -48,6 +51,7 @@ export class Hints {
     this.flags = { sprinted: false, galloped: false };
     this._scanT = 0;
     this._lastPos = null;
+    this._eval = null; // the card whose rows are being checked (c.fired looks at its start time)
     this.c = this._makeContext();
 
     this.layer = h('div', { class: 'mz-layer mz-hintlayer' });
@@ -56,13 +60,17 @@ export class Hints {
     const stamp = (name) => (p) => { this.last[name] = G.clock.elapsed; this.payload[name] = p; };
     for (const name of EVENTS) if (!name.startsWith('ui:open:')) G.events.on(name, stamp(name));
     G.events.on('ui:open', (p) => stamp(`ui:open:${p?.name}`)(p));
-    G.events.on('input:device', () => { if (this.cur && !this.cur.story) this._rebuild(this.cur); });
-    G.events.on('input:bindings', () => { if (this.cur && !this.cur.story) this._rebuild(this.cur); });
+    const redo = () => { for (const card of this._cards()) if (!card.story) this._rebuild(card); };
+    G.events.on('input:device', redo);
+    G.events.on('input:bindings', redo);
   }
 
   get enabled() {
     return this.G.settings?.hints !== false && !(this.G.shot && !this.G.params.has('hints'));
   }
+
+  get cur() { return this.slot.left || this.slot.right; }
+  _cards() { return SLOTS.map((s) => this.slot[s]).filter(Boolean); }
 
   seen(id) { return this.seenSet.has(id); }
   markSeen(id) {
@@ -74,7 +82,7 @@ export class Hints {
     this.seenSet.clear();
     store.set(SEEN_KEY, '');
     for (const d of this.defs.values()) d._t = 0;
-    this.gap = 2;
+    this.gap.left = 2;
   }
 
   // ---- context for the definitions -------------------------------------------------------------------
@@ -102,8 +110,9 @@ export class Hints {
         });
       },
       since(name) { return G.clock.elapsed - (self.last[name] ?? -1e9); },
+      // Did the event fire after the card being checked came up (and does its payload pass pred)?
       fired(name, pred) {
-        const t0 = self.cur?.t0 ?? G.clock.elapsed;
+        const t0 = self._eval?.t0 ?? G.clock.elapsed;
         return (self.last[name] ?? -1e9) >= t0 && (!pred || pred(self.payload[name]));
       },
       seen: (id) => self.seenSet.has(id),
@@ -131,7 +140,8 @@ export class Hints {
     const d = this.defs.get(id);
     if (!d) return false;
     if (!force && (!this.enabled || this.seenSet.has(id))) return false;
-    if (this.cur) this._end(this.cur, false);
+    const slot = d.side === 'right' ? 'right' : 'left';
+    if (this.slot[slot]) this._end(this.slot[slot], false);
     return this._open(d, { force, seconds });
   }
 
@@ -155,15 +165,16 @@ export class Hints {
     const rows = this._rowsFor(def);
     if (!rows.length) return false;
     const G = this.G;
+    const slot = def.side === 'right' ? 'right' : 'left';
     const card = {
-      id: def.id, def, rows, story: false, force, t: 0, t0: G.clock.elapsed, shown: 0, done: new Set(), finishing: 0,
-      seconds: seconds ?? def.seconds ?? 9, side: def.side || 'left', moved: 0, looked: 0, lastPos: null, el: null, off: false,
+      id: def.id, def, rows, story: false, force, slot, t: 0, t0: G.clock.elapsed, shown: 0, done: new Set(), finishing: 0,
+      seconds: seconds ?? def.seconds ?? 9, moved: 0, looked: 0, lastPos: null, el: null, off: false,
     };
-    card.el = h('div', { class: `mz-hintcard ${card.side}` }, h('i', { class: 'thread' }), h('div', { class: 'rows' }));
+    card.el = h('div', { class: `mz-hintcard ${slot}` }, h('i', { class: 'thread' }), h('div', { class: 'rows' }));
     this._fill(card);
     this.layer.appendChild(card.el);
     requestAnimationFrame(() => requestAnimationFrame(() => card.el.classList.add('on')));
-    this.cur = card;
+    this.slot[slot] = card;
     return true;
   }
 
@@ -197,8 +208,8 @@ export class Hints {
 
   // Story code: a short card with explicit rows, shown at once and replaced by the next call.
   prompt(items, seconds = 9) {
-    if (!items || !items.length) { if (this.cur?.story) this._end(this.cur, true); return; }
-    if (this.cur) this._end(this.cur, false);
+    if (!items || !items.length) { if (this.slot.left?.story) this._end(this.slot.left, true); return; }
+    if (this.slot.left) this._end(this.slot.left, false);
     const G = this.G;
     const rows = items.map((it, key) => {
       const [k, text] = Array.isArray(it) ? it : [it.key, it.label];
@@ -207,17 +218,17 @@ export class Hints {
       return { key, text, hold: !!a?.hold, glyph: () => labelGlyph(G, k) };
     });
     const card = {
-      id: 'story', def: null, rows, story: true, t: 0, t0: G.clock.elapsed, shown: 0, done: new Set(), finishing: 0,
-      seconds: Number.isFinite(seconds) ? seconds : 0, side: 'left', moved: 0, looked: 0, lastPos: null, el: null, off: false,
+      id: 'story', def: null, rows, story: true, slot: 'left', t: 0, t0: G.clock.elapsed, shown: 0, done: new Set(), finishing: 0,
+      seconds: Number.isFinite(seconds) ? seconds : 0, moved: 0, looked: 0, lastPos: null, el: null, off: false,
     };
     card.el = h('div', { class: 'mz-hintcard left story' }, h('i', { class: 'thread' }), h('div', { class: 'rows' }));
     this._fill(card);
     this.layer.appendChild(card.el);
     requestAnimationFrame(() => requestAnimationFrame(() => card.el.classList.add('on')));
-    this.cur = card;
+    this.slot.left = card;
   }
 
-  hide() { if (this.cur) this._end(this.cur, false); }
+  hide() { for (const card of this._cards()) this._end(card, false); }
 
   _end(card, completed) {
     if (!card || card.off) return;
@@ -227,18 +238,17 @@ export class Hints {
     card.el.classList.add('off');
     const el = card.el;
     setTimeout(() => el.remove(), 800);
-    if (this.cur === card) this.cur = null;
-    this.gap = completed ? 2.4 : 3;
+    if (this.slot[card.slot] === card) this.slot[card.slot] = null;
+    this.gap[card.slot] = completed ? 2.4 : 3;
   }
 
   // ---- per frame ------------------------------------------------------------------------------------------
   update(dt) {
     const G = this.G, P = G.player, inp = G.input;
     if (!inp) return;
-    const cur = this.cur;
-    if (!this.enabled && !(cur && (cur.force || cur.story))) {
-      if (cur) this._end(cur, false);
-      return;
+    if (!this.enabled) {
+      for (const card of this._cards()) if (!card.force && !card.story) this._end(card, false);
+      if (!this._cards().length) return;
     }
     const live = this._live();
     this.liveT = live ? this.liveT + dt : 0;
@@ -255,11 +265,12 @@ export class Hints {
     } else this._lastPos = null;
     const scene = this._sceneLive();
 
-    if (cur) {
-      if (cur.story) this._tickStory(cur, dt);
-      else if (!cur.force && (cur.def.scene ? !scene : !live)) this._end(cur, false);
-      else this._tick(cur, dt);
+    for (const card of this._cards()) {
+      if (card.story) this._tickStory(card, dt);
+      else if (!card.force && (card.def.scene ? !scene : !live)) this._end(card, false);
+      else this._tick(card, dt);
     }
+    if (!this.enabled) return;
 
     this._scanT -= dt;
     if (this._scanT <= 0) {
@@ -272,16 +283,19 @@ export class Hints {
       }
     }
 
-    this.gap -= dt;
-    if (!this.cur && this.gap <= 0 && (live || scene)) {
+    // Fill each free slot with the most urgent hint that is ready for it.
+    for (const slot of SLOTS) {
+      this.gap[slot] -= dt;
+      if (this.slot[slot] || this.gap[slot] > 0 || !(slot === 'right' ? scene : live)) continue;
       let best = null;
       for (const d of this.defs.values()) {
+        if ((d.side === 'right') !== (slot === 'right')) continue;
         if (d._t < (d.delay ?? 0.8) || this.seenSet.has(d.id)) continue;
         if (!best || d.prio < best.prio) best = d;
       }
       if (best) {
         best._t = 0;
-        if (!this._open(best)) this.gap = 0.5;
+        if (!this._open(best)) this.gap[slot] = 0.5;
       }
     }
   }
@@ -303,11 +317,13 @@ export class Hints {
     card.looked += (Math.abs(inp.look.dx) + Math.abs(inp.look.dy)) / 280 + Math.hypot(inp.lookPad.x, inp.lookPad.y) * dt * 1.4;
 
     if (card.t > 0.45) {
+      this._eval = card;
       for (const row of card.rows) {
         if (card.done.has(row.key) || !this._isDone(card, row)) continue;
         card.done.add(row.key);
         row.el.classList.add('done');
       }
+      this._eval = null;
     }
     if (!card.finishing && card.rows.every((r) => card.done.has(r.key))) card.finishing = card.t + ENDING;
     if (card.finishing && card.t >= card.finishing) this._end(card, true);

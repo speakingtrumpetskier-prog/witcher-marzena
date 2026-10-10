@@ -272,6 +272,28 @@ async function testLockAndCollision() {
   check('a post well to the side does not move the lens', col.post.near.collK > 0.99, JSON.stringify(col.post.near));
   check('a thin post on the line pulls the lens in', col.post.collK < 0.75 && col.post.dist < col.free.dist - 0.8, `dist ${col.free.dist.toFixed(2)} -> ${col.post.dist.toFixed(2)}`);
   check('lens above ground', col.lensAboveGround > 0.35, col.lensAboveGround.toFixed(2));
+
+  // A long wall beside the path: the lens is pressed to it for the whole run and must not flutter.
+  const wall = await page.evaluate(async () => {
+    const G = window.__G, R = G.cameraRig, P = G.player;
+    G.settings.set('recenter', 'off');
+    P.teleport(100, 40, 0);
+    R.snapBehind(0);
+    G.physics.addBox(99.45, 70, 0.12, 40, 0, { tag: 'wall' }); // z from 30 to 110, between her and the camera's shoulder side (-x)
+    await new Promise((r) => setTimeout(r, 700));
+    window.__ax(1, -1);
+    await new Promise((r) => setTimeout(r, 1200));
+    const samples = [];
+    for (let i = 0; i < 40; i++) { await new Promise((r) => setTimeout(r, 50)); samples.push(R.collK); }
+    window.__ax(1, 0);
+    const piv = new G.THREE.Vector3(R.focus.x, R.focus.y + R.cur.pivotH, R.focus.z);
+    // is the lens inside the wall box?
+    const inside = R.pos.x > 99.45 - 0.12 && R.pos.x < 99.45 + 0.12 && R.pos.z > 30 && R.pos.z < 110;
+    return { min: Math.min(...samples), max: Math.max(...samples), swing: Math.max(...samples) - Math.min(...samples), inside, dist: R.pos.distanceTo(piv), player: [P.position.x, P.position.z], cam: [R.pos.x, R.pos.z], mode: R.mode };
+  });
+  console.log('   wall run', JSON.stringify(wall));
+  check('running along a wall: the lens stays out of it and is pulled in', !wall.inside && wall.min < 0.6, `collK=${wall.min.toFixed(2)}`);
+  check('running along a wall: the lens does not flutter', wall.swing < 0.12, 'swing=' + wall.swing.toFixed(3));
   await page.close();
 }
 
@@ -481,13 +503,15 @@ async function testHintDefs() {
     await new Promise((r) => setTimeout(r, 2600));
     P.character._setSword?.(true);
     out.inCombat = c.inCombat;
+    // The fight moves; bring everyone close in one synchronous step and ask the watchers at once.
+    const en = G.combat.liveEnemies();
+    en.forEach((e, i) => { const p = e.position || e.root.position; p.set(P.position.x + Math.sin(i) * 4, p.y, P.position.z + Math.cos(i) * 4); });
+    H.last['combat:start'] = G.clock.elapsed - 5;
     P.signEnergy = 1; out.ember = watch('ember');
     out.gale = watch('gale');
     P.health = P.maxHealth * 0.4; out.ward = watch('ward'); P.health = P.maxHealth;
-    await new Promise((r) => setTimeout(r, 1800));
     out.lock_when_unlocked = watch('lock');
-    out.lockParts = { inCombat: c.inCombat, target: !!P.target, enemies14: c.enemies(14).length, since: c.since('combat:start') };
-    const en = G.combat.liveEnemies(); P.setTarget(en[0]); out.switch = watch('switch'); P.setTarget(null);
+    P.setTarget(en[0]); out.switch = watch('switch'); P.setTarget(null);
     return out;
   });
   console.log('   ', JSON.stringify(w));
@@ -507,11 +531,11 @@ async function testHintDefs() {
     window.__arena.clear();
     G.hints.hide(); G.hints.reset();
     G.player.setTarget(null);
-    G.hints.gap = 0;
+    G.hints.gap.left = 0; G.hints.gap.right = 0;
     // a stand-in for a running skippable cutscene
     G.cutscenes = { active: true, skipping: false, _d: { opts: {} } };
     await new Promise((r) => setTimeout(r, 5200));
-    const info = { id: G.hints.cur?.id, side: G.hints.cur?.side };
+    const info = { id: G.hints.cur?.id, side: G.hints.cur?.slot };
     G.cutscenes.active = false;
     await new Promise((r) => setTimeout(r, 500));
     info.after = G.hints.cur?.id || null;
