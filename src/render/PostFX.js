@@ -9,6 +9,7 @@
 //   echo                   0..1 cold blue ghostly reconstruction look (echo cutscenes)
 //   flash(color, seconds)  additive full-screen flash that fades out (color: hex, Color or css)
 //   bloom, rays            strength multipliers (default 1)
+//   exposure               multiplier over the time-of-day exposure (default 1; photo mode sets it)
 //   SENSES_LAYER           layer number for hunter-senses clues (5)
 //   markClue(obj, on = true, color = '#ff8a3d')
 //                          highlight obj (and children) while uSenses > 0: a rim glow plus
@@ -67,6 +68,7 @@ export async function init(G) {
     echo: 0,
     bloom: 1,
     rays: 1,
+    exposure: 1, // multiplier over the grade's exposure (photo mode)
     SENSES_LAYER,
     flash(color = 0xffffff, seconds = 0.6) {
       flashColor.set(color);
@@ -85,7 +87,7 @@ export async function init(G) {
       const gr = A?.grade;
       const U = G.uniforms;
       const c = pass.composite.uniforms;
-      st.exposure = gr ? gr.exposure : 1;
+      st.exposure = (gr ? gr.exposure : 1) * P.exposure;
       if (gr) {
         // Palette colors are linear; the grade works in display space.
         c.uLift.value.copy(gr.lift).convertLinearToSRGB().multiplyScalar(0.5);

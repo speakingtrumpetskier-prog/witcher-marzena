@@ -18,7 +18,7 @@ import { LOC } from '../world/layout.js';
 export const EVENTS = [
   'combat:start', 'player:hit', 'player:dodge', 'player:parry', 'player:block', 'player:cast', 'player:draw',
   'player:drink', 'player:lock', 'camera:retarget', 'horse:call', 'horse:mount', 'horse:dismount',
-  'interact:use', 'senses:on', 'ui:open:journal', 'ui:open:map', 'ui:open:pause',
+  'interact:use', 'senses:on', 'ui:open:journal', 'ui:open:map', 'ui:open:pause', 'photo:enter',
 ];
 
 const near = (c, x, z, r) => c.P && Math.hypot(c.P.position.x - x, c.P.position.z - z) < r;
@@ -157,6 +157,11 @@ export const HINTS = [
     id: 'pause', prio: 8, delay: 3, seconds: 10,
     rows: [{ action: 'pause', text: 'Pause menu: save, settings, controls', done: 'ui:open:pause' }],
     watch: (c) => c.play > 300 && !c.inCombat,
+  },
+  {
+    id: 'photo', prio: 9, delay: 4, seconds: 9,
+    rows: [{ action: 'photo', text: 'Photo mode', done: 'photo:enter', pad: { action: 'pause', text: 'Pause menu, then Photo mode' } }],
+    watch: (c) => c.play > 720 && c.live > 20 && !c.inCombat && c.seen('pause'),
   },
 ];
 

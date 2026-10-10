@@ -41,6 +41,7 @@ const MODULES = [
   ['gameplay', () => import('./gameplay/index.js')],
   ['story', () => import('./story/index.js')],
   ['postfx', () => import('./render/PostFX.js')],
+  ['photo', () => import('./ui/photo/index.js')],
 ];
 const SCENE_DEFAULT_MODULES = ['atmosphere', 'sky', 'postfx'];
 

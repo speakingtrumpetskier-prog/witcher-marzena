@@ -63,20 +63,30 @@ export function createEngine(container) {
     last = now;
     if (G.shot && G.params.has('fixedDt')) dt = 1 / 60;
     dt = Math.min(dt, 0.1);
+    // Photo mode holds the world: the clock and shader time stop, only its own list of systems runs, and a
+    // frame is drawn only when the view or a setting changed (ui/photo/PhotoMode.js).
+    const photo = G.photoMode?.active ? G.photoMode : null;
     G.clock.delta = dt;
-    G.clock.elapsed += dt;
+    if (!photo) G.clock.elapsed += dt;
     G.clock.frame++;
     G.uniforms.uTime.value = G.clock.elapsed;
 
     for (const s of G.systems) {
+      if (photo && !photo.runs(s)) continue;
       try { s.update(dt, G.clock.elapsed); } catch (e) {
         if (!s._errored) { console.error(`[system ${s.name}]`, e); s._errored = true; G.errors.push(`system ${s.name}: ${e.message}`); }
       }
     }
 
+    if (photo && !photo.needsRender()) {
+      fpsAcc += dt; fpsFrames++;
+      if (fpsAcc > 0.5) { stats.fps = Math.round(fpsFrames / fpsAcc); fpsAcc = 0; fpsFrames = 0; }
+      return;
+    }
     renderer.info.reset();
     if (G.postfx && G.postfx.render) G.postfx.render(dt);
     else renderer.render(scene, camera);
+    if (photo) { try { photo.afterRender(dt); } catch (e) { console.error('[photo]', e); } }
 
     stats.calls = renderer.info.render.calls;
     stats.triangles = renderer.info.render.triangles;

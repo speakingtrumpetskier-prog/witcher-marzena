@@ -85,7 +85,8 @@ class UI {
     // A pad's buttons become key events while a screen or a choice list wants keys.
     if (G.input) {
       G.input.nav = {
-        active: () => this.menuOpen || this.keyStack.length > 0,
+        // Photo mode reads the pad itself (sticks fly the camera), so it is not a menu here.
+        active: () => (this.menuOpen || this.keyStack.length > 0) && !G.photoMode?.active,
         key: (btn) => this._padNavKey(btn),
       };
     }
@@ -121,7 +122,7 @@ class UI {
     }
     if (e.repeat || this.titleActive || this.G.input?.context !== 'game' || this.G.story?.busy) return;
     const inp = this.G.input;
-    if (inp.matches('journal', e.code)) { this.openJournal(); e.preventDefault(); } else if (inp.matches('map', e.code)) { this.openMap(); e.preventDefault(); } else if (inp.matches('pause', e.code)) { this.openPause(); e.preventDefault(); }
+    if (inp.matches('journal', e.code)) { this.openJournal(); e.preventDefault(); } else if (inp.matches('map', e.code)) { this.openMap(); e.preventDefault(); } else if (inp.matches('pause', e.code)) { this.openPause(); e.preventDefault(); } else if (inp.matches('photo', e.code) && this.G.photoMode?.canEnter()) { this.G.photoMode.enter(); e.preventDefault(); }
   }
 
   // Which key a pad button stands for on the screen on top. null: the default (A confirms, B backs out, the

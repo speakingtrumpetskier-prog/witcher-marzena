@@ -1,5 +1,5 @@
 // Pause menu (Esc, Start) and the settings panel (also reachable from the title screen).
-//   Pause: Resume, Journal, Map, Settings, Controls, Save, Quit to Title.
+//   Pause: Resume, Journal, Map, Photo mode, Settings, Controls, Save, Quit to Title.
 //   Settings: volumes (G.audio.volumes), subtitle size, quality (reloads with ?quality=), and a way into the
 //   Controls screen (controls.js: bindings, camera, controller).
 import { h, svg, clear } from './dom.js';
@@ -70,6 +70,8 @@ export class Menus {
   openPause() {
     if (this.pause?.open) return this.pause.closed;
     const G = this.G, ui = this.ui;
+    // Photo mode needs free play under the menu (the menu itself is what makes canEnter false right now).
+    this._photoReady = G.input?.context === 'game' && G.cameraOwner === 'rig' && !G.story?.busy && !G.player?.dead;
     let confirming = false;
     let list;
     const body = h('div', { class: 'mz-pause-list' });
@@ -93,6 +95,7 @@ export class Menus {
         { id: 'resume', label: 'Resume' },
         { id: 'journal', label: 'Journal' },
         { id: 'map', label: 'Map' },
+        { id: 'photo', label: 'Photo mode', disabled: !G.photoMode || !this._photoReady },
         { id: 'settings', label: 'Settings' },
         { id: 'controls', label: 'Controls' },
         { id: 'save', label: this._saved ? 'Saved' : 'Save' },
@@ -126,6 +129,8 @@ export class Menus {
         case 'resume': this.pause.close(); break;
         case 'journal': ui.openJournal(); break;
         case 'map': ui.openMap(); break;
+        // Close the pause menu first (that hands the context back to play), then step into photo mode.
+        case 'photo': if (ui._ctx) ui._ctx.locked = false; this.pause.close(); G.photoMode?.enter(); break;
         case 'settings': this.openSettings(); break;
         case 'controls': this.openControls(); break;
         case 'save': save(); break;

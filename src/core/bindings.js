@@ -40,6 +40,7 @@ export const DEFAULT_KBM = {
   potion: ['KeyH'],
   journal: ['KeyJ'],
   map: ['KeyM'],
+  photo: ['KeyP'],
   pause: ['Escape'],
   skip: ['Space'],
   advance: ['Space', 'Enter', 'Mouse0', 'KeyE'],
@@ -67,6 +68,7 @@ export const DEFAULT_PAD = {
   potion: ['PadDown'],
   journal: [],
   map: ['PadBack'],
+  photo: [], // the pause menu has it
   pause: ['PadStart'],
   skip: ['PadB'],
   advance: ['PadA'],
@@ -103,6 +105,7 @@ export const ACTIONS = [
   { id: 'advance', label: 'Continue a dialogue line', group: 'Interaction and senses', ctx: S_, fixed: true },
   { id: 'journal', label: 'Journal', group: 'Menus', ctx: G_ },
   { id: 'map', label: 'Map', group: 'Menus', ctx: G_ },
+  { id: 'photo', label: 'Photo mode', group: 'Menus', ctx: G_ },
   { id: 'pause', label: 'Pause menu', group: 'Menus', ctx: G_, fixed: true },
 ];
 export const ACTION = Object.fromEntries(ACTIONS.map((a) => [a.id, a]));

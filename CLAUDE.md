@@ -46,6 +46,8 @@ voice clips generated offline. Work happens on the branch `claude/optimistic-boh
 - `node scripts/gpu-demo.mjs` times one frame on the local GPU against software.
 - `node scripts/inputtest.mjs [input|lock|menus|hints|defs]` drives the arena and the Controls screen
   with a mocked gamepad (114 checks, about 4 minutes); run it after touching input, camera, menus or hints.
+- `node scripts/phototest.mjs [--out dir]` plays into photo mode on the dev server (24 checks, about
+  2 minutes): held world, flying camera, click focus, filters, crops, borders, a saved PNG, clean exit.
 - `node scripts/perf.mjs boot|flicker|cost` (with MZ_CHROME=1 or MZ_GPU=1): boot milestones and title
   frame times; per-frame brightness with single-frame spike and step detection plus a change log of
   uniforms and lights (`--run 1` lets the clock run); per-group frame cost by hiding scene groups.

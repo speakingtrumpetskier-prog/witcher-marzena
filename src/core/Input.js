@@ -247,6 +247,9 @@ export class Input {
   }
 
   // ---- per frame ---------------------------------------------------------------------------------
+  // The left stick alone (y forward is +), for code that reads the keys separately (photo mode).
+  get leftStick() { return { x: this._ls.x, y: -this._ls.y, mag: this._lsMag }; }
+
   // Called once per frame by the engine before systems update.
   poll(dt = 1 / 60) {
     this.look.dx = this._lookAcc.dx;

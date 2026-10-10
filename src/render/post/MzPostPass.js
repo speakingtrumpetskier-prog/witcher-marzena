@@ -175,6 +175,7 @@ export class MzPostPass extends Pass {
     const s = this.state;
     const color = readBuffer.texture;
     const depth = readBuffer.depthTexture;
+    this.lastDepth = depth; // the composer alternates its targets; photo mode reads the depth of this frame
     const w = this.width, h = this.height;
     const c = this.composite.uniforms;
 

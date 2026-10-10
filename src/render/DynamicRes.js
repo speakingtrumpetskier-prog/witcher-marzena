@@ -5,6 +5,7 @@
 //   .scale          current renderer pixel ratio
 //   .targetMs       frame time to hold (33.3 = 30 fps)
 //   .setEnabled(on)
+//   .apply(scale)   set a pixel ratio now (photo mode saves at .cap, then puts the old one back)
 //
 // It starts from a pixel budget for the quality level, then adjusts.
 // Changes are stepped and rare: every change reallocates the post-processing targets, so it waits
@@ -35,6 +36,7 @@ export function installDynamicRes(G) {
       try { localStorage.setItem(KEY, on ? '1' : '0'); } catch { /* private mode */ }
       if (!D.enabled) apply(cap);
     },
+    apply: (s) => apply(s),
   };
   G.dynamicRes = D;
 
