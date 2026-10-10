@@ -2,7 +2,7 @@
 // aurora curtains in the north, high cirrus and a lower stratocumulus deck that move with the
 // wind, all fogged with the same model as the terrain (fogChunk.js), so they meet seamlessly.
 // Also owns the environment map: a PMREM of the same sky (with a sunlit snow ground) that is the
-// main ambient light of every lit material, refreshed on weather change and every few minutes.
+// main ambient light of every lit material, refreshed on weather change and every in-game minute.
 //
 // Public (G.sky):
 //   mesh, material, uniforms     the dome (drawn at the far plane, after opaque geometry)
@@ -191,13 +191,15 @@ export async function init(G) {
     uniforms.uPixelAngle.value = THREE.MathUtils.degToRad(cam.fov) / Math.max(1, G.renderer.domElement.height);
     uniforms.uSkyFog.value = 0.18;
 
-    // Environment map refresh: on demand, every 3 in-game minutes, or while the weather blends.
+    // Environment map refresh: on demand, every in-game minute, or while the weather blends. It is the
+    // main ambient light on the polished lake ice, so steps are kept small (at 60x a rebuild a second
+    // changes the ice by under 1/255 even at sunset, where 3-minute steps showed as a faint pulse).
     envClock += dt;
     const hrs = G.time.hours;
     const sig = W ? W.cover * 3 + W.overcast * 5 + W.fogDensity * 400 + W.lake * 10 : 0;
-    const hoursMoved = Math.abs(hrs - lastEnvHours) > 0.05 && Math.abs(hrs - lastEnvHours) < 23.9;
-    const weatherMoved = Math.abs(sig - lastEnvSig) > 0.08;
-    if (envDirty || ((hoursMoved || weatherMoved) && envClock > 1.5)) {
+    const hoursMoved = Math.abs(hrs - lastEnvHours) > 0.0167 && Math.abs(hrs - lastEnvHours) < 23.9;
+    const weatherMoved = Math.abs(sig - lastEnvSig) > 0.03;
+    if (envDirty || ((hoursMoved || weatherMoved) && envClock > 0.9)) {
       rebuildEnv();
       envDirty = false;
       envClock = 0;
