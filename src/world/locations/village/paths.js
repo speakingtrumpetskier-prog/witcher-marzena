@@ -21,17 +21,21 @@ function material() {
   return mat;
 }
 
+// Measured in full sun at noon (a 1.6 m strip at alpha 1 on snow of about 225): rut 0.13 comes out near 110, ice 0.17
+// about 150, anything from 0.4 up no more than 190, so the trodden kinds are kept well under 0.5.
 const COLORS = {
-  path: [0.62, 0.66, 0.74], // trampled, a little blue in shadow
-  yard: [0.66, 0.68, 0.74],
+  path: [0.42, 0.45, 0.52], // trampled, a little blue in shadow
+  yard: [0.46, 0.47, 0.52],
   sled: [0.55, 0.62, 0.74],
-  mud: [0.4, 0.34, 0.28],
+  mud: [0.15, 0.115, 0.085], // churned earth: where people stop, where the doors are
   // Wheel and runner ruts cut through to the frozen mud. Dark on purpose: in full sun the snow and anything
   // above about 0.4 both tone-map to near white, so a lighter rut does not show at all.
   rut: [0.13, 0.11, 0.09],
+  // Water spilled and frozen where the buckets come and go (wells, troughs): dark glassy ice, blue grey.
+  ice: [0.17, 0.23, 0.31],
 };
 
-// strips: [{ pts: [[x, z], ...], width, kind: 'path' | 'yard' | 'sled' | 'mud' | 'rut', alpha }]
+// strips: [{ pts: [[x, z], ...], width, kind: 'path' | 'yard' | 'sled' | 'mud' | 'rut' | 'ice', alpha }]
 export function buildRibbons(G, strips, name = 'village-paths') {
   const pos = [], col = [], idx = [], nor = [];
   const hAt = (x, z) => G.world.heightAt(x, z);

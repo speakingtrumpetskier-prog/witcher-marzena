@@ -132,6 +132,9 @@ export async function build(G, ctx) {
   if (!ctx?.props) throw new Error('props kit unavailable');
   const V = makeV(G, ctx);
   G.world.locations.village = { V, audit: V.audit };
+  // The roads in and out of the village are dressed once the wilderness has placed its roadside vignettes
+  // (locations/index.js calls this after the last location), so the two never overlap.
+  V.dressApproaches = async () => (await import('./village/dress_approaches.js')).dressApproaches(V);
 
   const steps = [
     ['buildings', () => import('./village/buildings.js'), (m) => m.buildStructures(V)],

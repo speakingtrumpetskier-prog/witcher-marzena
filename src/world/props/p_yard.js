@@ -225,6 +225,23 @@ export function sawbuck(o = {}) {
   return k.build();
 }
 
+// One 2.4 m section of split-rail fence: paired leaning posts at both ends with three rails running between them.
+// Placed end to end (props.railFence through a PropBatch) it costs no extra draw calls, unlike a kit fence piece.
+export function railFence(o = {}) {
+  const k = new Kit('railFence', o);
+  const L = (o.length || 2.4) + k.rs(0.03), H = 1.12;
+  k.push({ yaw: o.yaw || 0 });
+  for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
+    k.log(0.045, H + 0.5, { pos: [sx * L / 2 + sx * sz * 0.015, (H + 0.5) / 2 - 0.3, sz * 0.075], rot: [sz * -0.03, 0, k.rs(0.03)], radial: 5, tint: k.pick(WOOD) });
+  }
+  for (const y of [0.3, 0.68, 1.04]) k.log(0.05, L + 0.18, { lie: 'x', pos: [0, y + k.rs(0.03), k.rs(0.01)], rot: [0, 0, k.rs(0.025)], radial: 5, tint: k.pick(WOOD) });
+  if (!o.indoor && k.chance(0.6)) k.mound(L * 0.8, 0.07, 0.14, { pos: [k.rs(0.2), 1.09, 0], jseed: 2, ws: 6, hs: 2 });
+  k.pop();
+  k.boxCollider(L / 2 + 0.05, 0.1, { h: H });
+  k.ud.align = 0;
+  return k.build();
+}
+
 // A lath snow fence panel on three stakes, with the drift it has caught banked on the lee side (local -z).
 export function snowFence(o = {}) {
   const k = new Kit('snowFence', o);

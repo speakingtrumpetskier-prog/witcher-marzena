@@ -561,7 +561,8 @@ export class Kit {
 
   // Lumpy geometric snow. Sits with its base at y = 0 of the part transform.
   mound(w, h, d, o = {}) {
-    const g = new THREE.SphereGeometry(0.5, o.ws || 10, o.hs || 4, 0, TAU, 0, Math.PI / 2);
+    // 8 x 3 segments (was 10 x 4): every prop carries one to three of these snow caps, 80 triangles each before
+    const g = new THREE.SphereGeometry(0.5, o.ws || 8, o.hs || 3, 0, TAU, 0, Math.PI / 2);
     const p = g.attributes.position;
     const off = this.seed * 3.7 + (o.jseed || 0);
     for (let i = 0; i < p.count; i++) {

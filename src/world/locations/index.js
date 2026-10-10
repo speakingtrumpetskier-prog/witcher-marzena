@@ -45,6 +45,12 @@ export async function init(G) {
     }
   }
   try {
+    await G.world.locations.village?.V?.dressApproaches?.(); // after the vignettes: the approach roads keep clear of them
+  } catch (e) {
+    console.error('[locations] village approaches', e);
+    G.errors.push(`locations village approaches: ${e.message}`);
+  }
+  try {
     (await import('./floors.js')).installFloors(G);
   } catch (e) {
     console.error('[locations] floors', e);

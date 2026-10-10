@@ -205,6 +205,13 @@ export function dressHeroes(D) {
     for (const [dx, dz, v] of [[0.3, -3.6, 'bowl'], [-0.9, -4.4, 'bowl']]) {
       D.add('offering', m.x + dx, m.z + dz, { opts: { variant: v }, yaw: dx, collide: false, fxOpts: { light: false } });
     }
+    // The way she walks every evening: round the east side of the house (clear of the lean-to) to the shelf, then
+    // down the beach to where she kneels. Worn to the earth, a little wider at the shelf.
+    {
+      const d = V.byId.hanka.p.doors[0];
+      V.paths.push({ pts: [[d.x + 0.5, d.z + 0.8], [d.x + 3.9, d.z + 0.5], [d.x + 4.6, d.z - 3.2], [d.x + 4.0, d.z - 6.6], [m.x + 1.3, m.z + 0.9], [m.x + 0.1, m.z - 0.4], [m.x, m.z - 3.6]], width: 0.95, kind: 'mud', alpha: 0.6 });
+      V.paths.push({ pts: [[m.x - 2.0, m.z + 0.2], [m.x, m.z + 0.5], [m.x + 2.2, m.z + 0.2]], width: 1.6, kind: 'mud', alpha: 0.55 });
+    }
   }
 
   // ================= square =================
