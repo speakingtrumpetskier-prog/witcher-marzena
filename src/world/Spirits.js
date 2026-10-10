@@ -77,6 +77,7 @@ export function createSpirits(G, opts = {}) {
       uF0: { value: new THREE.Vector4(...sh.f0) },
       uF1: { value: new THREE.Vector4(...sh.f1) },
       uF2: { value: new THREE.Vector4(...(sh.f2 || [0.14, 0.4, 0, 0])) },
+      uS: { value: new THREE.Vector4(sh.s?.[0] ?? 1, sh.s?.[1] ?? 0, 0, 0) },
       uPane0: { value: new THREE.Color(def.panes?.[0] || '#ffffff') },
       uPane1: { value: new THREE.Color(def.panes?.[1] || '#ffffff') },
       uPane2: { value: new THREE.Color(def.panes?.[2] || '#ffffff') },
@@ -176,7 +177,7 @@ export function createSpirits(G, opts = {}) {
       const pair = pal[Math.floor(rand() * pal.length)];
       const dh = rand.range(-0.03, 0.03), dl = rand.range(0.9, 1.1);
       const [hx, hz] = opts.solo ? [opts.soloPos?.[0] ?? 0, opts.soloPos?.[2] ?? 0]
-        : def.id === 'cathedral' ? [-30, -540] : low ? sampleLake() : sampleHome();
+        : def.circuit ? [def.circuit.cx, def.circuit.cz] : low ? sampleLake() : sampleHome();
       const size = def.size[0] + (def.size[1] - def.size[0]) * rand();
       const it = {
         sp, low,
@@ -192,7 +193,8 @@ export function createSpirits(G, opts = {}) {
         bright: rand.range(0.88, 1.12),
         tentFrac: def.tentFrac[0] + (def.tentFrac[1] - def.tentFrac[0]) * rand(),
         tentLen: def.tentLen[0] + (def.tentLen[1] - def.tentLen[0]) * rand(),
-        rank: def.id === 'cathedral' ? 0 : rand(), // the big one is always out (until the blizzard)
+        rank: def.circuit ? 0 : rand(), // the big one is always out (the fog hides it in a blizzard)
+        circ: def.circuit || null,
         altBase: low ? rand.range(4, 10) : def.alt[0] + (def.alt[1] - def.alt[0]) * Math.pow(rand(), 1.7),
         ySm: NaN, gSm: 0, gTimer: rand() * 0.5,
         fade: 0,
@@ -250,9 +252,42 @@ export function createSpirits(G, opts = {}) {
   }
   const TAU_RELAX = 150;
 
+  // The cathedral: one behemoth that walks a long ellipse round the valley, high above the
+  // ground under its bell (never below `minAlt`, never closer than `clearance` to the highest
+  // ground inside its footprint). Heading and speed come from the circuit, not from the wind.
+  const cathPos = { x: 0, z: 0, vx: 0, vz: 0 };
+  const cathPhase = Number.isFinite(parseFloat(G.params.get('cath'))) ? parseFloat(G.params.get('cath')) : null;
+  function circuitAt(c, t, out) {
+    const a = ((cathPhase ?? c.start) + t / c.period) * TAU;
+    out.x = c.cx + c.rx * Math.cos(a);
+    out.z = c.cz + c.rz * Math.sin(a);
+    const w = TAU / c.period;
+    out.vx = -c.rx * Math.sin(a) * w;
+    out.vz = c.rz * Math.cos(a) * w;
+    return out;
+  }
+  function footprintGround(it) {
+    if (!hasGrid()) return 0;
+    const r = it.scale * 1.05;
+    let g = groundAt(it.x, it.z);
+    for (let k = 0; k < 8; k++) {
+      const a = (k / 8) * TAU;
+      g = Math.max(g, groundAt(it.x + Math.cos(a) * r, it.z + Math.sin(a) * r), groundAt(it.x + Math.cos(a) * r * 2, it.z + Math.sin(a) * r * 2) - it.scale * 0.5);
+    }
+    return g;
+  }
+
   for (const sp of species) {
     for (const it of sp.items) {
       if (opts.solo) continue;
+      if (it.circ) {
+        circuitAt(it.circ, G.clock.elapsed, cathPos);
+        it.x = cathPos.x; it.z = cathPos.z;
+        it.gSm = footprintGround(it);
+        it.ySm = Math.max(it.circ.minAlt, it.gSm + it.circ.clearance);
+        it.y = it.ySm;
+        continue;
+      }
       const [ox, oz] = windOffset(it);
       it.ox = ox; it.oz = oz;
       it.x = it.hx + ox; it.z = it.hz + oz;
@@ -289,10 +324,31 @@ export function createSpirits(G, opts = {}) {
         for (const l of sp.lods) { scene.remove(l.mesh); l.geo.dispose(); }
         sp.material.dispose();
       }
+      if (glow) { scene.remove(glow); glow.dispose?.(); }
       remove();
     },
   };
   G.spirits = S;
+
+  // ---- the cathedral's light on the world --------------------------------------------------
+  // A faint pale point light under the bell (no shadows, no falloff inside its range) so the snow
+  // and the roofs under it take a little of its glow, and a glow in the sky shader so the clouds
+  // near it are lit from within. Both scale with the night, the pulse and the weather.
+  const cathItem = species.map((sp) => sp.items[0]).find((it) => it && it.circ) || null;
+  let glow = null;
+  if (cathItem && !opts.solo) {
+    glow = new THREE.PointLight(0xbfd2ff, 0, 1900, 0);
+    glow.name = 'spirit-cathedral-glow';
+    scene.add(glow);
+  }
+  const pulse01 = (p) => (p < 0.26 ? smoothstep(0, 1, p / 0.26) : Math.pow(1 - smoothstep(0, 1, (p - 0.26) / 0.74), 1.5));
+  Object.defineProperty(S, 'cathedral', {
+    get: () => (cathItem ? {
+      x: cathItem.x, y: cathItem.y, z: cathItem.z, radius: cathItem.scale,
+      pulse: pulse01((G.clock.elapsed * cathItem.rate + cathItem.phase) % 1),
+    } : null),
+  });
+  const glowDir = new THREE.Vector3();
 
   const drawn = [];
   let seenTimer = 0;
@@ -367,7 +423,7 @@ export function createSpirits(G, opts = {}) {
       const def = sp.def;
       for (const l of sp.lods) l.n = 0;
       for (const it of sp.items) {
-        const want = opts.solo ? 1 : (it.low ? (it.rank < 0.9 && lowOk ? 1 : 0) : (it.rank < frac ? 1 : 0));
+        const want = opts.solo ? 1 : it.circ ? (dens > 0 ? 1 : 0) : (it.low ? (it.rank < 0.9 && lowOk ? 1 : 0) : (it.rank < frac ? 1 : 0));
         it.fade += (want - it.fade) * fadeStep;
         if (Math.abs(want - it.fade) < 0.004) it.fade = want;
         if (it.fade <= 0.001) { it.vis = false; continue; }
@@ -375,7 +431,15 @@ export function createSpirits(G, opts = {}) {
 
         // ---- drift (CPU): wind, swimming, wander, altitude
         const p = (t * it.rate + it.phase) % 1;
-        if (!opts.solo) {
+        if (it.circ && !opts.solo) {
+          circuitAt(it.circ, t, cathPos);
+          it.x = cathPos.x; it.z = cathPos.z;
+          it.yaw = 0.35 + t * 0.0035;
+          it.gTimer -= dt;
+          if (it.gTimer <= 0) { it.gTimer = 1; it.gSm = footprintGround(it); }
+          const goal = Math.max(it.circ.minAlt, it.gSm + it.circ.clearance);
+          it.ySm += (goal - it.ySm) * (1 - Math.exp(-dt / 40));
+        } else if (!opts.solo) {
           const sway = Math.sin(t * 0.017 + it.wph);
           const desired = Math.atan2(windVel.x, windVel.y) + 1.4 * sway;
           let dy = desired - it.yaw;
@@ -421,19 +485,24 @@ export function createSpirits(G, opts = {}) {
         } else {
           it.x = it.hx; it.z = it.hz; it.ySm = it.ySm || it.y;
         }
-        const lift = liftCurve(p) * (opts.solo ? 0 : 0.35) * it.scale;
+        const lift = liftCurve(p) * (opts.solo ? 0 : it.circ ? 0.05 : 0.35) * it.scale;
         it.y = it.ySm + lift;
 
         // trailing direction for the filaments (opposite the swim, stronger on the jet)
         const sw = it.swim * (0.25 + 0.75 * thrustCurve(p));
-        const tx = -Math.sin(it.yaw) * sw * 0.7, tz = -Math.cos(it.yaw) * sw * 0.7;
+        let tx = -Math.sin(it.yaw) * sw * 0.7, tz = -Math.cos(it.yaw) * sw * 0.7;
+        if (it.circ && !opts.solo) {
+          // the threads trail behind the slow flight
+          const vl = Math.hypot(cathPos.vx, cathPos.vz) || 1;
+          tx = -cathPos.vx / vl * 0.28; tz = -cathPos.vz / vl * 0.28;
+        }
         it.dragX += (tx - it.dragX) * Math.min(1, dt * 1.5);
         it.dragZ += (tz - it.dragZ) * Math.min(1, dt * 1.5);
-        it.pitch = it.pitchBase + 0.1 * Math.sin(t * 0.13 + it.wph) + thrustCurve(p) * 0.05;
+        it.pitch = it.circ ? 0 : it.pitchBase + 0.1 * Math.sin(t * 0.13 + it.wph) + thrustCurve(p) * 0.05;
 
         // ---- cull and write instances
         const reach = it.scale * (1 + def.extent * 0.5) + (it.mem ? 14 : 0);
-        const cx = it.x, cy = it.y - it.scale * def.extent * 0.35, cz = it.z;
+        const cx = it.x, cy = it.y - it.scale * def.extent * (it.circ ? 0.32 : 0.35), cz = it.z;
         const dx = cx - camPos.x, dy2 = cy - camPos.y, dz = cz - camPos.z;
         const d = Math.sqrt(dx * dx + dy2 * dy2 + dz * dz);
         it.camD = d;
@@ -487,6 +556,22 @@ export function createSpirits(G, opts = {}) {
     // Draw the meshes whose instances are farthest first (the order of the transparent queue).
     drawn.sort((a, b) => b.avg - a.avg);
     for (let i = 0; i < drawn.length; i++) drawn[i].mesh.renderOrder = 20 + i;
+    if (cathItem) {
+      const night = smoothstep(0.1, 0.9, shared.uDark.value);
+      const pr = pulse01((t * cathItem.rate + cathItem.phase) % 1);
+      const overcast = G.weather?.params?.overcast || 0;
+      const k = night * (1 - 0.6 * overcast) * cathItem.fade * (S.enabled ? 1 : 0);
+      if (glow) {
+        const indoors = G.world?.indoors?.(camPos.x, camPos.z) ? 1 : 0;
+        glow.position.set(cathItem.x, cathItem.y - cathItem.scale * 1.6, cathItem.z);
+        glow.intensity = (G.params.has('cathlight') ? parseFloat(G.params.get('cathlight')) : 0.5) * k * (0.7 + 0.3 * pr) * (1 - indoors);
+      }
+      const su = G.sky?.uniforms?.uSpiritGlow;
+      if (su) {
+        glowDir.set(cathItem.x - camPos.x, cathItem.y - cathItem.scale * 2.2 - camPos.y, cathItem.z - camPos.z).normalize();
+        su.value.set(glowDir.x, glowDir.y, glowDir.z, k * (0.75 + 0.25 * pr));
+      }
+    }
     S.stats.visible = visible;
     S.stats.active = active;
     S.stats.triangles = tris;
@@ -512,6 +597,11 @@ export function createSpirits(G, opts = {}) {
   // Tentacles shorten to fit the room below the bell, so they never reach the player's head,
   // the ice, a roof or the trees.
   function fitLen(it) {
+    if (it.circ) {
+      // the cathedral's threads stop well above the lake and the ground under it
+      const room = Math.max(0, it.y - (it.gSm + 70));
+      return clamp(room / (it.scale * it.sp.def.extent), 0.3, 1);
+    }
     const room = Math.max(0, it.y - (it.low ? 2.4 : it.gSm + 6));
     return Math.min(it.tentLen, room / (it.scale * it.sp.def.extent * 1.2));
   }

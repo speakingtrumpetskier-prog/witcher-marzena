@@ -21,6 +21,7 @@ uniform vec4 uP1;        // frill amplitude, frill count, sway, margin lift
 uniform vec4 uP2;        // tentacle lag, arm sway, arm twist, ruffle amplitude
 uniform vec4 uP3;        // squareness, skirt height, skirt flare, coil
 uniform vec4 uP4;        // rib height, rib count
+uniform vec4 uS;         // time scale of the slow motion (the big ones are slow), pulse glow
 uniform float uPixelScale;
 uniform float uMinPx;
 
@@ -45,6 +46,7 @@ varying vec4 vInst;
 
 float gPh;
 float gSeed;
+float tm;
 vec3 gDragL;
 
 float pulseWave(float p) {
@@ -69,20 +71,20 @@ vec3 bellDeform(vec3 rest, float v, float theta, out float c, out vec2 scl) {
   float m = smoothstep(0.55, 1.0, v);
   float y = rest.y * sy + c * uP1.w * w;
   y += uP0.w * cos(theta * uP0.z) * m * (1.0 - 0.6 * c);
-  y += uP1.x * sin(theta * uP1.y + uTime * 1.3 + gSeed * 20.0) * m * m;
+  y += uP1.x * sin(theta * uP1.y + tm * 1.3 + gSeed * 20.0) * m * m;
   float sq = 1.0 + uP3.x * (0.5 - 0.5 * cos(4.0 * theta)) * smoothstep(0.05, 0.4, v);
   sr *= sq;
   // raised ribs (flying buttresses on the cathedral), aligned with the canals and panes
   sr *= 1.0 + uP4.x * pow(max(0.0, cos(theta * uP4.y)), 5.0) * smoothstep(0.04, 0.3, v) * (1.0 - smoothstep(0.88, 1.0, v));
-  sr += 0.012 * sin(theta * 3.0 + uTime * 0.8 + gSeed * 9.0) * m;
+  sr += 0.012 * sin(theta * 3.0 + tm * 0.8 + gSeed * 9.0) * m;
   scl = vec2(sr, sy);
   return vec3(rest.x * sr, y, rest.z * sr);
 }
 
 // Comb jelly body: no pulse, a slow spin and a faint breathing.
 vec3 combBody(vec3 rest, float theta, float v, out float c, out vec2 scl, out float spin) {
-  spin = uTime * 0.28 * (0.6 + 0.8 * gSeed) + gSeed * 6.2831;
-  float wob = 1.0 + 0.035 * sin(uTime * 1.2 + v * 7.0 + gSeed * 12.0);
+  spin = tm * 0.28 * (0.6 + 0.8 * gSeed) + gSeed * 6.2831;
+  float wob = 1.0 + 0.035 * sin(tm * 1.2 + v * 7.0 + gSeed * 12.0);
   float r = length(rest.xz) * wob;
   float th = theta + spin;
   c = 0.0;
@@ -98,29 +100,29 @@ vec3 tentPath(vec3 root, float theta, float s, float rnd, float L) {
   vec3 P = root;
   P.y -= d * (1.0 - 0.16 * cw);
   P.xz += rad * (0.10 + 0.30 * (0.45 - cw)) * min(d, 1.6) * 0.6;
-  float a1 = uTime * 0.8 + rnd * 40.0 + gSeed * 30.0 - s * 4.2;
-  float a2 = uTime * 0.55 + rnd * 25.0 + gSeed * 17.0 - s * 3.1;
+  float a1 = tm * 0.8 + rnd * 40.0 + gSeed * 30.0 - s * 4.2;
+  float a2 = tm * 0.55 + rnd * 25.0 + gSeed * 17.0 - s * 3.1;
   float amp = uP1.z * pow(s, 1.4) * 0.22 * clamp(L, 0.6, 3.5);
   P.xz += vec2(sin(a1), sin(a2)) * amp;
-  float ca = s * 11.0 - uTime * 0.9 + rnd * 6.0;
+  float ca = s * 11.0 - tm * 0.9 + rnd * 6.0;
   P.xz += vec2(cos(ca), sin(ca)) * uP3.w * s * min(L, 3.0);
   P.xz += gDragL.xz * d * d * 0.05;
   return P;
 }
 
 // Oral arm path; also returns the direction the ribbon is wide in.
-vec3 armPath(vec3 root, float ang, float s, float L, float rnd, out vec3 wdir) {
+vec3 armPath(vec3 root, float ang, float tang, float s, float L, float rnd, out vec3 wdir) {
   float d = s * L;
   float cw = pulseWave(fract(gPh - 0.06 - s * uP2.x * 0.8)) * uP0.x;
   vec3 P = root;
   P.y -= d * (1.0 - 0.12 * cw);
   vec2 dir = vec2(cos(ang), sin(ang));
   P.xz += dir * 0.10 * s * min(L, 3.0) * (1.0 + 0.6 * (0.45 - cw));
-  float a1 = uTime * 0.6 + ang * 3.0 - s * 3.0 + gSeed * 20.0;
-  float a2 = uTime * 0.45 + ang * 2.0 - s * 2.6 + gSeed * 13.0;
+  float a1 = tm * 0.6 + ang * 3.0 - s * 3.0 + gSeed * 20.0;
+  float a2 = tm * 0.45 + ang * 2.0 - s * 2.6 + gSeed * 13.0;
   P.xz += vec2(sin(a1), sin(a2)) * uP2.y * 0.12 * s * s * min(L, 3.0);
   P.xz += gDragL.xz * d * d * 0.04;
-  float tw = ang + s * uP2.z + 0.5 * sin(uTime * 0.35 + rnd * 6.28 + s * 2.0);
+  float tw = ang + tang + s * uP2.z + 0.5 * sin(tm * 0.35 + rnd * 6.28 + s * 2.0);
   wdir = vec3(cos(tw), 0.0, sin(tw));
   return P;
 }
@@ -134,6 +136,7 @@ void main() {
   float rnd = aInfo.w;
   gSeed = iVar.z;
   gPh = fract(uTime * iShape.z + iShape.y);
+  tm = uTime * uS.x;
   float S = iShape.x * (0.8 + 0.2 * iShape.w);
   mat3 M = orient(iPos.w, iDrag.w);
   gDragL = transpose(M) * iDrag.xyz;
@@ -171,8 +174,8 @@ void main() {
     vec3 lp = bellDeform(position, 1.0, theta, c, scl);
     float q = v;
     vec2 radial = vec2(cos(theta), sin(theta));
-    float w1 = sin(theta * uP1.y * 2.0 + uTime * 1.7 + q * 2.5 + gSeed * 30.0);
-    float w2 = sin(theta * uP1.y * 3.3 - uTime * 1.1 + q * 1.7 + gSeed * 11.0);
+    float w1 = sin(theta * uP1.y * 2.0 + tm * 1.7 + q * 2.5 + gSeed * 30.0);
+    float w2 = sin(theta * uP1.y * 3.3 - tm * 1.1 + q * 1.7 + gSeed * 11.0);
     lp.xz += radial * (q * uP3.z * (1.0 - 0.4 * c) + (w1 * 0.5 + w2 * 0.3) * uP2.w * q);
     lp.y -= q * uP3.y * (1.0 - 0.35 * c) + w2 * uP2.w * 0.5 * q * q;
     wp = toWorld(M, S, lp);
@@ -199,21 +202,22 @@ void main() {
     // ---- oral arm ribbon
     float ang = u * TAU;
     float cl;
-    vec3 root = bellDeform(position, 0.3, ang, cl, scl);
+    vec3 root = bellDeform(position, aAux.z, ang, cl, scl);
     float L = aAux.w * iVar.y;
+    float tang = normal.x;
     float wid = aAux.y;
     float s = v;
     vec3 wd;
-    vec3 P = armPath(root, ang, s, L, rnd, wd);
+    vec3 P = armPath(root, ang, tang, s, L, rnd, wd);
     float s2 = min(s + 0.04, 1.0), s1 = max(s2 - 0.04, 0.0);
     vec3 wd2;
-    vec3 Pa = armPath(root, ang, s1, L, rnd, wd2);
-    vec3 Pb = armPath(root, ang, s2, L, rnd, wd2);
+    vec3 Pa = armPath(root, ang, tang, s1, L, rnd, wd2);
+    vec3 Pb = armPath(root, ang, tang, s2, L, rnd, wd2);
     vec3 T = normalize(Pb - Pa + vec3(0.0, -1e-4, 0.0));
     vec3 Nn = normalize(cross(T, wd));
     float hw = wid * (1.0 - 0.7 * s) * (0.55 + 0.45 * smoothstep(0.0, 0.25, s));
     float x = aAux.x;
-    float rph = s * L * 5.0 + x * 2.3 + rnd * 6.0 + uTime * 0.9;
+    float rph = s * L * 5.0 + x * 2.3 + rnd * 6.0 + tm * 0.9;
     float rf = uP2.w * 1.6 * (sin(rph) + 0.35 * sin(rph * 2.3 + 1.7)) * x * x * smoothstep(0.0, 0.2, s);
     P += wd * x * hw * (1.0 + 0.12 * sin(s * L * 5.0 + rnd * 9.0)) + Nn * rf;
     wp = toWorld(M, S, P);
@@ -230,7 +234,7 @@ void main() {
     vec3 root = position;
     if (uKind > 0.5) {
       // comb jelly: roots ride on the spinning body
-      spin = uTime * 0.28 * (0.6 + 0.8 * gSeed) + gSeed * 6.2831;
+      spin = tm * 0.28 * (0.6 + 0.8 * gSeed) + gSeed * 6.2831;
       float cs = cos(spin), sn = sin(spin);
       root = vec3(position.x * cs - position.z * sn, position.y, position.x * sn + position.z * cs);
       theta += spin;
@@ -254,14 +258,14 @@ void main() {
       vec3 origin = tentPath(root, theta, aAux.z, rnd, parentLen);
       vec3 dirv = normalize(vec3(cos(normal.y), -0.6, sin(normal.y)));
       float len = aAux.w;
-      vec3 flutter = vec3(sin(uTime * 1.3 + normal.y * 9.0 + s * 3.0), 0.0, cos(uTime * 1.1 + normal.y * 7.0 + s * 3.0));
+      vec3 flutter = vec3(sin(tm * 1.3 + normal.y * 9.0 + s * 3.0), 0.0, cos(tm * 1.1 + normal.y * 7.0 + s * 3.0));
       P = origin + dirv * (s * len) + vec3(0.0, -s * s * 0.05 * len, 0.0) + flutter * 0.06 * s * len;
       Pn = dirv * len + vec3(0.0, -s * 0.1 * len, 0.0);
       widR *= 1.0 - 0.6 * s;
     } else {
       // gut tube: straight down the axis with a faint sway
       float lenR = aAux.w;
-      P = root + vec3(sin(uTime * 0.5 + s * 2.0 + gSeed * 9.0) * 0.03 * s, -s * lenR * (1.0 - 0.1 * cl), cos(uTime * 0.42 + s * 2.0) * 0.03 * s);
+      P = root + vec3(sin(tm * 0.5 + s * 2.0 + gSeed * 9.0) * 0.03 * s, -s * lenR * (1.0 - 0.1 * cl), cos(tm * 0.42 + s * 2.0) * 0.03 * s);
       Pn = vec3(0.0, -1.0, 0.0);
       widR *= 1.0 - 0.45 * s;
     }
@@ -295,6 +299,7 @@ export const FRAG = /* glsl */ `
 ${FOG_UNIFORMS_GLSL}
 ${FOG_FUNCS_GLSL}
 uniform float uTime;
+uniform vec4 uS;         // time scale, pulse glow
 uniform float uKind;
 uniform float uInvExp;   // 1 / exposure: emission is authored in display units
 uniform float uDark;     // 0 day .. 1 night
@@ -348,7 +353,9 @@ vec3 skyCol(vec3 d) {
   return s;
 }
 
+float tm;
 void main() {
+  tm = uTime * uS.x;
   int part = int(vInfo.x + 0.5);
   float u = vInfo.y;
   float v = vInfo.z;
@@ -391,9 +398,9 @@ void main() {
       float rowId = floor(u * rows + 0.5);
       float lenMask = smoothstep(0.07, 0.18, v) * smoothstep(0.99, 0.82, v);
       float row = smoothstep(0.12, 0.015, abs(cu)) * lenMask;
-      float wave = v * 24.0 - uTime * 8.0 + rowId * 1.3 + seed * 30.0;
+      float wave = v * 24.0 - tm * 8.0 + rowId * 1.3 + seed * 30.0;
       float beat = pow(0.5 + 0.5 * sin(wave), 2.0);
-      float hue = fract(v * 1.3 - uTime * 0.25 + rowId * 0.05 + seed);
+      float hue = fract(v * 1.3 - tm * 0.25 + rowId * 0.05 + seed);
       vec3 rb = hsv2rgb(vec3(hue, 0.62, 1.0));
       a = (0.04 + 0.34 * rim) * uF1.w + row * (0.2 + 0.42 * beat);
       T = mix(skyR * mix(vec3(1.0), c0, 0.4), pearl * 1.05, rim * 0.8);
@@ -413,7 +420,7 @@ void main() {
       float ring = smoothstep(0.014, 0.0, abs(v - 0.955)) * uF1.y;
       float beads = pow(max(0.0, cos(u * cn * 2.0 * TAU)), 18.0) * smoothstep(0.925, 0.95, v) * (1.0 - smoothstep(0.97, 0.985, v));
       float flash = pulseWave(fract(ph - 0.04 - v * 0.2));
-      float flow = 0.5 + 0.5 * pow(0.5 + 0.5 * sin(v * 16.0 - uTime * 1.7 + u * cn * 2.0 + seed * 9.0), 2.0);
+      float flow = 0.5 + 0.5 * pow(0.5 + 0.5 * sin(v * 16.0 - tm * 1.7 + u * cn * 2.0 + seed * 9.0), 2.0);
       float glimmer = mix(0.55, 1.0, flash) * flow;
       vec2 cell = vec2(u * 46.0, v * 17.0);
       float hs = hash12(floor(cell));
@@ -435,11 +442,37 @@ void main() {
         float ph3 = hash12(vec2(floor(u * cn) + 3.0, floor(v * 5.0) + seed * 9.0));
         paneCol = ph2 < 0.25 ? uPane0 : ph2 < 0.5 ? uPane1 : ph2 < 0.75 ? uPane2 : uPane3;
         paneCol = mix(paneCol, ph3 < 0.5 ? uPane0 : uPane2, 0.25 * step(0.5, fract(v * 5.0 + ph2)));
-        float tw = 0.65 + 0.35 * sin(uTime * (0.3 + ph2 * 0.6) + ph2 * 40.0 + v * 4.0);
+        float tw = 0.65 + 0.35 * sin(tm * (0.3 + ph2 * 0.6) + ph2 * 40.0 + v * 4.0);
         pane = w2 * tw * uF2.z;
         paneFrame = max(w1 - w2, 0.0) * uF2.z;
         // rib lines
         paneFrame += smoothstep(0.03, 0.0, abs(abs(cph) - 0.5)) * smoothstep(0.1, 0.25, v) * (1.0 - smoothstep(0.9, 1.0, v)) * uF2.z * 0.8;
+        // rose window in the vault above: leaf shaped glass between stone tracery, rings of cells
+        // that alternate by half a step, a bright boss at the center
+        float rv = v / 0.33;
+        if (rv < 1.0) {
+          float petals = cn;
+          float rings = 3.0;
+          float rf0 = rv * rings;
+          float rid = floor(rf0);
+          float rf = fract(rf0);
+          float tsh = u * petals + 0.5 * mod(rid, 2.0);
+          float sf = fract(tsh);
+          float sid = floor(tsh) + rid * 7.0;
+          float spokeD = min(sf, 1.0 - sf);
+          float thr = 0.07 + 0.13 * abs(rf - 0.5);
+          float cell = smoothstep(thr, thr + 0.05, spokeD) * smoothstep(0.05, 0.12, rf) * smoothstep(0.05, 0.12, 1.0 - rf);
+          cell *= smoothstep(0.07, 0.13, rv);
+          float rh = hash12(vec2(sid, seed * 13.0 + rid));
+          vec3 rc = rh < 0.25 ? uPane0 : rh < 0.5 ? uPane1 : rh < 0.75 ? uPane2 : uPane3;
+          float tw2 = 0.7 + 0.3 * sin(tm * (0.4 + rh * 0.7) + rh * 50.0);
+          float roseA = cell * tw2 * uF2.z * 1.15;
+          float lines = (1.0 - cell) * smoothstep(0.07, 0.13, rv);
+          float boss = smoothstep(0.1, 0.0, rv);
+          paneCol = mix(paneCol, rc, step(0.001, cell));
+          pane = max(pane, roseA);
+          paneFrame = max(paneFrame, lines * uF2.z * 0.85 + boss * uF2.z);
+        }
       }
       float thick = 0.35 + 0.65 * rim;
       a = (0.06 + 0.42 * rim) * uF1.w + canal * 0.24 + ring * 0.3 + spot * 0.22 + beads * 0.3 + band * 0.18 + pane * 0.3 + paneFrame * 0.3;
@@ -470,7 +503,7 @@ void main() {
   } else if (part == 2) {
     // ---- glow quad
     float d = length(vAux2.xy);
-    float breathe = 0.8 + 0.3 * (1.0 - cont) + 0.15 * sin(uTime * 0.9 + seed * 20.0);
+    float breathe = 0.8 + 0.3 * (1.0 - cont) + 0.15 * sin(tm * 0.9 + seed * 20.0);
     if (vAux2.z > 0.5) {
       // wide faint halo: the light spilling into the air, a night effect
       float h = exp(-d * d * 4.0) * (1.0 - smoothstep(0.75, 1.0, d));
@@ -479,9 +512,17 @@ void main() {
     } else {
       float g = exp(-d * d * 4.5) * (1.0 - smoothstep(0.8, 1.0, d));
       float core = exp(-d * d * 22.0);
-      em = (c1 * g * 0.55 + mix(c1, spark, 0.65) * core * 1.1) * breathe * bright;
+      vec3 lc = c1;
+      if (rnd < 0.99) {
+        // a hanging lantern: its own flicker and one of the pane colors mixed into the light
+        vec3 pc = rnd < 0.25 ? uPane0 : rnd < 0.5 ? uPane1 : rnd < 0.75 ? uPane2 : uPane3;
+        lc = mix(c1, pc, 0.55);
+        breathe = 0.75 + 0.25 * sin(tm * (0.5 + rnd * 1.7) + rnd * 60.0) + 0.1 * (1.0 - cont);
+        g *= 0.8;
+      }
+      em = (lc * g * 0.55 + mix(lc, spark, 0.65) * core * 1.1) * breathe * bright;
       a = g * 0.10;
-      T = mix(skyB, pastel(c1) * lit, 0.6);
+      T = mix(skyB, pastel(lc) * lit, 0.6);
     }
   } else if (part == 3) {
     // ---- gonad ring
@@ -489,7 +530,7 @@ void main() {
     float edge = 1.0 - pow(abs(f * 2.0 - 1.0), 2.0);
     float ang = abs(fract(vAux2.x + 0.5) - 0.5);
     float gap = smoothstep(0.03, 0.09, ang);
-    float lump = 0.7 + 0.3 * sin(vAux2.x * TAU * 5.0 + rnd * 20.0 + uTime * 0.5);
+    float lump = 0.7 + 0.3 * sin(vAux2.x * TAU * 5.0 + rnd * 20.0 + tm * 0.5);
     float k = edge * gap * lump;
     em = mix(c1, c0, 0.1) * k * 1.9 * uF0.z * bright;
     a = k * 0.4;
@@ -500,7 +541,7 @@ void main() {
     float s = vAux2.y;
     float ef = 1.0 - pow(abs(x), 3.0);
     float edge = smoothstep(0.5, 1.0, abs(x));
-    float fl = 0.5 + 0.5 * sin(s * 70.0 + x * 5.0 + rnd * 12.0 - uTime * 1.5);
+    float fl = 0.5 + 0.5 * sin(s * 70.0 + x * 5.0 + rnd * 12.0 - tm * 1.5);
     float fade = 1.0 - 0.6 * s;
     a = (0.2 * ef + 0.12 * edge) * fade;
     T = mix(skyB * mix(vec3(1.0), c1, 0.5), pearl, 0.3 + 0.4 * edge);
@@ -512,7 +553,7 @@ void main() {
     float wf = vAux2.z;
     float core = exp(-x * x * 12.0);
     float halo = 0.3 * exp(-x * x * 2.5);
-    float bead = pow(max(0.0, sin(s * (part == 6 ? 16.0 : 38.0) - uTime * 2.4 + rnd * 20.0 + seed * 9.0)), 12.0);
+    float bead = pow(max(0.0, sin(s * (part == 6 ? 16.0 : 38.0) - tm * 2.4 + rnd * 20.0 + seed * 9.0)), 12.0);
     float tip = smoothstep(0.9, 1.0, s);
     float fade = (1.0 - 0.72 * s) * (part == 6 ? 0.7 : 1.0);
     em = c1 * ((0.3 + 1.6 * bead + 0.9 * tip) * core + halo * (0.12 + 0.5 * bead)) * wf * fade * bright;
@@ -525,8 +566,9 @@ void main() {
     float prof = 1.0 - side * side;
     prof *= prof;
     float fade = 1.0 - 0.5 * s;
-    em = (c1 * 0.8 + spark * 0.3) * prof * fade * (0.9 + 0.5 * (1.0 - cont)) * bright;
-    a = 0.3 * prof * fade;
+    float gi = rnd; // 1 for the column, less for lantern chains
+    em = (c1 * 0.8 + spark * 0.3) * prof * fade * (0.9 + 0.5 * (1.0 - cont)) * bright * gi;
+    a = 0.3 * prof * fade * gi;
     T = mix(skyB, pastel(c1) * lit, 0.6);
   }
 
@@ -542,7 +584,9 @@ void main() {
   float tr = exp(-od);
   vec3 L = mzFogInscatter(rd);
   T = T * tr + L * (1.0 - tr);
-  vec3 emR = em * (uGlowGain * uInvExp) * tr * vInst.y * nearFade;
+  // the inner light swells with each pulse (strongest for the very slow ones)
+  float swell = 1.0 + uS.y * pulseWave(fract(ph - 0.03));
+  vec3 emR = em * swell * (uGlowGain * uInvExp) * tr * vInst.y * nearFade;
   vec4 outc = vec4(T * aDay + emR, aDay);
   // A stray NaN in a half float target would smear into the bloom as a colored speck.
   if (any(isnan(outc)) || any(isinf(outc))) outc = vec4(0.0);

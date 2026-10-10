@@ -132,14 +132,14 @@ function addSkirt(acc, profName, nu, rows) {
 }
 
 // Glow quads at the bell center: the lamp itself (kind 0) and a wide faint halo (kind 1).
-function addCore(acc, y, size, halo = 0, haloI = 0.2) {
+function addCore(acc, y, size, halo = 0, haloI = 0.2, x = 0, z = 0, tint = 1) {
   const corners = [[-1, -1], [1, -1], [-1, 1], [1, 1]];
   const quad = (sz, kind, inten) => {
-    const ids = corners.map(([cx, cy]) => acc.v([0, y, 0], [0, 0, 1], [PART.CORE, 0, 0, inten], [cx, cy, sz, kind]));
+    const ids = corners.map(([cx, cy]) => acc.v([x, y, z], [0, 0, 1], [PART.CORE, 0, 0, inten], [cx, cy, sz, kind]));
     acc.tri(ids[0], ids[1], ids[2]);
     acc.tri(ids[1], ids[3], ids[2]);
   };
-  quad(size, 0, 1);
+  quad(size, 0, tint); // tint 1 is the lamp itself; below 1 picks one of the stained pane colors
   if (halo > 0) quad(halo, 1, haloI);
 }
 
@@ -213,8 +213,8 @@ function addPinnules(acc, tents, per, segs, plen, width, rnd) {
 }
 
 // Oral arms: wide ribbons with several vertices across so the edges can ruffle.
-function addArms(acc, roots, segs, across, len, width, rnd) {
-  roots.forEach((root, k) => {
+function addArms(acc, roots, segs, across, len, width, rnd, rootV = 0.3, tang = 0) {
+  roots.forEach((root) => {
     const th = Math.atan2(root[2], root[0]);
     const u = ((th / TAU) + 1) % 1;
     const lm = len * (0.8 + 0.4 * rnd());
@@ -224,7 +224,7 @@ function addArms(acc, roots, segs, across, len, width, rnd) {
       const s = j / segs;
       for (let i = 0; i <= across; i++) {
         const x = -1 + (2 * i) / across;
-        acc.v(root, [0, 0, 1], [PART.ARM, u, s, rr], [x, width, k, lm]);
+        acc.v(root, [tang, 0, 1], [PART.ARM, u, s, rr], [x, width, rootV, lm]);
       }
     }
     acc.strip(base, segs, across);
@@ -232,12 +232,12 @@ function addArms(acc, roots, segs, across, len, width, rnd) {
 }
 
 // A single fat camera facing strip along a vertical path (manubrium, gut).
-function addGut(acc, root, segs, widthMul, lenMul) {
+function addGut(acc, root, segs, widthMul, lenMul, inten = 1) {
   const base = acc.pos.length / 3;
   for (let j = 0; j <= segs; j++) {
     const s = j / segs;
     for (let side = -1; side <= 1; side += 2) {
-      acc.v(root, [0, 0, 1], [PART.GUT, 0, s, 0], [side, widthMul, 0, lenMul]);
+      acc.v(root, [0, 0, 1], [PART.GUT, 0, s, inten], [side, widthMul, 0, lenMul]);
     }
   }
   for (let j = 0; j < segs; j++) {
@@ -247,12 +247,39 @@ function addGut(acc, root, segs, widthMul, lenMul) {
   }
 }
 
+// Hanging lanterns (thuribles) under the vault: a thin chain from the ceiling to a glowing bulb.
+// Ceiling height at a radius comes from the shell profile.
+function ceilingAt(prof, r) {
+  let best = PROFILES[prof](0.5)[1];
+  for (let i = 0; i <= 200; i++) {
+    const [rr, yy] = PROFILES[prof](i / 200);
+    best = yy;
+    if (rr >= r) break;
+  }
+  return best;
+}
+function addLamps(acc, prof, L, rnd, detail) {
+  const n = Math.max(3, Math.round(L.n * Math.min(1, detail * 1.2)));
+  for (let k = 0; k < n; k++) {
+    const ring = L.rings[k % L.rings.length];
+    const th = (k / n) * TAU * 1.0 + 0.3 * (rnd() - 0.5) + ring * 3.0;
+    const r = ring * (0.9 + 0.2 * rnd());
+    const top = ceilingAt(prof, r) * 0.97;
+    const drop = L.drop[0] + (L.drop[1] - L.drop[0]) * rnd();
+    const x = Math.cos(th) * r, z = Math.sin(th) * r;
+    addGut(acc, [x, top, z], 4, L.chain, drop, 0.3);
+    addCore(acc, top - drop, L.size * (0.75 + 0.5 * rnd()), 0, 0, x, z, 0.05 + 0.9 * rnd());
+  }
+}
+
 // ---- recipe -> geometry -------------------------------------------------------------------
 // recipe: {
 //   profile, shell: [nu, nv], cluster, skirt: [nu, rows] | null,
 //   core: { y, size, halo } | null (lamp quad and an optional wide halo quad),
 //   gonads: [{ cx, cz, radius, halfW, v, segs, tilt }...] (height taken from the profile),
-//   arms: { n, rootR, rootV, rootY, off, segs, across, len, width } | null,
+//   arms: { n, rootR, rootV, rootY, off, segs, across, len, width, tangent } | [groups] | null,
+//         (tangent: radians added to the direction the sheet is wide in; PI/2 hangs it as a curtain)
+//   lamps: { n, rings: [radii], drop: [min, max], size, chain } | null (hanging lanterns),
 //   tent: { n, segs, rootR (of margin radius), width, len, jitter, off, roots? } | null,
 //   fringe: { n, segs, width, len, rootR } | null,
 //   pinn: { per, segs, len, width } | null,   (on `tent`)
@@ -278,15 +305,19 @@ export function buildGeometry(recipe, detail = 1, seed = 1) {
   }
 
   if (recipe.arms) {
-    const a = recipe.arms;
-    const ry = PROFILES[prof](a.rootV ?? 0.3)[1] * (a.rootY ?? 0.6);
-    const roots = [];
-    for (let k = 0; k < a.n; k++) {
-      const th = (k / a.n) * TAU + (a.off || 0.4);
-      const rr = a.rootR ?? 0.12;
-      roots.push([Math.cos(th) * rr, ry, Math.sin(th) * rr]);
+    // one group or several (oral arms inside, veils at the margin)
+    for (const a of Array.isArray(recipe.arms) ? recipe.arms : [recipe.arms]) {
+      const rv = a.rootV ?? 0.3;
+      const ry = PROFILES[prof](rv)[1] * (a.rootY ?? 0.6);
+      const roots = [];
+      const n = Math.max(3, Math.round(a.n * (detail < 0.6 ? 0.6 : 1)));
+      for (let k = 0; k < n; k++) {
+        const th = (k / n) * TAU + (a.off || 0.4);
+        const rr = a.rootR ?? 0.12;
+        roots.push([Math.cos(th) * rr, ry, Math.sin(th) * rr]);
+      }
+      addArms(acc, roots, d(a.segs, 5), a.across >= 4 && detail < 0.6 ? 2 : a.across, a.len, a.width, rnd, rv, a.tangent || 0);
     }
-    addArms(acc, roots, d(a.segs, 5), a.across >= 4 && detail < 0.6 ? 2 : a.across, a.len, a.width, rnd);
   }
 
   if (recipe.tent) {
@@ -316,6 +347,8 @@ export function buildGeometry(recipe, detail = 1, seed = 1) {
     }
     addTentacles(acc, roots, d(f.segs, 3), f.width, f.len, rnd);
   }
+
+  if (recipe.lamps && detail >= 0.5) addLamps(acc, prof, recipe.lamps, rnd, detail);
 
   if (recipe.gut) addGut(acc, [0, recipe.gut.y, 0], d(recipe.gut.segs, 4), recipe.gut.width, recipe.gut.len || 1);
 
