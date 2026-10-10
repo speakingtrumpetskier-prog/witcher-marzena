@@ -593,6 +593,8 @@ void main() {
   T = T * tr + L * (1.0 - tr);
   // the inner light swells with each pulse (strongest for the very slow ones)
   float swell = 1.0 + uS.y * pulseWave(fract(ph - 0.03));
+  // the ivory ones glow old gold, not white (the light itself is warmer than the body)
+  em *= mix(vec3(1.0), vec3(1.0, 0.9, 0.62), uS.w * 0.6);
   vec3 emR = em * swell * (uGlowGain * uInvExp) * tr * vInst.y * nearFade;
   vec4 outc = vec4(T * aDay + emR, aDay);
   // A stray NaN in a half float target would smear into the bloom as a colored speck.

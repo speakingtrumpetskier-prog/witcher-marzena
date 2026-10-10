@@ -12,7 +12,7 @@
 //     ?scene=spirits&cam=40,6,40&look=40,40,-200&hour=22.5
 //       density=N    multiplier on how many are out
 // In the full game (no scene): cath=0..1 puts the cathedral on its circuit (0.75 is due north of the lake),
-//   cathlight=N sets the strength of the light it throws on the snow (default 0.2), spirits=0 hides them all.
+//   cathlight=N sets the strength of the light it throws on the snow (default 0.16), spirits=0 hides them all.
 // Other params: weather=clear|snow|blizzard, hour. Motion sheets: add &fps=30&speed=4 and --seq 12.
 import * as THREE from 'three';
 import { createSpirits } from '../../world/Spirits.js';

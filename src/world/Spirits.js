@@ -569,7 +569,7 @@ export function createSpirits(G, opts = {}) {
       if (glow) {
         const indoors = G.world?.indoors?.(camPos.x, camPos.z) ? 1 : 0;
         glow.position.set(cathItem.x, cathItem.y - cathItem.scale * 1.6, cathItem.z);
-        glow.intensity = (G.params.has('cathlight') ? parseFloat(G.params.get('cathlight')) : 0.2) * k * (0.7 + 0.3 * pr) * (1 - indoors);
+        glow.intensity = (G.params.has('cathlight') ? parseFloat(G.params.get('cathlight')) : 0.16) * k * (0.7 + 0.3 * pr) * (1 - indoors);
       }
       const su = G.sky?.uniforms?.uSpiritGlow;
       if (su) {

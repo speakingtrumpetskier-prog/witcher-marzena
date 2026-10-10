@@ -17,7 +17,7 @@ export const COLORS = {
   deepViolet: '#9a7cf2',
   whiteGold: '#ffe9ad',
   pearl: '#fff4e0',
-  ivory: '#f7e4a6', // old ivory: the cathedral's body
+  ivory: '#f7e6b4', // old ivory: the cathedral's body
   paleGold: '#ffe38f',
 };
 const C = COLORS;
