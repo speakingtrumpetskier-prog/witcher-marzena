@@ -5,6 +5,8 @@ import { evaluate, compare, scoreOf, ordinalOf, RANK, RANK_NAMES, eachOutcome, d
 import { createAI, PERSONALITIES } from '../src/minigames/dice/ai.js';
 import { Match } from '../src/minigames/dice/match.js';
 import { OPPONENTS, pickLine, voiceLines } from '../src/minigames/dice/opponents.js';
+import * as THREE from 'three';
+import { planRoll, planShake, planHop, faceUp, topFace } from '../src/minigames/dice/roll.js';
 
 let pass = 0, fail = 0;
 const ok = (name, cond, detail = '') => {
@@ -286,6 +288,51 @@ function play(seed, { opp = OPPONENTS.wojtek, ante = 3, coins = 40, purse = 60, 
   const r = m.settle();
   ok('equal hands draw and give both stakes back', r.winner === 'draw' && m.coins.player === 20 && m.coins.opp === 24 && m.wins.player === 0 && m.draws === 1);
   ok('a drawn round is replayed (the match goes on)', !m.over);
+}
+
+// ---- the roll: a scripted path that always ends on the chosen face --------------------------------------
+{
+  const SIZE = 0.05, TABLE = 0.9, REST = TABLE + SIZE / 2;
+  const q = new THREE.Quaternion(), pos = new THREE.Vector3(), prevP = new THREE.Vector3(), prevQ = new THREE.Quaternion();
+  let badFace = 0, badPos = 0, belowTable = 0, jumpP = 0, jumpQ = 0, maxDur = 0, minDur = 9, events = 0, plans = 0;
+  for (let seed = 1; seed <= 300; seed++) {
+    const r = rng(seed * 31);
+    const value = 1 + (seed % 6);
+    const dir = seed % 2 ? 1 : -1;
+    const slot = new THREE.Vector3((seed % 5 - 2) * 0.085, REST, dir * 0.17);
+    const plan = planRoll({ start: new THREE.Vector3(slot.x * 0.5, TABLE + 0.2, -dir * 0.3), slot, value, size: SIZE, tableY: TABLE, rand: r, dir, delay: (seed % 3) * 0.05 });
+    plans++;
+    maxDur = Math.max(maxDur, plan.duration); minDur = Math.min(minDur, plan.duration);
+    events += plan.events.length;
+    plan.sample(plan.duration + 0.5, pos, q);
+    if (topFace(q) !== value) badFace++;
+    if (pos.distanceTo(slot) > 1e-4) badPos++;
+    const steps = Math.ceil(plan.duration * 120);
+    for (let i = 0; i <= steps; i++) {
+      plan.sample(i / 120, pos, q);
+      if (pos.y < REST - 1e-5) belowTable++;
+      if (i) {
+        if (pos.distanceTo(prevP) > 0.05) jumpP++;
+        if (2 * Math.acos(Math.min(1, Math.abs(q.dot(prevQ)))) > 0.75) jumpQ++;
+      }
+      prevP.copy(pos); prevQ.copy(q);
+    }
+  }
+  ok('300 rolls end with the chosen face up', badFace === 0, `${badFace} wrong`);
+  ok('and end exactly on their slot', badPos === 0, `${badPos} off`);
+  ok('no die sinks into the table on the way', belowTable === 0, `${belowTable} samples`);
+  ok('no jumps in position (0.05 m in 1/120 s) or in turning (0.75 rad)', jumpP === 0 && jumpQ === 0, `pos ${jumpP}, turn ${jumpQ}`);
+  ok('a roll takes between three quarters of a second and a second and a half', minDur > 0.7 && maxDur < 1.6, `${minDur.toFixed(2)} to ${maxDur.toFixed(2)}`);
+  ok('every roll has its landing events', events >= plans * 3);
+  const rest = faceUp(5, 0.2);
+  ok('faceUp rests a die with that face up', topFace(rest) === 5 && topFace(faceUp(1, 1)) === 1 && topFace(faceUp(6, -2)) === 6);
+  const hop = planHop({ p0: new THREE.Vector3(0, REST, 0), p1: new THREE.Vector3(0.1, REST + 0.02, 0.1), q0: faceUp(3), q1: faceUp(3, 0.5), dur: 0.2 });
+  hop.sample(1, pos, q);
+  ok('a hop ends where it was sent', pos.distanceTo(new THREE.Vector3(0.1, REST + 0.02, 0.1)) < 1e-6);
+  const shake = planShake({ center: new THREE.Vector3(0, TABLE + 0.2, -0.3), q0: faceUp(2), dur: 0.8, rand: rng(2) });
+  let far = 0;
+  for (let i = 0; i < 100; i++) { shake.sample(i * 0.008, pos, q); far = Math.max(far, pos.distanceTo(new THREE.Vector3(0, TABLE + 0.2, -0.3))); }
+  ok('a shake stays within a few centimetres of its centre', far > 0.004 && far < 0.03, far.toFixed(4));
 }
 
 // ---- what they say ------------------------------------------------------------------------------------
