@@ -32,7 +32,10 @@ export default {
 
     h1: { s: 'vesna', t: 'Where are you headed?', next: 'h2' },
     h2: { s: 'tinker', t: "Marzena. I haven't been through in three years. Is Zbyszek still keeping the Bell?", next: 'h3' },
-    h3: { s: 'vesna', t: 'He is.', next: 'h4' },
+    h3: { if: (S) => !!S.flag('met_zbyszek'), else: 'h3b', s: 'vesna', t: 'He is.', next: 'h4' },
+    // she has not been down to the village yet
+    h3b: { s: 'vesna', t: "I haven't been down yet.", next: 'h4b' },
+    h4b: { s: 'tinker', t: "The Drowned Bell. You'll find it, there's only the one. The beer was thin last time.", next: 'hub' },
     h4: { s: 'tinker', t: 'Is the beer still thin?', next: 'h5' },
     h5: { s: 'vesna', t: 'Yes.', next: 'h6' },
     h6: { s: 'tinker', t: "Good. I've told people about that beer.", next: 'hub' },

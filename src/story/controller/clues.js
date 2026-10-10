@@ -78,7 +78,8 @@ export function install(C) {
   if (C.V.graveWiesia) {
     C.interact({
       id: 'grave_wiesia', pos: C.V.graveWiesia, radius: 2.0, verb: 'Examine', label: "Wiesia's grave",
-      onUse: async () => { C.set('grave_wiesia_seen'); C.say('Nothing under it. Flowers made of red thread on the post.', 4); },
+      // The post has her name cut in it: from here on Vesna knows it (knows_wiesia, docs/STORY.md section 1).
+      onUse: async () => { C.set('grave_wiesia_seen'); C.set('knows_wiesia'); C.say('Nothing under it. Flowers made of red thread on the post.', 4); },
     });
   }
   if (C.V.graveMateusz) {

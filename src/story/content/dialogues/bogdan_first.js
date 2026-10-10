@@ -3,8 +3,11 @@
 // Entry: first interaction with Bogdan (not met_bogdan). cast: bogdan.
 // Sets:  met_bogdan, and took_reeve_money (+100 grosze, S.give('coins', 100)) or refused_reeve_money.
 //        Both are set at the choice, so the journal line is always true.
-// Reads: heard_of_maiden (set by zbyszek_hub). Without it Vesna asks who carries the effigy instead
-//        of "And the girl?", and Bogdan answers plainly instead of "You've been talking to people."
+// Reads: knows_rite (zbyszek_hub, hanka_first). Without it she only knows what her copy of the contract says
+//        ("before the equinox"), so she asks what happens then, and he tells a stranger what the rite is in a line
+//        before "and that's the end of it". Sets knows_rite either way.
+//        heard_of_maiden (zbyszek_hub, hanka_first). Without it Vesna asks who carries the effigy instead
+//        of "And the girl?", and Bogdan answers plainly instead of "You've been talking to people" (sets it).
 // Topics: how bad, the three, the contract, the weather (sends her to the old women and the herders), the rite.
 // The scene ends on every path with the same line, so the controller does not have to check the node.
 // A player who leaves the hub early still gets the purse: he was going to offer it anyway.
@@ -24,9 +27,9 @@ export default {
       choices: [
         { t: 'How bad is it? The village.', next: 'v1', once: true },
         { t: 'Three men have gone missing.', next: 'm1', once: true },
-        { t: 'There is a contract on the board. Who put it there?', next: 'c1', once: true },
+        { t: 'This contract. Who wrote it?', next: 'c1', once: true },
         { t: 'Will the pass stay open? The weather.', next: 'wx1', once: true },
-        { t: 'What happens tomorrow night?', next: 'r1' },
+        { t: (S) => (S.flag('knows_rite') ? 'What happens tomorrow night?' : 'What happens at the equinox?'), next: 'r1' },
         { t: "That's all I wanted.", next: 'x1', exit: true },
       ],
     },
@@ -51,18 +54,24 @@ export default {
     m5: { s: 'bogdan', t: "Stach had four at home. Pawlak's taken them on her share, and Pawlak's a widow. That's seven mouths on one share, if you want it plain.", next: 'hub' },
 
     // the contract
-    c1: { s: 'vesna', t: 'There is a contract on the board. Who put it there?', next: 'c2' },
+    c1: { s: 'vesna', t: 'This contract. Who wrote it?', next: 'c2' },
     c2: { s: 'bogdan', t: "I don't read the board. I know what's on it.", next: 'c3' },
     c3: { s: 'vesna', t: "It's signed H.", next: 'c4' },
     c4: { s: 'bogdan', t: 'Is it.', next: 'c5' },
     c5: { s: 'narrator', t: 'The pen stops. It starts again.', italic: true, dur: 2.2, next: 'hub' },
 
     // the rite, and the girl
-    r1: { s: 'vesna', t: 'What happens tomorrow night?', next: 'r2' },
-    r2: { s: 'bogdan', t: 'Tomorrow night we do the rite, and that\'s the end of it.', next: 'r3' },
-    r3: { s: 'vesna', t: (S) => (S.flag('heard_of_maiden') ? 'And the girl?' : 'Who carries her out?'), next: (S) => (S.flag('heard_of_maiden') ? 'r4' : 'r4b') },
+    r1: { s: 'vesna', t: (S) => (S.flag('knows_rite') ? 'What happens tomorrow night?' : 'The paper says before the equinox. What happens then?'), next: 'r2' },
+    r2: {
+      s: 'bogdan',
+      t: (S) => (S.flag('knows_rite')
+        ? 'Tomorrow night we do the rite, and that\'s the end of it.'
+        : "Tomorrow night's the equinox. We carry a straw woman out to the poles and put her through the ice, the way it's always done. And that's the end of it."),
+      next: 'r3',
+    },
+    r3: { s: 'vesna', t: (S) => (S.flag('heard_of_maiden') ? 'And the girl?' : 'Who carries her out?'), do: (S) => S.set('knows_rite'), next: (S) => (S.flag('heard_of_maiden') ? 'r4' : 'r4b') },
     r4: { s: 'bogdan', t: 'You\'ve been talking to people.', wait: 1.3, a: 'cross_arms', next: 'p1' },
-    r4b: { s: 'bogdan', t: 'A girl from the village. Same as every year.', next: 'p1' },
+    r4b: { s: 'bogdan', t: 'A girl from the village. Same as every year.', do: (S) => S.set('heard_of_maiden'), next: 'p1' },
 
     // leaving early
     x1: { s: 'bogdan', t: 'Then we are done.', next: 'p1' },

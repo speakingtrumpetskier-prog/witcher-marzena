@@ -26,8 +26,12 @@ const QUESTS = {
     title: 'The Hollow Pass', kind: 'main', next: 'main_ice',
     stages: [
       {
-        id: 'pass', objective: 'Get through the pass', marker: 'passStart',
-        journal: 'Hollow Pass. Snowing hard. Lost the road twice.',
+        // She comes for the contract: Hanka sent a copy out over the pass, and it was nailed up at the toll house below
+        // it. Vesna carries that copy from the first frame (the note is in her notes; the board in the square has the same paper).
+        id: 'pass', objective: 'Cross the pass to Marzena', marker: 'passStart',
+        journal: 'Contract nailed up at the toll house below the Hollow Pass. From Marzena, the village on the lake on the other side: something walks the ice at night, three fishermen gone. Kill it before the equinox. Signed only "H." Pays "all I have".',
+        log: 'Hollow Pass. Snowing hard. Lost the road twice.',
+        enter: (S) => { if (!S.data.notes.includes('note_contract')) S.data.notes.push('note_contract'); },
         done: (S) => !!S.flag('pass_arrived'), sets: ['pass_arrived'],
         debug: { day: 1, time: 14.5, weather: 'blizzard', at: [SPAWN.prologue.x, SPAWN.prologue.z, SPAWN.prologue.yaw] },
       },
@@ -61,8 +65,8 @@ const QUESTS = {
         debug: { day: 1, time: 16.2, weather: 'clear', at: [-120, 146, 2.1] },
       },
       {
-        id: 'board', objective: 'Read the notice board', marker: [9, 113],
-        log: 'Contract on the board in the square: something walks the ice at night. Three fishermen missing. Signed only "H."',
+        id: 'board', objective: 'Check the notice board', marker: [9, 113],
+        log: 'The same contract is up on the board in the square, in the same hand.',
         done: (S) => !!S.flag('contract_taken'), sets: ['contract_taken'],
         debug: { day: 1, time: 16.6, weather: 'clear', at: [SPAWN.square.x, SPAWN.square.z, SPAWN.square.yaw] },
       },
@@ -71,7 +75,9 @@ const QUESTS = {
         objectives: [
           {
             id: 'tavern', text: 'Ask at the Drowned Bell', marker: 'tavern', done: (S) => !!S.flag('met_zbyszek'),
-            log: "Zbyszek at the tavern: the missing men are Stach, Bolek and the younger Wrona. Their rite is tomorrow night. Says the hand on the contract is Hanka's.",
+            log: (S) => (S.flag('knows_fair_hand')
+              ? "Zbyszek at the tavern: the missing men are Stach, Bolek and the younger Wrona. Their rite is tomorrow night. Says the hand on the contract is Hanka's."
+              : 'Zbyszek at the tavern: the missing men are Stach, Bolek and the younger Wrona. Their rite is tomorrow night.'),
           },
           {
             id: 'reeve', text: 'See the reeve', marker: 'longhouse', done: (S) => !!S.flag('met_bogdan'),
@@ -157,7 +163,7 @@ const QUESTS = {
     title: 'What Hanka Saw', kind: 'main', next: 'main_rite',
     stages: [
       {
-        id: 'dobra', objective: 'Ask Dobra about the rite', marker: 'dobra',
+        id: 'dobra', objective: 'Ask the effigy maker about the rite', marker: 'dobra',
         log: 'Dobra, the effigy maker. Says the old carvings on the island show real girls, before the straw. Kept looking at the knot on my chain.',
         done: (S) => !!S.flag('met_dobra'), sets: ['met_dobra', 'dobra_knot_noticed'],
         debug: { day: 2, time: 7.5, weather: 'fog', at: [-15, 66, 3.14] },
@@ -227,7 +233,7 @@ const QUESTS = {
         done: (S) => !!S.flag('ledger_found'), sets: ['ledger_found'],
       },
       {
-        id: 'tell', objective: (S) => (S.flag('echo_seen') ? 'Tell Bogdan the truth' : 'Learn what happened at the rite'),
+        id: 'tell', objective: (S) => (S.flag('echo_seen') ? 'Tell Bogdan the truth' : S.flag('knows_rite') ? 'Learn what happened at the rite' : 'Ask around about the reeve'),
         marker: (S) => (S.flag('echo_seen') ? 'longhouse' : null),
         done: (S) => !!S.flag('reeve_told'), sets: ['reeve_told'],
       },

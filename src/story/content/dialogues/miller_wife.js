@@ -25,8 +25,15 @@ export default {
 
     // wolves still out there
     b1: { s: 'miller_wife', t: "Wipe your feet. I've just done it.", a: 'stir', next: 'b2' },
-    b2: { s: 'vesna', t: 'Your husband put up a paper.', next: 'b3' },
-    b3: { s: 'miller_wife', t: "He did. He won't say it, but he hasn't slept.", next: 'b4' },
+    // (she may come to the mill before she has read his paper on the board)
+    b2: { s: 'vesna', t: (S) => (S.flag('wolves_contract_read') ? 'Your husband put up a paper.' : 'Is the miller about?'), next: 'b3' },
+    b3: {
+      s: 'miller_wife',
+      t: (S) => (S.flag('wolves_contract_read')
+        ? "He did. He won't say it, but he hasn't slept."
+        : "Out at the wheel. If it's about the wolves, he put a paper up in the square. They took our dog. He hasn't slept."),
+      next: 'b4',
+    },
     b4: { s: 'vesna', t: 'Where are the children?', next: 'b5' },
     b5: { s: 'miller_wife', t: "Inside. They've been inside for six days. They fight.", next: 'b6' },
     b6: { s: 'miller_wife', t: 'Kill them, and you can have whatever is in the pot.', end: true },

@@ -58,7 +58,7 @@ export const NOTES = {
     sign: 'Tomasz',
   },
   note_contract: {
-    title: 'The Contract', where: 'Notice board, Marzena', kind: 'letter',
+    title: 'The Contract', where: 'The toll house below the Hollow Pass', kind: 'letter',
     text: 'Something walks the ice at night. It has taken three men from the fishing holes. Kill it before the equinox. Payment: all I have. Ask at the shore.',
     sign: 'H.',
   },
@@ -169,8 +169,9 @@ export const BESTIARY = [
     text: [
       'The straw effigies from the rite, the ones they drown each spring. White dress, wooden face. They get up at night and walk the ice.',
       'Slow, then a heavy swing from above, then they try to grab. The grab is the dangerous part.',
-      'They burn well. When they go down they leave wet straw and the red knot from the neck. Dobra ties those knots.',
+      'They burn well. When they go down they leave wet straw and the red knot from the neck.',
     ],
+    more: [{ when: (S) => !!S.flag('met_dobra'), text: 'Dobra ties those knots. She ties every one.' }],
     weak: 'Fire. Ember, and it spreads between them.',
     beware: 'Dodge the swing, don\'t try to block it.',
   },
@@ -178,10 +179,11 @@ export const BESTIARY = [
     id: 'marzanna', name: 'The Marzanna', sub: 'A girl, three winters in the water', sketch: 'marzanna',
     unlock: (S) => !!(S.flag('lair_seen') || S.flag('wiesia_spoke') || S.flag('boss_started')),
     text: [
-      'Wiesia, Hanka\'s daughter. Fourteen when she went through the ice at the rite, three winters ago.',
+      'Hanka\'s older girl. About fourteen when she went through the ice at the rite, three winters ago.',
       'White cloth and ice, hair moving like it is underwater, a crown of frozen straw. Four meters tall when she rises. She screams.',
       'Gale cracks the ice on her. Ward holds against the scream. She keeps going back under the ice and coming up somewhere else.',
     ],
+    more: [{ when: (S) => !!S.flag('knows_wiesia'), text: 'Her name was Wiesia.' }],
     weak: 'Gale. It cracks the ice armor.',
     beware: 'A pale glow under your feet means she is beneath you. Move.',
   },
@@ -207,10 +209,11 @@ export const BESTIARY = [
     id: 'matka_chmur', name: 'Matka Chmur', sub: 'The Mother of Clouds', sketch: 'matka',
     unlock: (S) => !!(S.flag('matka_seen') || S.flag('matka_pulse')),
     text: [
-      'The big one. The old people call her Matka Chmur, the Mother of Clouds. She is bigger than the church and bigger than the hill behind it, and she goes the long way round the valley, very slowly, with her threads hanging down toward the lake. By day she is only a paleness in the haze, like the moon. At night there are lights in her, in rows, like windows. Dobra says she has never once looked down.',
+      'The big one. The old people call her Matka Chmur, the Mother of Clouds. She is bigger than the church and bigger than the hill behind it, and she goes the long way round the valley, very slowly, with her threads hanging down toward the lake. By day she is only a paleness in the haze, like the moon. At night there are lights in her, in rows, like windows.',
       'When she swells, the old ones stop where they stand, take their caps off and say nothing until she lets her breath out. It takes about half a minute. Nobody remembers who started it. On the first clear night of the year they leave a heel of bread on the ice for her. The ravens eat it and nobody minds.',
     ],
     more: [
+      { when: (S) => !!S.flag('matka_asked'), text: 'Dobra says she has never once looked down.' },
       { when: (S) => !!S.flag('matka_pulse'), text: 'Watched her swell. The light runs along her from one end to the other, slowly, holds, and lets go. A little under half a minute, every time.' },
       { when: (S) => !!S.data.notes?.includes('note_island_sky'), text: 'She is on the island stones too, cut across two of them, with her left end shorter than her right. The carving is older than the church.' },
     ],

@@ -1,6 +1,6 @@
 {
  "version": 1,
- "count": 1193,
+ "count": 1218,
  "lines": [
   {
    "hash": "48b25a91dc",
@@ -133,9 +133,9 @@
    "pace": 1
   },
   {
-   "hash": "3c28d2cf43",
+   "hash": "287390b0d4",
    "speaker": "vesna",
-   "text": "There is a contract on the board. Who put it there?",
+   "text": "This contract. Who wrote it?",
    "kind": "dialogue",
    "source": "src/story/content/dialogues/bogdan_first.js",
    "node": "c1",
@@ -151,6 +151,17 @@
    "source": "src/story/content/dialogues/bogdan_first.js",
    "node": "c3",
    "direction": "plain, restrained",
+   "exaggeration": 0.33,
+   "pace": 1
+  },
+  {
+   "hash": "03340494a3",
+   "speaker": "vesna",
+   "text": "The paper says before the equinox. What happens then?",
+   "kind": "dialogue",
+   "source": "src/story/content/dialogues/bogdan_first.js",
+   "node": "r1",
+   "direction": "plain, restrained; flat question, not rising",
    "exaggeration": 0.33,
    "pace": 1
   },
@@ -407,12 +418,34 @@
    "pace": 1
   },
   {
+   "hash": "a2fc7e86b1",
+   "speaker": "vesna",
+   "text": "Hanka's girl didn't just fall in. Hanka saw her in the water, and everyone kept walking.",
+   "kind": "dialogue",
+   "source": "src/story/content/dialogues/bogdan_later.js",
+   "node": "a1",
+   "direction": "plain, restrained",
+   "exaggeration": 0.33,
+   "pace": 1
+  },
+  {
    "hash": "9bad85dd30",
    "speaker": "vesna",
    "text": "Wiesia didn't just fall in. Her mother saw her in the water, and everyone kept walking.",
    "kind": "dialogue",
    "source": "src/story/content/dialogues/bogdan_later.js",
    "node": "a1",
+   "direction": "plain, restrained",
+   "exaggeration": 0.33,
+   "pace": 1
+  },
+  {
+   "hash": "755979b132",
+   "speaker": "vesna",
+   "text": "I was at the poles tonight. I saw it.",
+   "kind": "dialogue",
+   "source": "src/story/content/dialogues/bogdan_later.js",
+   "node": "s1",
    "direction": "plain, restrained",
    "exaggeration": 0.33,
    "pace": 1
@@ -633,6 +666,17 @@
    "also": [
     "src/story/content/dialogues/dobra_rite.js:ka3"
    ]
+  },
+  {
+   "hash": "9ccc981a93",
+   "speaker": "vesna",
+   "text": "Hanka's older girl, the one who drowned. Did you know her?",
+   "kind": "dialogue",
+   "source": "src/story/content/dialogues/dobra_rite.js",
+   "node": "wi1",
+   "direction": "plain, restrained; flat question, not rising",
+   "exaggeration": 0.33,
+   "pace": 1
   },
   {
    "hash": "4560be5114",
@@ -885,6 +929,29 @@
    "pace": 1
   },
   {
+   "hash": "49578dc48d",
+   "speaker": "vesna",
+   "text": "The paper says to ask at the shore.",
+   "kind": "dialogue",
+   "source": "src/story/content/dialogues/hanka_first.js",
+   "node": "h1b",
+   "direction": "plain, restrained",
+   "exaggeration": 0.33,
+   "pace": 1
+  },
+  {
+   "hash": "8780c94fc4",
+   "speaker": "vesna",
+   "text": "You're H.",
+   "kind": "dialogue",
+   "source": "src/story/content/dialogues/hanka_first.js",
+   "node": "hn1",
+   "direction": "plain, restrained; short, quiet",
+   "exaggeration": 0.33,
+   "pace": 0.96,
+   "level": -1.5
+  },
+  {
    "hash": "fdff3fed62",
    "speaker": "vesna",
    "text": "Tell me what it doesn't say.",
@@ -903,6 +970,17 @@
    "source": "src/story/content/dialogues/hanka_first.js",
    "node": "h7",
    "direction": "plain, restrained",
+   "exaggeration": 0.33,
+   "pace": 1
+  },
+  {
+   "hash": "3ff566e276",
+   "speaker": "vesna",
+   "text": "Picked for what?",
+   "kind": "dialogue",
+   "source": "src/story/content/dialogues/hanka_first.js",
+   "node": "h7b",
+   "direction": "plain, restrained; flat question, not rising",
    "exaggeration": 0.33,
    "pace": 1
   },
@@ -1174,6 +1252,17 @@
    "pace": 1
   },
   {
+   "hash": "f2f5076a2c",
+   "speaker": "vesna",
+   "text": "Who's Wiesia?",
+   "kind": "dialogue",
+   "source": "src/story/content/dialogues/jarek_bird.js",
+   "node": "j4b",
+   "direction": "plain, restrained; flat question, not rising",
+   "exaggeration": 0.33,
+   "pace": 1
+  },
+  {
    "hash": "d8e6dce387",
    "speaker": "vesna",
    "text": "A waxwing.",
@@ -1291,6 +1380,17 @@
    "exaggeration": 0.33,
    "pace": 0.96,
    "level": -1.5
+  },
+  {
+   "hash": "d02b2ebdc7",
+   "speaker": "vesna",
+   "text": "What paper?",
+   "kind": "dialogue",
+   "source": "src/story/content/dialogues/miller.js",
+   "node": "g3b",
+   "direction": "plain, restrained; flat question, not rising",
+   "exaggeration": 0.33,
+   "pace": 1
   },
   {
    "hash": "c31b8aefbd",
@@ -1444,6 +1544,17 @@
    "kind": "dialogue",
    "source": "src/story/content/dialogues/miller.js",
    "node": "done2",
+   "direction": "plain, restrained; flat question, not rising",
+   "exaggeration": 0.33,
+   "pace": 1
+  },
+  {
+   "hash": "63db957598",
+   "speaker": "vesna",
+   "text": "Is the miller about?",
+   "kind": "dialogue",
+   "source": "src/story/content/dialogues/miller_wife.js",
+   "node": "b2",
    "direction": "plain, restrained; flat question, not rising",
    "exaggeration": 0.33,
    "pace": 1
@@ -1785,9 +1896,9 @@
    "pace": 1
   },
   {
-   "hash": "d2ef8053cf",
+   "hash": "f6b2e8cc3d",
    "speaker": "vesna",
-   "text": "I heard you're carrying her this year.",
+   "text": "I hear you've been picked. For tomorrow night.",
    "kind": "dialogue",
    "source": "src/story/content/dialogues/ola_day1.js",
    "node": "ca1",
@@ -2096,6 +2207,17 @@
    "pace": 1
   },
   {
+   "hash": "69f8c17fd6",
+   "speaker": "vesna",
+   "text": "I came down it yesterday.",
+   "kind": "dialogue",
+   "source": "src/story/content/dialogues/rs_shrine_woman.js",
+   "node": "a2",
+   "direction": "plain, restrained",
+   "exaggeration": 0.33,
+   "pace": 1
+  },
+  {
    "hash": "66ba46d662",
    "speaker": "vesna",
    "text": "What does he look like?",
@@ -2282,6 +2404,17 @@
    "level": -1.5
   },
   {
+   "hash": "9b65597c7c",
+   "speaker": "vesna",
+   "text": "I haven't been down yet.",
+   "kind": "dialogue",
+   "source": "src/story/content/dialogues/rs_tinker.js",
+   "node": "h3b",
+   "direction": "plain, restrained",
+   "exaggeration": 0.33,
+   "pace": 1
+  },
+  {
    "hash": "51e3ea9378",
    "speaker": "vesna",
    "text": "I'll hold it up.",
@@ -2361,34 +2494,12 @@
    "level": -1.5
   },
   {
-   "hash": "7f63a6940f",
+   "hash": "7c91d9b887",
    "speaker": "vesna",
-   "text": "There's a paper on the board in the square. Three men, it says.",
+   "text": "This was nailed up at the toll house below the pass. Three men, it says.",
    "kind": "dialogue",
    "source": "src/story/content/dialogues/zbyszek_hub.js",
    "node": "f11",
-   "direction": "plain, restrained",
-   "exaggeration": 0.33,
-   "pace": 1
-  },
-  {
-   "hash": "7fea5c2a4c",
-   "speaker": "vesna",
-   "text": "Is there any work here for a hunter?",
-   "kind": "dialogue",
-   "source": "src/story/content/dialogues/zbyszek_hub.js",
-   "node": "f11b",
-   "direction": "plain, restrained; flat question, not rising",
-   "exaggeration": 0.33,
-   "pace": 1
-  },
-  {
-   "hash": "baaae54af4",
-   "speaker": "vesna",
-   "text": "I'm asking you.",
-   "kind": "dialogue",
-   "source": "src/story/content/dialogues/zbyszek_hub.js",
-   "node": "f11d",
    "direction": "plain, restrained",
    "exaggeration": 0.33,
    "pace": 1
@@ -2455,6 +2566,17 @@
    "kind": "dialogue",
    "source": "src/story/content/dialogues/zbyszek_hub.js",
    "node": "f32",
+   "direction": "plain, restrained",
+   "exaggeration": 0.33,
+   "pace": 1
+  },
+  {
+   "hash": "263085fd1e",
+   "speaker": "vesna",
+   "text": "She wrote the paper.",
+   "kind": "dialogue",
+   "source": "src/story/content/dialogues/zbyszek_hub.js",
+   "node": "fh2",
    "direction": "plain, restrained",
    "exaggeration": 0.33,
    "pace": 1
@@ -2867,12 +2989,23 @@
    "pace": 1
   },
   {
+   "hash": "c3f1eca98d",
+   "speaker": "vesna",
+   "text": "Keep on, girl. There's work on the other side.",
+   "kind": "cutscene",
+   "source": "src/story/content/cutscenes/c1_blizzard.js",
+   "node": "line 43",
+   "direction": "plain, restrained",
+   "exaggeration": 0.33,
+   "pace": 1
+  },
+  {
    "hash": "28832638bc",
    "speaker": "vesna",
    "text": "Easy. I know.",
    "kind": "cutscene",
    "source": "src/story/content/cutscenes/c1_blizzard.js",
-   "node": "line 117",
+   "node": "line 121",
    "direction": "plain, restrained",
    "exaggeration": 0.33,
    "pace": 1
@@ -3023,6 +3156,18 @@
    "hash": "4f07d6b017",
    "speaker": "vesna",
    "text": "A hand-bell tied to the pole, a rag round the clapper.",
+   "kind": "bark",
+   "source": "docs/STORY.md",
+   "node": "section 5 (Vesna barks)",
+   "direction": "muttered in passing, flat",
+   "exaggeration": 0.28,
+   "pace": 1,
+   "level": -3
+  },
+  {
+   "hash": "701248b51a",
+   "speaker": "vesna",
+   "text": "Same as the one at the toll house.",
    "kind": "bark",
    "source": "docs/STORY.md",
    "node": "section 5 (Vesna barks)",
@@ -3253,6 +3398,18 @@
    "level": -1
   },
   {
+   "hash": "03dd102c9e",
+   "speaker": "hanka",
+   "text": "What paper?",
+   "kind": "dialogue",
+   "source": "src/story/content/dialogues/hanka_first.js",
+   "node": "h2b",
+   "direction": "flat, tired, eyes on her work; flat question, not rising",
+   "exaggeration": 0.27,
+   "pace": 0.93,
+   "level": -1
+  },
+  {
    "hash": "fd9566fabf",
    "speaker": "hanka",
    "text": "I didn't think anyone would come.",
@@ -3263,6 +3420,18 @@
    "exaggeration": 0.27,
    "pace": 0.883,
    "level": -2
+  },
+  {
+   "hash": "33278db55d",
+   "speaker": "hanka",
+   "text": "Hanka.",
+   "kind": "dialogue",
+   "source": "src/story/content/dialogues/hanka_first.js",
+   "node": "hn2",
+   "direction": "flat, tired, eyes on her work; short, quiet",
+   "exaggeration": 0.27,
+   "pace": 0.893,
+   "level": -2.5
   },
   {
    "hash": "154e3164b1",
@@ -3283,6 +3452,18 @@
    "kind": "dialogue",
    "source": "src/story/content/dialogues/hanka_first.js",
    "node": "h8",
+   "direction": "flat, tired, eyes on her work",
+   "exaggeration": 0.27,
+   "pace": 0.93,
+   "level": -1
+  },
+  {
+   "hash": "0a1ac8f846",
+   "speaker": "hanka",
+   "text": "For the rite. Tomorrow night. They drown a straw Marzanna in the lake, and a girl carries it out to the hole.",
+   "kind": "dialogue",
+   "source": "src/story/content/dialogues/hanka_first.js",
+   "node": "h8b",
    "direction": "flat, tired, eyes on her work",
    "exaggeration": 0.27,
    "pace": 0.93,
@@ -3869,6 +4050,17 @@
    "level": -1.5
   },
   {
+   "hash": "692e4056b7",
+   "speaker": "bogdan",
+   "text": "Tomorrow night's the equinox. We carry a straw woman out to the poles and put her through the ice, the way it's always done. And that's the end of it.",
+   "kind": "dialogue",
+   "source": "src/story/content/dialogues/bogdan_first.js",
+   "node": "r2",
+   "direction": "weary authority, controlled; sharp means quieter",
+   "exaggeration": 0.3,
+   "pace": 0.95
+  },
+  {
    "hash": "67d5587142",
    "speaker": "bogdan",
    "text": "Tomorrow night we do the rite, and that's the end of it.",
@@ -4211,6 +4403,17 @@
    "pace": 0.95
   },
   {
+   "hash": "9c4626847a",
+   "speaker": "bogdan",
+   "text": "You have nothing to do till tonight. And nobody here has the evenings.",
+   "kind": "dialogue",
+   "source": "src/story/content/dialogues/bogdan_fish.js",
+   "node": "old9",
+   "direction": "weary authority, controlled; sharp means quieter",
+   "exaggeration": 0.3,
+   "pace": 0.95
+  },
+  {
    "hash": "f7592f6a1b",
    "speaker": "bogdan",
    "text": "There's a place by the tower where the ice is thin. Somebody tied a rag to a stake there, years ago, I don't know who. Cut a hole there. Not wider than a bucket.",
@@ -4386,6 +4589,17 @@
    "source": "src/story/content/dialogues/bogdan_later.js",
    "node": "a3",
    "direction": "weary authority, controlled; sharp means quieter; flat question, not rising",
+   "exaggeration": 0.3,
+   "pace": 0.95
+  },
+  {
+   "hash": "50a694576d",
+   "speaker": "bogdan",
+   "text": "You got here this afternoon.",
+   "kind": "dialogue",
+   "source": "src/story/content/dialogues/bogdan_later.js",
+   "node": "s2",
+   "direction": "weary authority, controlled; sharp means quieter",
    "exaggeration": 0.3,
    "pace": 0.95
   },
@@ -4570,17 +4784,6 @@
    "pace": 1
   },
   {
-   "hash": "4c8e6cc69e",
-   "speaker": "zbyszek",
-   "text": "Work. There's a paper on the board since the morning. Go and read it.",
-   "kind": "dialogue",
-   "source": "src/story/content/dialogues/zbyszek_hub.js",
-   "node": "f11c",
-   "direction": "brisk, put upon, dry",
-   "exaggeration": 0.35,
-   "pace": 1
-  },
-  {
    "hash": "bc496aa43a",
    "speaker": "zbyszek",
    "text": "Three gone this month. Stach, Bolek, and the younger Wrona.",
@@ -4731,6 +4934,28 @@
    "kind": "dialogue",
    "source": "src/story/content/dialogues/zbyszek_hub.js",
    "node": "f33",
+   "direction": "brisk, put upon, dry",
+   "exaggeration": 0.35,
+   "pace": 1
+  },
+  {
+   "hash": "4d6098909d",
+   "speaker": "zbyszek",
+   "text": "You've been down at Hanka's already. Somebody saw you go in.",
+   "kind": "dialogue",
+   "source": "src/story/content/dialogues/zbyszek_hub.js",
+   "node": "fh1",
+   "direction": "brisk, put upon, dry",
+   "exaggeration": 0.35,
+   "pace": 1
+  },
+  {
+   "hash": "fe2b9dec77",
+   "speaker": "zbyszek",
+   "text": "Then you know more than I'd tell you.",
+   "kind": "dialogue",
+   "source": "src/story/content/dialogues/zbyszek_hub.js",
+   "node": "fh3",
    "direction": "brisk, put upon, dry",
    "exaggeration": 0.35,
    "pace": 1
@@ -6213,6 +6438,18 @@
    ]
   },
   {
+   "hash": "9ee746979d",
+   "speaker": "dobra",
+   "text": "Wiesia.",
+   "kind": "dialogue",
+   "source": "src/story/content/dialogues/dobra_rite.js",
+   "node": "wi1b",
+   "direction": "dry, brisk, hands busy, does not look up; short, quiet",
+   "exaggeration": 0.33,
+   "pace": 0.96,
+   "level": -1.5
+  },
+  {
    "hash": "a20e7ca6e5",
    "speaker": "dobra",
    "text": "She helped me one winter. Good hands. Tied a better knot than me by the end. Don't tell her mother I said that.",
@@ -6690,6 +6927,18 @@
    "exaggeration": 0.3,
    "pace": 0.839,
    "level": -3.5
+  },
+  {
+   "hash": "c0524ce077",
+   "speaker": "jarek",
+   "text": "Hanka's girl. She went through the ice at the rite.",
+   "kind": "dialogue",
+   "source": "src/story/content/dialogues/jarek_bird.js",
+   "node": "j4c",
+   "direction": "low, tired, a little slurred",
+   "exaggeration": 0.3,
+   "pace": 0.92,
+   "level": -1
   },
   {
    "hash": "401b40bbb0",
@@ -7179,9 +7428,9 @@
    "pace": 1.04
   },
   {
-   "hash": "2db69322ad",
+   "hash": "ea61965c52",
    "speaker": "ola",
-   "text": "The big one. Dobra said I can hold the pole.",
+   "text": "I carry the big one. Dobra said I can hold the pole.",
    "kind": "dialogue",
    "source": "src/story/content/dialogues/ola_day1.js",
    "node": "ca2",
@@ -7709,6 +7958,17 @@
    "pace": 0.97
   },
   {
+   "hash": "73e76cba0c",
+   "speaker": "miller",
+   "text": "On the board in the square. Wolves.",
+   "kind": "dialogue",
+   "source": "src/story/content/dialogues/miller.js",
+   "node": "g3c",
+   "direction": "plain, anxious, honest",
+   "exaggeration": 0.33,
+   "pace": 0.97
+  },
+  {
    "hash": "ed0458d7be",
    "speaker": "miller",
    "text": "Took my dog. Near took my boy.",
@@ -8014,6 +8274,17 @@
    "kind": "dialogue",
    "source": "src/story/content/dialogues/miller_wife.js",
    "node": "b1",
+   "direction": "short and worried, then easier",
+   "exaggeration": 0.34,
+   "pace": 1
+  },
+  {
+   "hash": "a946f56332",
+   "speaker": "miller_wife",
+   "text": "Out at the wheel. If it's about the wolves, he put a paper up in the square. They took our dog. He hasn't slept.",
+   "kind": "dialogue",
+   "source": "src/story/content/dialogues/miller_wife.js",
+   "node": "b3",
    "direction": "short and worried, then easier",
    "exaggeration": 0.34,
    "pace": 1
@@ -12739,6 +13010,17 @@
    "source": "src/story/content/dialogues/rs_tinker.js",
    "node": "h2",
    "direction": "plain, restrained; flat question, not rising",
+   "exaggeration": 0.33,
+   "pace": 1
+  },
+  {
+   "hash": "c2b580516c",
+   "speaker": "tinker",
+   "text": "The Drowned Bell. You'll find it, there's only the one. The beer was thin last time.",
+   "kind": "dialogue",
+   "source": "src/story/content/dialogues/rs_tinker.js",
+   "node": "h4b",
+   "direction": "plain, restrained",
    "exaggeration": 0.33,
    "pace": 1
   },
