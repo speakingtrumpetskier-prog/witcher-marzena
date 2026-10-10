@@ -34,6 +34,18 @@ Model policy (user request): Part Two and later run on Sonnet 5.5, except a sing
 ## Title (lead)
 src/ui/titleScene.js: the ritual ring at 15:8 against the low sun over the south-west ranges, the village and smoke on the quiet left third, a straw Marzanna (standing, arms out, larger than life) on the right half with the sun just past her shoulder, a title-only ribbon pole cut by the right edge. The camera arcs about 5 degrees around the effigy on slow sines, so she holds still while the far shore and the near pole slide; the sun passes behind her and out again. Wind and ground drift raised, auto weather held, ravens cross every 25 to 55 s, the drowned bell sounds every 48 to 78 s. Flow: the picture fades up alone (4.8 s), then the name and the red thread; "Press any key" unlocks sound, starts the main theme ('reveal') and brings in the menu. Name and menu only (no tagline, no footer), in a left column with a light left-side shade. Needs a human look at it moving, with sound.
 
+## Local session, 2026-10-10 (lead, the user's Windows laptop: Intel integrated GPU)
+Measured with the headless GPU harness (MZ_CHROME=1, scripts/perf.mjs); details in each commit.
+- Fixed: cutscene Kasza glided with still legs (the gameplay Horse's idle tick reset her gait every frame; the stage sets `G.horse.scripted` while it holds her).
+- Fixed: the lake glare flicker (the user saw it every ~1.4 s): Player wrote `A.shadowFocus` each frame against the atmosphere's 0.5 s manual hold, so the near shadow map jumped between two centers about every 0.6 s. Now `A.shadowHint`, used only while the rig owns the camera. 0 single-frame spikes (was about 1.5/s, +20/255 on the lower picture).
+- Boot: the loading screen stays up until the title owns the camera and its shaders are built (systems pre-tick for the environment map and culling, compile with the post target bound, shadow-pass depth stand-ins, creature prewarm); first picture 26.8 s instead of about 57 s plus a visible 16 s freeze. `[boot]` console line.
+- Quality from the GPU (core/Quality.js; integrated graphics start at medium), dynamic resolution (render/DynamicRes.js, starts from a pixel budget), half-rate near shadow map below high. Title at 1080p and 125 percent: 26 to 28 fps on the laptop (13 to 18 at high before).
+- Boss glow is one persistent light (her emergence no longer recompiles every lit shader: 4.6 s freeze, now 0.44 s); creatures parked after the boot warm-up keep their programs.
+- Environment map refreshes every in-game minute (steps under 1/255 at sunset). Night windows and lanterns bloom.
+- Art: effigy faces are linen with painted features (title and Marzanny); idol faces carved in relief; bell tower stain, tide line, rime and drips, crust seated on the stone; ice cave lit by its crystals (cave interiors dim the sky light); lake streaks curve into fields; pressure ridges are jumbled plates with snow banks; lynx proportions; deer barks and fox screams.
+- Fixed: the place banner showed "null" without a subtitle.
+- Still open: the boss's own first draw costs about 0.4 s on the laptop; the title's first 5 s after the loading screen run slower (first draws of textures and programs) under its fade-up; talus left as is (rock placement shares its random stream with vegetation, so changing it moves trees everywhere).
+
 ## Polish list (lead, integration pass)
 - Spirits: comb jelly rainbow bands are faint at distance; seq sheets of the cathedral pulse not reviewed in motion.
 - Trees: odd trees never checked as far billboards (beyond 100 m); weeping birch bark bands look too regular close up; larch stays gold in the thaw ending; knot tree thread thickened by lead but not re-rendered.
