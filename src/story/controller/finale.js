@@ -148,7 +148,12 @@ export function install(C) {
   C.on('player:respawn', () => {
     if (C.has('rite_started') && !C.has('ending') && !C.running.has('choice')) later('respawn');
   });
-  C.on('loaded', () => { if (C.has('rite_started') && !C.has('ending')) later('loaded'); });
+  C.on('loaded', () => {
+    if (C.has('rite_started') && !C.has('ending')) later('loaded');
+    // A save from after the blamed Looking Back ending: Hanka stays gone (again a moment later, in
+    // case the cast is still being placed when the save loads).
+    if (C.has('hanka_gone')) { G.npcs?.despawn?.('hanka'); setTimeout(() => G.npcs?.despawn?.('hanka'), 2000); }
+  });
 
   // ---- the choice -----------------------------------------------------------------------------------
   G.events.on('boss:yield', ({ boss }) => { FIN.boss = boss || FIN.boss; choose(null, boss).catch(report('choose')); });
@@ -198,6 +203,12 @@ export function install(C) {
         await sc;
       }
       releaseWitnesses();
+      // Looking Back, blamed (the default): Hanka followed her daughter into the water. Retire her
+      // NPC, or she is back at her door when the player walks the village after the credits.
+      if (E.ending === 'looking_back' && !(C.has('hanka_comforted') && !C.has('hanka_blamed'))) {
+        C.set('hanka_gone');
+        G.npcs?.despawn?.('hanka');
+      }
       FIN.phase = 'epilogue';
       // The epilogue rolls the credits itself (except in shot mode); roll them here only if it did not.
       let rolled = false;
