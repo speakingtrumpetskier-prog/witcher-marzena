@@ -16,11 +16,22 @@ export function dressLanes(D) {
   // Keep every doorstep clear, and the stable's front, where the horse and the ostler stand (life.js stations).
   for (const r of D.V.placed) for (const d of r.p.doors) D.claim(d.x, d.z, 2.2);
   { const st = D.V.byId.stable; if (st) { const f = frame(st.x, st.z, st.yaw); D.claim(...f.at(st.fp.hw + 1.4, 3.2), 1.8); D.claim(...f.at(st.fp.hw + 2.6, 0), 2.4); } }
+  // ... the square's standing places (life.js: well, stall customers, the four talkers) and the notice board
+  {
+    const V = D.V, w = V.byId.well;
+    if (w) for (const [dx, dz] of [[0.2, 1.7], [-2.8, -0.4], [-1.6, -0.9]]) D.claim(w.x + dx, w.z + dz, 1.3);
+    for (const id of ['stall_fish', 'stall_spoons', 'stall_dolls', 'stall_bread']) { const r = V.byId[id]; if (r) D.claim(...frame(r.x, r.z, r.yaw).at(-0.8, 1.9), 1.4); }
+    const sq = frame(0, 118, 0);
+    for (const [lx, lz] of [[-4, 6], [-3, 7.2], [14, -3], [13, -4.2]]) D.claim(...sq.at(lx, lz), 1.3);
+    const nb = V.byId.noticeBoard;
+    if (nb) D.claim(nb.x, nb.z, 3.0);
+  }
   dressSquare(D, rng);
   dressPaddock(D, rng);
   dressMainStreet(D, rng);
   dressNorthStreet(D, rng);
   dressWestStreet(D, rng);
+  dressSouthLane(D, rng);
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -29,53 +40,52 @@ export function dressLanes(D) {
 //                                 'face' front toward the road, 'away', or a number (radians added to the road's yaw)
 export const CLUSTERS = {
   woodyard: { patch: [3.6, 2.2], items: [
-    ['sawbuck', 0, 0, 'x', {}, 1.0], ['firewoodStack', -2.3, 0.9, 'x', { opts: { rows: 5 } }, 1.0], ['firewoodStack', 2.3, 0.3, 'x', {}, 1.0],
-    ['choppingBlock', 0.4, -1.7, 0, {}, 0.6], ['logs', 1.3, 2.2, 'z', {}, 0.9], ['stump', -1.2, -1.5, 0, {}, 0.5],
+    ['sawbuck', 0, 0, 'x', {}, 1.0], ['firewoodStack', -2.3, 0.9, 'x', { opts: { rows: 5 } }, 1.0], ['choppingBlock', 0.4, -1.7, 0, {}, 0.6],
+    ['logs', 1.8, 1.9, 'z', {}, 0.9], ['stump', -1.2, -1.5, 0, {}, 0.5],
   ] },
   haulSledge: { patch: [3.8, 2.0], items: [
     ['logSledge', 0, 0, 'z', { opts: { variant: 'loaded' } }, 2.2], ['logs', 2.9, 1.8, 'z', {}, 0.9], ['choppingBlock', -2.7, -1.4, 0, {}, 0.6],
-    ['tools', -3.1, 1.6, 'face', { collide: false }, 0.5], ['stake', 1.8, -1.7, 0, { collide: false, opts: { height: 1.6 } }, 0.2],
+    ['stake', 1.8, -1.7, 0, { collide: false, opts: { height: 1.6, flag: true } }, 0.2],
   ] },
   emptySledge: { patch: [3.2, 1.8], items: [
-    ['logSledge', 0, 0, 'z', { opts: { variant: 'empty' } }, 2.2], ['woodpile', 3.4, 1.4, 'x', {}, 1.2], ['bucket', -2.4, -1.3, 0, { opts: { fill: 'ice' } }, 0.4],
+    ['logSledge', 0, 0, 'z', { opts: { variant: 'empty' } }, 2.2], ['logs', 3.0, 1.2, 'x', {}, 0.9], ['bucket', -2.4, -1.3, 0, { opts: { fill: 'ice' } }, 0.4],
     ['sack', -2.2, 1.6, 0.5, {}, 0.4],
   ] },
   cartHalt: { patch: [3.8, 2.2], items: [
-    ['cart', 0, 0, 'z', { opts: { variant: 'sacks' } }, 1.8], ['sack', -1.9, 1.5, 0.4, {}, 0.4], ['sack', -2.4, 0.7, 1.7, { collide: false }, 0.4], ['crate', -2.9, 1.9, 0.3, {}, 0.5],
+    ['cart', 0, 0, 'z', { opts: { variant: 'sacks' } }, 1.8], ['sack', -1.9, 1.5, 0.4, {}, 0.4], ['crate', -2.9, 1.9, 0.3, {}, 0.5],
     ['hitchingRail', 3.4, -1.2, 'x', { opts: { variant: 'single' } }, 1.2], ['bucket', 2.2, 1.9, 0.5, { opts: { fill: 'ice' } }, 0.4],
   ] },
   firewoodCart: { patch: [3.6, 2.0], items: [
-    ['cart', 0, 0, 'z', { opts: { variant: 'firewood' } }, 1.8], ['firewoodStack', 3.2, 1.2, 'x', {}, 1.0], ['sawbuck', -3.6, 1.0, 'x', {}, 1.0], ['stump', 2.0, -1.6, 0, {}, 0.5],
+    ['cart', 0, 0, 'z', { opts: { variant: 'firewood' } }, 1.8], ['sawbuck', -3.6, 1.0, 'x', {}, 1.0], ['logs', 2.9, 1.4, 'z', {}, 0.9], ['stump', 2.0, -1.6, 0, {}, 0.5],
   ] },
   trestle: { patch: [3.4, 2.0], items: [
     ['table', 0, 0, 'x', { opts: { set: true } }, 1.3], ['bench', 0, 1.5, 'x', { opts: { length: 1.7 } }, 0.8], ['bench', 0, -1.4, 'x', { opts: { length: 1.7 } }, 0.8],
-    ['barrel', 2.7, 0.9, 0, { seed: 2 }, 0.5], ['crateStack', -2.8, -0.2, 'x', {}, 0.9], ['sack', 2.9, -1.0, 0.6, {}, 0.4],
+    ['barrel', 2.7, 0.9, 0, { seed: 2 }, 0.5], ['crate', -2.8, -0.2, 0.3, {}, 0.5], ['sack', 2.9, -1.0, 0.6, {}, 0.4],
   ] },
   fishSled: { patch: [3.0, 1.7], items: [
     ['sled', 0, 0, 'z', { opts: { variant: 'wood' } }, 1.2], ['fishBasket', 1.7, 1.3, 0.7, { seed: 1 }, 0.5], ['fishBasket', 2.4, 0.3, 2.0, { seed: 2 }, 0.5],
-    ['net', -2.0, 1.2, 0.4, { collide: false, opts: { variant: 'heap' } }, 0.8], ['bucket', -1.0, -1.3, 0, { opts: { fill: 'ice' } }, 0.4], ['fishingStool', -2.6, -0.5, 0, {}, 0.4],
+    ['bucket', -1.0, -1.3, 0, { opts: { fill: 'ice' } }, 0.4], ['fishingStool', -2.2, -0.5, 0, {}, 0.4],
   ] },
   hayStop: { patch: [3.4, 2.0], items: [
-    ['hayRack', 0, 0, 'x', {}, 1.7], ['hayBale', 3.0, 1.0, 0.4, {}, 0.6], ['hayBale', 3.9, 1.5, 1.3, { collide: false }, 0.6], ['wheelbarrow', -3.0, 1.2, 'z', { opts: { variant: 'straw' } }, 0.9],
+    ['hayRack', 0, 0, 'x', {}, 1.7], ['hayBale', 3.0, 1.0, 0.4, {}, 0.6], ['wheelbarrow', -3.0, 1.2, 'z', { opts: { variant: 'straw' } }, 0.9],
     ['strawPile', 0.8, 2.0, 0.7, { collide: false }, 0.5],
   ] },
   barrels: { patch: [3.0, 1.8], items: [
-    ['barrelStack', 0, 0, 0.3, { opts: { variant: 'pyramid' } }, 1.2], ['barrel', 2.1, 0.9, 0, { seed: 1 }, 0.5], ['barrel', 2.7, 0.1, 0, { seed: 3, opts: { variant: 'open' } }, 0.5],
+    ['barrel', 0, 0, 0.3, { seed: 1 }, 0.55], ['barrel', 0.9, 0.7, 0, { seed: 2 }, 0.5], ['barrel', 1.9, 0.1, 0, { seed: 3, opts: { variant: 'open' } }, 0.5],
     ['trough', -2.9, 0.6, 'x', {}, 1.1], ['bucket', -1.0, 1.4, 0.4, { opts: { fill: 'ice' } }, 0.4],
   ] },
   tools: { patch: [2.6, 1.6], items: [
     ['wheelbarrow', 0, 0, 'z', { opts: { variant: 'snow' } }, 0.9], ['snowShovel', 1.4, 0.6, 0.4, { collide: false, opts: { variant: 'stuck' } }, 0.3], ['snowShovel', 2.0, -0.2, 1.0, { collide: false, opts: { variant: 'stuck' } }, 0.3],
-    ['sled', -2.3, 1.1, 'z', { opts: { variant: 'kid' } }, 0.8], ['skis', -1.4, -1.4, 0.2, {}, 0.5],
+    ['skis', -1.4, -1.4, 0.2, {}, 0.5],
   ] },
   kennel: { patch: [2.4, 1.5], items: [
     ['dogKennel', 0, 0, 'face', {}, 1.0], ['bucket', 1.6, 0.8, 0.2, { opts: { fill: 'ice' } }, 0.4], ['bones', 1.2, 1.7, 0.5, { collide: false }, 0.3], ['stake', -1.5, 1.0, 0, { collide: false, opts: { height: 1.2 } }, 0.2],
   ] },
   broken: { patch: [3.4, 2.0], items: [
     ['cart', 0, 0, 'z', { opts: { variant: 'broken' } }, 1.8], ['crate', 2.7, 1.3, 0.5, { opts: { variant: 'open' } }, 0.5], ['sack', 2.2, -0.8, 1.2, { collide: false }, 0.4],
-    ['barrel', -2.8, 1.9, 0.3, { seed: 3 }, 0.5], ['stake', -2.0, 0.2, 0, { collide: false, opts: { height: 1.5 } }, 0.2],
+    ['stake', -2.0, 0.2, 0, { collide: false, opts: { height: 1.5, flag: true } }, 0.2],
   ] },
 };
-
 // Frame at road point p, `off` meters out on `side`, `along` meters down the road.
 export function frameAt(p, side, off, along = 0) {
   const [x, z] = at(p, side * off, along);
@@ -125,7 +135,9 @@ export function cluster(D, rng, pts, s, side, off, kind, o = {}) {
 // Clusters down one side of a road, one every `step` meters (a little irregular), cycling through `kinds`.
 export function streetClusters(D, rng, pts, s0, s1, step, side, off, kinds, o = {}) {
   let n = 0;
-  for (let s = s0, i = o.start ?? 0; s <= s1; s += step * (0.85 + rng() * 0.3), i++) {
+  // ?density=0.7 thins every street and approach to about 70 percent (a cluster is two to three thousand triangles)
+  const spacing = 1 / Math.max(0.2, Math.min(2, parseFloat(D.G.params.get('density')) || 1));
+  for (let s = s0, i = o.start ?? 0; s <= s1; s += step * spacing * (0.85 + rng() * 0.3), i++) {
     if (cluster(D, rng, pts, s, side, off + (rng() - 0.5) * 1.6, kinds[i % kinds.length], o)) n++;
   }
   return n;
@@ -285,6 +297,16 @@ function dressNorthStreet(D, rng) {
   stakeLine(D, R, 14, 52, { step: 9, off: 3.0, height: 1.7 });
   streetClusters(D, rng, R, 12, 52, 11, -1, 5.2, ['fishSled', 'woodyard', 'barrels', 'fishSled', 'tools'], { start: 0 });
   streetClusters(D, rng, R, 17, 52, 11, 1, 5.2, ['haulSledge', 'fishSled', 'cartHalt', 'fishSled', 'kennel'], { start: 0 });
+}
+
+// ---------------------------------------------------------------------------------------------
+// The south lane north of the wood yard (the lead dressed s 8 to 46 on its west side): the end that opens into the
+// square, which is what you look down when you come in from the shrine.
+function dressSouthLane(D, rng) {
+  const R = roadById('village_south').pts;
+  streetClusters(D, rng, R, 9, 40, 11, 1, 4.8, ['tools', 'barrels', 'hayStop', 'cartHalt'], { start: 0 });
+  streetClusters(D, rng, R, 13, 40, 12, -1, 4.8, ['firewoodCart', 'trestle', 'emptySledge'], { start: 0 });
+  stakeLine(D, R, 12, 44, { step: 10, off: 2.9, height: 1.7, stagger: true });
 }
 
 // ---------------------------------------------------------------------------------------------

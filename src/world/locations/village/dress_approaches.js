@@ -24,10 +24,10 @@ export async function dressApproaches(V) {
   V.paths = [];
   const batches = [];
   try {
-    D.batch = new V.PropBatch(G, 'approach-west', { chunk: 'auto' });
+    D.batch = new V.PropBatch(G, 'approach-west', { chunk: 0 });
     batches.push(D.batch);
     westApproach(D, rng);
-    D.batch = new V.PropBatch(G, 'approach-east', { chunk: 'auto' });
+    D.batch = new V.PropBatch(G, 'approach-east', { chunk: 0 });
     batches.push(D.batch);
     eastApproach(D, rng);
   } finally {
@@ -149,7 +149,7 @@ function eastApproach(D, rng) {
   {
     const p = at_(92);
     const f = frameAt(p, 1, 8.4);
-    D.tryPut('waysideCross', [[f.x, f.z, f.yaw('face', -0.1)]], {}, 1.0);
+    D.tryPut('waysideCross', [[f.x, f.z, f.yaw('face', -0.1)], ...[[0, 3], [0, -3], [2.5, 5]].map(([dv, du]) => { const g = frameAt(p, 1, 8.4 + dv, du); return [g.x, g.z, g.yaw('face', -0.1)]; })], {}, 1.0);
     for (const [u, v] of [[-2.4, -0.8], [2.6, -0.4]]) { const [x, z] = f.pt(u, v); D.tryPut('stake', [[x, z, 0]], { collide: false, opts: { height: 1.5, flag: true } }, 0.2); }
   }
   streetClusters(D, rng, R, 74, 190, 18, 1, 9.0, ['woodyard', 'haulSledge', 'hayStop', 'broken', 'cartHalt', 'emptySledge', 'barrels', 'tools'], { start: 0 });

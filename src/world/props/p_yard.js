@@ -96,7 +96,7 @@ export function hayRack(o = {}) {
     k.box('wood', L, 0.045, 0.045, { pos: [0, 0.3, sz * (D / 2 + 0.01)], tint: 0x8a7a68 });
   }
   for (const sx of [-1, 1]) k.box('wood', 0.05, 0.05, D + 0.1, { pos: [sx * (L / 2 + 0.02), H, 0], tint: wood });
-  const n = Math.floor(L / 0.2);
+  const n = Math.floor(L / 0.3);
   for (const sz of [-1, 1]) for (let i = 0; i < n; i++) {
     if (k.chance(0.07)) continue;
     k.box('planks', 0.03, H - 0.3, 0.024, { pos: [-L / 2 + 0.1 + i * ((L - 0.2) / (n - 1)), 0.3 + (H - 0.3) / 2, sz * (D / 2 + 0.012)], rot: [0, 0, k.rs(0.03)], tint: k.pick(WOOD), grain: 'y' });
@@ -105,7 +105,7 @@ export function hayRack(o = {}) {
   // hay: a heap above the rim, a tuft dragged out through the slats on each side, wisps fallen below
   // two baled forkfuls lying in the top, a rough heap between and tufts dragged out through the slats
   for (const [t, a] of [[-0.24, 0.1], [0.26, -0.15]]) k.addGroup(hayBale({ seed: k.seed + (t > 0 ? 3 : 1), stacked: false, indoor: o.indoor, fx: false }), { pos: [t * L, H + 0.02, k.rs(0.04)], yaw: a + k.rs(0.1) });
-  k.blob('straw', 0.5, { pos: [0, H + 0.14, 0], scale: [L * 0.2, 0.34, 0.6], detail: 2, tint: k.pick([0xcbbd8a, 0xbfae7c]), jitter: 0.1, jfreq: 3.5 });
+  k.blob('straw', 0.5, { pos: [0, H + 0.14, 0], scale: [L * 0.2, 0.34, 0.6], detail: 1, tint: k.pick([0xcbbd8a, 0xbfae7c]), jitter: 0.1, jfreq: 3.5 });
   for (const sz of [-1, 1]) k.blob('straw', 0.2, { pos: [k.rs(0.6), 0.78, sz * (D / 2 + 0.05)], scale: [2.2, 0.8, 0.5], detail: 1, tint: 0xc4b682, jitter: 0.05 });
   for (let i = 0; i < 7; i++) k.blade('straw', 0.03, k.r(0.25, 0.5), { pos: [k.rs(L * 0.6), 0.04, (i % 2 ? 1 : -1) * k.r(D / 2 + 0.1, D / 2 + 0.5)], rot: [Math.PI / 2 + k.rs(0.3), k.r(0, TAU), 0], tint: 0xdac98a, grime: 0.1 });
   k.blob('straw', 0.3, { pos: [k.rs(0.5), 0.05, D / 2 + 0.35], scale: [1.6, 0.2, 0.9], detail: 1, tint: 0xcdbd88, jitter: 0.04 });
@@ -167,7 +167,7 @@ export function logSledge(o = {}) {
   const wood = k.pick(WOOD);
   for (const sx of [-1, 1]) {
     const x = sx * W / 2;
-    k.tube('wood', [[x, 0.1, -L / 2], [x, 0.1, L / 2 - 0.55], [x, 0.15, L / 2 - 0.12], [x, 0.4, L / 2 + 0.1]], 0.065, { radial: 5, tint: wood });
+    k.tube('wood', [[x, 0.1, -L / 2], [x, 0.1, L / 2 - 0.55], [x, 0.15, L / 2 - 0.12], [x, 0.4, L / 2 + 0.1]], 0.065, { radial: 5, segs: 6, tint: wood });
     k.box('iron', 0.02, 0.018, L * 0.78, { pos: [x, 0.015, -0.1], tint: 0x5a5650, grime: 0 });
   }
   const bunks = [-1.0, 0.1, 1.1];
@@ -177,17 +177,17 @@ export function logSledge(o = {}) {
   for (const sx of [-1, 1]) k.cyl('wood', 0.03, 0.036, 2.0, { pos: [sx * 0.34, 0.5, L / 2 + 0.7], rot: [Math.PI / 2 - 0.22, 0, 0], radial: 6, tint: 0xa89684, jitter: 0.004, cap: 'logEnd' });
   k.cyl('wood', 0.022, 0.022, 0.8, { pos: [0, 0.78, L / 2 + 1.55], rot: [0, 0, Math.PI / 2], radial: 6, tint: 0xa89684 });
   if (loaded) {
-    const layers = [[9, 0.2], [8, 0.22], [7, 0.2]];
+    const layers = [[8, 0.22], [7, 0.24], [6, 0.24]];
     let y = 0.45;
     layers.forEach(([n, sp], li) => {
       for (let i = 0; i < n; i++) {
         const z = (i - (n - 1) / 2) * sp * 0.97 + k.rs(0.02);
         const r = 0.1 + k.rs(0.012);
-        k.log(r, 1.0 + k.rs(0.18), { lie: 'x', pos: [k.rs(0.05), y + k.rs(0.01), z + (li === 1 ? sp * 0.5 : 0) * 0], radial: 6, tint: k.pick([0xffffff, 0xd8cdc0, 0xbfb3a6, 0xa89c90]) });
+        k.log(r, 1.0 + k.rs(0.18), { lie: 'x', pos: [k.rs(0.05), y + k.rs(0.01), z + (li === 1 ? sp * 0.5 : 0) * 0], radial: 5, tint: k.pick([0xffffff, 0xd8cdc0, 0xbfb3a6, 0xa89c90]) });
       }
       y += 0.17;
     });
-    for (const z of [-0.5, 0.55]) k.tube('rope', [[-0.66, 0.34, z], [-0.62, 0.9, z], [0, 1.02, z], [0.62, 0.9, z], [0.66, 0.34, z]], 0.014, { radial: 4, tint: 0xb89c6c });
+    for (const z of [-0.5, 0.55]) k.tube('rope', [[-0.66, 0.34, z], [-0.62, 0.9, z], [0, 1.02, z], [0.62, 0.9, z], [0.66, 0.34, z]], 0.014, { radial: 4, segs: 7, tint: 0xb89c6c });
     if (!o.indoor) k.mound(1.0, 0.1, 1.3, { pos: [0, y - 0.04, 0.0], jseed: 3 });
   } else {
     for (let i = 0; i < 3; i++) k.log(0.1, 1.0 + k.rs(0.2), { lie: 'x', pos: [k.rs(0.05), 0.4 + (i === 2 ? 0.17 : 0), -0.4 + (i % 2) * 0.22 + (i === 2 ? 0.1 : 0)], radial: 6, tint: k.pick([0xffffff, 0xd8cdc0]) });
