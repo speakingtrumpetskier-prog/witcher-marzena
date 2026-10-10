@@ -172,8 +172,9 @@ export function install(C) {
         const from = c.sockets.handR.getWorldPosition(_v).clone();
         // Where she stands now, a little off: standing still gets hit, moving gets a miss.
         const to = new THREE.Vector3(P.position.x + rand(-0.5, 0.5), P.position.y + 1.1, P.position.z + rand(-0.5, 0.5));
+        // The callback says whether it hit: a miss flies on to the snow and leaves a splat (npcs/snow.js).
         launch(from, to, (land) => {
-          if (!SF.active) return;
+          if (!SF.active) return false;
           SF.stats.kidLanded++;
           const dx = P.position.x - land.x, dz = P.position.z - land.z;
           // Only a dodge or a roll saves her: snowballs do not hurt, so god mode does not count.
@@ -187,7 +188,10 @@ export function install(C) {
             C.notify(`Hit. ${SF.score.vesna} to ${SF.score.kids}`, 'info');
             say(k, HIT_LINES[Math.floor(rand(0, HIT_LINES.length))]);
             C.sfx('child_laugh', { volume: 0.5 });
+            G.npcs?.snow?.stick?.(P.character, land);
+            return true;
           }
+          return false;
         });
       },
     }).then(() => {
@@ -248,7 +252,7 @@ export function install(C) {
           c2.walkTo(c2.root.position.x + Math.cos(aim) * 1.8 * side, c2.root.position.z - Math.sin(aim) * 1.8 * side, { run: true });
         }
         if (launch(from, to, (land) => {
-          if (!SF.active) return;
+          if (!SF.active) return false;
           SF.stats.landed++;
           for (const k of SF.kids) {
             kidPos(k, _w);
@@ -259,9 +263,11 @@ export function install(C) {
               C.sfx('child_laugh', { volume: 0.55 });
               C.notify(`Hit! ${SF.score.vesna} to ${SF.score.kids}`, 'info');
               say(k, HIT_LINES[Math.floor(rand(0, HIT_LINES.length))]);
-              break;
+              G.npcs?.snow?.stick?.(kidChar(k), land);
+              return true;
             }
           }
+          return false;
         })) SF.stats.launched++;
       },
     });
