@@ -13,6 +13,7 @@
 //   npcs.js (what each person says and what it owes the quests)    side.js (bird, ledger, wisps, wolves, bear, island)
 //   clues.js (nooks and readable things)   world.js (rest, weather, gear, doors, ambient)
 //   snowfight.js   finale.js (rite, boss, choice, endings, credits)   dice.js (Kosci in the tavern: who plays, the quest)
+//   roadside/ (small encounters on the roads: tinker, wolves at a kill, goat, scarf, sled, poacher, fishermen)
 // Flags and quests: docs/STORY.md sections 1 and 2; quest definitions in src/story/content/quests.js.
 import { createContext } from './context.js';
 import * as scenes from './scenes.js';
@@ -25,10 +26,12 @@ import * as world from './world.js';
 import * as snowfight from './snowfight.js';
 import * as finale from './finale.js';
 import * as dice from './dice.js';
+import * as roadside from './roadside/index.js';
 
 const MODULES = [
   ['scenes', scenes], ['npcs', npcs], ['act1', act1], ['act2', act2], ['side', side],
   ['clues', clues], ['world', world], ['snowfight', snowfight], ['finale', finale], ['dice', dice],
+  ['roadside', roadside],
 ];
 
 export async function init(G) {

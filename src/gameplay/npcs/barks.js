@@ -92,6 +92,51 @@ const HANGED_PAIRS = [
   ['Bogdan went out to the crossroads.', 'And?', 'Stood there. Came back.'],
 ];
 
+// What the roadside encounters leave in people's mouths (src/story/controller/roadside; flags in docs/STORY.md section 9). Said
+// in daylight now and then by grown-ups, once the thing has happened; nobody says it was right or kind, and nobody explains.
+const GOAT_HOME = [
+  "Zofia's goat came home on a rope.",
+  "Jan's been unbearable since the goat. He said she'd be under the pines.",
+  'Somebody found Zofia\'s goat in the twisted pines, past the marsh.',
+];
+const TINKER_HERE = [
+  'The tinker is back at the stalls. Three years.',
+  'A grosz a pot. He mended mine in the time it took to say it.',
+  "Have you seen the tinker's spoons? They're not bad.",
+];
+const HARE = [
+  'Somebody left a hare on the Pawlak step again.',
+  "The Wrona girl had hare for her supper. Nobody knows whose it was.",
+];
+const WOLVES_GONE = [
+  'Somebody cleared the wolves off the forest track.',
+  "Wojtek says the forest track's quiet at dusk now.",
+];
+const SHRINE_SCARF = [
+  "There's a scarf tied to the milk shrine on the pass road. Nobody's touched it.",
+  'The old woman still takes her milk out to the shrine every morning.',
+];
+const FISH_OLD = ["Wacław's keeping his hole at the river mouth. The young one's gone to the shallows."];
+const FISH_YOUNG = ["Wacław hasn't been out on the ice since that business at the river mouth."];
+const FISH_BOTH = ["Wacław and Franek are fishing the river mouth a few paces apart and not speaking."];
+
+// The ones that apply right now: [pool, how often it comes up among the rest].
+function roadsidePool(G, rand) {
+  const S = G.state;
+  if (!S) return null;
+  const list = [];
+  if (S.flag('goat_home')) list.push(GOAT_HOME);
+  if (S.flag('tinker_helped') && G.time.hours >= 10) list.push(TINKER_HERE);
+  if (S.flag('poacher_note')) list.push(HARE);
+  if (S.flag('carcass_wolves_dead')) list.push(WOLVES_GONE);
+  if (S.flag('scarf_returned')) list.push(SHRINE_SCARF);
+  const fr = S.flag('fishers_settled');
+  if (fr) list.push(fr === 'old' ? FISH_OLD : fr === 'young' ? FISH_YOUNG : FISH_BOTH);
+  if (!list.length || rand() > 0.26) return null;
+  return list[Math.floor(rand() * list.length)];
+}
+const SLED_PAIR = ["Somebody pushed Stas's sled out of the river.", 'Who?', 'The hunter.', 'Liar.'];
+
 // Pairs: lines alternate A, B, A...
 const SKY_PAIRS = [
   ['Where are they today?', 'Up. Snow by evening.'],
@@ -158,7 +203,7 @@ export function chooseBark(G, npc, rand = Math.random) {
   const id = npc.id, preset = npc.preset || id, tag = npc.station?.tag || '';
   if (swelling(G)) return null;
   const named = id === 'zbyszek' || id === 'dobra' || id === 'bogdan' || id === 'hanka' || id === 'jarek';
-  let pool;
+  let pool, roadside;
   const sky = named ? null : skyPool(G, npc, preset, tag, rand);
   if (sky) pool = sky;
   else if (id === 'zbyszek') pool = ZBYSZEK;
@@ -172,6 +217,7 @@ export function chooseBark(G, npc, rand = Math.random) {
   else if (tag === 'forge') pool = SMITH;
   else if (isNight(G)) pool = NIGHT;
   else if (cutDown(G) && rand() < 0.22) pool = HANGED;
+  else if ((roadside = roadsidePool(G, rand))) pool = roadside;
   else if (G.state && G.state.flag('lair_seen') && rand() < 0.5) pool = DAY2;
   else pool = DAY;
   if (npc.def.barks) pool = Array.isArray(npc.def.barks) ? npc.def.barks : pool;
@@ -184,7 +230,10 @@ export function chooseBark(G, npc, rand = Math.random) {
 export function chooseExchange(G, a, b, rand = Math.random) {
   const kids = /^(ola|child_)/.test(a.preset || a.id) && /^(ola|child_)/.test(b.preset || b.id);
   if (swelling(G)) return null;
-  if (kids) return seenSky(G) && rand() < 0.35 ? pick(SKY_CHILD_PAIRS, rand) : pick(CHILD_PAIRS, rand);
+  if (kids) {
+    if (G.state?.flag('sled_freed') && rand() < 0.3) return SLED_PAIR;
+    return seenSky(G) && rand() < 0.35 ? pick(SKY_CHILD_PAIRS, rand) : pick(CHILD_PAIRS, rand);
+  }
   if (isNight(G)) return null;
   if (seenSky(G) && rand() < 0.3) return pick(SKY_PAIRS, rand);
   if (cutDown(G) && rand() < 0.25) return pick(HANGED_PAIRS, rand);

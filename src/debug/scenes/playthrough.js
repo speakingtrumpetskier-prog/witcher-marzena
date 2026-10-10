@@ -8,6 +8,7 @@
 //   &from=<quest>:<stage>                   start from a quest stage with ?start semantics (e.g. main_straw:camp)
 //   &side=0                                 skip the side content
 //   &hanka=comfort|blame  &ola=truth|lie  &bird=0|1     the choices along the way
+//   &fishers=old|young|both               how the quarrel at the river mouth is settled (roadside step; default by ending)
 //   Output: window.__playthrough = { rows, pass, fail, warn, text, done, ending, creditsShown, errors, promise }
 //           and a PASS / FAIL table in the console. Await window.__playthrough.promise for the finish.
 //
@@ -17,6 +18,7 @@
 // (G.systems are gated so the engine loop only renders), so a run does not depend on the frame rate.
 import * as THREE from 'three';
 import QUESTS, { MAIN_ORDER } from '../../story/content/quests.js';
+import { roadsideSteps } from './playthrough_roadside.js';
 
 const Q = new URLSearchParams(location.search);
 const LITE = Q.has('lite');
@@ -35,6 +37,7 @@ export async function init(G) {
     hanka: Q.get('hanka') || 'comfort',
     ola: Q.get('ola') || 'truth',
     bird: Q.get('bird') !== '0',
+    fishers: Q.get('fishers') || null,
     money: Q.get('money') || (Q.get('choice') === 'step' ? 'take' : 'refuse'),
     lite: LITE,
   };
@@ -86,7 +89,7 @@ async function run(G, O, report) {
   const step = (name) => { currentStep = name; console.log(`[pt] --- ${name}`); };
 
   if (!C) { ok('controller installed', false, 'G.storyCtl missing'); return; }
-  ok('controller installed', C.installed?.length === 10, (C.installed || []).join(','));
+  ok('controller installed', C.installed?.length === 11, (C.installed || []).join(','));
 
   // ---- the simulation clock -----------------------------------------------------------------
   const gate = { on: false };
@@ -855,6 +858,9 @@ async function run(G, O, report) {
     G.time.day = dayNow; G.time.setHours(17.9);
     C.dice.test = null;
     S.data.inventory.coins = Math.max(keepCoins, S.count('coins'));
+
+    // ---- the roadside encounters: the tinker, wolves at a kill, the goat, the scarf, the sled, the lantern, the quarrel ----
+    await roadsideSteps({ G, C, S, O, ok, step, tick, wait, waitFor, drive, placeAt, useIt, useClue, flagOK, stage, killAll, repair, notesRead });
   }
 
   // ---- Q3: night one ------------------------------------------------------------------------------------

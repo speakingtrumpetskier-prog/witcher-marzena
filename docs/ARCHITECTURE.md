@@ -555,6 +555,34 @@ G.dice.canPlay(id) -> { ok, reason }     G.dice.purse(id)     G.dice.record()   
   `shots/dice/`); `?scene=dice` (`src/debug/scenes/dice.js`: `__dice.start`, `until(phase)`, `press(code)`); the logic playthrough plays four
   seeded matches and the quest (`side: dice`); `scripts/inputtest.mjs` still passes with the new actions.
 
+## Roadside encounters (`src/story/controller/roadside/`)
+Seven optional encounters on the roads (tinker, wolves at a kill, strayed goat, scarf, sled, lantern in the forest, quarrel at the river mouth;
+the story is in STORY.md section 9). `roadside/index.js` is a story-controller module (`C.roadside` = the kit `K`; `C.roadside.<id>` is each
+encounter's state for tests and scripts). Nothing runs per frame while no encounter is live except the zone distance check in `G.story`.
+
+```js
+K.zone({ id, x, z, r, enabled, build(bag, h), leave(bag, h), grace })  // builds into a Bag when she comes within r while enabled() holds;
+                              // frees it `grace` s after she leaves (never while bag.busy); h.bag, h.drop(), h.rebuild()
+const bag = K.bag();          // everything an encounter adds: bag.mesh(obj), bag.char(spec, o), bag.talk/talkTo(c, def), bag.clue(def), bag.trail(def),
+                              // bag.box/circle(...) colliders, bag.light(desc), bag.animal(a), bag.system(name, fn), bag.onFree(fn), bag.adopt(other, {chars, objs}),
+                              // bag.busy (the zone stays up), bag.free()
+K.persist(flagFn, build, flags)   // a group that exists while flagFn() holds: built at install, after a load or reset (C.restore) and when a named flag changes;
+                              // build returns a group or { obj, own, undo }
+K.road(id, s, off)            // a point on a road by arc length; K.roadPath(id, s0, s1, step, off); K.openSpot(x, z, opts) (clear ground; trees and rocks)
+K.settle(obj, x, z, yaw, len, wid)   // stand an object on the slope;  K.at(x, z, yaw, lx, lz) local to world
+K.haul(bag, char, root, { path, speed, gap, ... })   // a person leaving with a sledge behind him, in a Bag of its own
+K.hold(text, secs, window, onProgress)   // the hold ring (G.ui.hold); onProgress(0..1) each frame (the sledge rises with it)
+K.begin(questId, { quiet }) / K.finish(flag, value, { quiet })   // journal without the quest fanfare (Q.quiet) for the small ones
+K.bark(char, id, name, text) / K.say(text, secs) / K.tool(char, 'hammer' | 'rod' | ...)
+```
+- Props and people: `things.js` (the sledge with a mendable runner, the deer, the scarf, the boy's sled, the satchel, a rope line), `people.js` (specs from the villager presets).
+- Changes outside the folder: `G.creatures.spawnWolves(..., { feed: { x, z } })` (wolves standing over a kill, heads down; `Wolf.feed` in `wolf.js`), the quests
+  and notes (`quests.js`, `ui/content.js`), the speaker names (`story/director/Actors.js`), the villagers' mentions (`gameplay/npcs/barks.js`), voice cast
+  (`scripts/voice/cast.json`) and the dialogues `rs_*.js`. `rs_barks.js` is never started: it lists the floating lines for the voice tools.
+- Test: the logic playthrough (`?scene=playthrough`) has a step `side: roadside` (`src/debug/scenes/playthrough_roadside.js`) that plays all seven with real
+  input (hold E, tap E, senses, a fight), checks flags, journal, rewards, what stays, what a load puts back and that no `rs:` system is left running.
+  `&fishers=old|young|both` picks how the quarrel is settled (by default by ending).
+
 ## Event names
 `flag`, `inventory`, `note`, `discover`, `saved`, `loaded`, `reset`, `time:hour`, `time:day`,
 `time:jump`, `weather:change`, `resize`, `game:ready`, `player:hit`, `player:death`,

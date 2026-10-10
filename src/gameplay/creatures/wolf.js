@@ -70,6 +70,7 @@ export class Wolf extends Creature {
     this.lookTarget = 0;
     this.feintPhase = 0;
     this.sleepy = o.sleepy ?? 0;
+    this.feed = o.feed || null; // a kill to stand over: { x, z }, heads down and tearing until she comes near (roadside encounter)
   }
 
   // ---- state helpers ---------------------------------------------------------------------------------
@@ -277,6 +278,20 @@ export class Wolf extends Creature {
   _idle(dt, tp) {
     const pose = this.rig.pose;
     this.brake(dt);
+    if (this.feed) {
+      // Over a kill: face it, head down, and now and then a hard pull with the jaw.
+      this.turnToward(Math.atan2(this.feed.x - this.position.x, this.feed.z - this.position.z), 2.5, dt);
+      const tear = Math.max(0, Math.sin(this.t * 1.6 + this.rig.phase * 9)) ** 4;
+      pose.crouch = 0.5 + 0.18 * tear;
+      pose.pitch = -0.14 - 0.06 * tear;
+      pose.neck = -0.6;
+      pose.headRel = -0.85 - 0.25 * tear;
+      pose.jaw = 0.1 + 0.4 * tear;
+      pose.ears = 0.3;
+      pose.tail = -0.1;
+      pose.lookYaw = 0;
+      return;
+    }
     this.nextSniff -= dt;
     if (this.nextSniff <= 0) { this.sniffT = rr(1.2, 2.4); this.nextSniff = rr(4, 9); this.idleLook = rr(-0.8, 0.8); }
     this.sniffT = Math.max(0, this.sniffT - dt);

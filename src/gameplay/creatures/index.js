@@ -1,6 +1,6 @@
 // Creatures: G.creatures (docs/ARCHITECTURE.md "Combat and creatures").
 //
-//   G.creatures.spawnWolves(x, z, count = 3, { alpha, engaged, yaw, spread, aggro }) -> [wolf]   (array has .pack)
+//   G.creatures.spawnWolves(x, z, count = 3, { alpha, engaged, yaw, spread, aggro, feed: { x, z } }) -> [wolf]   (array has .pack; feed: they stand at a kill, heads down, until she comes near)
 //   G.creatures.spawnEffigy(x, z, { dormant, yaw, scale, hpMul }) -> effigy       rises from a snow drift unless dormant
 //   G.creatures.spawnEffigyRing(x, z, count, radius, opts) -> [effigy]            a ring of dormant ones (the ice camp)
 //   G.creatures.spawnBear(x, z, { sleeping = true, yaw }) -> bear
@@ -41,7 +41,7 @@ class Creatures {
     for (let i = 0; i < count; i++) {
       const a = (i / Math.max(1, count)) * Math.PI * 2 + Math.random() * 0.6;
       const r = i === 0 ? 0 : spread * (0.55 + Math.random() * 0.6);
-      const w = new Wolf(x + Math.sin(a) * r, z + Math.cos(a) * r, { yaw: yaw + (Math.random() - 0.5) * 1.2, aggro: opts.aggro, sleepy: opts.sleepy });
+      const w = new Wolf(x + Math.sin(a) * r, z + Math.cos(a) * r, { yaw: yaw + (Math.random() - 0.5) * 1.2, aggro: opts.aggro, sleepy: opts.sleepy, feed: opts.feed });
       G.scene.add(w.root);
       this._add(w);
       this.wolves.push(w);

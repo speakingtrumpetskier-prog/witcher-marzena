@@ -359,6 +359,110 @@ const QUESTS = {
     ],
   },
 
+  // Optional roadside encounters (src/story/controller/roadside/*.js, docs/STORY.md section 9). Nothing in the main
+  // story reads any of these flags. The small ones are started and settled quietly (a journal toast, no fanfare).
+  side_tinker: {
+    title: "The Tinker's Sledge", kind: 'side',
+    stages: [
+      {
+        id: 'lift', objective: 'Hold up the tinker\'s sledge', marker: (S, G) => G.storyCtl?.roadside?.tinker?.site,
+        journal: 'A tinker on the pass road, his sledge down on one runner. He needs the corner held up while he lashes the split.',
+        log: 'Held the sledge up while he lashed the runner. He sells Thaw draughts for eight grosze, four under the tavern, and says he will be at the stalls in the square.',
+        done: (S) => !!S.flag('tinker_helped'), sets: ['tinker_met', 'tinker_helped'],
+      },
+    ],
+  },
+
+  side_goat: {
+    title: 'The Strayed Goat', kind: 'side',
+    stages: [
+      {
+        id: 'find', objective: 'Find the goat in the twisted pines', marker: (S, G) => G.storyCtl?.roadside?.goat?.grove,
+        journal: (S) => (S.flag('goat_asked')
+          ? 'Zofia, outside the west gate, has lost a white goat with a folded ear. Out since yesterday. She thinks it went for the grass under the twisted pines past the marsh.'
+          : 'A white goat with a folded ear, loose in the twisted pines past the marsh, a rope trailing from her neck. Someone in the village will be missing her.'),
+        log: 'Found her under the twisted pines. She comes along on the rope.',
+        done: (S) => !!S.flag('goat_tied'), sets: ['goat_asked', 'goat_tied'],
+      },
+      {
+        id: 'return', objective: 'Bring the goat to Zofia at the west gate', marker: 'westGate',
+        log: 'Brought her to Zofia at the west gate. She paid in eggs, three.',
+        done: (S) => !!S.flag('goat_home'), sets: ['goat_home'],
+      },
+    ],
+  },
+
+  side_scarf: {
+    title: "Jasiek's Scarf", kind: 'side',
+    stages: [
+      {
+        id: 'look', objective: 'Look for the boy on the pass road', marker: (S, G) => G.storyCtl?.roadside?.scarf?.site,
+        journal: "At the wayside shrine on the pass road an old woman is asking after her son, Jasiek, sixteen, who took a sledge up the pass for wood four days ago. A grey scarf with a red stripe, too long for him. I passed a sledge with firewood on it below the watchtower, and nobody with it.",
+        log: 'His scarf, in the drift beside the road above the sledge. Frozen stiff. Nothing else there.',
+        done: (S) => !!S.flag('scarf_found'), sets: ['scarf_asked', 'scarf_found'],
+      },
+      {
+        id: 'return', objective: "Take the scarf to Jasiek's mother", marker: (S, G) => G.storyCtl?.roadside?.scarf?.shrine,
+        log: 'Gave her the scarf. She hung it on the shrine post and gave me eight grosze out of her jar. I took it.',
+        done: (S) => !!S.flag('scarf_returned'), sets: ['scarf_returned'],
+      },
+    ],
+  },
+
+  side_sled: {
+    title: 'A Sled on the Bank', kind: 'side',
+    stages: [
+      {
+        id: 'push', objective: 'Push the boy\'s sled off the bank',
+        journal: 'A boy on the river bank by the mill, hauling firewood on a sled that has jammed a runner. He has been at it a while.',
+        log: 'Pushed it up out of the rut. He gave me a grosz and I took it.',
+        done: (S) => !!S.flag('sled_freed'), sets: ['sled_met', 'sled_freed'],
+      },
+    ],
+  },
+
+  side_poacher: {
+    title: 'A Lantern in the Forest', kind: 'side',
+    stages: [
+      {
+        id: 'note', objective: 'See what the poacher left behind',
+        journal: 'A lantern moving among the trees off the forest track at night. Somebody is setting snares.',
+        log: 'He ran. He left snares, a hare, and a satchel with a tally in it: hares, and who got them. "Not a word to B."',
+        done: (S) => !!S.flag('poacher_note'), sets: ['poacher_chased', 'poacher_note'],
+      },
+    ],
+  },
+
+  side_fishers: {
+    title: 'Whose Hole', kind: 'side',
+    stages: [
+      {
+        id: 'settle', objective: 'Two fishermen are quarrelling over a hole at the river mouth',
+        journal: 'Two fishermen at the river mouth, Wacław and Franek, each saying the hole in the ice is his.',
+        log: (S) => {
+          const r = S.flag('fishers_settled');
+          if (r === 'old') return "Told them it was Wacław's, since he cut it. Franek packed up and went. Wacław paid me four grosze.";
+          if (r === 'young') return "Told them it was Franek's for the day, since he was there first. Wacław went off without a word. Franek paid me four grosze.";
+          if (r === 'both') return 'Told them there was ice for two. They cut a second hole a few paces over and fish side by side, not speaking.';
+          return 'Left them to it.';
+        },
+        done: (S) => !!S.flag('fishers_settled'), sets: ['fishers_settled'],
+      },
+    ],
+  },
+
+  side_carcass: {
+    title: 'Wolves on the Forest Track', kind: 'side',
+    stages: [
+      {
+        id: 'clear', objective: 'Wolves at a kill off the forest track', marker: (S, G) => G.storyCtl?.roadside?.carcass?.spot,
+        journal: 'Three wolves at a fresh kill, a roe deer, a little off the forest track at dusk. They have not noticed me.',
+        log: 'Killed the three at the roe deer. There were crows on it before I had walked off.',
+        done: (S) => !!S.flag('carcass_wolves_dead'), sets: ['carcass_seen', 'carcass_wolves_dead'],
+      },
+    ],
+  },
+
   side_snow: {
     title: 'Snow Fight', kind: 'side',
     stages: [
