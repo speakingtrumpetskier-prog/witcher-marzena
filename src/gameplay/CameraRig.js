@@ -9,15 +9,32 @@
 //   .snapBehind(yaw)               put the camera right behind the player now (teleports, scene ends)
 //   .recenter()                    ease the camera behind the player (T with nothing to lock)
 //   .forward(out) / .aimDir(out)   camera forward as a unit Vector3
+//   .sideK                         -1 .. 1, which shoulder the camera is over right now (eases between the two)
 //
 // Framing (W3): over the right shoulder, the character a little left of center, the horizon near the
 // upper third. The camera looks down by `pitch` (default 9 degrees) at a pivot at head height; the
 // shoulder offset slides the camera sideways without rotating it, which puts the character left of
-// center. Mouse look is multiplied by G.settings.mouseSens and honors G.settings.invertY.
+// center.
+//
+// Settings (G.settings, src/ui/settings.js): mouseSensX / mouseSensY and padSensX / padSensY, invertX / invertY,
+// fovOffset (degrees), camDist (multiplier of each mode's distance; the wheel zooms around it), shoulder
+// ('right' | 'left', swapped by the 'shoulder' action with an eased slide), recenter ('auto' | 'off' | 'gentle' |
+// 'strong'), padRamp. The mouse gives pixels per frame; the right stick (G.input.lookPad) is integrated here with dt,
+// and a held full deflection ramps up to 1.6x.
+//
+// Recenter: while the player runs and nothing has touched the look controls for a moment, the camera swings
+// behind the direction of travel (not when she runs toward the lens). 'auto' is gentle with a pad, off with a mouse.
+//
+// Lock-on switching: while locked, a quick sideways flick of the mouse (or a push of the right stick) hands the
+// lock to the next target on that side. Emits 'camera:retarget' { target }; 'camera:shoulder' { side }.
+//
+// Collision: a sphere (radius ~0.26 m) is marched from the head pivot to the wanted lens position against the
+// collision world and the terrain, so corners and thin posts stop the lens. It pulls in at once and eases back
+// out after a short hold, so a pole edge does not make it flutter.
 import * as THREE from 'three';
 import { ORDER } from '../core/G.js';
 import { clamp, damp, dampAngle, wrapAngle, smoothstep } from '../core/util.js';
-import { enemyPos } from './player/lock.js';
+import { enemyPos, stepTarget } from './player/lock.js';
 
 const MODES = {
   explore: { dist: 3.5, side: 0.58, pivotH: 1.5, fov: 54, pitch: 0.16 },
@@ -27,10 +44,16 @@ const MODES = {
 };
 const PITCH_MIN = -0.5, PITCH_MAX = 1.12;
 const ZOOM_MIN = 0.55, ZOOM_MAX = 1.65;
+const MOUSE_SENS = 0.0022; // radians per pixel at sensitivity 1
+const PAD_YAW = 2.9, PAD_PITCH = 1.9; // radians per second at full stick, sensitivity 1
+const RECENTER = { gentle: { delay: 1.5, rate: 0.55 }, strong: { delay: 0.7, rate: 1.7 } };
+const FLICK_PX = 110; // mouse pixels (decaying) that count as a flick while locked on
+const LENS = 0.26, LENS_TIGHT = 0.16; // collision sphere radius, and indoors
 
 const _dir = new THREE.Vector3(), _pivot = new THREE.Vector3(), _want = new THREE.Vector3();
 const _look = new THREE.Vector3(), _q = new THREE.Quaternion(), _m = new THREE.Matrix4();
 const _up = new THREE.Vector3(0, 1, 0), _nd = new THREE.Vector3();
+const _roll = new THREE.Quaternion(), _axis = new THREE.Vector3(0, 0, 1);
 
 export async function init(G_) {
   const R = {
@@ -44,6 +67,8 @@ export async function init(G_) {
     focus: new THREE.Vector3(),
     cur: { ...MODES.explore },
     collK: 1,
+    collHold: 0,
+    sideK: G_.settings?.shoulder === 'left' ? -1 : 1,
     trauma: 0,
     decay: 0,
     prevOwner: null,
@@ -53,6 +78,11 @@ export async function init(G_) {
     blendFov: 54,
     snap: true,
     idle: 0,
+    recT: 0,
+    padHeld: 0,
+    flickAcc: 0,
+    flickCd: 0,
+    stickLatch: false,
     recentering: false,
     headHidden: false,
     fovKick: 0,
@@ -61,7 +91,7 @@ export async function init(G_) {
     t: Math.random() * 100,
 
     setMode(m) { this._override = MODES[m] ? m : null; },
-    setTarget(obj) { this.target = obj || null; },
+    setTarget(obj) { this.target = obj || null; this.flickAcc = 0; },
     shake(intensity = 0.3, seconds = 0.3) {
       this.trauma = Math.max(this.trauma, clamp(intensity, 0, 1));
       this.decay = Math.max(this.decay, this.trauma / Math.max(0.05, seconds));
@@ -93,12 +123,39 @@ export async function init(G_) {
     return 'explore';
   }
 
+  // How far a sphere of radius r can travel from `origin` along `dir` (unit) before it meets the terrain or a
+  // collider. Samples every 14 cm against one gathered candidate list, which is plenty for posts and corners.
+  function castClear(origin, dir, len, r) {
+    const phys = G_.physics, world = G_.world;
+    if (!phys) return len;
+    const cand = phys.query(origin.x + dir.x * len * 0.5, origin.z + dir.z * len * 0.5, len * 0.5 + r + 0.5);
+    const step = 0.14;
+    for (let t = 0.2; t <= len + 1e-4; t += step) {
+      const px = origin.x + dir.x * t, py = origin.y + dir.y * t, pz = origin.z + dir.z * t;
+      if (world?.heightAt && py < world.heightAt(px, pz) + 0.32) return Math.max(0, t - step);
+      for (let i = 0; i < cand.length; i++) {
+        const it = cand[i];
+        if (py + r < it.y0 || py - r > it.y1) continue;
+        if (it.type === 'circle') {
+          if (Math.hypot(px - it.x, pz - it.z) < it.r + r) return Math.max(0, t - step);
+        } else {
+          const dx = px - it.x, dz = pz - it.z;
+          const lx = dx * it.c - dz * it.s, lz = dx * it.s + dz * it.c;
+          const cx = clamp(lx, -it.hw, it.hw), cz = clamp(lz, -it.hd, it.hd);
+          if (Math.hypot(lx - cx, lz - cz) < r) return Math.max(0, t - step);
+        }
+      }
+    }
+    return len;
+  }
+
   function update(dt) {
     const P = G_.player;
     const cam = G_.camera;
     if (!P || !cam) return;
     const owner = G_.cameraOwner;
     const owned = owner === 'rig' && R.enabled;
+    const S = G_.settings;
 
     // Ownership change: remember where the camera was so the hand-back blends.
     if (owned && R.prevOwner !== 'rig' && R.prevOwner !== null) {
@@ -112,17 +169,55 @@ export async function init(G_) {
     // ---- input -------------------------------------------------------------------------------
     const inp = G_.input;
     let moved = false;
+    R.flickCd = Math.max(0, R.flickCd - dt);
     if (owned && inp.context === 'game' && !G_.story?.busy && P.control) {
-      const sens = 0.0022 * (G_.settings?.mouseSens ?? 1);
-      const inv = G_.settings?.invertY ? -1 : 1;
+      const invX = S?.invertX ? -1 : 1, invY = S?.invertY ? -1 : 1;
       const dx = inp.look.dx, dy = inp.look.dy;
       if (dx || dy) {
         moved = true;
         R.recentering = false;
-        if (!R.target) R.yaw = wrapAngle(R.yaw - dx * sens);
-        R.pitch = clamp(R.pitch + dy * sens * inv, PITCH_MIN, PITCH_MAX);
+        const sx = MOUSE_SENS * (S?.mouseSensX ?? 1) * invX, sy = MOUSE_SENS * (S?.mouseSensY ?? 1) * invY;
+        if (!R.target) R.yaw = wrapAngle(R.yaw - dx * sx);
+        R.pitch = clamp(R.pitch + dy * sy, PITCH_MIN, PITCH_MAX);
       }
+      // The right stick: turn rate, with a ramp for a stick held near its limit.
+      const lp = inp.lookPad;
+      const mag = Math.hypot(lp.x, lp.y);
+      if (mag > 0) {
+        moved = true;
+        R.recentering = false;
+        R.padHeld = mag > 0.8 ? Math.min(1, R.padHeld + dt) : Math.max(0, R.padHeld - dt * 3);
+        const ramp = S?.padRamp === false ? 1 : 1 + 0.6 * smoothstep(0.15, 0.7, R.padHeld);
+        const sx = (S?.padSensX ?? 1) * invX * PAD_YAW * ramp, sy = (S?.padSensY ?? 1) * invY * PAD_PITCH * ramp;
+        if (!R.target) R.yaw = wrapAngle(R.yaw - lp.x * sx * dt);
+        R.pitch = clamp(R.pitch + lp.y * sy * dt, PITCH_MIN, PITCH_MAX);
+      } else R.padHeld = 0;
       if (inp.wheel) R.zoom = clamp(R.zoom * (1 + inp.wheel * 0.12), ZOOM_MIN, ZOOM_MAX);
+
+      // Swap shoulders: the setting changes and sideK slides to it below.
+      if (inp.pressed('shoulder') && S) {
+        const side = S.shoulder === 'left' ? 'right' : 'left';
+        S.set('shoulder', side);
+        G_.events.emit('camera:shoulder', { side });
+      }
+
+      // Lock-on: a flick hands the lock to the next target on that side.
+      if (R.target) {
+        R.flickAcc = R.flickAcc * Math.exp(-dt * 8) + dx;
+        let dir = 0;
+        if (Math.abs(lp.x) > 0.8 && !R.stickLatch) { dir = Math.sign(lp.x); R.stickLatch = true; } else if (Math.abs(lp.x) < 0.4) R.stickLatch = false;
+        if (!dir && Math.abs(R.flickAcc) > FLICK_PX) dir = Math.sign(R.flickAcc);
+        if (dir && R.flickCd <= 0) {
+          R.flickAcc = 0;
+          const next = stepTarget(P.position, R.yaw, R.target, dir);
+          if (next && next !== R.target) {
+            R.flickCd = 0.45;
+            P.setTarget(next);
+            G_.audio?.sfx?.('ui_hover', { volume: 0.4 });
+            G_.events.emit('camera:retarget', { target: next });
+          }
+        }
+      } else { R.flickAcc = 0; R.stickLatch = false; }
     }
     R.idle = moved ? 0 : R.idle + dt;
 
@@ -131,16 +226,22 @@ export async function init(G_) {
     const M = MODES[R.mode];
     const k = R.snap ? 1 : 1 - Math.exp(-3.2 * dt);
     const cur = R.cur;
-    let distGoal = M.dist * (R.mode === 'combat' ? 1 : R.zoom);
-    let fovGoal = M.fov;
+    let distGoal = M.dist * (R.mode === 'combat' ? 1 : R.zoom) * (S?.camDist ?? 1);
+    let fovGoal = M.fov + (S?.fovOffset ?? 0);
     if (R.mode === 'mounted') {
       const sp = G_.horse?.speed ?? 0;
       fovGoal += clamp(sp / 9.5, 0, 1) * 9;
     } else if (P.loco?.sprinting) fovGoal += 3;
+    R.sideK = R.snap ? (S?.shoulder === 'left' ? -1 : 1) : damp(R.sideK, S?.shoulder === 'left' ? -1 : 1, 5.5, dt);
 
     // Lock-on: the camera swings to look at the target and pulls back to keep both in frame.
     let focusLerp = 0, tall = 0;
     const tgt = R.target;
+    const rcMode = S?.recenter === 'auto' || !S?.recenter ? (inp.device === 'pad' ? 'gentle' : 'off') : S.recenter;
+    const vel = P.velocity;
+    const travelling = owned && P.control && inp.context === 'game' && !G_.story?.busy && R.mode !== 'mounted'
+      && !!vel && Math.hypot(vel.x, vel.z) > 1.2 && R.idle > 0;
+    R.recT = travelling && rcMode !== 'off' ? R.recT + dt : 0;
     if (tgt) {
       const tp = targetPos(tgt, _look);
       const dx = tp.x - P.position.x, dz = tp.z - P.position.z;
@@ -159,6 +260,16 @@ export async function init(G_) {
       // Riding with the mouse idle: drift behind the horse so roads are followable without the mouse.
       R.yaw = dampAngle(R.yaw, P.yaw, 1.1, dt);
       R.pitch = damp(R.pitch, M.pitch, 0.8, dt);
+    } else if (rcMode !== 'off' && R.recT > RECENTER[rcMode].delay) {
+      // On foot with the look controls untouched: swing behind where she is heading, unless she is
+      // running toward the lens (then the camera would have to spin the whole way round).
+      const travel = Math.atan2(vel.x, vel.z);
+      const w = 1 - smoothstep(1.1, 2.2, Math.abs(wrapAngle(travel - R.yaw)));
+      const rate = RECENTER[rcMode].rate * w;
+      if (rate > 0) {
+        R.yaw = dampAngle(R.yaw, travel, rate, dt);
+        R.pitch = damp(R.pitch, M.pitch, rate * 0.5, dt);
+      }
     }
 
     cur.dist += (distGoal - cur.dist) * k;
@@ -182,21 +293,29 @@ export async function init(G_) {
     const rx = -Math.cos(R.yaw), rz = Math.sin(R.yaw);
     _pivot.set(R.focus.x, R.focus.y + cur.pivotH, R.focus.z);
     _want.copy(_pivot).addScaledVector(_dir, -cur.dist);
-    _want.x += rx * cur.side;
-    _want.z += rz * cur.side;
+    // The shoulder offset grows with the preferred distance so the character stays where W3 frames her.
+    const sideLen = cur.side * R.sideK * (S?.camDist ?? 1);
+    _want.x += rx * sideLen;
+    _want.z += rz * sideLen;
 
-    // Collision: pull in at once when something is between the head and the camera, ease back out.
+    // Collision: pull in at once when something is between the head and the camera, ease back out after a
+    // short hold so a pole edge does not make the lens flutter.
     _nd.copy(_want).sub(_pivot);
     const len = _nd.length();
     if (len > 1e-3 && G_.physics) {
       _nd.multiplyScalar(1 / len);
-      const free = G_.physics.raycast(_pivot, _nd, len);
-      const kk = free < len ? clamp((free - 0.3) / len, 0.18, 1) : 1;
-      R.collK = kk < R.collK || R.snap ? kk : damp(R.collK, kk, 4, dt);
+      const free = castClear(_pivot, _nd, len, R.mode === 'interior' ? LENS_TIGHT : LENS);
+      const kk = free < len ? clamp((free - 0.04) / len, 0.18, 1) : 1;
+      if (kk < R.collK || R.snap) { R.collK = kk; R.collHold = 0.25; } else {
+        R.collHold = Math.max(0, R.collHold - dt);
+        if (R.collHold <= 0) R.collK = damp(R.collK, kk, 3.2, dt);
+      }
       _want.copy(_pivot).addScaledVector(_nd, len * R.collK);
     }
     if (G_.world?.heightAt) {
-      const gy = G_.world.heightAt(_want.x, _want.z) + 0.4;
+      // The lens is a few centimetres wide: keep every edge of it above the ground.
+      const w = G_.world, e = 0.35;
+      const gy = Math.max(w.heightAt(_want.x, _want.z), w.heightAt(_want.x + e, _want.z), w.heightAt(_want.x - e, _want.z), w.heightAt(_want.x, _want.z + e), w.heightAt(_want.x, _want.z - e)) + 0.4;
       if (_want.y < gy) _want.y = gy;
     }
 
@@ -224,7 +343,7 @@ export async function init(G_) {
     _look.copy(_want).add(_dir);
     _m.lookAt(_want, _look, _up);
     _q.setFromRotationMatrix(_m);
-    if (roll) _q.multiply(new THREE.Quaternion().setFromAxisAngle(_dir.set(0, 0, 1), roll));
+    if (roll) _q.multiply(_roll.setFromAxisAngle(_axis, roll));
     R.pos.copy(_want);
     R.quat.copy(_q);
 

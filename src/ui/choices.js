@@ -7,6 +7,7 @@
 // Choices swallow the keys they use so the confirming E does not leak into a dialogue advance.
 import { h, svg, markup } from './dom.js';
 import { ICON } from './icons.js';
+import { labelAction, labelGlyph } from './glyphs.js';
 
 export class Choices {
   constructor(G, root, ui) {
@@ -147,7 +148,7 @@ export class Choices {
       if (parts.length > 1 && /^hold$/i.test(parts[0])) { verb = 'Hold'; key = parts.slice(1).join(' '); } else key = m[1];
       label = m[2] || label;
     }
-    const keyEl = h('span', { class: 'mz-key' }, key);
+    const keyEl = labelAction(key) ? h('span', { class: 'mz-hold-glyph' }, labelGlyph(this.G, key)) : h('span', { class: 'mz-key' }, key);
     const ring = h('div', { class: 'mz-hold-ring' },
       svg('<svg viewBox="0 0 58 58"><circle class="bg" cx="29" cy="29" r="24"/><circle class="fg" cx="29" cy="29" r="24"/></svg>'), keyEl);
     const wbar = h('i');
@@ -159,7 +160,7 @@ export class Choices {
     requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add('on')));
     const hc = {
       el, fg: ring.querySelector('circle.fg'), wbar, need: Math.max(0.2, seconds), win: Math.max(1, windowSecs),
-      t: 0, p: 0, needRelease: this.eHeld, resolve: null, done: false, last: -1,
+      t: 0, p: 0, needRelease: this.eHeld || !!this.G.input?.down?.('interact'), resolve: null, done: false, last: -1,
     };
     this.hcur = hc;
     return new Promise((resolve) => { hc.resolve = resolve; });

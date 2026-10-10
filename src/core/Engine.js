@@ -35,7 +35,7 @@ export function createEngine(container) {
   G.camera = camera;
   G.input = new Input(renderer.domElement);
 
-  G.addSystem('input', () => G.input.poll(), ORDER.input);
+  G.addSystem('input', (dt) => G.input.poll(dt), ORDER.input);
   G.addSystem('time', (dt) => G.time.update(dt), ORDER.time);
 
   const onResize = () => {

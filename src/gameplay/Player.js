@@ -208,6 +208,7 @@ class Player {
 
     const enabled = inp.context === 'game';
     const camYaw = G.cameraRig ? G.cameraRig.yaw : cameraHeading();
+    if (enabled && inp.pressed('walk')) this.walkToggle = !this.walkToggle;
 
     // Camera-relative input direction.
     let dirX = 0, dirZ = 0, mag = 0;
@@ -338,10 +339,10 @@ export async function init(G_) {
   G_.events.on('loaded', () => applyVitals(P, G_.state.data.vitals));
   G_.events.on('reset', () => { applyVitals(P, null); P.dead = false; });
 
-  // Walk toggle: CapsLock follows the real lock state, Alt toggles. Click on the canvas takes the mouse.
+  // Walk: CapsLock follows the real lock state; the 'walk' action (Alt by default) toggles it in update().
+  // Click on the canvas takes the mouse.
   window.addEventListener('keydown', (e) => {
     if (e.code === 'CapsLock') P.walkCaps = !!e.getModifierState?.('CapsLock');
-    else if ((e.code === 'AltLeft' || e.code === 'AltRight') && !e.repeat) { P.walkToggle = !P.walkToggle; e.preventDefault(); }
   });
   window.addEventListener('keyup', (e) => {
     if (e.code === 'CapsLock') P.walkCaps = !!e.getModifierState?.('CapsLock');
