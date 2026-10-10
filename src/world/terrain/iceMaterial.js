@@ -71,9 +71,13 @@ const SHADE = /* glsl */ `
   vec3 V = normalize(cameraPosition - wp);
   float thaw = uMzThaw;
 
-  // Wind frame: streaks run along the prevailing wind.
+  // Wind frame: streaks run along the prevailing wind, bent by the shore and the hills: a broad
+  // domain warp curves them and a low-frequency mask gathers them into fields with clear ice
+  // between, so they never read as ruled parallel lines across the whole lake.
   vec2 wd = vec2(0.94, 0.34), wn = vec2(-wd.y, wd.x);
-  vec2 q = vec2(dot(xz, wd), dot(xz, wn));
+  vec4 wq = mzNoiseK(xz + 91.0, 0.008);
+  vec2 q = vec2(dot(xz, wd), dot(xz, wn)) + (wq.rg - 0.5) * vec2(18.0, 26.0);
+  float streakField = smoothstep(0.3, 0.72, wq.b);
   vec4 sA = mzNoiseK(vec2(q.x * 0.12, q.y), 0.035);
   vec4 sM = mzNoiseK(vec2(q.x * 0.1, q.y) - 13.0, 0.22);
   vec4 sB = mzNoiseK(vec2(q.x * 0.14, q.y) + 31.0, 0.9);
@@ -89,8 +93,8 @@ const SHADE = /* glsl */ `
   // Drifts: broad wind-packed fields plus long narrow streaks with crisp edges and feathered
   // tails downwind (the streak noise is stretched along the wind).
   float field = sA.r * 0.55 + big.r * 0.35 + nearShore * 0.3 + snowBias;
-  float streak = sM.r * 0.7 + sB.r * 0.3;
-  float tail = smoothstep(0.0, 1.0, fract(q.x * 0.02 + sA.g * 3.0));
+  float streak = (sM.r * 0.7 + sB.r * 0.3) * mix(0.86, 1.0, streakField);
+  float tail = smoothstep(0.15, 0.85, mzNoiseK(vec2(q.x * 0.04, q.y * 0.15) + 5.0, 0.3).g);
   float snowIce = max(smoothstep(0.57, 0.6, field), smoothstep(0.6 - tail * 0.05, 0.625, streak + field * 0.3 - 0.08));
   float dust = smoothstep(0.45, 0.8, sB.g * 0.6 + sM.g * 0.4) * 0.4 * (1.0 - snowIce);
 
