@@ -34,6 +34,20 @@ export function legs(pose, drop, fl, fr, o = {}) {
   return out;
 }
 export const A = 0.081; // ankle height
+export const SADDLE_H = 1.4; // height of the horse's saddle anchor above the ground (characters/horse.js)
+// Pelvis offset that seats a rider: the root is the saddle anchor, the pelvis sits 0.11 m above it.
+export const SEAT = -(REF.pelvisY - 0.11);
+// The rider's pose at rest in the saddle (both hands on the reins); riding.js builds the swings and the fall from it.
+let ridePoseCache = null;
+export function ridePose() {
+  if (ridePoseCache) return ridePoseCache;
+  const p = { $hips: [0, SEAT, 0], hips: [4, 0, 0], spine: [2, 0, 0], chest: [0, 0, 0], neck: [0, 0, 0], head: [-2, 0, 0],
+    thighL: [58, 22, 34], thighR: [58, 22, 34], shinL: [76, 0, -4], shinR: [76, 0, -4], footL: [-6, 18, -6], footR: [-6, 18, -6] };
+  let q = R(p, 'L', [0.08, 0.38, 0.32], { elbow: elbowDown('L') });
+  q = R(q, 'R', [-0.08, 0.38, 0.32], { elbow: elbowDown('R') });
+  ridePoseCache = { ...q, handL: [10, -60, 0], handR: [10, -60, 0], ...FIST('L'), ...FIST('R') };
+  return ridePoseCache;
+}
 
 export function buildLibrary(lib, lazy) {
   // Lazy blocks: a block bakes (all its clips) the first time any of its clips is requested.
@@ -550,14 +564,7 @@ export function buildLibrary(lib, lazy) {
   B(['ride_idle', 'ride_trot', 'ride_gallop', 'mount', 'dismount'], () => {
   
     // ------------------------------------------------------------------ riding (root = saddle seat)
-    const SEAT = -(REF.pelvisY - 0.11);
-    const RIDE = (() => {
-      const p = { $hips: [0, SEAT, 0], hips: [4, 0, 0], spine: [2, 0, 0], chest: [0, 0, 0], neck: [0, 0, 0], head: [-2, 0, 0],
-        thighL: [58, 22, 34], thighR: [58, 22, 34], shinL: [76, 0, -4], shinR: [76, 0, -4], footL: [-6, 18, -6], footR: [-6, 18, -6] };
-      let q = R(p, 'L', [0.08, 0.38, 0.32], { elbow: elbowDown('L') });
-      q = R(q, 'R', [-0.08, 0.38, 0.32], { elbow: elbowDown('R') });
-      return { ...q, handL: [10, -60, 0], handR: [10, -60, 0], ...FIST('L'), ...FIST('R') };
-    })();
+    const RIDE = ridePose();
     clip('ride_idle', 3, [[0, RIDE], [1.5, { ...RIDE, head: [0, 8, 0], chest: [1, 2, 0] }], [3, RIDE]], { loop: true, base: RIDE });
     fn('ride_trot', 0.6, (u) => {
       const t = u * Math.PI * 2;
@@ -580,8 +587,12 @@ export function buildLibrary(lib, lazy) {
       const hands = R(R(foot, 'L', [-0.25, 1.32, 0.25], { elbow: elbowDown('L') }), 'R', [-0.45, 1.3, -0.05], { elbow: elbowDown('R') });
       const up = { ...hands, $hips: [-0.18, 0.42, 0], thighL: [70, 10, 10], shinL: [60, 0, 0], thighR: [-20, 10, 20], shinR: [40, 0, 0], spine: [24, -30, 0] };
       const over = { ...up, $hips: [-0.42, 0.5, 0], thighR: [30, 10, 80], shinR: [50, 0, 0], spine: [18, -20, 10] };
-      const sat = { ...RIDE, $hips: [-0.55, RIDE.$hips[1] + 1.32, 0] };
-      clip('mount', 1.8, [[0, {}], [0.35, foot, 'out'], [0.6, hands], [0.95, up, 'snap'], [1.3, over], [1.8, sat]],
+      // The pelvis ends exactly where the ride clip puts it, measured from the ground beside the horse: the saddle
+      // anchor is 1.4 m up (characters/horse.js), and the rider swap happens here, so a shorter climb popped her up.
+      const sat = { ...RIDE, $hips: [-0.55, RIDE.$hips[1] + SADDLE_H, 0] };
+      // The clip holds the seated pose for 0.1 s past the last key: the gameplay swaps the rider onto the saddle in
+      // that hold, so the swap never lands on the frame where the clip ends and starts to fade out.
+      clip('mount', 1.9, [[0, {}], [0.35, foot, 'out'], [0.6, hands], [0.95, up, 'snap'], [1.3, over], [1.8, sat], [1.9, sat]],
         { events: [[0.95, 'jump'], [1.8, 'seated']], overlap: { head: 0.06 } });
       clip('dismount', 1.5, [[0, sat], [0.35, over], [0.7, up], [1.05, { ...foot, ...legs(ST, -0.1, [0.12, A, 0.05, 0], [-0.12, A, -0.05, 0]) }, 'in'], [1.5, {}]],
         { events: [[1.0, 'land']], overlap: { head: 0.06 } });

@@ -28,6 +28,9 @@ import { initStats, updateStats, applyVitals, TUNE } from './player/stats.js';
 import { cycleTarget, isAlive, enemyPos } from './player/lock.js';
 import { groundY } from './player/ground.js';
 
+// A locked target nearer than this (m) is fought facing it; beyond it the lock is only the camera's.
+const STRAFE_NEAR = 20;
+
 const _v = new THREE.Vector3();
 
 function cameraHeading() {
@@ -58,6 +61,9 @@ class Player {
     this.walkToggle = false;
     this.walkCaps = false;
     this._target = null;
+    this._strafing = false; // locked on and stepping with the body held to the target (see update)
+    this._strafeNear = false;
+    this._strafeKind = '';
     this._swallow = false;
     this._deadT = 0;
     this._idleClip = '';
@@ -105,6 +111,8 @@ class Player {
     this.control = on;
     const c = this.character;
     if (!on) {
+      this._strafing = false;
+      c.setStrafe(false, 0, 0); // a scene that walks her must not be played through the lock-on steps
       if (!this.mounted) {
         const busy = this.moves.busy || this.moves.upper || this.moves.blocking;
         this.moves.cancelAll();
@@ -127,7 +135,11 @@ class Player {
 
   teleport(x, z, yaw = this.yaw, y) {
     if (this.mounted) this.dismountInstant();
+    G.horse?.endThrow?.(); // a fall in progress ends where she is, then she is moved
     const c = this.character;
+    this._strafing = false;
+    c.setStrafe(false, 0, 0);
+    c.autoGround = true;
     this.moves.cancelAll();
     this.loco.reset(yaw);
     this.position.set(x, groundY(x, z, Number.isFinite(y) ? y + 0.05 : undefined), z);
@@ -206,7 +218,8 @@ class Player {
       return;
     }
 
-    const enabled = inp.context === 'game';
+    // Input is dead while she climbs on or off, or is thrown from the saddle: a click then must not start a swing.
+    const enabled = inp.context === 'game' && !this._mounting;
     const camYaw = G.cameraRig ? G.cameraRig.yaw : cameraHeading();
     if (enabled && inp.pressed('walk')) this.walkToggle = !this.walkToggle;
 
@@ -224,11 +237,12 @@ class Player {
       }
     }
 
-    // Lock-on: T or middle mouse cycles; with nothing to lock it recenters the camera behind her.
-    if (enabled && !this.mounted && inp.pressed('lock')) {
+    // Lock-on: T or middle mouse cycles; with nothing to lock it recenters the camera behind her. In the saddle it works
+    // with the blade out (it picks the side the swings go to); with the sword away the key does nothing there.
+    if (enabled && (!this.mounted || this.swordDrawn) && inp.pressed('lock')) {
       const next = cycleTarget(this.position, camYaw, this.target);
       if (next || this.target) this.setTarget(next);
-      else G.cameraRig?.recenter?.();
+      else if (!this.mounted) G.cameraRig?.recenter?.();
     }
     if (this.target && (!isAlive(this.target) || enemyDist(this.target, this.position) > 40)) this.setTarget(null);
 
@@ -241,18 +255,31 @@ class Player {
       if (!out.owns) {
         const wantSprint = enabled && inp.down('sprint') && !this.exhausted && this.stamina > 0.5 && !out.noSprint;
         let face = out.face;
-        if (face == null && this.target && isAlive(this.target)) {
-          const p = enemyPos(this.target);
+        const tgt = this.target && isAlive(this.target) ? this.target : null;
+        if (face == null && tgt) {
+          const p = enemyPos(tgt);
           face = Math.atan2(p.x - this.position.x, p.z - this.position.z);
         }
+        // Locked on she keeps her body to the target and steps any way the stick points; holding sprint runs where the
+        // stick points as before, and a target far off (beyond STRAFE_NEAR, with a margin so it does not flicker) is
+        // just a camera lock.
+        let strafe = false;
+        if (tgt && face != null) {
+          const tp = enemyPos(tgt);
+          const d = Math.hypot(tp.x - this.position.x, tp.z - this.position.z);
+          this._strafeNear = this._strafeNear ? d < STRAFE_NEAR + 4 : d < STRAFE_NEAR;
+          strafe = this._strafeNear && !(wantSprint && mag > 0.1);
+        } else this._strafeNear = false;
+        this._strafing = strafe;
         const armed = c.swordDrawn && !this.moves.isBlocking() ? 0.93 : 1;
-        loco.update(dt, { dirX, dirZ, mag, sprint: wantSprint, speedMul: out.speedMul * armed, face });
+        loco.update(dt, { dirX, dirZ, mag, sprint: wantSprint, speedMul: out.speedMul * armed, face, strafe });
         if (loco.sprinting) {
           this.stamina = Math.max(0, this.stamina - TUNE.sprintDrain * dt);
           this._s.staminaWait = TUNE.staminaDelay;
           if (this.stamina <= TUNE.exhaustedBelow) this.exhausted = true;
         }
       } else {
+        this._strafing = false;
         loco.sprinting = false;
         loco.speed = Math.hypot(loco.vel.x, loco.vel.z);
         this.velocity.set(loco.vel.x, 0, loco.vel.z);
@@ -276,9 +303,11 @@ class Player {
     const fighting = c.swordDrawn && this.state === 'combat';
     const idle = fighting ? 'combat_idle' : this.warmth < 0.3 ? 'idle_cold' : 'idle';
     const walk = !c.swordDrawn && this.warmth < 0.25 ? 'walk_cold' : 'walk';
-    if (idle !== this._idleClip || walk !== this._walkClip) {
-      this._idleClip = idle; this._walkClip = walk;
-      c.locoSet({ idle, walk });
+    // Lock-on steps: arms up with the blade out, loose with it away.
+    const strafe = c.swordDrawn ? 'guard' : 'free';
+    if (idle !== this._idleClip || walk !== this._walkClip || strafe !== this._strafeKind) {
+      this._idleClip = idle; this._walkClip = walk; this._strafeKind = strafe;
+      c.locoSet({ idle, walk, strafe });
     }
   }
 
@@ -289,12 +318,17 @@ class Player {
     c.root.rotation.y = loco.yaw;
     if (this.dead || this.moves.act) {
       c.speed = c.targetSpeed = 0;
+      c.setStrafe(false, 0, 0);
       return;
     }
-    // Animation speed follows the real speed; a big turn on the spot shuffles the feet a little.
+    // Animation speed follows the real speed; a big turn on the spot shuffles the feet a little (locked on, the
+    // turn clips step her round instead).
     let v = loco.speed;
-    if (v < 0.4) v = Math.max(v, Math.min(0.55, Math.abs(loco.yawRate) * 0.11));
+    if (v < 0.4 && !this._strafing) v = Math.max(v, Math.min(0.55, Math.abs(loco.yawRate) * 0.11));
     c.speed = c.targetSpeed = v;
+    // Her velocity in her own frame (x = left, z = ahead) for the directional steps.
+    const sy = Math.sin(loco.yaw), cy = Math.cos(loco.yaw);
+    c.setStrafe(this._strafing, loco.vel.x * cy - loco.vel.z * sy, loco.vel.x * sy + loco.vel.z * cy);
     // A clip someone else started (examine, drink at a fire) plays out; moving cancels it.
     if (hasInput && c.anim.mode !== 'loco' && !this.moves.act && !this.moves.upper && !this._mounting) c.anim.toLoco(0.2);
   }

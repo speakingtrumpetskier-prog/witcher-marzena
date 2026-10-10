@@ -12,6 +12,10 @@
 //   &slope=1 (sloped ground to test foot planting)  &speed=2.5 (locomotion speed)
 //   &demo=1 (village vignette using walkTo, playUpper, talk, lookAt)  &poses=1|2 (frozen pose grids)
 //   &clip=attack_1+attack_2 (chain)  &sword=1  &onready=1  &animStep=0.08 (deterministic sheets)
+//   &strafe=l|r|b|f|fl|fr|bl|br|<lx>,<lz>  &speed=2.4  [&sword=1]   the lock-on steps: she faces +Z and moves in that direction
+//     (m/s in her own frame) over the snow; &turn=1.5 turns her on the spot at that many rad/s (negative: to her right)
+//     &camyaw=0.6 (radians round her: 0 in front, 1.57 her left)  &sheet=12&every=0.1&cols=6  a deterministic frame sheet
+//     (simulated time, drawn as an overlay): window.__gal.sheet({ frames, every, cols }), __gal.advance(sec)
 import * as THREE from 'three';
 
 const qs = new URLSearchParams(location.search);
@@ -153,6 +157,8 @@ export async function init(G) {
     G.camera.position.set(0, 1.1, (3.2 + n * 0.62) * close);
     G.camera.lookAt(0, 0.95, 0);
     G.camera.fov = 34;
+  } else if (P.has('strafe') || P.has('turn')) {
+    strafeStage(G, P, C, preset || 'vesna', camRig);
   } else if (preset) {
     const heads = P.has('heads');
     const views = heads ? [0.55, -0.7, 1.75, Math.PI] : P.has('views') ? [0, 0.6, Math.PI / 2, Math.PI] : [parseFloat(P.get('yaw') || '0')];
@@ -257,6 +263,97 @@ export async function init(G) {
     }, 81);
   }
   void tStart;
+}
+
+// A character stepping through the lock-on clips over the snow: the body faces +Z while the velocity (in her own frame)
+// points where asked, so planted feet stay put on the ground texture. A deterministic sheet maker steps the systems
+// itself, a fixed time between tiles, and draws the tiles as an overlay (screenshot it).
+function strafeStage(G, P, C, id, camRig) {
+  const c = C.create(id);
+  c.setPosition(0, 0);
+  c.yaw = 0;
+  G.scene.add(c.root);
+  G.gallery.chars.push(c);
+  const sword = P.has('sword');
+  if (sword) { c._setSword(true); c.locoSet({ idle: 'combat_idle' }); }
+  c.locoSet({ strafe: sword ? 'guard' : 'free' });
+  const dirs = { f: [0, 1], b: [0, -1], l: [1, 0], r: [-1, 0], fl: [0.7071, 0.7071], fr: [-0.7071, 0.7071], bl: [0.7071, -0.7071], br: [-0.7071, -0.7071] };
+  const q = P.get('strafe') || '';
+  let [lx, lz] = dirs[q] || (q ? q.split(',').map(Number) : [0, 0]);
+  const speed = parseFloat(P.get('speed') || '2.4');
+  const l = Math.hypot(lx, lz);
+  if (l > 0) { lx = (lx / l) * speed; lz = (lz / l) * speed; }
+  const turn = parseFloat(P.get('turn') || '0');
+  const view = parseFloat(P.get('camyaw') || '0.5');
+  const dist = parseFloat(P.get('dist') || '3.8');
+  camRig.target = c;
+  const move = (dt) => {
+    c.yaw += turn * dt;
+    const s = Math.sin(c.yaw), k = Math.cos(c.yaw);
+    const p = c.root.position;
+    p.x += (lx * k + lz * s) * dt;
+    p.z += (-lx * s + lz * k) * dt;
+    if (Math.abs(p.x) > 24 || Math.abs(p.z) > 24) { p.x = 0; p.z = 0; }
+    c.speed = c.targetSpeed = Math.hypot(lx, lz);
+    c.setStrafe(true, lx, lz);
+  };
+  G.addSystem('strafe-stage', move, 40);
+  G.cameraOwner = 'gallery';
+  const place = () => {
+    const p = c.root.position;
+    G.camera.position.set(p.x + Math.sin(view) * dist, 1.1, p.z + Math.cos(view) * dist);
+    G.camera.lookAt(p.x, 0.95, p.z);
+    G.camera.fov = 34;
+    G.camera.updateProjectionMatrix();
+  };
+  G.addSystem('strafe-cam', place, 81);
+  const advance = (sec, step = 1 / 30) => {
+    let left = sec;
+    while (left > 1e-6) {
+      const dt = Math.min(step, left);
+      left -= dt;
+      G.clock.delta = dt; G.clock.elapsed += dt; G.clock.frame++;
+      for (const s of G.systems.slice()) s.update(dt, G.clock.elapsed);
+      G.camera.updateMatrixWorld();
+    }
+  };
+  const sheet = ({ frames = 12, cols = 6, every = 0.1, warm = 1.0, tw = 300, th = 420 } = {}) => {
+    advance(warm);
+    const src = G.renderer.domElement;
+    const TW = tw, TH = th;
+    const old = { w: src.width, h: src.height, pr: G.renderer.getPixelRatio(), asp: G.camera.aspect };
+    G.renderer.setPixelRatio(1);
+    G.renderer.setSize(TW, TH, false);
+    G.camera.aspect = TW / TH;
+    const tiles = [];
+    for (let i = 0; i < frames; i++) {
+      if (i > 0) advance(every);
+      G.camera.aspect = TW / TH; G.camera.updateProjectionMatrix();
+      G.renderer.render(G.scene, G.camera);
+      const t = document.createElement('canvas');
+      t.width = TW; t.height = TH;
+      const g = t.getContext('2d');
+      g.drawImage(src, 0, 0, TW, TH);
+      g.fillStyle = '#222'; g.font = '13px monospace';
+      g.fillText(`${i} ${(i * every).toFixed(2)}s`, 6, 16);
+      tiles.push(t);
+    }
+    G.renderer.setPixelRatio(old.pr);
+    G.renderer.setSize(old.w / old.pr, old.h / old.pr, false);
+    G.camera.aspect = old.asp; G.camera.updateProjectionMatrix();
+    const out = document.createElement('canvas');
+    const rows = Math.ceil(frames / cols);
+    out.width = cols * TW; out.height = rows * TH;
+    const g = out.getContext('2d');
+    tiles.forEach((t, i) => g.drawImage(t, (i % cols) * TW, Math.floor(i / cols) * TH));
+    const img = document.createElement('img');
+    img.src = out.toDataURL('image/png');
+    Object.assign(img.style, { position: 'fixed', left: '0', top: '0', width: '100vw', height: '100vh', zIndex: 9999, objectFit: 'contain', background: '#111' });
+    document.body.appendChild(img);
+    return tiles.length;
+  };
+  window.__gal = { c, advance, sheet };
+  if (P.has('sheet')) G.events.once('game:ready', () => { window.__galDone = sheet({ frames: parseInt(P.get('sheet'), 10) || 12, every: parseFloat(P.get('every') || '0.1'), cols: parseInt(P.get('cols') || '6', 10) }); });
 }
 
 function setupStage(G, P, slope, groundY) {

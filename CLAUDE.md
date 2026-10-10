@@ -45,13 +45,17 @@ voice clips generated offline. Work happens on the branch `claude/optimistic-boh
   (also `choice=call` and `choice=step`); expect zero fails and zero errors.
 - `node scripts/gpu-demo.mjs` times one frame on the local GPU against software.
 - `node scripts/inputtest.mjs [input|lock|menus|hints|defs]` drives the arena and the Controls screen
-  with a mocked gamepad (114 checks, about 4 minutes); run it after touching input, camera, menus or hints.
+  with a mocked gamepad (122 checks, about 4 minutes); run it after touching input, camera, menus or hints.
 - Pure-logic tests (Node, seconds): `node scripts/dicetest.mjs` (Kosci rules, AI, roll paths) and
   `node scripts/fishtest.mjs` (fishing model). `node scripts/dicedrive.mjs` (MZ_CHROME=1) plays a dice
   match with real keys, mouse and a mocked pad.
 - `node scripts/phototest.mjs [--out dir]` plays into photo mode (own Vite server, installed Chrome; 24
   checks, about 2 minutes): held world, flying camera, click focus, filters, crops, borders, a saved
   PNG at full resolution, clean exit.
+- Fighting on the move: `node scripts/strafetest.mjs` (Node, seconds, 113 checks: foot slide of the lock-on clips and blends)
+  and `node scripts/combatmove.mjs [strafe|ride|fall]` (MZ_CHROME=1, 46 checks, about 2 minutes: lock-on strafing, swings from the
+  saddle, being thrown, the whistle); run both after touching Player, Horse, moves, the animator or the clips. The characters scene
+  has `&strafe=l&speed=2.4&sword=1` and `&turn=1.8` stages with `window.__gal.sheet` frame sheets; the arena takes `&mounted=1&site=-10,70`.
 - Throwaway harness scripts go under `node_modules/.mz-tmp/` (they resolve the project's packages and
   Vite does not watch there). A file created and deleted under `scripts/` or `src/` while `npm run dev`
   runs can crash its watcher on Windows (EBUSY).

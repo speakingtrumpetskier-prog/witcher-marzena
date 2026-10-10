@@ -68,7 +68,10 @@ export class Animator {
     this.base = [];
     this.upper = [];
     this.adds = [];
-    this.loco = { speed: 0, phase: 0, set: { idle: 'idle', walk: 'walk', run: 'run', sprint: 'sprint' }, wMove: 0 };
+    // strafe: lock-on locomotion. `dirs` (clip names per direction, set by Character.locoSet({ strafe })) and `strafe`
+    // (on while she steps with her body held to the target), lx / lz her velocity in her own frame (x = left, z = ahead),
+    // sw the eased 0..1 mix between the forward blend tree and the directional one.
+    this.loco = { speed: 0, phase: 0, set: { idle: 'idle', walk: 'walk', run: 'run', sprint: 'sprint' }, wMove: 0, dirs: null, strafe: false, sw: 0, lx: 0, lz: 0 };
     this.legScale = ch.M.hipJY / REF_HIP_Y;
     this.hipsBind = ch.rig.world.hips.clone();
     this.mode = 'loco';
@@ -155,21 +158,35 @@ export class Animator {
     // locomotion phase
     const L = this.loco;
     const vRef = Math.max(0, L.speed) / this.legScale;
-    const ws = locoWeights(vRef, L.set);
-    L.weights = ws;
+    let ws = locoWeights(vRef, L.set);
     let stride = 0, wsum = 0;
     for (const [nm, w] of ws) {
       if (nm === L.set.idle) continue;
       const c = getClip(nm);
       if (c && c.stride) { stride += c.stride * w; wsum += w; }
     }
-    L.wMove = wsum;
+    L.sw = L.dirs ? approach(L.sw, L.strafe ? 1 : 0, dt * 6) : 0;
+    let rate = 0;
     if (wsum > 0) {
       const D = (stride / wsum) * Math.max(wsum, 0.4);
-      L.phase = (L.phase + (vRef / D) * dt) % 1;
-    } else if (Math.abs(this.yawRate) > 0.8) {
-      L.phase = (L.phase + Math.min(2, Math.abs(this.yawRate)) * 0.35 * dt) % 1;
+      rate = vRef / D;
+    } else if (L.sw < 0.5 && Math.abs(this.yawRate) > 0.8) {
+      rate = Math.min(2, Math.abs(this.yawRate)) * 0.35;
     }
+    if (L.sw > 0.001) {
+      // Lock-on: the directional tree. Blend it with the forward one while the mix eases in or out.
+      const S = strafeWeights(L.lx / this.legScale, L.lz / this.legScale, this.yawRate, L.set.idle, L.dirs);
+      const k = L.sw;
+      const merged = new Map();
+      for (const [nm, w] of ws) merged.set(nm, (merged.get(nm) || 0) + w * (1 - k));
+      for (const [nm, w] of S.list) merged.set(nm, (merged.get(nm) || 0) + w * k);
+      ws = [...merged];
+      wsum = wsum * (1 - k) + S.wsum * k;
+      rate = rate * (1 - k) + S.rate * k;
+    }
+    L.weights = ws;
+    L.wMove = wsum;
+    L.phase = (L.phase + rate * dt) % 1;
     this._evalStack(this.base, dt, this.out, this.hips, true);
     // upper layer
     if (this.upper.length) {
@@ -534,6 +551,62 @@ export function locoWeights(v, set) {
   }
   const t = smooth01((v - runV) / (sprintV - runV));
   return [[set.run, 1 - t], [set.sprint, t]];
+}
+// Lock-on blend tree. (vx, vz) is her velocity in her own frame (x = left, z = ahead; already divided by leg scale) and
+// `set` the clip names (clips/strafe.js strafeSet): a walk and a run clip for each of eight directions, 45 degrees apart.
+// The direction falls between two neighbours; the velocity is split into its components along them (u = a * u1 + b * u2)
+// and each plays with a weight proportional to its component. The stance foot of the blend then moves back at the body's
+// speed along the true direction of travel, but the weights add up to a + b (1 on an axis, 1.08 half way between), so the
+// cycle is played that much faster and the stride is that much shorter: planting stays exact.
+// At rest with the body turning (the target circles her) the turn clips step her round at the angle she turns per cycle.
+// Returns { list: [[clip, weight]], wsum: weight of the stepping clips, rate: cycles per second }.
+const _sw = { list: [], wsum: 0, rate: 0 };
+const EIGHTH = Math.PI / 4;
+export function strafeWeights(vx, vz, yawRate, idle, set) {
+  const list = _sw.list = [];
+  const v = Math.hypot(vx, vz);
+  let moveW = 0, rateMove = 0;
+  if (v > 0.03) {
+    const th = (Math.atan2(vx, vz) + Math.PI * 2) % (Math.PI * 2);
+    const pos = th / EIGHTH;
+    const k = Math.floor(pos) % 8, frac = pos - Math.floor(pos);
+    const a = Math.sin((1 - frac) * EIGHTH) / Math.SQRT1_2, b = Math.sin(frac * EIGHTH) / Math.SQRT1_2;
+    const sc = a + b;
+    let vWalk = 0, vRun = 0;
+    const used = [];
+    for (const [d, c] of [[set.dirs[k], a], [set.dirs[(k + 1) % 8], b]]) {
+      if (c < 1e-3) continue;
+      const cw = getClip(d[0]), cr = getClip(d[1]);
+      if (!cw || !cr) continue;
+      const w = c / sc;
+      used.push({ w, cw, cr });
+      vWalk += cw.speed * w; vRun += cr.speed * w;
+    }
+    if (used.length) {
+      // Idle to walk below the walking speed, walk to run above it; the speeds are those of the clips in use.
+      moveW = v < vWalk ? smooth01(v / (vWalk * 0.6)) : 1;
+      const run = v < vWalk ? 0 : smooth01((v - vWalk) / Math.max(0.1, vRun - vWalk));
+      let D = 0;
+      for (const { w, cw, cr } of used) {
+        list.push([cw.name, w * (1 - run) * moveW], [cr.name, w * run * moveW]);
+        D += w * ((1 - run) * cw.stride + run * cr.stride);
+      }
+      rateMove = (v * sc) / (D * Math.max(moveW, 0.4));
+    }
+  }
+  // Turning on the spot, fading out as she starts to walk.
+  const aw = Math.abs(yawRate);
+  const turnW = (1 - moveW) * smooth01((aw - 0.3) / 0.7);
+  const idleW = (1 - moveW) * (1 - turnW);
+  let rateTurn = 0;
+  if (turnW > 0.001) {
+    const tc = getClip(yawRate > 0 ? set.turnL : set.turnR);
+    if (tc) { list.push([tc.name, turnW]); rateTurn = Math.min(2.5, aw) / tc.stride; }
+  }
+  if (idleW > 0) list.push([idle, idleW]);
+  _sw.wsum = moveW + turnW;
+  _sw.rate = moveW > 0 ? rateMove * moveW + rateTurn * (1 - moveW) : rateTurn;
+  return _sw;
 }
 const smooth01 = (x) => { const t = Math.min(1, Math.max(0, x)); return t * t * (3 - 2 * t); };
 const approach = (a, b, d) => (a < b ? Math.min(b, a + d) : Math.max(b, a - d));

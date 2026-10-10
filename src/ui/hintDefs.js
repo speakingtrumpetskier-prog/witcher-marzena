@@ -18,7 +18,7 @@ import { diceNumbers } from './glyphs.js';
 
 // Events the hint system listens to. 'ui:open' also fires as 'ui:open:<name>'.
 export const EVENTS = [
-  'combat:start', 'player:hit', 'player:dodge', 'player:parry', 'player:block', 'player:cast', 'player:draw',
+  'combat:start', 'player:hit', 'player:dodge', 'player:parry', 'player:block', 'player:cast', 'player:draw', 'player:swing',
   'player:drink', 'player:lock', 'camera:retarget', 'horse:call', 'horse:mount', 'horse:dismount',
   'interact:use', 'senses:on', 'ui:open:journal', 'ui:open:map', 'ui:open:pause', 'photo:enter',
   'dice:pick', 'dice:roll', 'dice:raise',
@@ -31,7 +31,7 @@ const settled = (c) => c.seen('move') || c.walked >= 2 || c.rode > 0;
 function signHint(sign, selectAction, pickText, castText, prio, watch) {
   const cast = { action: 'sign', done: (c) => c.fired('player:cast', (p) => p?.sign === sign) };
   return {
-    id: sign, prio, delay: 1, seconds: 12, watch,
+    id: sign, prio, delay: 1, seconds: 12, watch: (c) => !c.mounted && watch(c), // no signs from the saddle
     rows: [
       { action: selectAction, text: pickText, when: (c) => c.P.sign !== sign },
       { ...cast, text: 'Cast the sign', when: (c) => c.P.sign !== sign },
@@ -82,12 +82,22 @@ export const HINTS = [
   {
     id: 'draw', prio: 3, delay: 0.6, seconds: 9,
     rows: [{ action: 'draw', text: 'Draw your sword', done: 'player:draw', pad: { action: 'attack', text: 'Attack to draw your sword' } }],
-    watch: (c) => c.inCombat && !c.P.swordDrawn && c.since('combat:start') < 20,
+    watch: (c) => c.inCombat && !c.mounted && !c.P.swordDrawn && c.since('combat:start') < 20,
   },
   {
     id: 'attack', prio: 3, delay: 0.8, seconds: 14,
     rows: [{ action: 'attack', text: 'Light attack' }, { action: 'heavy', text: 'Heavy attack' }],
-    watch: (c) => c.inCombat && c.P.swordDrawn && c.since('combat:start') > 0.6,
+    watch: (c) => c.inCombat && !c.mounted && c.P.swordDrawn && c.since('combat:start') > 0.6,
+  },
+  // From the saddle the attack button swings to the side the camera is on, or the locked target's; she cannot dodge, parry or cast there.
+  {
+    id: 'ride_attack', prio: 3, delay: 0.8, seconds: 14,
+    rows: [
+      { action: 'draw', text: 'Draw your sword', done: 'player:draw', when: (c) => !c.P.swordDrawn, pad: { action: 'attack', text: 'Attack to draw your sword' } },
+      { action: 'attack', text: 'Swing to the side the camera is on', done: (c) => c.fired('player:swing', (p) => !!p?.mounted) },
+      { action: 'lock', text: 'Lock on to swing toward a target', when: (c) => !c.P.target, done: (c) => c.fired('player:lock', (p) => !!p?.target) },
+    ],
+    watch: (c) => c.mounted && c.inCombat && c.since('combat:start') > 0.6,
   },
   {
     id: 'journal', prio: 4, delay: 3, seconds: 10,
@@ -102,7 +112,7 @@ export const HINTS = [
   {
     id: 'dodge', prio: 4, delay: 0.5, seconds: 10,
     rows: [{ action: 'dodge', text: 'Dodge, tap twice to roll', done: 'player:dodge' }],
-    watch: (c) => c.inCombat && (c.since('player:hit') < 8 || c.since('combat:start') > 8),
+    watch: (c) => c.inCombat && !c.mounted && (c.since('player:hit') < 8 || c.since('combat:start') > 8),
   },
   {
     id: 'mount', prio: 4, delay: 1.2, seconds: 9,
@@ -122,7 +132,7 @@ export const HINTS = [
   {
     id: 'sign', prio: 5, delay: 2, seconds: 10,
     rows: [{ action: 'sign', text: 'Cast a sign', done: 'player:cast' }],
-    watch: (c) => c.inCombat && c.P.signEnergy > 0.5 && c.since('combat:start') > 4,
+    watch: (c) => c.inCombat && !c.mounted && c.P.signEnergy > 0.5 && c.since('combat:start') > 4,
   },
   // One hint per sign. If the sign is not the one in hand the card says how to pick it, then how to cast.
   signHint('ember', 'sign1', 'Ember sets straw alight', 'Cast Ember to set straw alight', 5,
@@ -134,7 +144,7 @@ export const HINTS = [
   {
     id: 'parry', prio: 6, delay: 1, seconds: 11,
     rows: [{ action: 'parry', hold: true, text: 'Parry, hold to block', done: (c) => c.down('parry') || c.fired('player:parry') || c.fired('player:block') }],
-    watch: (c) => c.inCombat && c.P.swordDrawn && c.seen('dodge') && c.since('combat:start') > 14,
+    watch: (c) => c.inCombat && !c.mounted && c.P.swordDrawn && c.seen('dodge') && c.since('combat:start') > 14,
   },
   {
     id: 'whistle', prio: 6, delay: 2, seconds: 10,

@@ -6,7 +6,7 @@
 // accelerates again. The velocity vector chases facing * speed with surface-dependent grip:
 // snow and roads are crisp, ice has long inertia and a slight slide.
 //
-//   loco.update(dt, { dirX, dirZ, mag, sprint, speedMul, face, turnMul })
+//   loco.update(dt, { dirX, dirZ, mag, sprint, speedMul, face, turnMul, strafe })   strafe: locked on, face is the target
 //   loco.move(dx, dz)        displace with steep-slope blocking, world bounds and collision (dodges, lunges)
 //   loco.yaw, loco.vel, loco.speed, loco.surface, loco.walk, loco.sprinting
 import * as THREE from 'three';
@@ -20,6 +20,8 @@ import { liveEnemies, enemyPos } from './lock.js';
 // at 1.3 / 3.57 / 6.0 and sets its playback rate from speed, so feet do not slide.
 export const SPEED = { walk: 1.45, run: 3.85, sprint: 6.2 };
 export const RADIUS = 0.38;
+// Locked on, her speed against what she would run at: sideways and backwards (the clips in clips/strafe.js are cut for these).
+export const STRAFE = { side: 0.84, back: 0.62 };
 
 export class Locomotion {
   constructor(P) {
@@ -64,9 +66,12 @@ export class Locomotion {
     const ls = this.legScale;
     const has = o.mag > 0.08;
 
-    // Facing. Idle facing (lock-on, blocking) only applies when almost standing still.
+    // Facing. Idle facing (lock-on, blocking) only applies when almost standing still. Locked on (strafe), the body
+    // always faces the target and the feet go where the stick points.
+    const strafe = !!o.strafe && o.face != null;
     let wantYaw = null;
-    if (has) wantYaw = Math.atan2(o.dirX, o.dirZ);
+    if (strafe) wantYaw = o.face;
+    else if (has) wantYaw = Math.atan2(o.dirX, o.dirZ);
     else if (o.face != null && this.speed < 0.6) wantYaw = o.face;
     const prevYaw = this.yaw;
     let cosErr = 1;
@@ -86,15 +91,22 @@ export class Locomotion {
       else base = o.mag < 0.5 ? SPEED.walk * (o.mag / 0.5) : lerp(SPEED.walk, SPEED.run, (o.mag - 0.5) / 0.5);
     }
     const fx = Math.sin(this.yaw), fz = Math.cos(this.yaw);
-    const dirX = this.speed > 0.3 ? this.vel.x / this.speed : fx;
-    const dirZ = this.speed > 0.3 ? this.vel.z / this.speed : fz;
+    // The way she moves: along her facing, or (locked on) wherever the stick points, a little slower sideways and
+    // slower again backwards.
+    const gx = strafe && has ? o.dirX : fx, gz = strafe && has ? o.dirZ : fz;
+    const dirX = this.speed > 0.3 ? this.vel.x / this.speed : gx;
+    const dirZ = this.speed > 0.3 ? this.vel.z / this.speed : gz;
     const slope = slopeAt(pos.x, pos.z, dirX, dirZ, this._slope);
-    const align = has ? smoothstep(-0.25, 0.7, cosErr) : 0;
+    let align = has ? smoothstep(-0.25, 0.7, cosErr) : 0;
+    if (strafe) {
+      const rel = Math.cos(wrapAngle(Math.atan2(o.dirX, o.dirZ) - wantYaw));
+      align = has ? (rel >= 0 ? lerp(STRAFE.side, 1, rel) : lerp(STRAFE.side, STRAFE.back, -rel)) : 0;
+    }
     const target = base * ls * (o.speedMul ?? 1) * surf.mul * moveFactor(slope) * align;
-    this.sprinting = !!o.sprint && has && target > SPEED.run * ls;
+    this.sprinting = !strafe && !!o.sprint && has && target > SPEED.run * ls;
 
     // Chase the wanted velocity with surface grip.
-    const wx = fx * target, wz = fz * target;
+    const wx = gx * target, wz = gz * target;
     const dvx = wx - this.vel.x, dvz = wz - this.vel.z;
     const dl = Math.hypot(dvx, dvz);
     const lim = (target > this.speed + 0.05 ? surf.acc : surf.dec) * dt;
