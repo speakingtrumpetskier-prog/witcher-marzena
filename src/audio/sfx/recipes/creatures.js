@@ -179,6 +179,39 @@ export const CREATURES = {
       return done(b, sr, 6000);
     },
   },
+  // Roe deer alarm: a single hoarse bark, loud and rough, dropping fast; the herd's first one to see
+  // her gives it, and it carries across the valley.
+  deer_bark: {
+    variants: 5, heavy: true, gain: 0.5, ref: 10, max: 280, pitchVar: 0.06, verb: 0.35, poly: 2,
+    bake: (sr, r) => {
+      const dur = 0.34 + r() * 0.08, b = new Float32Array(len(sr, dur + 0.05));
+      const f0 = 480 + r() * 90;
+      const c = vocal(sr, r, dur, {
+        f0: (t) => f0 * (1 + 0.35 * Math.exp(-t / 0.015)) * (1 - t * 1.1),
+        vowel: (t) => lerpF(F([820, 150, 0], [1450, 190, -6], [2650, 250, -14], [3650, 300, -24], [4650, 350, -32]), MUZZLE.o, clamp(t / dur, 0, 1) * 0.6),
+        breath: 0.5, jitter: 0.07, shimmer: 0.35, rough: 0.8,
+        env: (t) => clamp(t / 0.008, 0, 1) * Math.exp(-t / 0.1),
+      });
+      mix(b, c, 1);
+      return done(b, sr, 6500);
+    },
+  },
+  // Fox vixen at night: a long, high, ragged scream that rises and sags, nothing like a dog.
+  fox_scream: {
+    variants: 4, heavy: true, gain: 0.42, ref: 12, max: 320, pitchVar: 0.07, verb: 0.5, poly: 2,
+    bake: (sr, r) => {
+      const dur = 0.9 + r() * 0.5;
+      const pk = 1050 + r() * 200;
+      const fc = curve([[0, 640], [0.12, pk], [dur * 0.6, pk * 0.92], [dur, 700]]);
+      const b = vocal(sr, r, dur, {
+        f0: (t) => fc(t) * (1 + 0.03 * Math.sin(t * 6.283 * 7)),
+        vowel: () => F([1300, 220, 0], [2300, 300, -6], [3300, 350, -14], [4300, 400, -22], [5200, 450, -30]),
+        breath: 0.3, jitter: 0.06, shimmer: 0.5, rough: 0.7,
+        env: (t) => clamp(t / 0.04, 0, 1) * clamp((dur - t) / 0.25, 0, 1),
+      });
+      return done(b, sr, 8000);
+    },
+  },
   crow: {
     variants: 5, heavy: true, gain: 0.5, ref: 10, max: 250, pitchVar: 0.05, verb: 0.3, poly: 2,
     bake: (sr, r) => {

@@ -87,6 +87,11 @@ class Beast {
 
   go(state, t) { this.state = state; this.stateT = t; }
 
+  // A call from where the animal stands (deer bark, fox scream).
+  call(name, volume) {
+    this.G.audio?.sfx?.(name, { pos: this.root.position, volume, pitch: 0.95 + Math.random() * 0.1 });
+  }
+
   update(dt) {
     const K = this.K, pose = this.rig.pose;
     this.t += dt;
@@ -96,6 +101,8 @@ class Beast {
     if (this.state !== 'flee' && this.state !== 'alert' && th.d < fleeAt) {
       this.go('alert', this.kind === 'hare' ? 0.15 : rr(0.4, 0.9));
       this.fleeDir = th.dir;
+      // The one that saw her barks; the others only startle (they are alerted below, not here).
+      if (this.kind === 'deer') { this.call('deer_bark', 0.9); this.barks = 1; this.barkT = rr(1.6, 3); }
       if (this.group) for (const m of this.group) if (m !== this && m.state !== 'flee') { m.go('alert', rr(0.2, 0.6)); m.fleeDir = th.dir; }
     }
 
@@ -113,6 +120,9 @@ class Beast {
         if (this.kind === 'hare') { pose.crouch = 0.55; pose.ears = Math.sin(this.t * 0.5) > 0.6 ? 0.9 : 0.4; }
         pose.lookYaw = Math.sin(this.t * 0.3 + this.rig.phase * 5) * 0.4;
         if (this.stateT <= 0) {
+          // A vixen screams now and then in the dark.
+          const h = this.G.time?.hours ?? 12;
+          if (this.kind === 'fox' && (h > 18.5 || h < 6) && Math.random() < 0.18) this.call('fox_scream', 0.8);
           if (this.kind === 'fox' && Math.random() < 0.35) { this.go('listen', rr(1.2, 2.5)); break; }
           this.target = this.wanderTarget();
           this.go('wander', rr(3, 9));
@@ -164,8 +174,13 @@ class Beast {
         const away = (th.d < 120 ? th.dir : this.fleeDir ?? this.yaw) + zig;
         turn = this.steerYaw(away, dt, 4.5);
         pose.neck = 0.55; pose.headRel = -0.4; pose.ears = 0.6; pose.tail = this.kind === 'deer' ? 0.7 : 0.3;
+        // A roe buck keeps barking as it bounds off, two or three more times.
+        if (this.kind === 'deer' && (this.barks || 0) > 0 && this.barks < 4) {
+          this.barkT -= dt;
+          if (this.barkT <= 0) { this.call('deer_bark', 0.75); this.barks++; this.barkT = rr(1.8, 3.4); }
+        }
         if (this.stateT <= 0) {
-          if (th.d > 70) this.go('idle', rr(3, 8));
+          if (th.d > 70) { this.go('idle', rr(3, 8)); this.barks = 0; }
           else this.stateT = 3;
         }
         break;
