@@ -25,6 +25,7 @@ const live = [];
 const _frustum = new THREE.Frustum();
 const _pm = new THREE.Matrix4();
 const _sphere = new THREE.Sphere();
+const _wp = new THREE.Vector3();
 
 export function createCharacter(idOrSpec, opts = {}) {
   const spec = typeof idOrSpec === 'string' ? presetSpec(idOrSpec) : { ...idOrSpec };
@@ -59,7 +60,10 @@ function update(dt) {
   for (let i = 0; i < live.length; i++) {
     const c = live[i];
     if (c.disposed || !c.visible || !c.root.parent) continue;
-    const p = c.root.position;
+    // A rider sits under the saddle anchor: her local position is (0, 0, 0), which is nowhere near the camera, so
+    // she used to fall into the far, off-screen detail level and animate at 3 Hz. Use where she really is.
+    let p = c.root.position;
+    if (c.root.parent !== G.scene) { c.root.updateWorldMatrix(true, false); p = _wp.setFromMatrixPosition(c.root.matrixWorld); }
     const d = cam.position.distanceTo(p);
     _sphere.center.set(p.x, p.y + c.height * 0.5, p.z);
     _sphere.radius = c.height * 0.9;

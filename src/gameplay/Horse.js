@@ -19,6 +19,7 @@ import { SPAWN, nearestRoad, WORLD } from '../world/layout.js';
 import { clamp, damp, dampAngle, lerp, smoothstep, wrapAngle } from '../core/util.js';
 import { slopeAt, moveFactor, blocked, STEEP } from './player/ground.js';
 import { TUNE } from './player/stats.js';
+import { SADDLE_H } from '../characters/clips/library.js';
 
 const SPEEDS = { walk: 1.8, trot: 4.3, gallop: 9.2 };
 const RADIUS = 0.75;
@@ -305,6 +306,13 @@ export async function init(G_) {
     return true;
   };
 
+  // Where the root of a character playing the mount or dismount clip must stand so its pelvis is on the saddle.
+  const _s = new THREE.Vector3();
+  function seatRootY(c) {
+    h.saddle.updateWorldMatrix(true, false);
+    return _s.setFromMatrixPosition(h.saddle.matrixWorld).y - SADDLE_H * (c.anim.legScale ?? 1);
+  }
+
   function tickMounting(dt) {
     const player = P(), c = player.character, S = H.seq;
     S.t += dt;
@@ -329,17 +337,21 @@ export async function init(G_) {
         S.t = 0;
         c._setSword?.(false);
         c.speed = c.targetSpeed = 0;
+        c.autoGround = false; // the root climbs to the saddle height below
         c.play('mount', { fade: 0.15 });
       }
       return;
     }
-    // Clip phase: stand at her left and climb on; swap to the saddle when the clip ends.
+    // Clip phase: stand at her left and climb on; swap to the saddle when the clip ends. The clip puts her pelvis
+    // SADDLE_H above the root, so the root drifts up or down to the height that lands it on the saddle exactly
+    // (the ground beside the horse is not the ground under her, and the saddle rides the spine).
     const spot = mountSpot(_v);
-    c.root.position.set(spot.x, G_.world.heightAt(spot.x, spot.z), spot.z);
+    const gy = G_.world.heightAt(spot.x, spot.z);
+    c.root.position.set(spot.x, lerp(gy, seatRootY(c), smoothstep(0.9, 1.75, S.t)), spot.z);
     c.root.rotation.y = h.root.rotation.y;
     player.position.copy(c.root.position);
     player.loco.yaw = c.root.rotation.y;
-    if (S.t >= 1.78) seat();
+    if (S.t >= 1.82) seat();
   }
 
   function setRide(name, fade = 0.3) {
@@ -360,7 +372,7 @@ export async function init(G_) {
     G_.scene.add(c.root);
     c.root.position.set(spot.x, G_.world.heightAt(spot.x, spot.z), spot.z);
     c.root.rotation.set(0, h.root.rotation.y, 0);
-    c.autoGround = true;
+    c.autoGround = !!opts.instant; // the climb down moves the root from the saddle height to the ground itself
     player.mounted = false;
     player.position.copy(c.root.position);
     player.loco.reset(h.root.rotation.y);
@@ -387,13 +399,16 @@ export async function init(G_) {
     S.t += dt;
     h.setGait(0);
     const spot = mountSpot(_v);
-    c.root.position.set(spot.x, G_.world.heightAt(spot.x, spot.z), spot.z);
+    const gy = G_.world.heightAt(spot.x, spot.z);
+    c.root.position.set(spot.x, lerp(seatRootY(c), gy, smoothstep(0, 0.7, S.t)), spot.z);
     c.root.rotation.y = h.root.rotation.y;
     player.position.copy(c.root.position);
+    player.position.y = gy;
     if (S.t >= 1.45) {
       player._mounting = false;
       H.state = 'idle';
       H.seq = null;
+      c.autoGround = true;
       player.loco.reset(h.root.rotation.y);
       c.stop(0.2);
       G_.events.emit('horse:dismount', {});
