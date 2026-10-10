@@ -10,7 +10,7 @@
 // Menus follow one rule: while a screen is open G.input.context is 'ui', the pointer lock is
 // released and the clock is frozen; all of it is restored when the last screen closes.
 // A pad drives the menus through G.input.nav: buttons arrive as key events (see core/Input.js), and the
-// journal and map get their own button mapping from _padNavKey below.
+// journal and map get their own button mapping from _padNavKey below (a screen may also set scr.padKey, as the dice game does).
 //
 // Public API (G.ui):
 //   subtitle(speaker, text, seconds) -> Promise, bark(name, text, worldPos), notify(text, kind),
@@ -129,7 +129,10 @@ class UI {
   // D-pad and left stick are the arrows, LB and RB the tabs).
   _padNavKey(btn) {
     const inp = this.G.input;
-    const top = this.screens[this.screens.length - 1]?.name;
+    const scr = this.screens[this.screens.length - 1];
+    const top = scr?.name;
+    // A screen can map buttons itself: scr.padKey(btn) returns a key code, null for nothing, undefined for the defaults.
+    if (scr?.padKey) { const c = scr.padKey(btn); if (c !== undefined) return c; }
     const key = (a) => inp.codesFor(a, 'kbm')[0] || null;
     if (top === 'journal') {
       if (btn === 'PadX') return key('map');
@@ -263,7 +266,8 @@ class UI {
         try { G.audio?.stinger?.('discover'); } catch { /* optional */ }
       }
     });
-    G.events.on('inventory', ({ item, n }) => {
+    G.events.on('inventory', ({ item, n, quiet }) => {
+      if (quiet) return;
       if (n > 0 && item === 'coins') this.overlays.notify(`+${n} grosze`, 'coin');
       else if (n > 0 && item === 'thaw') this.overlays.notify(`Thaw draught${n > 1 ? ` x${n}` : ''}`, 'item');
     });

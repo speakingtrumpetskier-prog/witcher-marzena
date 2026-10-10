@@ -309,6 +309,29 @@ const QUESTS = {
     ],
   },
 
+  // Optional. Kosci, the dice poker in the Drowned Bell (src/minigames/dice, src/story/controller/dice.js): beat Zbyszek, Wojtek
+  // and Halina at a full match each, then tell Zbyszek. Nothing in the main story reads these flags.
+  side_dice: {
+    title: 'Dice at the Drowned Bell', kind: 'side',
+    stages: [
+      {
+        id: 'play', objective: 'Beat the three who play dice',
+        journal: 'Zbyszek keeps the dice behind the bar. He plays across the counter for small stakes, and Wojtek and Halina sit at the middle table from noon. Best of three rounds.',
+        objectives: [
+          { id: 'zbyszek', text: 'Beat Zbyszek across the bar', marker: 'tavern', done: (S) => !!S.flag('dice_beat_zbyszek'), log: 'Beat Zbyszek across the bar. He never goes above three grosze.' },
+          { id: 'wojtek', text: 'Beat Wojtek at the middle table', marker: 'tavern', done: (S) => !!S.flag('dice_beat_wojtek'), log: 'Beat Wojtek, the woodcutter. He raises on almost anything and rolls most of his dice again.' },
+          { id: 'halina', text: 'Beat Halina at the middle table', marker: 'tavern', done: (S) => !!S.flag('dice_beat_halina'), log: 'Beat Halina. She goes up on nothing now and then.' },
+        ],
+        sets: ['dice_beat_zbyszek', 'dice_beat_wojtek', 'dice_beat_halina'],
+      },
+      {
+        id: 'tell', objective: 'Tell Zbyszek', marker: 'tavern',
+        log: "Zbyszek gave me his father's bone dice. Says he never won with them.",
+        done: (S) => !!S.flag('dice_bone_set'), sets: ['dice_bone_set'],
+      },
+    ],
+  },
+
   side_snow: {
     title: 'Snow Fight', kind: 'side',
     stages: [

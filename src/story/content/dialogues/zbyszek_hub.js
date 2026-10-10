@@ -14,6 +14,11 @@
 //        note), the girl (needs hanka_hired), the men under the ice (needs lair_seen), the rite three
 //        years ago (needs echo_seen), tonight (needs echo_seen), the lights over the lake (needs
 //        planetnicy_seen: he reads them like weather and sends her to the page by the door, note_almanac).
+// Dice:  the last choice before "That's all" (an exit, so a script that takes the first exit still takes the bed). The first
+//        time he explains Kosci (sets dice_known, dice_zbyszek_met; the side quest "Dice at the Drowned Bell" starts); after
+//        that it is a short ask. The chain ends at the node 'dice_go' and the controller starts the match across the bar
+//        (result.end === 'dice_go'). Refused with a line when it is late on the rite day, he is out of money or she is.
+//        Once she has beaten Zbyszek, Wojtek and Halina (dice_all_beaten) the next visit opens with the bone dice (bz1).
 const pick = (...lines) => () => lines[Math.floor(Math.random() * lines.length)];
 const day = (D) => D.G.time?.day ?? 1;
 const night = (D) => { const h = D.G.time?.hours ?? 12; return h > 18.5 || h < 6; };
@@ -27,6 +32,7 @@ export default {
     entry: {
       next: (S, D) => {
         if (!S.flag('met_zbyszek')) return 'f1';
+        if (S.flag('dice_all_beaten') && !S.flag('dice_bone_set')) return 'bz1';
         if (S.flag('ending')) return 'r1';
         if (S.flag('echo_seen') && !S.flag('zbyszek_echo_greeted')) return 'e1';
         if (day(D) >= 2) return 'd1';
@@ -123,6 +129,12 @@ export default {
         { t: 'A bowl of the soup. (2 grosze)', next: 'soup0' },
         { t: 'A Thaw draught. (12 grosze)', next: 'thaw0' },
         { t: 'Is there a bed?', next: 'bed1', exit: true },
+        {
+          t: (S) => (S.flag('dice_zbyszek_met') ? 'Play a round of dice?' : 'I heard dice when I came in.'),
+          next: (S) => (S.flag('dice_zbyszek_met') ? 'da1' : 'dice1'),
+          exit: true,
+          if: (S) => !S.flag('rite_started') || !!S.flag('ending'),
+        },
         { t: "That's all.", next: 'bye', exit: true },
       ],
     },
@@ -204,6 +216,41 @@ export default {
     sky_no: { s: 'vesna', t: "I didn't look.", next: 'sky_no2' },
     sky_no2: { s: 'zbyszek', t: "Look on your way out. Low or high, that's all I need.", next: 'sky_end' },
     sky_end: { s: 'zbyszek', t: "And don't point at them in here. I've had a man walk out over it.", next: 'hub' },
+
+    // ---- dice ----------------------------------------------------------------------------------
+    // The first time: what the game is, who plays it, and what he will put out himself.
+    dice1: { s: 'vesna', t: 'I heard dice when I came in.', do: (S) => { S.set('dice_zbyszek_met'); S.set('dice_known'); }, next: 'dice2' },
+    dice2: { s: 'zbyszek', t: "Wojtek and Halina. Middle table, every day from noon. They'd play till the candles went if I let them.", next: 'dice3' },
+    dice3: { s: 'zbyszek', t: "Kosci. Five dice, best of three. It's chalked up on the beam over the bar, if you can read it.", next: 'dice4' },
+    dice4: { s: 'vesna', t: 'Do you play?', next: 'dice5' },
+    dice5: { s: 'zbyszek', t: "Across the bar. A grosze, two, three. That's all I put out, it's the till's money, not mine.", next: 'dice6' },
+    dice6: { s: 'zbyszek', t: "Wojtek bets like it's somebody else's wages. Halina goes up on nothing now and then, so don't fold the first time she does.", next: 'dice7' },
+    dice7: {
+      choices: [
+        { t: 'A round, then.', next: 'dice8' },
+        { t: 'Not now.', next: 'hub' },
+      ],
+    },
+    dice8: { s: 'vesna', t: 'A round, then.', next: 'dice_start' },
+    // Later: she asks, he answers in a breath.
+    da1: { s: 'vesna', t: 'Play a round of dice?', next: 'da2' },
+    da2: { s: 'zbyszek', t: pick("If you've got it on you.", 'Go on. I have a pot on, so be quick.', 'Put it on the bar.'), next: 'dice_start' },
+    // The checks, in order: is it too late in the day, is he out of money, is she.
+    dice_start: { if: (S, D) => !(day(D) >= 2 && !S.flag('ending') && (D.G.time?.hours ?? 12) >= 18.5), else: 'dice_late', next: 'dice_broke_check' },
+    dice_broke_check: { if: (S, D) => !D.G.dice || D.G.dice.canPlay('zbyszek').reason !== 'opp_short', else: 'dice_broke', next: 'dice_cash' },
+    dice_cash: { if: (S) => S.has('coins', 2), else: 'dice_poor', next: 'dice_go' },
+    dice_go: { s: 'zbyszek', t: 'Right. Put it on the bar.', end: true },
+    dice_late: { s: 'zbyszek', t: "Not tonight. I'm shutting at seven, and everyone goes down to the shore.", next: 'hub' },
+    dice_broke: { s: 'zbyszek', t: "I've put out what I'm putting out for today. Come back tomorrow.", next: 'hub' },
+    dice_poor: { s: 'zbyszek', t: "You haven't two grosze to put on the bar.", next: 'hub' },
+    // After she has beaten all three of them.
+    bz1: { s: 'zbyszek', t: "Wojtek's been in. Halina twice.", next: 'bz2' },
+    bz2: { s: 'vesna', t: 'Told you what?', next: 'bz3' },
+    bz3: { s: 'zbyszek', t: "That you've beaten the three of us.", next: 'bz4' },
+    bz4: { s: 'zbyszek', t: 'Wait there.', wait: 0.7, do: (S) => { S.give('bone_dice'); S.set('dice_bone_set'); }, next: 'bz5' },
+    bz5: { s: 'zbyszek', t: "These were my father's. Bone, the pips cut deep. They roll true.", next: 'bz6' },
+    bz6: { s: 'vesna', t: 'Why give them to me?', next: 'bz7' },
+    bz7: { s: 'zbyszek', t: "I never won with them. Take them before Wojtek hears about them.", next: 'hub' },
 
     // ---- the shop ------------------------------------------------------------------------------
     soup0: { if: (S) => S.has('coins', 2), else: 'soup_no', s: 'vesna', t: 'A bowl of the soup.', next: 'soup1' },

@@ -156,6 +156,30 @@
       "chatterbox": { "exag_scale": 1.0, "cfg_weight": 0.45 },
       "post": { "pitch": 0.5 }
     },
+    "wojtek": {
+      "name": "Wojtek",
+      "age": "thirties",
+      "role": "A woodcutter who sits at the middle table of the Drowned Bell from noon and plays dice for real money.",
+      "character": "Loud, certain, a poor loser who is not angry for long. Bets as if the money were somebody else's.",
+      "delivery": "Big and quick when he is winning, flat and put out when he is not. Talks to the dice. Plain, never a performance.",
+      "weak": "Kokoro has no true big man's voice; the pitch drop and the bm_george blend carry it.",
+      "engine": "kokoro",
+      "kokoro": { "voice": { "bm_lewis": 0.55, "bm_george": 0.45 }, "speed": 1.04 },
+      "chatterbox": { "exag_scale": 1.15, "cfg_weight": 0.45 },
+      "post": { "pitch": -1.5 }
+    },
+    "halina": {
+      "name": "Halina",
+      "age": "forties",
+      "role": "Sits at the middle table of the Drowned Bell and plays dice for small stakes. Raises on nothing now and then.",
+      "character": "Dry, watchful, in no hurry. Gives away nothing with her face and not much more with her voice.",
+      "delivery": "Low and level, a half beat slower than the others. Never raises her voice, even to win.",
+      "weak": "None specific.",
+      "engine": "kokoro",
+      "kokoro": { "voice": { "bf_isabella": 0.6, "bf_emma": 0.4 }, "speed": 0.96 },
+      "chatterbox": { "exag_scale": 0.9, "cfg_weight": 0.5 },
+      "post": { "pitch": -0.5 }
+    },
     "villager_m1": {
       "name": "Villager (man)",
       "age": "thirties to forties",

@@ -4,7 +4,7 @@
 //   G.state.set('met_hanka', true)     emits 'flag' { key, value }
 //   G.state.inc('coins', 61)
 //   G.state.has('item:thaw', 1)
-//   G.state.give('thaw', 1) / G.state.take('thaw', 1)
+//   G.state.give('thaw', 1) / G.state.take('thaw', 1)     (a third argument true skips the pickup toast)
 //   G.state.save() / G.state.load() / G.state.reset()
 
 const SAVE_KEY = 'marzena-save-v1';
@@ -39,14 +39,15 @@ export class State {
 
   count(item) { return this.data.inventory[item] || 0; }
   has(item, n = 1) { return this.count(item) >= n; }
-  give(item, n = 1) {
+  // quiet: no "+n grosze" toast (the dice game moves coins every round and shows its own totals)
+  give(item, n = 1, quiet = false) {
     this.data.inventory[item] = this.count(item) + n;
-    this.events.emit('inventory', { item, n, total: this.data.inventory[item] });
+    this.events.emit('inventory', { item, n, total: this.data.inventory[item], quiet });
   }
-  take(item, n = 1) {
+  take(item, n = 1, quiet = false) {
     if (!this.has(item, n)) return false;
     this.data.inventory[item] -= n;
-    this.events.emit('inventory', { item, n: -n, total: this.data.inventory[item] });
+    this.events.emit('inventory', { item, n: -n, total: this.data.inventory[item], quiet });
     return true;
   }
 

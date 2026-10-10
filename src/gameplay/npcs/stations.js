@@ -18,7 +18,7 @@
 //   capacity         people at once (default 1; 2 for talk; unlimited for bed)
 //   r                radius for `wander` stations (default 12)
 //   tool             'axe' | 'hammer' | 'broom' | 'shovel' | 'bucket' | 'rod' | 'net' | 'basket' | 'spoon' | 'none'
-//   (ids starting with hanka_, bogdan_, dobra_, zbyszek_, jarek_, ola_, mill_ are reserved for that named person)
+//   (ids starting with hanka_, bogdan_, dobra_, zbyszek_, jarek_, ola_, mill_, wojtek_, halina_ are reserved for that named person)
 //   animal           'dog' | 'chicken' | 'goat' | 'cat' | 'raven' | 'crow': spawn an animal here instead
 //                    (with `perch: true` and `y` for roofs, `count` for flocks)
 const TAG_BY_ANIM = {
@@ -35,7 +35,7 @@ const ANIM_BY_TAG = {
 const KIND_BY_ANIM = { sit_bench: 'sit', sit_ground: 'sit', kneel_idle: 'sit' };
 
 // Stations named after a person or the tavern's own spots belong to that person; ambient roles skip them.
-const RESERVED = /^(hanka|bogdan|dobra|zbyszek|jarek|ola|mill|miller)_|^(tavern_(bar|corner|porch)|notice_board)$/;
+const RESERVED = /^(hanka|bogdan|dobra|zbyszek|jarek|ola|mill|miller|wojtek|halina)_|^(tavern_(bar|corner|porch)|notice_board)$/;
 
 const cache = new WeakMap();
 
