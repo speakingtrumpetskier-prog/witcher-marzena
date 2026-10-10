@@ -87,7 +87,7 @@ props.categories = {
   interior: ['herbs', 'jug', 'bed', 'chest', 'rug', 'tapestry', 'table', 'stool', 'shelf', 'spoonRack', 'pot', 'cauldron', 'musicBox', 'birdCarving', 'bench', 'barrel', 'crate', 'sack', 'lantern', 'toys'],
   forge: ['anvil', 'quenchBarrel', 'grindstone', 'brazier', 'torch', 'woodpile', 'barrel'],
   fishing: ['dryingRack', 'fishBasket', 'fishString', 'net', 'boat', 'iceFishingHole', 'fishingStool', 'windbreak', 'tent', 'bucket', 'campfire', 'barrel', 'skinFrame'],
-  ritual: ['effigy', 'effigyHead', 'ribbonPole', 'offering', 'gravePostSmall', 'strawPile', 'bones', 'skull', 'horseHead', 'roofFinial', 'signpost'],
+  ritual: ['effigy', 'effigyHead', 'ribbonPole', 'handBell', 'offering', 'gravePostSmall', 'strawPile', 'bones', 'skull', 'horseHead', 'roofFinial', 'signpost'],
   farm: ['hayBale', 'haystack', 'woodpile', 'cart', 'cartWheel', 'sled', 'strawPile', 'dogKennel', 'chickenCoop', 'beehive', 'skinFrame'],
   wilderness: ['rockSmall', 'logs', 'stump', 'bones', 'skull', 'campfire', 'tent', 'signpost', 'torch', 'cart'],
   fire: ['campfire', 'brazier', 'torch', 'lantern', 'cauldron', 'offering'],

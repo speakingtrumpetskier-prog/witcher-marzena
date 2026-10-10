@@ -12,9 +12,11 @@
 //        otherwise dusk.
 // Topics (all `once`): the three, the winters, who else knew them, the cart on the pass (needs the
 //        note), the girl (needs hanka_hired), the men under the ice (needs lair_seen), the rite three
-//        years ago (needs echo_seen), tonight (needs echo_seen).
+//        years ago (needs echo_seen), tonight (needs echo_seen), the lights over the lake (needs
+//        planetnicy_seen: he reads them like weather and sends her to the page by the door, note_almanac).
 const pick = (...lines) => () => lines[Math.floor(Math.random() * lines.length)];
 const day = (D) => D.G.time?.day ?? 1;
+const night = (D) => { const h = D.G.time?.hours ?? 12; return h > 18.5 || h < 6; };
 const warm = (D) => { if (D.G.player) D.G.player.warmth = 1; };
 
 export default {
@@ -28,7 +30,7 @@ export default {
         if (S.flag('ending')) return 'r1';
         if (S.flag('echo_seen') && !S.flag('zbyszek_echo_greeted')) return 'e1';
         if (day(D) >= 2) return 'd1';
-        return 'a1';
+        return night(D) ? 'a1n' : 'a1';
       },
     },
 
@@ -78,6 +80,12 @@ export default {
       t: pick("Soup's still two grosze.", 'Wipe your boots.', 'Back, then.', "You're letting the heat out."),
       next: 'hub',
     },
+    // after dark on day 1: the window is full of people counting
+    a1n: {
+      s: 'zbyszek', a: 'hands_hips',
+      t: pick("That's the third man to stand at my window and count them. If you're not drinking, count outside.", 'Clear tonight. Everything in the yard will freeze and I will be told it was my fault.'),
+      next: 'hub',
+    },
     // first time in after the echo (day 2): she looks as bad as she is
     e1: { s: 'zbyszek', t: "You look like you've been dragged behind something.", do: (S) => S.set('zbyszek_echo_greeted'), next: 'e2' },
     e2: { s: 'vesna', t: 'Is there any soup?', next: 'e3' },
@@ -86,7 +94,7 @@ export default {
     e5: { s: 'vesna', t: 'Thanks.', a: 'eat', next: 'hub' },
     d1: {
       s: 'zbyszek',
-      t: pick("I'm shutting at seven tonight. Everyone goes.", 'Soup, if you want it. Two grosze.', "Wipe your boots, I've done the floor twice."),
+      t: pick("I'm shutting at seven tonight. Everyone goes.", 'Soup, if you want it. Two grosze.', "Wipe your boots, I've done the floor twice.", "Not a herder up all day. That's snow by dark, you watch."),
       next: 'hub',
     },
     r1: {
@@ -111,6 +119,7 @@ export default {
         { t: "I found your three. They're under the ice, out by the old tower.", next: 'men1', once: true, if: (S) => !!S.flag('lair_seen') && !S.flag('ending') },
         { t: 'Three years ago. At the rite. Where were you?', next: 'rite1', once: true, if: (S) => !!S.flag('echo_seen') && !S.flag('ending') },
         { t: 'Are you going tonight?', next: 'tonight1', once: true, if: (S) => !!S.flag('echo_seen') && !S.flag('ending') },
+        { t: 'There were lights over the lake when I came in.', next: 'sky1', once: true, if: (S) => !!S.flag('planetnicy_seen') && !S.flag('ending') },
         { t: 'A bowl of the soup. (2 grosze)', next: 'soup0' },
         { t: 'A Thaw draught. (12 grosze)', next: 'thaw0' },
         { t: 'Is there a bed?', next: 'bed1', exit: true },
@@ -177,6 +186,24 @@ export default {
     tonight5: { s: 'zbyszek', t: "There's a barrel in the cellar I put by the first winter. For when it ended. It'll have turned by now.", next: 'tonight6' },
     tonight6: { s: 'vesna', t: "You won't know till you open it.", next: 'tonight7' },
     tonight7: { s: 'zbyszek', t: "I know that. It's for after.", next: 'hub' },
+
+    // the lights: he reads them like weather, and only wants to know low or high
+    sky1: { s: 'vesna', t: 'There were lights over the lake when I came in.', next: 'sky2' },
+    sky2: { s: 'zbyszek', t: 'Low or high?', next: 'skyq' },
+    skyq: {
+      choices: [
+        { t: 'Low.', next: 'sky_lo' },
+        { t: 'High.', next: 'sky_hi' },
+        { t: "I didn't look.", next: 'sky_no' },
+      ],
+    },
+    sky_lo: { s: 'vesna', t: 'Low.', next: 'sky_lo2' },
+    sky_lo2: { s: 'zbyszek', t: "Then it's clear. No snow, hard frost by morning. Bring your water in or it'll split the barrel. It's on the page by the door, if you want it in writing.", next: 'sky_end' },
+    sky_hi: { s: 'vesna', t: 'High.', next: 'sky_hi2' },
+    sky_hi2: { s: 'zbyszek', t: "Then it's snow before noon. Don't hang anything out. It's on the page by the door, if you want it in writing.", next: 'sky_end' },
+    sky_no: { s: 'vesna', t: "I didn't look.", next: 'sky_no2' },
+    sky_no2: { s: 'zbyszek', t: "Look on your way out. Low or high, that's all I need.", next: 'sky_end' },
+    sky_end: { s: 'zbyszek', t: "And don't point at them in here. I've had a man walk out over it.", next: 'hub' },
 
     // ---- the shop ------------------------------------------------------------------------------
     soup0: { if: (S) => S.has('coins', 2), else: 'soup_no', s: 'vesna', t: 'A bowl of the soup.', next: 'soup1' },

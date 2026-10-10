@@ -1,5 +1,5 @@
 // Household props: bench, table, stool, shelf, spoon rack, bed, chest, rug, tapestry, pot,
-// cauldron, wash tub, music box, bird carving, toys, snowman.
+// cauldron, wash tub, music box, bird carving, hand-bell, toys, snowman.
 import * as THREE from 'three';
 import { Kit, TAU } from './kit.js';
 
@@ -365,6 +365,25 @@ export function birdCarving(o = {}) {
   for (const sx of [-1, 1]) k.box('face', 0.008, 0.03, 0.07, { pos: [sx * 0.038, 0.093, -0.005], rot: [0.12, 0, sx * -0.22], tint: 0xd6c49c, tile: 0.2, grime: 0 });
   for (const sx of [-1, 1]) k.sph('matte', 0.005, { pos: [sx * 0.02, 0.124, 0.07], tint: 0x201a16, ws: 5, hs: 4, grime: 0 });
   k.sph('paint', 0.03, { pos: [0, 0.083, 0.03], scale: [1.1, 0.9, 0.55], tint: FOLK_RED, ws: 8, hs: 6, grime: 0, tile: 0.2 });
+  k.pop();
+  k.ud.align = 0;
+  return k.build();
+}
+
+// A brass hand-bell about a fist across at the lip, hung by a cord. Origin at the lip, y up; the cord runs up and
+// toward local +x, where the pole it is tied to stands. A rag is knotted round the clapper (o.rag = false: free).
+export function handBell(o = {}) {
+  const k = new Kit('handBell', Object.assign({ indoor: true }, o));
+  k.push({ yaw: o.yaw || 0 });
+  const brass = 0xd2a548, tarnish = 0x7f9c76, cord = 0xa8946f;
+  k.lathe('iron', [[0.063, 0.0], [0.061, 0.008], [0.052, 0.04], [0.041, 0.08], [0.03, 0.112], [0.02, 0.13], [0.012, 0.14], [0.001, 0.146]], { radial: 14, tint: brass, grime: 0.35, var: 0.06 });
+  k.cyl('iron', 0.0645, 0.0635, 0.016, { pos: [0, 0.008, 0], radial: 14, cap: null, tint: tarnish, grime: 0.2, var: 0.08 });
+  k.torus('iron', 0.016, 0.004, { pos: [0, 0.158, 0], rot: [0, Math.PI / 2, 0], seg: 10, rseg: 5, tint: brass, grime: 0.3 });
+  k.cyl('linen', 0.0045, 0.0045, 0.3, { pos: [0, 0.31, 0], radial: 5, cap: null, tint: cord });
+  k.cyl('linen', 0.0045, 0.0045, 0.14, { pos: [0.07, 0.46, 0], rot: [0, 0, Math.PI / 2], radial: 5, cap: null, tint: cord });
+  k.cyl('iron', 0.004, 0.004, 0.06, { pos: [0, -0.01, 0], radial: 5, cap: null, tint: 0x5a4a38 });
+  k.sph('iron', 0.012, { pos: [0, -0.045, 0], ws: 6, hs: 5, tint: 0x5a4a38 });
+  if (o.rag !== false) k.sph('linen', 0.022, { pos: [0, -0.04, 0], scale: [1, 1.2, 1], ws: 7, hs: 5, tint: 0xcfc2a8, var: 0.1 });
   k.pop();
   k.ud.align = 0;
   return k.build();

@@ -272,6 +272,30 @@ const QUESTS = {
     ],
   },
 
+  // Optional. Bozena, the miller's wife, wants her father-in-law's hand-bell rung at the ritual ring at dusk.
+  // Nothing in the main story reads these flags (src/story/controller/side.js, miller_wife.js).
+  side_handbell: {
+    title: 'The Hand-Bell', kind: 'side',
+    stages: [
+      {
+        id: 'find', objective: 'Find the hand-bell at the ritual ring', marker: 'ritual',
+        journal: "Bożena, the miller's wife, wants her father-in-law's hand-bell rung at the ritual ring at dusk, three times, the way it was done against the hail. He left it tied to one of the poles. Pays 20 grosze.",
+        log: 'Took the bell off its pole. Rag round the clapper.',
+        done: (S) => !!S.flag('handbell_taken'), sets: ['handbell_asked', 'handbell_taken'],
+      },
+      {
+        id: 'ring', objective: 'Ring the bell inside the ring at dusk', marker: 'ritual',
+        log: 'Rang it three times at dusk. A handful of them came down over the ice and stayed a while, then went back up. Tied the bell back on its pole.',
+        done: (S) => !!S.flag('handbell_rung'), sets: ['handbell_rung'],
+      },
+      {
+        id: 'tell', objective: 'Tell Bożena at the mill', marker: 'mill',
+        log: 'Bożena paid 20 grosze and said to leave the bell where it is.',
+        done: (S) => !!S.flag('handbell_paid'), sets: ['handbell_paid'], give: { coins: 20 },
+      },
+    ],
+  },
+
   side_snow: {
     title: 'Snow Fight', kind: 'side',
     stages: [

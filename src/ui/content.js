@@ -35,6 +35,7 @@ export const QUEST_FALLBACK = {
   side_wisps: { title: 'Lights in the Reeds', kind: 'side', order: 12 },
   side_wolves: { title: 'Wolves at the Mill', kind: 'side', order: 13 },
   side_snow: { title: 'Snow Fight', kind: 'side', order: 14 },
+  side_handbell: { title: 'The Hand-Bell', kind: 'side', order: 15 },
 };
 
 // kind: letter | diary | ledger | scrawl | carving | drawing | inscription | object
@@ -93,10 +94,35 @@ export const NOTES = {
     title: 'For Wit of the Lynx', where: 'Bear den', kind: 'inscription',
     text: 'For Wit of the Lynx. Paid in full.',
   },
+  // The herders (planetnicy) as the village knows them: weather signs, a count, a complaint, a carving.
+  note_almanac: {
+    title: 'Weather, Copied Out', where: 'The Drowned Bell, by the door', kind: 'ledger',
+    text: 'Copied from the old book behind the bar so people stop asking me.\nHerders low and many: Clear. Hard frost by morning.\nHerders high and few: Snow before noon.\nNone to be seen: It is snowing already.\nAmber ones leading: Dry cold, no wind.\nRose ones leading: Wind by evening.\nSitting over the mill: Snow in the yard.',
+    sign: 'Z.',
+  },
+  note_slate: {
+    title: 'Slate on a Stake', where: 'The ice-fishing camp', kind: 'inscription',
+    text: 'LOW ones, nights: 17.\nSnow after: 1. (wind night, not counted)\nHIGH or none, nights: 11.\nSnow after: 9. The other two I was at Bolek\'s.\nBolek says it is the wind and not them. Bolek can mind his own net.\nLOW, tonight:',
+    sign: 'S.',
+  },
+  note_child_herders: {
+    title: 'Herders, Counted', where: 'Under the boardwalk', kind: 'drawing', sketch: 'child_herders',
+    text: 'the herders. i counted 19.\none is pink. dont go past 20.',
+  },
+  note_shrine_bells: {
+    title: 'Paper Under the Bowl', where: 'The shrine', kind: 'letter',
+    text: 'Hail again, and again someone is ringing a hand-bell from the shrine step.\nThe bread on the altar is for Matka. The ringing is not for the shrine. It goes at the ring on the ice, at dusk, three times, and not before.\nNinth time this spring.',
+    sign: 'Józia',
+  },
+  note_island_sky: {
+    title: 'The Higher Carvings', where: 'Stone Circle Isle', kind: 'carving',
+    text: 'Higher on the same stones, above the women: a row of round shapes with lines hanging down, like lamps on chains. One is cut far larger than the rest and runs across two stones.\nIts left end is cut shorter than the right, as if the mason ran out of stone.',
+  },
   item_ring: { title: 'A Wedding Ring', where: 'Hanka', kind: 'object', text: 'A thin wedding ring on a string. Hanka’s.' },
   item_bird: { title: 'The Waxwing', where: 'Jarek', kind: 'object', text: 'A waxwing carved from birch, the crest done with care. Never given.' },
   item_music_box: { title: 'Music Box', where: 'The belfry', kind: 'object', text: 'A tin music box with a crank. It plays one tune.' },
   item_ribbon: { title: 'Red Ribbon', where: 'The belfry', kind: 'object', text: 'A red ribbon, stiff with frost, tied in Dobra’s knot.' },
+  item_hand_bell: { title: 'A Hand-Bell', where: 'The ritual ring', kind: 'object', text: 'A brass hand-bell the size of a fist, green at the lip. Somebody tied a rag round the clapper so it would not ring in the wind.' },
   item_straw_doll: { title: 'Straw Doll', where: 'Dobra', kind: 'object', text: 'A straw doll the size of a hand. Red thread at the neck.' },
 };
 
@@ -140,12 +166,32 @@ export const BESTIARY = [
     id: 'planetnicy', name: 'Płanetnicy', sub: 'The cloud herders', sketch: 'planetnik',
     unlock: (S) => !!S.flag('planetnicy_seen'),
     text: [
-      'Lights that drift over the valley like jellyfish in dark water. Pale, soft, some the size of a hand, some the size of a cart. They come out thick on clear nights and thin when it snows. On the worst days they go up into the cloud and are not seen.',
-      'The old people say they herd the weather. A płanetnik walks the clouds over the pass and the weather follows it home. Nobody here is afraid of them. Nobody talks about them much either.',
-      'Then there is the big one. The old people call her Matka Chmur, the Mother of Clouds. She is bigger than the church and bigger than the hill behind it, and she goes the long way round the valley, slow as a funeral, with her threads hanging down toward the lake. By day she is only a paleness in the haze, like the moon. At night you can see the windows in her. Dobra says she has never once looked down.',
+      'Pale lights that drift over the valley, well above the roofs. Bell-shaped, or flat like a saucer, or square like a lantern, with threads hanging under them. Some are small, some the size of a cart. They come out thick on clear nights and thin when it snows. On the worst days they go up into the cloud and are not seen.',
+      'The old people say they herd the weather. A płanetnik walks the clouds over the pass and the weather follows it home. Nobody here is afraid of them. They talk about them the way they talk about geese: whether there are many this year, whether they came early.',
+    ],
+    // Added as Vesna witnesses things (flags are set in src/story/controller/world.js, side.js and the dialogues).
+    more: [
+      { when: (S) => !!S.flag('planetnicy_night'), text: 'At night they give off their own light: amber, rose, pale green, violet, always a stronger colour at the heart than at the edge.' },
+      { when: (S) => !!S.flag('planetnicy_sparks'), text: 'The smallest ones travel in loose crowds of ten or a dozen and keep close to each other. The big ones just drift.' },
+      { when: (S) => !!S.flag('planetnicy_low'), text: 'On clear still nights a few come down over the ice, well below the top of the tower. They keep to the lake and the marsh and thin out over the village roofs.' },
+      { when: (S) => !!S.data.notes?.includes('note_almanac'), text: 'Zbyszek has a page of weather signs nailed up by the tavern door. Low and many means clear and a hard frost. High and few means snow before noon. If there are none to be seen, it is snowing already. The fishermen go by it.' },
+      { when: (S) => !!(S.flag('herders_counted') || S.data.notes?.includes('note_child_herders')), text: 'The children count them, and they stop at twenty. Ola says nobody has got past twenty.' },
+      { when: (S) => !!S.flag('handbell_rung'), text: 'Rang a hand-bell at the ritual ring at dusk, three times, the way it was done. A handful of them came down over the ice from different sides and stayed a while, then went back up. Bożena says they do that.' },
+    ],
+    beware: 'Do not point at them, and do not whistle. That is how you lose a day, or a year.',
+  },
+  {
+    id: 'matka_chmur', name: 'Matka Chmur', sub: 'The Mother of Clouds', sketch: 'matka',
+    unlock: (S) => !!(S.flag('matka_seen') || S.flag('matka_pulse')),
+    text: [
+      'The big one. The old people call her Matka Chmur, the Mother of Clouds. She is bigger than the church and bigger than the hill behind it, and she goes the long way round the valley, very slowly, with her threads hanging down toward the lake. By day she is only a paleness in the haze, like the moon. At night there are lights in her, in rows, like windows. Dobra says she has never once looked down.',
       'When she swells, the old ones stop where they stand, take their caps off and say nothing until she lets her breath out. It takes about half a minute. Nobody remembers who started it. On the first clear night of the year they leave a heel of bread on the ice for her. The ravens eat it and nobody minds.',
     ],
-    beware: 'Do not point at them, and do not whistle. That is how you lose a day, or a year. When Matka Chmur swells, cap off and mouth shut.',
+    more: [
+      { when: (S) => !!S.flag('matka_pulse'), text: 'Watched her swell. The light runs along her from one end to the other, slowly, holds, and lets go. A little under half a minute, every time.' },
+      { when: (S) => !!S.data.notes?.includes('note_island_sky'), text: 'She is on the island stones too, cut across two of them, with her left end shorter than her right. The carving is older than the church.' },
+    ],
+    beware: 'When Matka Chmur swells, cap off and mouth shut.',
   },
 ];
 

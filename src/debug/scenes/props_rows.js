@@ -22,7 +22,7 @@ export const ROWS = [
       ['bench', { seed: 1, variant: 'plank' }], ['bench', { seed: 2, variant: 'log' }], ['table', { seed: 1 }], ['stool', { seed: 1 }], ['stool', { seed: 2, variant: 'log' }],
       ['shelf', { seed: 1 }], ['spoonRack', { seed: 1 }], ['bed', { seed: 1 }], ['chest', { seed: 1, variant: 'plain' }], ['chest', { seed: 2, variant: 'painted' }], ['chest', { seed: 3, variant: 'painted', open: true }],
       ['rug', { seed: 1, cell: 0 }], ['rug', { seed: 2, cell: 1 }], ['tapestry', { seed: 1, cell: 2 }], ['pot', { seed: 1 }], ['cauldron', { seed: 1 }], ['washTub', { seed: 1 }],
-      ['musicBox', { seed: 1 }], ['birdCarving', { seed: 1 }], ['toys', { seed: 1 }], ['snowman', { seed: 1 }],
+      ['musicBox', { seed: 1 }], ['birdCarving', { seed: 1 }], ['handBell', { seed: 1 }], ['toys', { seed: 1 }], ['snowman', { seed: 1 }],
     ],
   },
   {

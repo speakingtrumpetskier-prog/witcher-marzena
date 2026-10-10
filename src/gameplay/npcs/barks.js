@@ -4,8 +4,9 @@
 //   chooseExchange(G, a, b, rand)  -> [string, ...] | null   a short back-and-forth for a pair
 //
 // Selection looks at: who (child, fisherman, named, role tag), when (night after 18:30, before
-// 6:00), and story flags (`lair_seen` switches the pairs to the day 2 talk about tonight's rite). A short global
-// memory keeps the same line from being heard twice in a row.
+// 6:00), the weather, and story flags (`lair_seen` switches the pairs to the day 2 talk about tonight's rite;
+// `planetnicy_seen` lets the SKY_ pools in, now and then). A short global memory keeps the same line from being
+// heard twice in a row. While Matka Chmur swells nobody outdoors says anything (see swelling()).
 
 const DAY = [
   "Don't look at her eyes.",
@@ -42,7 +43,46 @@ const BOGDAN = ['Forty-one sacks.', 'Stay off the lake.'];
 const HANKA = ['The milk freezes by morning.'];
 const JAREK = ['Not now.', 'Sit somewhere else.'];
 
+// The herders (planetnicy) as ordinary weather, said in passing. Only once the player has seen them (flag
+// planetnicy_seen), so she knows who is being talked about. Nobody explains them or marvels at them: fishermen
+// read them for tomorrow's snow, mothers tell children to put a hand down, nobody counts past twenty.
+const SKY_FISHER_CLEAR = [
+  'Low tonight. No snow by morning.',
+  "They're thick over the poles. Hard frost.",
+  'Low and many. Bring your water in.',
+];
+const SKY_FISHER_SNOW = [
+  'Not one up since dawn. Snow by noon.',
+  "They've gone high. Cover your nets.",
+  "Can't see a single herder. I'm going home.",
+];
+const SKY_NIGHT = [
+  'Clear tonight. Bank the fire.',
+  "They're down low. The well will freeze.",
+  'Put your hand down. Not at them.',
+];
+const SKY_DAY = [
+  "Didn't see one this morning. I'm taking the washing in.",
+  "They're sitting over the roofs again. It'll snow on somebody's yard.",
+  'Put your hand down, you will lose a day.',
+];
+const SKY_CHILD = [
+  'Nine! Ten!',
+  "There's a pink one! There's a pink one!",
+  'Stop at twenty, Kuba!',
+  "Don't talk to me, I'm at seventeen.",
+];
+
 // Pairs: lines alternate A, B, A...
+const SKY_PAIRS = [
+  ['Where are they today?', 'Up. Snow by evening.'],
+  ["Matka's early.", "She's no earlier than yesterday."],
+  ["They're over the mill again.", "They're always over the mill."],
+];
+const SKY_CHILD_PAIRS = [
+  ['Eleven. Twelve.', 'Stop at twenty.'],
+  ['Is that Matka?', "That's a cloud."],
+];
 const PAIRS = [
   ['Is that a witch?', 'Hush. Walk.'],
   ['When did you last see grass?', "Don't."],
@@ -71,10 +111,37 @@ function pick(arr, rand) {
 
 export function isNight(G) { return G.time.hours > 18.5 || G.time.hours < 6.0; }
 
+// While Matka Chmur swells (about half a minute, every 29 s), whoever is outdoors stops talking and waits
+// for her to let her breath out. Nothing is said about it; the barks just go quiet.
+function swelling(G) {
+  const c = G.spirits?.cathedral;
+  return !!c && c.pulse > 0.18;
+}
+
+const seenSky = (G) => !!G.state?.flag('planetnicy_seen');
+
+// A line about the herders for this person now, or null (most of the time). Named people keep their own.
+function skyPool(G, npc, preset, tag, rand) {
+  if (!seenSky(G) || rand() > 0.3) return null;
+  const clear = G.weather?.state === 'clear';
+  const h = G.time.hours;
+  if (/^(ola|child_)/.test(preset)) return SKY_CHILD;
+  if (/^fisherman/.test(preset) || tag === 'net' || tag === 'ice_hole') {
+    if (clear) return h >= 15 || h < 9 ? SKY_FISHER_CLEAR : null;
+    return SKY_FISHER_SNOW;
+  }
+  if (isNight(G)) return clear ? SKY_NIGHT : null;
+  return SKY_DAY;
+}
+
 export function chooseBark(G, npc, rand = Math.random) {
   const id = npc.id, preset = npc.preset || id, tag = npc.station?.tag || '';
+  if (swelling(G)) return null;
+  const named = id === 'zbyszek' || id === 'dobra' || id === 'bogdan' || id === 'hanka' || id === 'jarek';
   let pool;
-  if (id === 'zbyszek') pool = ZBYSZEK;
+  const sky = named ? null : skyPool(G, npc, preset, tag, rand);
+  if (sky) pool = sky;
+  else if (id === 'zbyszek') pool = ZBYSZEK;
   else if (id === 'dobra') pool = DOBRA;
   else if (id === 'bogdan') pool = BOGDAN;
   else if (id === 'hanka') pool = HANKA;
@@ -95,8 +162,10 @@ export function chooseBark(G, npc, rand = Math.random) {
 
 export function chooseExchange(G, a, b, rand = Math.random) {
   const kids = /^(ola|child_)/.test(a.preset || a.id) && /^(ola|child_)/.test(b.preset || b.id);
-  if (kids) return pick(CHILD_PAIRS, rand);
+  if (swelling(G)) return null;
+  if (kids) return seenSky(G) && rand() < 0.35 ? pick(SKY_CHILD_PAIRS, rand) : pick(CHILD_PAIRS, rand);
   if (isNight(G)) return null;
+  if (seenSky(G) && rand() < 0.3) return pick(SKY_PAIRS, rand);
   if (G.state && G.state.flag('lair_seen')) return pick(PAIRS_DAY2, rand);
   return pick(PAIRS, rand);
 }

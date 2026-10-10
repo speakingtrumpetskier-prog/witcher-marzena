@@ -89,7 +89,12 @@ export class Journal {
     return this.ui.bestiary.map((b) => {
       let open = false;
       try { open = !!(S?.flag?.(`bestiary_${b.id}`) || b.unlock?.(S)); } catch { open = false; }
-      return { ...b, open };
+      // `more`: observations Vesna adds as she witnesses things, [{ when(S), text }], kept in order.
+      let paras = b.text;
+      if (open && b.more) {
+        try { paras = [...b.text, ...b.more.filter((m) => m.when(S)).map((m) => m.text)]; } catch { paras = b.text; }
+      }
+      return { ...b, open, paras };
     });
   }
 
@@ -252,7 +257,7 @@ export class Journal {
     const body = h('div', { class: 'jr-entries note-' + (n.kind || 'letter') });
     if (n.kind === 'drawing') {
       const c = h('canvas', { class: 'jr-sketch', width: 640, height: 440 });
-      drawSketch(c, 'ice_lady', 5);
+      drawSketch(c, n.sketch || 'ice_lady', 5);
       this.left.append(h('div', { class: 'jr-sketchbox' }, c));
     }
     String(n.text || '').split('\n').filter((l) => l.trim()).forEach((l) => body.append(h('div', { class: 'jr-entry latest' }, h('p', null, markup(l)))));
@@ -286,7 +291,7 @@ export class Journal {
     this.left.append(h('div', { class: 'jr-sketchbox' }, c));
     this.right.append(h('div', { class: 'jr-qhead' }, rosette(b.name), h('div', { class: 'sub' }, b.sub), h('h2', null, b.name), h('div', { class: 'rule' }, svg(ICON.knot))));
     const body = h('div', { class: 'jr-entries' });
-    b.text.forEach((p) => body.append(h('div', { class: 'jr-entry latest' }, h('p', null, markup(p)))));
+    (b.paras || b.text).forEach((p) => body.append(h('div', { class: 'jr-entry latest' }, h('p', null, markup(p)))));
     scroll.append(body);
     if (b.weak || b.beware) {
       scroll.append(h('div', { class: 'jr-facts' },

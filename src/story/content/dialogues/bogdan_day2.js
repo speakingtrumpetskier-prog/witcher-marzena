@@ -34,7 +34,8 @@ export default {
     rite2: { s: 'vesna', t: 'How many?', next: 'rite3' },
     rite3: { s: 'bogdan', t: 'Sixty. I need eighty. Dobra has the girls making them.', next: 'rite4' },
     rite4: { s: 'vesna', t: 'And the weather?', next: 'rite5' },
-    rite5: { s: 'bogdan', t: 'It will snow. It always snows.', wait: 0.8, next: 'rite6' },
+    rite5: { s: 'bogdan', t: 'It will snow. It always snows.', wait: 0.8, next: 'rite5b' },
+    rite5b: { s: 'bogdan', t: "I looked at the lake this morning. Not one herder up. That's snow by dark, and the torches won't like it.", next: 'rite6' },
     rite6: { s: 'bogdan', t: "If you're coming tonight, stay at the back.", end: true },
 
     // after he was told

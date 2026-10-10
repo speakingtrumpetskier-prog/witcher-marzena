@@ -24,6 +24,7 @@ export default {
         { t: 'How many were there?', next: 'n1', once: true },
         { t: 'Where do they go?', next: 'p1', once: true },
         { t: 'What are you paying?', next: 'pay1', once: true },
+        { t: 'A lot of lights are sitting over your wheel.', next: 'sk1', once: true, if: (S) => !!S.flag('planetnicy_seen') },
         { t: "I'll go and look.", next: 'bye', exit: true },
       ],
     },
@@ -47,6 +48,13 @@ export default {
     pay2: { s: 'miller', t: "Forty grosze. I'd say more. The wheel's been frozen two winters, I grind by hand what people bring, and nobody brings anything.", next: 'pay3' },
     pay3: { s: 'vesna', t: 'Forty.', next: 'pay4' },
     pay4: { s: 'miller', t: "It's honest, at least.", next: 'hub' },
+
+    // the lights over the wheel (needs planetnicy_seen)
+    sk1: { s: 'vesna', t: 'A lot of lights are sitting over your wheel.', next: 'sk2' },
+    sk2: { s: 'miller', t: 'Since it froze. Two winters.', a: 'carry_bucket', next: 'sk3' },
+    sk3: { s: 'vesna', t: 'Why there?', next: 'sk4' },
+    sk4: { s: 'miller', t: "I don't know. It doesn't turn. There's nothing in it for them.", next: 'sk5' },
+    sk5: { s: 'miller', t: "They sit there and then it snows in the yard. My wife will tell you.", next: 'hub' },
 
     bye: { s: 'miller', t: 'Mind the bank. The ice over the race is bad.', end: true },
 

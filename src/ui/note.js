@@ -70,7 +70,7 @@ export class NoteView {
     const root = h('div', { class: 'body' });
     if (kind === 'drawing') {
       const c = h('canvas', { class: 'drawing', width: 640, height: 440 });
-      drawSketch(c, 'ice_lady', 5);
+      drawSketch(c, info.sketch || 'ice_lady', 5);
       root.append(c, ...lines.map((l, i) => this._p(l, i, 'caption')));
       return root;
     }

@@ -24,6 +24,7 @@ export default {
         { t: 'That song. Do you know all of it?', next: 'so1', once: true },
         { t: 'Your mother puts a bowl out at the door.', next: 'bw1', once: true, if: (S) => !!S.flag('hanka_hired') },
         { t: "I heard you're carrying her this year.", next: 'ca1', once: true, if: (S) => !!S.flag('hanka_hired') },
+        { t: 'Your lips are moving. What are you counting?', next: 'cn1', once: true },
         { t: 'I have to go.', next: 'bye', exit: true },
       ],
     },
@@ -65,6 +66,19 @@ export default {
     ca5: { s: 'ola', t: 'With a broom.', next: 'ca6' },
     ca6: { s: 'vesna', t: 'Both hands. Low.', next: 'ca7' },
     ca7: { s: 'ola', t: 'I know.', a: 'shrug', wait: 0.6, next: 'hub' },
+
+    // she is counting the herders over the roofs; Kuba's rule is about twenty
+    cn1: { s: 'vesna', t: 'Your lips are moving. What are you counting?', next: 'cn2' },
+    cn2: { s: 'ola', t: "Herders. Don't talk, I'll lose it.", a: 'child_play', next: 'cn3' },
+    cn3: { s: 'ola', t: 'Eleven. Twelve.', wait: 1.2, next: 'cn4' },
+    cn4: { s: 'vesna', t: 'Where?', next: 'cn5' },
+    cn5: { s: 'ola', t: "Over the roofs. You have to look past, they're thin in the light.", next: 'cn6' },
+    cn6: { s: 'vesna', t: 'Why count them?', next: 'cn7' },
+    cn7: { s: 'ola', t: 'Kuba says if you get past twenty one comes down.', next: 'cn8' },
+    cn8: { s: 'vesna', t: 'Comes down where?', next: 'cn9' },
+    cn9: { s: 'ola', t: "Just down. Nobody's got past twenty. I got to eighteen once and Kuba sneezed.", next: 'cn10' },
+    cn10: { s: 'vesna', t: 'What happened?', next: 'cn11' },
+    cn11: { s: 'ola', t: 'Nothing. I started again.', wait: 0.5, do: (S) => S.set('herders_counted'), next: 'hub' },
 
     bye: { s: 'ola', t: 'Straw. I have to do the straw.', a: 'child_play', end: true },
   },

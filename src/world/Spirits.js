@@ -11,6 +11,8 @@
 // Public (G.spirits):
 //   near(x, z, r)   active spirits within r meters (horizontal) of the point:
 //                   [{ x, y, z, species, size, school }]  (a school counts once)
+//   gather(x, z, o) draws a few free drifters over a point for a while (the hand-bell custom), see below
+//   cathedral       { x, y, z, radius, pulse } of Matka Chmur (pulse 0..1), or null
 //   stats           { visible, drawCalls, triangles, active } for the last frame
 //   enabled         set false to hide them all
 //   density         0..2 multiplier on how many are out (default 1)
@@ -321,6 +323,27 @@ export function createSpirits(G, opts = {}) {
       }
       return out;
     },
+    // gather(x, z, { count, secs, alt, spread }): the hand-bell custom (docs/STORY.md "The Hand-Bell"). Eases the
+    // nearest few free drifters (never the cathedral, the schools or the low ones) to hang in a loose ring over a
+    // point for a while, lit and out whatever the weather, then lets them go. Returns how many were called.
+    gather(x, z, o = {}) {
+      const { count = 6, secs = 80, alt = 55, spread = 46 } = o;
+      const now = G.clock.elapsed;
+      const pool = [];
+      for (const sp of species) {
+        if (sp.def.circuit || sp.def.school) continue;
+        for (const it of sp.items) if (!it.low && !it.gather) pool.push(it);
+      }
+      pool.sort((a, b) => Math.hypot(a.x - x, a.z - z) - Math.hypot(b.x - x, b.z - z));
+      const picks = pool.slice(0, count);
+      picks.forEach((it, i) => {
+        const a = (i / picks.length) * TAU + rand() * 0.5;
+        const r = spread * (0.55 + 0.45 * rand());
+        const gx = x + Math.cos(a) * r, gz = z + Math.sin(a) * r;
+        it.gather = { x: gx, z: gz, gy: groundAt(gx, gz), y: groundAt(x, z) + alt + rand() * 22, until: now + secs, w: 0 };
+      });
+      return picks.length;
+    },
     dispose() {
       for (const sp of species) {
         for (const l of sp.lods) { scene.remove(l.mesh); l.geo.dispose(); }
@@ -426,7 +449,7 @@ export function createSpirits(G, opts = {}) {
       const def = sp.def;
       for (const l of sp.lods) l.n = 0;
       for (const it of sp.items) {
-        const want = opts.solo ? 1 : it.circ ? (dens > 0 ? 1 : 0) : (it.low ? (it.rank < 0.9 && lowOk ? 1 : 0) : (it.rank < frac ? 1 : 0));
+        const want = opts.solo ? 1 : it.circ ? (dens > 0 ? 1 : 0) : it.gather && dens > 0 ? 1 : (it.low ? (it.rank < 0.9 && lowOk ? 1 : 0) : (it.rank < frac ? 1 : 0));
         it.fade += (want - it.fade) * fadeStep;
         if (Math.abs(want - it.fade) < 0.004) it.fade = want;
         if (it.fade <= 0.001) { it.vis = false; continue; }
@@ -491,6 +514,20 @@ export function createSpirits(G, opts = {}) {
         }
         const lift = liftCurve(p) * (opts.solo ? 0 : it.circ ? 0.05 : 0.35) * it.scale;
         it.y = it.ySm + lift;
+
+        // called by gather(): drawn toward a point for a while, then released
+        if (it.gather) {
+          const g = it.gather;
+          const live = tReal < g.until;
+          g.w += ((live ? 1 : 0) - g.w) * Math.min(1, dt * 0.22);
+          if (!live && g.w < 0.01) it.gather = null;
+          else {
+            it.x += (g.x + Math.sin(t * 0.05 + it.wph) * 5 - it.x) * g.w;
+            it.z += (g.z + Math.cos(t * 0.04 + it.wph) * 5 - it.z) * g.w;
+            it.y += (g.y + Math.sin(t * 0.07 + it.wph) * 2 - it.y) * g.w;
+            it.gSm += (g.gy - it.gSm) * g.w;
+          }
+        }
 
         // trailing direction for the filaments (opposite the swim, stronger on the jet)
         const sw = it.swim * (0.25 + 0.75 * thrustCurve(p));

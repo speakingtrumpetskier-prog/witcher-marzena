@@ -5,6 +5,7 @@
 //        Both are set at the choice, so the journal line is always true.
 // Reads: heard_of_maiden (set by zbyszek_hub). Without it Vesna asks who carries the effigy instead
 //        of "And the girl?", and Bogdan answers plainly instead of "You've been talking to people."
+// Topics: how bad, the three, the contract, the weather (sends her to the old women and the herders), the rite.
 // The scene ends on every path with the same line, so the controller does not have to check the node.
 // A player who leaves the hub early still gets the purse: he was going to offer it anyway.
 export default {
@@ -24,10 +25,16 @@ export default {
         { t: 'How bad is it? The village.', next: 'v1', once: true },
         { t: 'Three men have gone missing.', next: 'm1', once: true },
         { t: 'There is a contract on the board. Who put it there?', next: 'c1', once: true },
+        { t: 'Will the pass stay open? The weather.', next: 'wx1', once: true },
         { t: 'What happens tomorrow night?', next: 'r1' },
         { t: "That's all I wanted.", next: 'x1', exit: true },
       ],
     },
+
+    // the weather
+    wx1: { s: 'vesna', t: 'Will the pass stay open? The weather.', next: 'wx2' },
+    wx2: { s: 'bogdan', t: "Ask the old women, they go by the herders. I've the sacks to count.", next: 'wx3' },
+    wx3: { s: 'bogdan', t: "It's been open three days. That's all I know about it.", next: 'hub' },
 
     // how bad
     v1: { s: 'vesna', t: 'How bad is it?', next: 'v2' },

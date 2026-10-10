@@ -16,6 +16,7 @@ export function install(C) {
   locks(C);
   ambient(C);
   asides(C);
+  sky(C);
   endingWorld(C);
 }
 
@@ -267,6 +268,73 @@ function asides(C) {
   for (const tr of C.L.vignettes?.tracks || []) {
     if (tr?.points?.length > 1) C.trail({ id: `vig_${tr.id}`, kind: tr.kind || 'footprints', points: tr.points });
   }
+}
+
+// ---- the sky: what she has watched the herders do ------------------------------------------------------------
+// Sets the flags the bestiary unlocks its observations on (src/ui/content.js): planetnicy_night (looked at them
+// lit, after dark), planetnicy_sparks (a crowd of the small ones), planetnicy_low (one hanging low over the ice),
+// matka_seen (looked at Matka Chmur for a while) and matka_pulse (watched her swell). planetnicy_seen itself is
+// set by the spirits system. Everything reads G.spirits, so a run without it (?spirits=0, the logic playthrough)
+// simply never sets them.
+function sky(C) {
+  const { G } = C;
+  const dir = new C.THREE.Vector3();
+  const to = new C.THREE.Vector3();
+  const acc = { night: 0, sparks: 0, low: 0, matka: 0, pulse: 0 };
+  const bump = (key, on, step, need, flag) => {
+    acc[key] = on ? acc[key] + step : Math.max(0, acc[key] - step * 0.5);
+    if (acc[key] >= need && !C.has(flag)) C.set(flag);
+  };
+  let t = 0;
+  G.addSystem('ctl-sky', (dt) => {
+    t += dt;
+    if (t < 0.5) return;
+    const step = t;
+    t = 0;
+    const SP = G.spirits;
+    if (!SP || G.shot || !G.player || C.busy() || G.input?.context !== 'game') return;
+    const cam = G.camera;
+    if (G.world?.indoors?.(cam.position.x, cam.position.z)) return;
+    const wx = G.weather?.params;
+    const clearish = G.weather?.state !== 'fog' && G.weather?.state !== 'blizzard' && (wx?.snowfall ?? 0) < 0.55;
+    const night = (G.uniforms?.uNight?.value ?? 0) > 0.6;
+    cam.getWorldDirection(dir);
+    const look = (x, y, z) => {
+      to.set(x - cam.position.x, y - cam.position.y, z - cam.position.z);
+      const d = to.length() || 1;
+      return { d, dot: dir.dot(to.divideScalar(d)) };
+    };
+
+    let lit = false, crowd = false, low = false;
+    // (Test stand-ins for G.spirits carry only what their step needs, so near() may be missing.)
+    if (clearish && typeof SP.near === 'function') {
+      for (const s of SP.near(cam.position.x, cam.position.z, 180)) {
+        const l = look(s.x, s.y, s.z);
+        if (l.d > 200 || l.dot < 0.7) continue;
+        if (night) lit = true;
+        if (s.school && l.d < 130 && l.dot > 0.8) crowd = true;
+        if (night && s.y < 25 && l.d < 100 && l.dot > 0.6) low = true;
+      }
+    }
+    bump('night', lit, step, 4, 'planetnicy_night');
+    bump('sparks', crowd, step, 3, 'planetnicy_sparks');
+    bump('low', low, step, 3, 'planetnicy_low');
+
+    const big = SP.cathedral;
+    let seeing = false, swelling = false;
+    if (big && clearish) {
+      const l = look(big.x, big.y, big.z);
+      seeing = l.dot > 0.85;
+      swelling = seeing && big.pulse > 0.6;
+    }
+    bump('matka', seeing, step, 6, 'matka_seen');
+    bump('pulse', swelling, step, 2.5, 'matka_pulse');
+  }, 20);
+
+  // Her one remark, the first time she has really looked at the big one.
+  C.watch('matka_seen', (v) => {
+    if (v && G.spirits) C.later(1.5, () => { if (!C.busy()) C.say("That's a long way up.", 2.6); });
+  });
 }
 
 // ---- the world after an ending, when a save is loaded -------------------------------------------------------
