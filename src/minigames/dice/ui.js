@@ -204,7 +204,7 @@ export class DiceUI {
     const place = (el, p) => { el.style.transform = `translate(${p.x.toFixed(1)}px, ${p.y.toFixed(1)}px) translate(-50%, -50%)`; };
     place(this.elPot, st.screenOfPoint(0.3, 0, 0.085));
     if (this._hand.player) place(this.elHandYou, st.screenOfPoint(0, 0, 0.075));
-    if (this._hand.opp) place(this.elHandOpp, st.screenOfPoint(0, 0, -0.275));
+    if (this._hand.opp) place(this.elHandOpp, st.screenOfPoint(0, 0, -0.30));
     const show = this.mode === 'reroll';
     this.elNums.forEach((el, i) => {
       el.classList.toggle('on', show);

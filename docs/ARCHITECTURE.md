@@ -388,7 +388,7 @@ from `G.world` heights with LOC labels and markers.
   `Mouse1` (middle) `Mouse2` (right), pad `PadA` `PadB` `PadX` `PadY` `PadLB` `PadRB` `PadLT` `PadRT` `PadBack` `PadStart`
   `PadL3` `PadR3` `PadUp` `PadDown` `PadLeft` `PadRight` (Gamepad API standard mapping). Pad buttons live in the same sets as keys.
   Actions: forward back left right sprint walk dodge attack heavy senses draw sign sign1 sign2 sign3 lock shoulder parry
-  interact horse potion journal map pause skip advance, and dice_pick dice_roll dice_raise (the dice game, context `'dice'`; defaults and the table the Controls screen is built from: bindings.js).
+  interact horse potion journal map pause skip advance, and dice_pick dice_roll dice_raise dice_hands (the dice game, context `'dice'`; defaults and the table the Controls screen is built from: bindings.js).
 - `G.input.move` is digital from the keys and analog from the left stick (radial dead zone, curve), so its length picks walk or
   run. `G.input.lookPad` is the right stick in [-1, 1] (the camera integrates it with dt). The sprint button latches while the stick is held.
 - `G.input.device` is `'kbm'` or `'pad'`, switched by the last meaningful input; `input:device` announces it. `padConnected`, `padName`, `padStyle` ('xbox' or 'playstation').
@@ -448,7 +448,9 @@ G.dice.canPlay(id) -> { ok, reason }     G.dice.purse(id)     G.dice.record()   
   `G.story.busy` is true while `G.dice.active`.
 - **Screen and controls** (`ui.js`, `dice.css`): stake, round score, hand names, the question. Keyboard: 1 to 5 pick a die, arrows or A and D
   move the cursor, E picks the die under it, Space or Enter rolls, R raises, Esc leaves (asks first). Mouse: click a die. Pad:
-  D-pad or left stick moves, A picks, X or Start rolls, Y raises, B leaves. The actions `dice_pick`, `dice_roll`, `dice_raise`
+  D-pad or left stick moves, A picks, X or Start rolls, Y raises, B leaves. H (Back on the pad) shows or hides the list of hands on the
+  left of the screen, best first, with an example of each; the rows she and the opponent hold are marked (filled and hollow diamonds)
+  and the choice is kept in `localStorage` (`marzena.dice.hands`). The actions `dice_pick`, `dice_roll`, `dice_raise`, `dice_hands`
   (bindings.js, context `'dice'`, group Dice on the Controls screen) are rebindable; the screen reads key events, and a pad button
   is turned into the key of the same action by `scr.padKey(button)` (a hook of `ui.openScreen`'s return value, used by `UI._padNavKey`).
   First-use hints `dice_pick` and `dice_raise` (hintDefs.js) are shown with `G.hints.show(id, { force: true })`.
