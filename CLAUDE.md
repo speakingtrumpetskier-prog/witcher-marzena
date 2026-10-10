@@ -1,0 +1,55 @@
+# MARZENA: notes for every Claude session (cloud or local)
+
+A Witcher-3-inspired browser game: a snowy Slavic valley, a drowned bell, a straw goddess. Vite +
+vanilla ES modules + three.js, everything procedural (no art assets), WebAudio music and sound,
+voice clips generated offline. Work happens on the branch `claude/optimistic-bohr-1pcwao`.
+
+## Read first
+- `docs/PROGRESS.md`: what is built, what is merged, the polish list. This is the project's memory;
+  keep it current when you finish something.
+- `docs/DESIGN.md` (art direction, cast), `docs/STORY.md` (script, flags, the "Writing voice" rules),
+  `docs/ARCHITECTURE.md` (module contracts, G, systems), `docs/VOICES.md` (cast voices).
+
+## Rules the user has set
+- Never use em dashes anywhere: game text, code comments, docs, commit messages, chat.
+- Writing is naturalistic and lived in (STORY.md "Writing voice"): people talk about what is in front
+  of them; no aphorisms, quips, theme statements or meta-observations.
+- Be conservative with tokens: high quality without redundancy. At most one reviewer (usually the lead
+  session itself); no workflow fleets or parallel review agents unless the user asks.
+- The lead reviews builders' output directly and fixes what it finds.
+
+## Working practice
+- Commit and push after every meaningful step (the user moves between cloud and local sessions;
+  only pushed work exists on the other side). End commit messages with the session's attribution lines.
+- Builders (subagents) work in git worktrees (`isolation: "worktree"`), commit early and often in
+  their own branch, never push; the lead merges. An interrupt can stop background builders: their
+  worktrees keep the work, commit it before relaunching.
+- Before pushing a change: `npx eslint <files>`; for gameplay or story changes also run the
+  logic playthrough (below); for anything shipped run `npm run build`.
+
+## Seeing the game (scripts/shot.mjs)
+- `node scripts/shot.mjs --q "<url params>" --out shots/x.png` renders one frame headless and prints
+  errors. `--eval "js"` runs code first; `--seq N --every ms` makes a contact sheet.
+- Locally on a machine with a GPU, set `MZ_GPU=1` (seconds per frame). If the renderer line still
+  says SwiftShader, add `MZ_HEADED=1`. The cloud container has no GPU: software frames take minutes.
+- Under load, pass `--timeout 1500000`, run long renders in the background and wait on the process
+  exit (or its OK/FAIL line), never on an image appearing. Builders may use their own capture scripts.
+- Useful views: `?scene=<name>` debug scenes in `src/debug/scenes/` (arena, cinematics, characters,
+  spirits, ui, dialogues, playthrough); `cam=x,y,z&look=x,y,z&hour=15.5&weather=clear` for any shot.
+- Full-story logic test (no rendering, about a minute):
+  `node scripts/shot.mjs --w 480 --h 270 --timeout 1500000 --q "scene=playthrough&lite=1&choice=strike&quality=low" --eval "await window.__playthrough.promise; console.warn('SUMMARY', window.__playthrough.pass, window.__playthrough.fail)" --out shots/pt.png`
+  (also `choice=call` and `choice=step`); expect zero fails and zero errors.
+- `node scripts/gpu-demo.mjs` times one frame on the local GPU against software.
+
+## Voices
+- `node scripts/voice/extract.mjs` refreshes `scripts/voice/lines.json` after dialogue or cutscene edits.
+- `scripts/voice/fetch_onnx.sh` fetches Kokoro-82M (ONNX) and the British voices from Hugging Face;
+  `pip install kokoro-onnx soundfile`; `python scripts/voice/generate.py --engine kokoro-onnx`
+  renders only lines without a clip into `public/voice/` (commit those MP3s and the manifest).
+
+## Environments
+- Cloud sessions: network access is limited (Hugging Face was allowed for the voice model); the
+  setup script runs `npm install`. Playwright and Chromium are preinstalled in the container.
+- Local sessions: `npm install`, then `npm install --no-save playwright` and
+  `npx playwright install chromium` for the screenshot harness. `npm run dev` to play at
+  http://localhost:5173/witcher-marzena/.
