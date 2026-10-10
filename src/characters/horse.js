@@ -316,11 +316,23 @@ function buildHorseMesh(rig, look) {
     neckRows.push(row);
   }
   tubeGrid(neckRows, true);
-  // ---- head: poll to muzzle, with a cap over the nose
+  // ---- head: poll to muzzle, with a cap over the nose and one over the poll (the neck's last ring
+  // faces up and forward, the head's first faces down and forward: without it the top of the skull
+  // behind the ears is open, which the rider's view looks straight into)
   const hAxis = HEADB.clone().sub(HEADA).normalize();
   const hf = frame(hAxis, V(0, 0.4, 1));
   const nH = 14, nHC = 5, nHT = 22;
   const headRows = [];
+  for (let k = 0; k < nHC; k++) {
+    const al = (k / nHC) * Math.PI / 2;
+    const row = [];
+    for (let j = 0; j <= nHT; j++) {
+      const th = (j / nHT) * TAU;
+      const dir = hAxis.clone().multiplyScalar(-Math.cos(al)).addScaledVector(hf.a.clone().multiplyScalar(Math.cos(th)).addScaledVector(hf.b, Math.sin(th)), Math.sin(al)).normalize();
+      row.push({ p: marchOut(HEADA, dir, 0.3).p, axis: HEADA });
+    }
+    headRows.push(row);
+  }
   for (let i = 0; i <= nH + nHC; i++) {
     const row = [];
     let o, dirF;
