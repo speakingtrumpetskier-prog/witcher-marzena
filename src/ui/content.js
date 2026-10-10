@@ -136,6 +136,16 @@ export const BESTIARY = [
     weak: 'Gale. It cracks the ice armor.',
     beware: 'A pale glow under your feet means she is beneath you. Move.',
   },
+  {
+    id: 'planetnicy', name: 'Płanetnicy', sub: 'The cloud herders', sketch: 'planetnik',
+    unlock: (S) => !!S.flag('planetnicy_seen'),
+    text: [
+      'Lights that drift over the valley like jellyfish in dark water. Pale, soft, some the size of a hand, some of a cart. They come out thick on clear nights and thin when it snows. On the worst days they go up into the cloud and are not seen.',
+      'The old people say they herd the weather. A płanetnik walks the clouds over the pass and the weather follows it home. Nobody here is afraid of them. Nobody talks about them much either.',
+      'They do not come to the ground and they do not mind you. Dobra says there is one over the lake as big as a church, and that it has never once looked down.',
+    ],
+    beware: 'Do not point at them, and do not whistle. That is how you lose a day, or a year.',
+  },
 ];
 
 // Humble on purpose; the lead edits names. Each group: heading + lines of [role, name] or plain text.
