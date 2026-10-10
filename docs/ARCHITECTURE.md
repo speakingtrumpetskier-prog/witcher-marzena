@@ -388,7 +388,7 @@ from `G.world` heights with LOC labels and markers.
 
 ## Fishing (`G.fishing`; src/gameplay/fishing/*, src/world/locations/fishing.js)
 
-Ice fishing, selling to the reeve and roasting at a fire. The maths is pure and runs in Node (`node scripts/fishtest.mjs`, 71 checks); the rest
+Ice fishing, selling to the reeve and roasting at a fire. The maths is pure and runs in Node (`node scripts/fishtest.mjs`, 72 checks); the rest
 is the sitting, the picture and the sound.
 
 | File | What |
@@ -504,7 +504,7 @@ triangles are real. On a machine with a GPU, `MZ_GPU=1 node scripts/shot.mjs ...
 Each builder should add a gallery scene in `src/debug/scenes/` for its area.
 
 Input, camera, menus and hints have a functional test with a mocked gamepad: `MZ_CHROME=1 node scripts/inputtest.mjs [input|lock|menus|hints|defs]`
-(114 checks, about 4 minutes). The fishing model has a pure Node test: `node scripts/fishtest.mjs` (71 checks, a second). UI screens for screenshots: `?scene=ui&show=controls&tab=camera&device=pad`, `show=hint&hint=senses` (see the header of `src/debug/scenes/ui.js`).
+(114 checks, about 4 minutes). The fishing model has a pure Node test: `node scripts/fishtest.mjs` (72 checks, a second). UI screens for screenshots: `?scene=ui&show=controls&tab=camera&device=pad`, `show=hint&hint=senses` (see the header of `src/debug/scenes/ui.js`).
 
 ## Collaboration rules (several builders work in this tree at once)
 - **Only edit files you own** (listed in your brief). Read anything.

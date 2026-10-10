@@ -21,7 +21,9 @@ const pct = (x) => `${Math.round(x * 100)}%`;
 // ---- the table ---------------------------------------------------------------------------------------------------
 {
   const text = JSON.stringify(SPECIES);
-  check('species text has no em dashes', !/[â€”â€“]/.test(text));
+  const codes = [...text].map((ch) => ch.charCodeAt(0));
+  check('species text has no em dashes', !codes.includes(0x2014) && !codes.includes(0x2013));
+  check('Polish names are not mangled by a bad encoding', ![0xc2, 0xc3, 0xc4, 0xc5, 0xe2].some((c) => codes.includes(c)) && SPECIES.perch.pl.charCodeAt(3) === 0x144 && SPECIES.burbot.pl.charCodeAt(2) === 0x119);
   check('six species and the old one', SPECIES_IDS.length === 6 && !!SPECIES.oldone && SPECIES.oldone.special);
   check('every species has weights in order and every weather', SPECIES_IDS.every((id) => {
     const s = SPECIES[id];

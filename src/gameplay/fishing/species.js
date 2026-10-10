@@ -27,7 +27,7 @@ const circ = (pts) => pts.slice().sort((a, b) => a[0] - b[0]);
 
 export const SPECIES = {
   perch: {
-    id: 'perch', name: 'Perch', pl: 'OkoÅ„',
+    id: 'perch', name: 'Perch', pl: 'Okoń',
     w: [0.06, 0.28, 1.1], sigma: 0.55, len: 0.30,
     depth: { pref: 0.45, spread: 0.24, min: 0.7 },
     rate: 1.3,
@@ -51,7 +51,7 @@ export const SPECIES = {
   },
 
   roach: {
-    id: 'roach', name: 'Roach', pl: 'PÅ‚oÄ‡',
+    id: 'roach', name: 'Roach', pl: 'Płoć',
     w: [0.05, 0.22, 0.9], sigma: 0.5, len: 0.27,
     depth: { pref: 0.35, spread: 0.26, min: 0.7 },
     rate: 1.1,
@@ -119,7 +119,7 @@ export const SPECIES = {
   },
 
   burbot: {
-    id: 'burbot', name: 'Burbot', pl: 'MiÄ™tus',
+    id: 'burbot', name: 'Burbot', pl: 'Miętus',
     w: [0.35, 1.2, 3.8], sigma: 0.55, len: 0.45,
     depth: { pref: 0.97, spread: 0.07, min: 3.5 },
     rate: 0.72,

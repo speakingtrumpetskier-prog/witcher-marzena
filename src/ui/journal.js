@@ -353,14 +353,15 @@ export class Journal {
       this.right.append(scroll);
       return;
     }
-    const c = h('canvas', { class: 'jr-sketch', width: 640, height: 440 });
+    const c = h('canvas', { class: 'jr-sketch wide', width: 640, height: 440 }); // a fish is long and low: cropped, so the list keeps its six rows
     drawSketch(c, b.sketch, 3);
     this.left.append(h('div', { class: 'jr-sketchbox' }, c));
     this.right.append(h('div', { class: 'jr-qhead' }, rosette(b.name), h('div', { class: 'sub' }, b.sub), h('h2', null, b.name), h('div', { class: 'rule' }, svg(ICON.knot))));
     const body = h('div', { class: 'jr-entries' });
     b.paras.forEach((p) => body.append(h('div', { class: 'jr-entry latest' }, h('p', null, markup(p)))));
+    // her own numbers first, so they are not lost below a long page of notes
+    if (b.facts.length) scroll.append(h('div', { class: 'jr-facts top' }, ...b.facts.map(([k, v]) => h('div', null, h('span', { class: 'lab' }, k), v))));
     scroll.append(body);
-    if (b.facts.length) scroll.append(h('div', { class: 'jr-facts' }, ...b.facts.map(([k, v]) => h('div', null, h('span', { class: 'lab' }, k), v))));
     this.right.append(scroll);
   }
 
