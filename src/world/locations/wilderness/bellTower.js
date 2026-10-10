@@ -98,20 +98,23 @@ export async function build(W) {
   });
 
   // ---- frozen spray on the shaft, above the ice collar: crusted bands with a ragged lower edge and icicles ----------
+  // Seated on the stone (the shaft's faces batter inward: about 2.96 m out at the ice, 3 cm less per
+  // metre up) and half sunk into it, wide enough that neighbours overlap into one ragged crust;
+  // spaced apart and off the wall they read as loose chips stuck on in rows.
   c.at(L.x, L.z, { y: 0, yaw }, (k) => {
-    const rr = 3.0;
+    const face = (h) => 2.964 - 0.03 * h;
     for (let side = 0; side < 4; side++) {
       for (let row = 0; row < 3; row++) {
         const n = 7 - row;
         for (let i = 0; i < n; i++) {
-          const t = ((i + rnd.range(0.1, 0.9)) / n) * 5.4 - 2.7;
-          const h = 0.85 + row * 0.42 + rnd.signed(0.08);
-          const w = rnd.range(0.7, 1.3), hh = rnd.range(0.2, 0.42);
-          const off = rr + rnd.range(0.0, 0.07);
+          const t = ((i + rnd.range(0.3, 0.7)) / n) * 5.4 - 2.7;
+          const h = 0.85 + row * 0.36 + rnd.signed(0.06);
+          const w = (5.4 / n) * rnd.range(1.35, 1.7), hh = rnd.range(0.26, 0.44);
+          const off = face(h) + rnd.range(0.0, 0.03);
           const px = side === 0 ? t : side === 1 ? off : side === 2 ? -t : -off;
           const pz = side === 0 ? off : side === 1 ? -t : side === 2 ? -off : t;
           const along = side % 2 === 0;
-          k.blob('ice', 0.5, { pos: [px, h, pz], scale: along ? [w, hh, 0.16] : [0.16, hh, w], rot: [0, 0, rnd.signed(0.05)], detail: 1, flat: true, tint: rnd.pick([0xdbeaf3, 0xe6f1f8, 0xc9dfec]), grime: 0, var: 0.07 });
+          k.blob('ice', 0.5, { pos: [px, h, pz], scale: along ? [w, hh, 0.24] : [0.24, hh, w], rot: [0, 0, rnd.signed(0.05)], detail: 1, tint: rnd.pick([0xdbeaf3, 0xe6f1f8, 0xc9dfec]), grime: 0, var: 0.07 });
           if (row === 0 && rnd.chance(0.7)) for (let j = 0; j < 3; j++) k.cone('ice', rnd.range(0.025, 0.05), rnd.range(0.2, 0.65), { pos: [px + (along ? rnd.signed(w * 0.4) : 0.05), h - hh * 0.5 - 0.15, pz + (along ? 0.05 : rnd.signed(w * 0.4))], rot: [Math.PI, 0, 0], radial: 5, tint: 0xe2f0f8, grime: 0 });
         }
       }

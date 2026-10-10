@@ -65,6 +65,68 @@ export function bellTower(opts = {}) {
       }, -0.03, 0);
     }
   }
+  // ---------------- drowned: the lake stood higher once ----------------
+  // A dark water stain climbing the stone from the ice to a ragged tide line, an older fainter line
+  // above it, rime on the windward faces, and frozen drips under the lintels and round the crown.
+  // Thin plates on the wall faces like the plaster above; nothing here is walked on.
+  const faceAt = (y) => HO - 0.03 * 1.2 - 0.03 * y; // outer face (the walls batter inward)
+  const band = (wallN, s0, s1, yBot, yTop, amp, col, depth) => {
+    const fr = wallFrame(wallN, HO - 0.03 * 1.2, HO - 0.03 * 1.2);
+    const n = Math.max(4, Math.round((s1 - s0) / 0.22));
+    const pts = [[s0, yBot], [s1, yBot]];
+    const ph = kit.rand() * 9;
+    for (let i = n; i >= 0; i--) {
+      const s = s0 + ((s1 - s0) * i) / n;
+      pts.push([s, yTop + (kit.n2(s * 1.4 + ph, yTop * 0.7) - 0.5) * amp + kit.rs() * amp * 0.2]);
+    }
+    kit.rock.at(fr.x, 0, fr.z, fr.yaw, (m) => { m.at(0, 0, depth, 0, (mm) => mm.extrude(pts, 0.006, col, { uv: [1.4, 1.4] })); }, -0.03, 0);
+  };
+  const stain = (k) => mixC(0x2b3127, 0x4a4838, k).multiplyScalar(GAIN * 0.72);
+  for (const wallN of ['front', 'right', 'back', 'left']) {
+    const spans = wallN === 'front' ? [[-HO + 0.06, -1.05], [1.05, HO - 0.06]] : [[-HO + 0.06, HO - 0.06]];
+    for (const [s0, s1] of spans) {
+      band(wallN, s0, s1, -0.25, 1.05 + kit.rs() * 0.08, 0.26, stain(kit.rand() * 0.4), 0.152);
+      // The old line: a thin darker crust where the water stood for a long time.
+      band(wallN, s0, s1, 2.32 + kit.rs() * 0.05, 2.46, 0.06, stain(0.15), 0.153);
+    }
+  }
+  // Rime: pale crust blown onto the north and west faces.
+  for (const wallN of ['back', 'left']) {
+    for (let i = 0; i < 7; i++) {
+      const w = kit.r(0.5, 1.3), h = kit.r(0.3, 0.8);
+      const sc = kit.rs() * (HO - w / 2 - 0.3), yc = kit.r(1.4, TOP - 0.5);
+      if (holes.some((ho) => ho.wall === wallN && sc + w / 2 > ho.s0 - 0.1 && sc - w / 2 < ho.s1 + 0.1 && yc + h / 2 > ho.y0 - 0.1 && yc - h / 2 < ho.y1 + 0.1)) continue;
+      const fr = wallFrame(wallN, HO - 0.03 * 1.2, HO - 0.03 * 1.2);
+      const pts = [];
+      const nv = 10, ph = kit.rand() * 6;
+      for (let k = 0; k < nv; k++) {
+        const a = (k / nv) * Math.PI * 2;
+        const rr = 0.6 + 0.4 * kit.n2(Math.cos(a) * 2.2 + ph, Math.sin(a) * 2.2);
+        pts.push([Math.cos(a) * w * 0.5 * rr, Math.sin(a) * h * 0.5 * rr]);
+      }
+      kit.rock.at(fr.x, 0, fr.z, fr.yaw, (m) => {
+        m.at(sc, yc, 0.154, 0, (mm) => mm.extrude(pts, 0.008, mixC(0xdfe8ee, 0xc8d6e0, kit.rand()).multiplyScalar(GAIN * 0.95), { uv: [1.4, 1.4] }));
+      }, -0.03, 0);
+    }
+  }
+  // Frozen drips: under the broken window's lintel, the high windows' lintels and round the crown.
+  {
+    const drips = [];
+    const along = (wallN, s, y, out = 0.05) => {
+      const f = faceAt(y) + out;
+      if (wallN === 'front') drips.push({ x: s, y, z: f });
+      else if (wallN === 'back') drips.push({ x: -s, y, z: -f });
+      else if (wallN === 'right') drips.push({ x: f, y, z: -s });
+      else drips.push({ x: -f, y, z: s });
+    };
+    for (let i = 0; i < 9; i++) along('front', -0.85 + (1.7 * i) / 8 + kit.rs() * 0.05, 1.86);
+    for (const wallN of ['right', 'left', 'back']) for (let i = 0; i < 4; i++) along(wallN, -0.36 + (0.72 * i) / 3, 4.31);
+    for (const wallN of ['front', 'right', 'back', 'left']) {
+      for (let i = 0; i < 14; i++) if (kit.rand() < 0.75) along(wallN, -HO + 0.3 + ((2 * HO - 0.6) * i) / 13 + kit.rs() * 0.08, TOP - 0.04, 0.08);
+    }
+    icicles(kit, drips, { max: 0.6 });
+  }
+
   const wc = (k = 1) => scaleC(PAL.logDark, GAIN * 1.3 * k);
   // Dressed stones jutting around the broken window.
   for (let i = 0; i < 5; i++) {

@@ -329,7 +329,9 @@ export class Overlays {
     const hold = opts.hold ?? 3.4;
     const token = ++this._bannerToken;
     const thread = svg(`<svg viewBox="0 0 300 12" preserveAspectRatio="none" aria-hidden="true"><path d="${THREAD_PATH}" pathLength="1"/></svg>`, 'thread');
-    clear(this.bannerEl).append(h('div', { class: 'name' }, name), h('div', { class: 'line' }, thread), sub ? h('div', { class: 'sub' }, sub) : null);
+    // (append() turns a null argument into the text "null", so the subtitle goes in only when there is one)
+    clear(this.bannerEl).append(h('div', { class: 'name' }, name), h('div', { class: 'line' }, thread));
+    if (sub) this.bannerEl.append(h('div', { class: 'sub' }, sub));
     this.bannerEl.classList.remove('on', 'draw', 'off');
     void this.bannerEl.offsetWidth;
     this.bannerEl.classList.add('on');
