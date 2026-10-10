@@ -70,6 +70,10 @@ reads like writing, cut it or make it plainer.
 | `wit_sword` | Silver sword from the bear den |
 | `rite_started`, `boss_started`, `ending` = 'thaw' / 'looking_back' / 'nothing_changes' | Finale |
 | `looked_back` | Epilogue final input |
+| `planetnicy_seen` | A herder drifts near for a few seconds, or Matka Chmur has been in view for half a minute (set by the spirits system) |
+| `planetnicy_night`, `planetnicy_sparks`, `planetnicy_low`, `matka_seen`, `matka_pulse` | Bestiary observations: herders looked at after dark, a crowd of the small ones, one hanging low over the ice, Matka Chmur looked at for a while, watched her swell (world.js `sky()`) |
+| `herders_counted` | Ola's counting talk, or the children's picture read |
+| `herders_over_yard`, `bozena_after`, `handbell_asked`, `handbell_taken`, `handbell_rung`, `handbell_paid` | The Hand-Bell (side quest, below) |
 
 ---
 
@@ -120,6 +124,7 @@ Journal voice: Vesna's working notes. Who, what, where, what it pays, what she s
 - `side_ledger` **The Reeve's Ledger.** Trapdoor in the longhouse floor behind the hearth. *Reeve's ledger, in the cellar. He has been giving his own ration away. His son's name is crossed out.* Unlocks the persuasion line that sets `reeve_told` (needs `echo_seen`).
 - `side_wisps` **Lights in the Reeds.** At night in the west marsh, three pale lights drift away when approached; follow them to a smuggler frozen in the reeds with a note and a key. The stash is in the third charcoal kiln. Reward: 35 grosze, 2 Thaw draughts.
 - `side_wolves` **Wolves at the Mill.** Second paper on the notice board. Miller Gniewko: wolves took his dog. Track them to a den at the foot of the frozen falls; 4 wolves and a scarred alpha. Reward: 40 grosze, and Gniewko says his father never let anyone fish near the poles: "Warm water comes up there. The ice is never as thick as it looks." (`miller_warm_water`; Vesna can use it with Bogdan.)
+- `side_handbell` **The Hand-Bell.** Optional, after the wolves at the mill. Bożena, Gniewko's wife, wants her father-in-law's brass hand-bell rung at the ritual ring at dusk, three times, the way it was done against the spring hail on the orchard. He left it hanging on a pole of the ring and died the second winter. Journal: *Bożena, the miller's wife, wants her father-in-law's hand-bell rung at the ritual ring at dusk, three times, the way it was done against the hail. He left it tied to one of the poles. Pays 20 grosze.* Stages: take the bell from the pole (it is only an Examine until Bożena has asked), ring it inside the ring between 16:00 and 18:30 (at any other hour Vesna says "Dusk, she said." or "Past dusk." and nothing happens), tell Bożena. The sky answers: after the third ring a handful of herders (`G.spirits.gather`) drift in from all sides and hang over the ring for about a minute and a half, whatever the weather, then go back to their own business; the bell is tied back on its pole. Bożena: "And?" "Some of them came down." "They do that." Pays 20 grosze once. No main-story flag reads any of it.
 - `side_snow` **Snow Fight.** Day 2 morning, sledding hill. Ola and two kids ambush Vesna. 60-second snowball fight. Afterward, sitting on the sled, Ola asks: "Does it hurt? Drowning?" Choice: *the truth* ("For a bit. Then it doesn't.") or *a lie* ("It won't happen.") (`ola_truth` / `ola_lie`). Ola's last line in ending C changes with it.
 
 ---
@@ -378,6 +383,7 @@ Morning. Vesna saddles Kasza at the west gate. Weather matches the ending (sprin
 - **note_drawing** (kids' fort under the boardwalk): a child's charcoal drawing of a tall pale lady under wavy lines. Caption: "the ice lady. she is lonly. she wants her mama."
 - **note_smuggler** (marsh corpse): "Key to the burners' kilns, third mound. Do not drink it all before I'm back. B."
 - **note_wit** (bear den, inscription on the silver sword): "For Wit of the Lynx. Paid in full." (Vesna, examining it, quietly: "Wit." Nothing else.)
+- **The herders (section 7):** `note_almanac` (a ledger page nailed up beside the tavern's front door: weather signs read from the herders), `note_slate` (a fisherman's chalk slate on a stake at the ice camp, last row unfinished), `note_child_herders` (the children's second picture in the fort: "the herders. i counted 19. one is pink. dont go past 20."), `note_shrine_bells` (a complaint under the offering bowl on the shrine altar), `note_island_sky` (a second carving on the north side of the stone circle), `item_hand_bell`. Copy lives in `src/ui/content.js`; placement in `src/story/controller/clues.js` (`herders()`) and `side.js`.
 - **item_ring**: "A thin wedding ring on a string. Hanka's."
 - **item_bird**: "A waxwing carved from birch, the crest done with care. Never given."
 - **item_music_box**: "A tin music box with a crank. It plays one tune."
@@ -395,7 +401,8 @@ Fishermen: "Not past the poles. Never past the poles." / "Herring's thin this ye
 Children: "You're Marzanna!" "No, you are!" / "Witch! Do your eyes glow?" / (to each other) "If you look back she gets you!"
 Zbyszek: "Shut the door, you're letting the heat out." / "Wipe your boots."
 Dobra: "Straw, straw, straw." / "Hands, girl. Use your hands."
-Vesna (exploration, rare and short): "Kasza. Don't." / (finding a corpse) "Not long ago." / (low warmth) "Need a fire." / (on the horse, uphill) "Come on, girl."
+Vesna (exploration, rare and short): "Kasza. Don't." / (finding a corpse) "Not long ago." / (low warmth) "Need a fire." / (on the horse, uphill) "Come on, girl." / (the first time she has really looked at Matka Chmur) "That's a long way up." / (the hand-bell, too early) "Dusk, she said." / (too late) "Past dusk." / (the bell on its pole, before she is asked) "A hand-bell tied to the pole, a rag round the clapper."
+Herders (only once `planetnicy_seen`, now and then, never from the named cast; src/gameplay/npcs/barks.js `SKY_` pools): fishermen on a clear evening: "Low tonight. No snow by morning." / "They're thick over the poles. Hard frost." / "Low and many. Bring your water in." Fishermen otherwise: "Not one up since dawn. Snow by noon." / "They've gone high. Cover your nets." / "Can't see a single herder. I'm going home." Villagers after dark and clear: "Clear tonight. Bank the fire." / "They're down low. The well will freeze." / "Put your hand down. Not at them." By day: "Didn't see one this morning. I'm taking the washing in." / "They're sitting over the roofs again. It'll snow on somebody's yard." / "Put your hand down, you will lose a day." Children: "Nine! Ten!" / "There's a pink one! There's a pink one!" / "Stop at twenty, Kuba!" / "Don't talk to me, I'm at seventeen." Pairs: "Where are they today?" "Up. Snow by evening." / "Matka's early." "She's no earlier than yesterday." / "They're over the mill again." "They're always over the mill." Children: "Eleven. Twelve." "Stop at twenty." / "Is that Matka?" "That's a cloud." While Matka Chmur swells, nobody outdoors says anything.
 
 ---
 
@@ -404,3 +411,38 @@ Vesna (exploration, rare and short): "Kasza. Don't." / (finding a corpse) "Not l
 - All cutscenes are skippable (hold Space). Skipping must land the world in the scene's end state (flags, time, weather, positions).
 - Decisive choices pause nothing in the world except the choice timer; the camera holds on faces.
 - Time and weather beats: C1 blizzard 14:30, C2 clear 15:40, C3 ~16:30, night 1 aurora (rest to 21:00), dawn fog 7:30 day 2, the rite at 20:00 day 2 rising blizzard, endings at dawn.
+
+---
+
+## 7. The herders (planetnicy) in the script
+
+The sky spirits (src/world/Spirits.js: bell, saucer, lantern and comb shapes, schools of sparks, and the one huge
+Matka Chmur) are woven into the script as ordinary weather. Rules for anyone adding to it:
+- Villagers say **herders** (plural, flat, like "geese") and **Matka** for the big one. Never jellyfish, medusa or
+  anything from the sea. The bestiary and the journal use *Płanetnicy* and *Matka Chmur*; the villagers mostly do not.
+- Nobody explains them or marvels at them. People read them for tomorrow's snow, complain about them, count them
+  as children do, and keep small customs: do not point, do not whistle, stop counting at twenty, cap off and mouth
+  shut while Matka swells (about half a minute), a heel of bread on the ice for her on the first clear night, and
+  the old hand-bell at the ring. Vesna is the outsider and notices them once or twice, briefly and plainly.
+- The weather signs match what the spirits system really does: low and many over the ice on a clear still night
+  means no snow and a hard frost; high and few means snow before noon; none at all means it is snowing already.
+- Bark pools and the new notes are gated on `planetnicy_seen`, so the player knows who is being talked about.
+
+What was added (all optional; no existing node id, flag, condition or outcome changed):
+
+| Where | What |
+|---|---|
+| `zbyszek_hub.js` | Hub topic `sky1` (needs `planetnicy_seen`): "Low or high?", and what each means; sends her to the page by the door. `a1n`: two night greetings on day 1 (the window full of people counting). A new `d1` greeting: not a herder up all day, snow by dark. |
+| `bogdan_first.js` | Hub topic `wx1`: the pass and the weather ("Ask the old women, they go by the herders. I've the sacks to count."). |
+| `bogdan_day2.js` | `rite5b`: no herder up over the lake, so snow by dark and trouble for the torches. |
+| `ola_day1.js` | Hub topic `cn1`: she is counting them; Kuba's rule about twenty; she got to eighteen once (sets `herders_counted`). |
+| `dobra_rite.js` | Hub topic `mt1` (needs `matka_seen`): Matka goes round, "never once looked down". |
+| `miller.js` | Hub topic `sk1` (needs `planetnicy_seen`): they sit over the wheel since it froze, then it snows in the yard. |
+| `miller_wife.js` | After the wolves: a hub. `sk1`: the complaint. `bl1`: the hand-bell, the orchard, her father-in-law (asks, and sets `handbell_asked` if Vesna says she will look). `rm1`: the reminder. `rw1`: the payment ("They do that."). First-talk and repeat greetings split (`a1`, `g1`). |
+| `src/gameplay/npcs/barks.js` | `SKY_` pools and pairs; silence while Matka swells. |
+| `src/ui/content.js` | Five notes and `item_hand_bell`; the bestiary now has *Płanetnicy* and *Matka Chmur* with observations that unlock as Vesna sees things (`more:` lists). |
+| `src/story/controller/world.js` | `sky()`: sets `planetnicy_night`, `planetnicy_sparks`, `planetnicy_low`, `matka_seen`, `matka_pulse` from what the camera is actually looking at. |
+| `src/story/controller/side.js`, `quests.js` | The Hand-Bell. |
+| `src/world/Spirits.js` | `G.spirits.gather(x, z, opts)` for the bell. |
+
+Needs voicing: every new dialogue line, bark and the Vesna asides above (run `node scripts/voice/extract.mjs --report`).

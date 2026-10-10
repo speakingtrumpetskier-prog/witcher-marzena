@@ -332,7 +332,7 @@ function sky(C) {
 
   // Her one remark, the first time she has really looked at the big one.
   C.watch('matka_seen', (v) => {
-    if (v) C.later(1.5, () => { if (!C.busy()) C.say("That's a long way up.", 2.6); });
+    if (v && G.spirits) C.later(1.5, () => { if (!C.busy()) C.say("That's a long way up.", 2.6); });
   });
 }
 

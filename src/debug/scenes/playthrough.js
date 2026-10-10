@@ -561,7 +561,7 @@ async function run(G, O, report) {
     let seedv = 7;
     const rnd = () => { seedv = (seedv * 16807) % 2147483647; return seedv / 2147483647; };
     const villager = { id: 'villager_m_1', preset: 'villager_m_1', station: { tag: '' }, def: {}, position: { x: 0, z: 100 } };
-    G.time.setHours(21);
+    G.time.setHours(19.2); // after dark, but before 20:00 when night one begins by itself
     G.weather.set('clear', 0);
     const heard = new Set();
     for (let i = 0; i < 120; i++) { const line = chooseBark(G, villager, rnd); if (line) heard.add(line); }

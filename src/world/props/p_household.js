@@ -375,7 +375,7 @@ export function birdCarving(o = {}) {
 export function handBell(o = {}) {
   const k = new Kit('handBell', Object.assign({ indoor: true }, o));
   k.push({ yaw: o.yaw || 0 });
-  const brass = 0xb4893a, tarnish = 0x6e8c68, cord = 0x9a8668;
+  const brass = 0xd2a548, tarnish = 0x7f9c76, cord = 0xa8946f;
   k.lathe('iron', [[0.063, 0.0], [0.061, 0.008], [0.052, 0.04], [0.041, 0.08], [0.03, 0.112], [0.02, 0.13], [0.012, 0.14], [0.001, 0.146]], { radial: 14, tint: brass, grime: 0.35, var: 0.06 });
   k.cyl('iron', 0.0645, 0.0635, 0.016, { pos: [0, 0.008, 0], radial: 14, cap: null, tint: tarnish, grime: 0.2, var: 0.08 });
   k.torus('iron', 0.016, 0.004, { pos: [0, 0.158, 0], rot: [0, Math.PI / 2, 0], seg: 10, rseg: 5, tint: brass, grime: 0.3 });

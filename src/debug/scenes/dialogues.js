@@ -88,6 +88,8 @@ export async function init(G) {
     async targeted({ only = null } = {}) {
       const text = (re) => (node, items) => { const i = items.findIndex((x) => re.test(x.text)); return i >= 0 ? i : items.findIndex((x) => x.exit) >= 0 ? items.findIndex((x) => x.exit) : 0; };
       const exitNow = (node, items) => { const i = items.findIndex((x) => x.exit); return i >= 0 ? i : 0; };
+      // answers that match the given patterns one after the other, then the way out
+      const inOrder = (...res) => { let n = 0; return (node, items) => { const re = res[n++]; const i = re ? items.findIndex((x) => re.test(x.text)) : -1; return i >= 0 ? i : exitNow(node, items); }; };
       const timeout = () => -1;
       const cases = [
         ['hanka_confront timeout', 'hanka_confront', { picker: timeout, flags: { echo_seen: true } }, (r, S) => S.flag('hanka_blamed') && S.flag('hanka_confronted')],
@@ -107,6 +109,18 @@ export async function init(G) {
         ['zbyszek bed', 'zbyszek_hub', { picker: text(/bed/), flags: { met_zbyszek: true } }, (r) => r.end === 'rest_dusk'],
         ['ola snow truth', 'ola_snowfight_after', { picker: text(/For a bit/), flags: {} }, (r, S) => S.flag('ola_truth') && !S.flag('ola_lie')],
         ['ola snow lie', 'ola_snowfight_after', { picker: text(/won't happen/), flags: {} }, (r, S) => S.flag('ola_lie') && !S.flag('ola_truth')],
+        // the herders (planetnicy) as ordinary weather
+        ['herders: ola counts the herders', 'ola_day1', { picker: text(/counting/), flags: {} }, (r, S) => S.flag('herders_counted') && r.text.some((l) => /past twenty/.test(l))],
+        ['herders: bogdan on the weather', 'bogdan_first', { picker: text(/weather/), flags: {} }, (r) => r.text.some((l) => /old women/.test(l))],
+        ['herders: bogdan day 2 reads the lake', 'bogdan_day2', { picker: 'first', flags: { met_bogdan: true }, day: 2 }, (r) => r.text.some((l) => /herder up/.test(l))],
+        ['herders: zbyszek reads the lights, low', 'zbyszek_hub', { picker: text(/lights over the lake|^Low\./), flags: { met_zbyszek: true, planetnicy_seen: true } }, (r) => r.text.some((l) => /Then it's clear/.test(l)) && r.text.some((l) => /point at them/.test(l))],
+        ['herders: zbyszek reads the lights, high', 'zbyszek_hub', { picker: text(/lights over the lake|^High\./), flags: { met_zbyszek: true, planetnicy_seen: true } }, (r) => r.text.some((l) => /snow before noon/.test(l))],
+        ['herders: zbyszek after dark on day 1', 'zbyszek_hub', { picker: exitNow, flags: { met_zbyszek: true }, day: 1, hour: 21 }, (r) => r.text.some((l) => /count them|will freeze/.test(l))],
+        ['herders: dobra on Matka', 'dobra_rite', { picker: text(/very big/), flags: { matka_seen: true } }, (r) => r.text.some((l) => /never once looked down/.test(l))],
+        ['herders: miller on the wheel', 'miller', { picker: text(/lights are sitting/), flags: { planetnicy_seen: true } }, (r) => r.text.some((l) => /Two winters/.test(l))],
+        ['herders: miller_wife asks for the bell', 'miller_wife', { picker: text(/company|What bell|look for it/), flags: { wolves_mill_done: true, planetnicy_seen: true } }, (r, S) => S.flag('handbell_asked') && S.flag('herders_over_yard') && !S.flag('handbell_paid')],
+        ['herders: miller_wife declines, nothing set', 'miller_wife', { picker: inOrder(/Is there anything/, /Not today/), flags: { wolves_mill_done: true } }, (r, S) => !S.flag('handbell_asked') && r.text.some((l) => /out there two years/.test(l))],
+        ['herders: miller_wife pays once', 'miller_wife', { picker: 'first', flags: { wolves_mill_done: true, handbell_asked: true, handbell_rung: true } }, (r, S) => S.flag('handbell_paid') && S.count('coins') === 170],
       ];
       const results = [];
       window.__MZ_ERRORS = window.__MZ_ERRORS || [];

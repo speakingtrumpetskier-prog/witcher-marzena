@@ -137,7 +137,7 @@ function herders(C, readAt) {
   const hole = L.iceCamp?.holes?.[2];
   if (hole) {
     const x = hole.x + 1.7, z = hole.z - 1.1;
-    const stake = new THREE.Mesh(new THREE.BoxGeometry(0.06, 1.0, 0.06), new THREE.MeshStandardMaterial({ color: 0x6a5642, roughness: 1 }));
+    const stake = new THREE.Mesh(new THREE.BoxGeometry(0.06, 1.0, 0.06), new THREE.MeshStandardMaterial({ color: 0x3b322a, roughness: 1 }));
     stake.name = 'note_slate_stake';
     put(stake, x, 0.5, z);
     const cx = L.iceCamp.center.x, cz = L.iceCamp.center.z;
@@ -156,8 +156,8 @@ function herders(C, readAt) {
   // A complaint, left under the offering bowl on the shrine altar.
   const alt = V.shrineAltar;
   if (alt) {
-    const x = alt.x - 0.4, y = alt.y + 0.02, z = alt.z;
-    put(makePaper({ w: 0.2, h: 0.14, rows: 4, seed: 5, tone: '#cdbf99' }), x, y, z, 0.3, -Math.PI / 2);
+    const x = alt.x - 0.4, y = alt.y + 0.13, z = alt.z;
+    put(makePaper({ w: 0.22, h: 0.16, rows: 4, seed: 5, tone: '#cdbf99' }), x, y, z, 0.3, -Math.PI / 2 + 0.12);
     readAt('shrine_paper', C.v3(x, y + 0.2, z + 0.1), 'Paper under the bowl', 'note_shrine_bells', { radius: 1.9 });
   }
 

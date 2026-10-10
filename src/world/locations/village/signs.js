@@ -182,8 +182,8 @@ export function makeSlate({ w = 0.34, h = 0.25, seed = 7 } = {}) {
   tex.colorSpace = THREE.SRGBColorSpace;
   tex.anisotropy = 4;
   const group = new THREE.Group();
-  const frame = new THREE.Mesh(new THREE.BoxGeometry(w + 0.05, h + 0.05, 0.03), new THREE.MeshStandardMaterial({ color: 0x5a4636, roughness: 1 }));
-  const face = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshStandardMaterial({ map: tex, roughness: 0.9 }));
+  const frame = new THREE.Mesh(new THREE.BoxGeometry(w + 0.05, h + 0.05, 0.03), new THREE.MeshStandardMaterial({ color: 0x3a2e24, roughness: 1 }));
+  const face = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshStandardMaterial({ map: tex, color: 0xb8bcc0, roughness: 0.9 }));
   face.position.z = 0.0165;
   frame.castShadow = true;
   group.add(frame, face);
