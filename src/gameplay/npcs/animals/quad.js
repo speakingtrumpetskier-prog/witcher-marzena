@@ -42,20 +42,23 @@ export const SPECS = {
       { fur: 0x6a5848, belly: 0xb8a488, dark: 0x241e1a, light: 0xd0bc9c },
     ],
   },
+  // Goat legs are sturdy (thin ones read as sticks under the barrel), and the pale coat is a warm
+  // dirty cream so it does not wash out against the snow.
   goat: {
-    len: 0.88, h: 0.62, bodyR: 0.19, legR: 0.034, headR: 0.095, snout: 0.09, neckLen: 0.1, earKind: 'side', tail: 'short', tailLen: 0.1, horns: true, beard: true,
+    len: 0.88, h: 0.62, bodyR: 0.19, legR: 0.048, headR: 0.095, snout: 0.09, neckLen: 0.1, earKind: 'side', tail: 'short', tailLen: 0.1, horns: true, beard: true,
     palettes: [
-      { fur: 0xc4b9a4, belly: 0xded4c0, dark: 0x4a4038, light: 0xe6dcc8 },
+      { fur: 0xa8987e, belly: 0xc8baa0, dark: 0x3e352c, light: 0xd6c8ae },
       { fur: 0x8a7a68, belly: 0xc4b8a2, dark: 0x2e2824, light: 0xd8ccb6 },
       { fur: 0x5a4c40, belly: 0xa8967c, dark: 0x1e1a16, light: 0xd8c8aa },
     ],
   },
+  // A full-grown farm cat, with coats that hold up against snow at a distance (a tabby, a black, a ginger).
   cat: {
-    len: 0.4, h: 0.27, bodyR: 0.072, legR: 0.02, headR: 0.056, snout: 0.03, neckLen: 0.05, earKind: 'prick', tail: 'long', tailLen: 0.3,
+    len: 0.46, h: 0.3, bodyR: 0.082, legR: 0.024, headR: 0.064, snout: 0.034, neckLen: 0.055, earKind: 'prick', tail: 'long', tailLen: 0.34,
     palettes: [
-      { fur: 0x6a5a4c, belly: 0xc8b8a0, dark: 0x2a2420, light: 0xe0d4c0 },
-      { fur: 0x2a2624, belly: 0x5a504a, dark: 0x141210, light: 0x8a7e72 },
-      { fur: 0xc8a068, belly: 0xf0e0c0, dark: 0x5a3e24, light: 0xf6ead0 },
+      { fur: 0x5a4a3c, belly: 0xb8a68c, dark: 0x221c18, light: 0xd8c8b0 },
+      { fur: 0x1e1b1a, belly: 0x4a423c, dark: 0x0e0c0b, light: 0x7a6e62 },
+      { fur: 0xb8823e, belly: 0xead2a8, dark: 0x4a3018, light: 0xf2e2c4 },
     ],
   },
 };
