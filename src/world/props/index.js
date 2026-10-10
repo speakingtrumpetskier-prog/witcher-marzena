@@ -34,11 +34,13 @@ import * as ritual from './p_ritual.js';
 import * as misc from './p_misc.js';
 
 const MODULES = [basic, work, household, fishing, ritual, misc];
+const HELPERS = new Set(['folkRect', 'fishShape', 'addFish', 'linenFace', 'strawWreath']);
 
 const raw = {};
 for (const m of MODULES) {
   for (const [name, fn] of Object.entries(m)) {
-    if (typeof fn === 'function' && !name.startsWith('_') && name !== 'folkRect' && name !== 'fishShape' && name !== 'addFish') raw[name] = fn;
+    // Helpers that build parts into another prop's kit (they take a kit, not options) are not props.
+    if (typeof fn === 'function' && !name.startsWith('_') && !HELPERS.has(name)) raw[name] = fn;
   }
 }
 
