@@ -339,6 +339,10 @@ async function run(G, O, report) {
   G.time.scale = 0;
   god();
   G.story.timeScale = 3;
+  // The spirits module is not part of this run, so the sky never tells the story that the player has looked up
+  // at the herders or at Matka Chmur. Stand in for it: dialogue topics and barks about them are gated on these.
+  S.set('planetnicy_seen');
+  S.set('matka_seen');
 
   // ---- Q1: the pass ---------------------------------------------------------------------------------
   if (wants('main_pass:pass')) {
@@ -490,6 +494,83 @@ async function run(G, O, report) {
     await talkTo('miller');
     flagOK(['miller_warm_water'], 'miller told her about the warm water');
     ok('side_wolves done, 40 grosze', G.quests.isDone('side_wolves'), `stage=${stage('side_wolves')} done=${G.quests.isDone('side_wolves')}`);
+    G.time.setHours(17.9);
+
+    // ---- the herders: the miller's wife asks for the hand-bell (optional side quest, main story untouched) ----
+    step('side: hand-bell');
+    placeAt(362, -55, 0);
+    await wait(2);
+    ok('no hand-bell quest before she is asked', !G.quests.rec('side_handbell'));
+    await talkTo('miller_wife');
+    flagOK(['bozena_after', 'herders_over_yard', 'handbell_asked'], 'Bozena told her about the bell and she agreed');
+    ok('side_handbell started at find', stage('side_handbell') === 'find', `stage=${stage('side_handbell')}`);
+    ok('the main story did not move', stage('main_straw') === 'night', `main_straw=${stage('main_straw')}`);
+
+    const RR = G.world.locations.ritual;
+    placeAt(RR.center.x + 6, RR.center.z + 12, Math.PI);
+    await wait(1);
+    await useIt('ctl:bell_take', { wantPrompt: true });
+    flagOK(['handbell_taken'], 'hand-bell taken off its pole');
+    ok('hand-bell in the pack', S.count('hand_bell') === 1, `hand_bell=${S.count('hand_bell')}`);
+    ok('note read: item_hand_bell', notesRead.includes('item_hand_bell'));
+    ok('side_handbell at ring', stage('side_handbell') === 'ring', `stage=${stage('side_handbell')}`);
+
+    G.time.setHours(12);
+    await useIt('ctl:bell_ring', { wantPrompt: true });
+    ok('the bell is not rung at noon', !S.flag('handbell_rung') && S.count('hand_bell') === 1, `rung=${S.flag('handbell_rung')}`);
+    G.time.setHours(17.8);
+    const gathers = [];
+    G.spirits = { gather: (x, z, o) => { gathers.push({ x, z, o }); return o?.count ?? 0; } };
+    await useIt('ctl:bell_ring', { wantPrompt: true });
+    await waitFor(() => S.flag('handbell_rung'), 40, 'bell rung');
+    delete G.spirits;
+    flagOK(['handbell_rung'], 'bell rung at dusk');
+    repair('handbell_rung');
+    ok('the sky was asked to answer once, over the ring', gathers.length === 1 && Math.hypot(gathers[0].x - RR.center.x, gathers[0].z - RR.center.z) < 1, JSON.stringify(gathers));
+    ok('the bell is back on its pole, not in the pack', S.count('hand_bell') === 0, `hand_bell=${S.count('hand_bell')}`);
+    ok('side_handbell at tell', stage('side_handbell') === 'tell', `stage=${stage('side_handbell')}`);
+
+    G.time.setHours(17.9);
+    placeAt(362, -55, 0);
+    await wait(2);
+    const coinsBefore = S.count('coins');
+    await talkTo('miller_wife');
+    flagOK(['handbell_paid'], 'Bozena paid for the bell');
+    ok('20 grosze, once', S.count('coins') === coinsBefore + 20, `coins ${coinsBefore} -> ${S.count('coins')}`);
+    ok('side_handbell done', G.quests.isDone('side_handbell'), `stage=${stage('side_handbell')}`);
+    ok('the main story still did not move', stage('main_straw') === 'night', `main_straw=${stage('main_straw')}`);
+
+    // ---- the herders: five small notes, the bestiary that grows with them, and what the villagers say ----
+    step('side: herders');
+    for (const [iid, nid] of [['ctl:almanac', 'note_almanac'], ['ctl:slate', 'note_slate'], ['ctl:child_herders', 'note_child_herders'], ['ctl:shrine_paper', 'note_shrine_bells'], ['ctl:island_sky', 'note_island_sky']]) {
+      await useIt(iid, { wantPrompt: true });
+      ok(`note read: ${nid}`, notesRead.includes(nid));
+    }
+    flagOK(['herders_counted'], 'the children\'s picture counts');
+    const bestiary = () => G.uiImpl?.journal?.bestiaryRows?.() || [];
+    let hr = bestiary().find((b) => b.id === 'planetnicy'), mk = bestiary().find((b) => b.id === 'matka_chmur');
+    ok('bestiary: the herders entry has grown with the notes and the bell', !!hr?.open && hr.paras.length === 5, `open=${hr?.open} paras=${hr?.paras?.length}`);
+    ok('bestiary: Matka Chmur has her own entry and the island carving', !!mk?.open && mk.paras.length === 3, `open=${mk?.open} paras=${mk?.paras?.length}`);
+    for (const f of ['planetnicy_night', 'planetnicy_sparks', 'planetnicy_low', 'matka_pulse']) S.set(f);
+    hr = bestiary().find((b) => b.id === 'planetnicy'); mk = bestiary().find((b) => b.id === 'matka_chmur');
+    ok('bestiary: every observation unlocks', hr?.paras.length === 8 && mk?.paras.length === 4, `herders=${hr?.paras?.length} matka=${mk?.paras?.length}`);
+    ok('bestiary: nothing marine in the herders\' entries', ![...hr.paras, ...mk.paras].some((p) => /jelly|medus|sea|ocean|tentacle/i.test(p)));
+
+    // Barks: clear night, a villager by the shore talks about them now and then; while Matka swells nobody speaks.
+    const { chooseBark } = await import('../../gameplay/npcs/barks.js');
+    let seedv = 7;
+    const rnd = () => { seedv = (seedv * 16807) % 2147483647; return seedv / 2147483647; };
+    const villager = { id: 'villager_m_1', preset: 'villager_m_1', station: { tag: '' }, def: {}, position: { x: 0, z: 100 } };
+    G.time.setHours(21);
+    G.weather.set('clear', 0);
+    const heard = new Set();
+    for (let i = 0; i < 120; i++) { const line = chooseBark(G, villager, rnd); if (line) heard.add(line); }
+    ok('barks: a villager talks about the herders on a clear night', [...heard].some((l) => /Clear tonight|well will freeze|Put your hand down/.test(l)), [...heard].join(' | ').slice(0, 160));
+    G.spirits = { cathedral: { pulse: 0.9 } };
+    let spoke = 0;
+    for (let i = 0; i < 60; i++) if (chooseBark(G, villager, rnd)) spoke++;
+    delete G.spirits;
+    ok('barks: nobody speaks while Matka swells', spoke === 0, `spoke=${spoke}`);
     G.time.setHours(17.9);
   }
 

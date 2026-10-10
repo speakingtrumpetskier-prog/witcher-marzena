@@ -31,7 +31,7 @@ export const SFX_GROUPS = {
   horse: ['horse_whinny', 'horse_snort', 'hoof_walk', 'hoof_trot', 'hoof_gallop', 'whistle'],
   world: [
     'door', 'door_close', 'page_turn', 'coin', 'item_pickup', 'potion_drink', 'forge_hammer',
-    'axe_chop', 'snowball_hit', 'heartbeat', 'ignite', 'gust',
+    'axe_chop', 'snowball_hit', 'heartbeat', 'ignite', 'gust', 'hand_bell',
   ],
   creatures: ['dog_bark', 'crow', 'raven', 'chicken', 'goat', 'child_laugh', 'owl', 'bird'],
   ui: ['ui_select', 'ui_hover', 'ui_open', 'ui_close'],

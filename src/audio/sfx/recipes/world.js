@@ -111,6 +111,19 @@ export const WORLD = {
     variants: 2, rate: 16000, heavy: true, gain: 0.6, ref: 40, max: 1200, pitchVar: 0, verb: 0.5, poly: 2,
     bake: (sr, r, i) => renderBell(sr, r, i ? 45 : 50, true),
   },
+  // A brass hand-bell shaken once (the herders' bell, side quest "The Hand-Bell"): a bright strike, partials that
+  // are not whole multiples, a ring of about two seconds.
+  hand_bell: {
+    variants: 3, gain: 0.5, ref: 16, max: 500, pitchVar: 0.03, verb: 0.4, poly: 3,
+    bake: (sr, r, i) => {
+      const dur = 2.6, b = new Float32Array(len(sr, dur));
+      const f = [1480, 1560, 1397][i % 3];
+      mix(b, ring(sr, r, dur, f, [1, 2.02, 2.76, 4.1, 5.43], { decay: 0.55, amps: [1, 0.55, 0.4, 0.22, 0.12] }), 0.8);
+      mix(b, burst(sr, r, 0.01, { hp: 2500, env: { a: 0.0002, d: 0.002 } }), 0.35);
+      mix(b, ring(sr, r, 1.2, f * 0.5, [1, 2.4], { decay: 0.25 }), 0.2);
+      return done(b, sr, 9500);
+    },
+  },
   boss_scream: {
     variants: 3, heavy: true, gain: 0.6, ref: 15, max: 600, pitchVar: 0.04, verb: 0.4, poly: 1,
     bake: (sr, r) => {

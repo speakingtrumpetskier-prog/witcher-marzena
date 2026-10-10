@@ -6,6 +6,7 @@
 //   side_wolves   the mill: the den below the frozen falls (wolves spawn near, vanish when left behind), the dog's collar
 //   the bear      asleep in its den; the silver sword of Wit of the Lynx beside the old hunter (flag wit_sword)
 //   island        the carved stones (note_island), Bogdan's boot prints, the place of power (flag island_power)
+//   side_handbell Bozena's hand-bell: take it off its pole at the ritual ring, ring it there at dusk, tell her
 import { props } from '../../world/props/index.js';
 
 export function install(C) {
@@ -15,6 +16,7 @@ export function install(C) {
   wolves(C);
   bear(C);
   island(C);
+  handbell(C);
 }
 
 // ---- A Bird for Wiesia ------------------------------------------------------------------------
@@ -209,6 +211,98 @@ function island(C) {
       await C.sleep(0.6);
       C.set('island_power');
       C.notify('Ember burns hotter', 'item');
+    },
+  });
+}
+
+// ---- The Hand-Bell ------------------------------------------------------------------------------
+// Bozena (miller_wife.js) asks Vesna to ring her father-in-law's hand-bell at the ritual ring at dusk, the way
+// it was done against the spring hail. The bell hangs on a pole of the ring. Once she has been asked
+// (handbell_asked) Vesna can take it (handbell_taken); at dusk she rings it three times inside the ring; a few
+// herders drift down over the ice and stay a while (G.spirits.gather), and the bell is tied back on its pole
+// (handbell_rung). Bozena pays 20 grosze in her dialogue (handbell_paid) and the quest is done. Optional:
+// nothing in the main story reads any of these flags.
+function handbell(C) {
+  const { G, S } = C;
+  const R = C.L.ritual;
+  if (!R?.ring?.poles?.length) return;
+  const DUSK = [16.0, 18.6];
+
+  // The pole: on the shore side of the ring, where anyone walking out from the village comes first.
+  const want = { x: R.center.x + 8, z: R.center.z + 9 };
+  const dist = (p) => Math.hypot(p.x - want.x, p.z - want.z);
+  const pole = R.ring.poles.reduce((best, p) => (dist(p) < dist(best) ? p : best));
+  const inX = R.center.x - pole.x, inZ = R.center.z - pole.z, il = Math.hypot(inX, inZ) || 1;
+  const bx = pole.x + (inX / il) * 0.2, bz = pole.z + (inZ / il) * 0.2;
+  const bellY = 1.0;
+
+  // The prop: on its pole until Vesna has it, and back on the pole once it has been rung.
+  let prop = null;
+  function showBell() {
+    const on = !C.has('handbell_taken') || C.has('handbell_rung');
+    if (on && !prop) {
+      try {
+        prop = props.handBell({ seed: 2 });
+        prop.position.set(bx, bellY, bz);
+        prop.rotation.y = Math.atan2(-(pole.z - bz), pole.x - bx); // its cord runs toward local +x, the pole
+        G.scene.add(prop);
+      } catch (e) { console.warn('[story controller] hand-bell prop', e.message); prop = null; }
+    } else if (!on && prop) {
+      G.scene.remove(prop);
+      prop = null;
+    }
+  }
+  C.restore(showBell);
+  C.watch('handbell_taken', showBell);
+  C.watch('handbell_rung', showBell);
+
+  const at = C.v3(bx, bellY - 0.1, bz);
+  // Before anyone has asked her to: only a look.
+  C.interact({
+    id: 'bell_look', pos: at, radius: 1.8, verb: 'Examine', label: 'Hand-bell on the pole',
+    enabled: () => !C.has('handbell_asked') && !C.has('handbell_taken'),
+    onUse: async () => { C.say('A hand-bell tied to the pole, a rag round the clapper.', 3.2); },
+  });
+  C.interact({
+    id: 'bell_take', pos: at, radius: 1.9, verb: 'Take', label: 'Hand-bell',
+    enabled: () => C.has('handbell_asked') && !C.has('handbell_taken'),
+    onUse: async () => {
+      G.player?.character?.play?.('crouch_examine', { loop: false, fade: 0.25 });
+      await C.sleep(0.6);
+      await C.read('item_hand_bell');
+      C.pickup('hand_bell', 'Hand-bell');
+      C.set('handbell_taken');
+      if (!G.quests.rec('side_handbell')) G.quests.start('side_handbell');
+    },
+  });
+
+  // The ringing: anywhere inside the ring, at dusk, three times.
+  let ringing = false;
+  C.interact({
+    id: 'bell_ring', pos: C.v3(R.center.x, 1.0, R.center.z + 3), radius: 9, facing: false, verb: 'Ring', label: 'Hand-bell',
+    enabled: () => C.has('handbell_taken') && !C.has('handbell_rung') && S.has('hand_bell') && !ringing,
+    onUse: async () => {
+      const h = C.hour();
+      if (h < DUSK[0] || h >= DUSK[1]) { C.say(h < DUSK[0] ? 'Dusk, she said.' : 'Past dusk.', 2.4); return; }
+      ringing = true;
+      const P = G.player;
+      P?.setControl?.(false);
+      try {
+        for (let i = 0; i < 3; i++) {
+          C.sfx('hand_bell', { volume: 0.9 });
+          await C.sleep(1.8);
+        }
+        await C.sleep(2.5);
+        G.spirits?.gather?.(R.center.x, R.center.z, { count: 6, secs: 85, alt: 55, spread: 46 });
+      } finally {
+        P?.setControl?.(true);
+      }
+      // Let them arrive before the book is written in.
+      C.later(7, () => {
+        S.take('hand_bell', 1);
+        C.set('handbell_rung');
+        ringing = false;
+      });
     },
   });
 }

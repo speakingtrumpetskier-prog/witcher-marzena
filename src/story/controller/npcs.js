@@ -93,7 +93,11 @@ export function install(C) {
     },
 
     async miller_wife() {
+      const coins = C.count('coins'), paid = C.has('handbell_paid');
       await C.talk('miller_wife');
+      // The hand-bell (side.js): once she has agreed to look for it, it is in the book; she pays when it is rung.
+      if (C.has('handbell_asked') && !G.quests.rec('side_handbell')) G.quests.start('side_handbell');
+      if (C.has('handbell_paid') && !paid) C.ensureGain('coins', coins, 20);
     },
   };
 

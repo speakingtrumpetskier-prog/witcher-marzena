@@ -176,7 +176,7 @@ export const BESTIARY = [
       { when: (S) => !!S.flag('planetnicy_low'), text: 'On clear still nights a few come down over the ice, well below the top of the tower. They keep to the lake and the marsh and thin out over the village roofs.' },
       { when: (S) => !!S.data.notes?.includes('note_almanac'), text: 'Zbyszek has a page of weather signs nailed up by the tavern door. Low and many means clear and a hard frost. High and few means snow before noon. If there are none to be seen, it is snowing already. The fishermen go by it.' },
       { when: (S) => !!(S.flag('herders_counted') || S.data.notes?.includes('note_child_herders')), text: 'The children count them, and they stop at twenty. Ola says nobody has got past twenty.' },
-      { when: (S) => !!S.flag('handbell_done'), text: 'Rang a hand-bell at the ritual ring at dusk, three times, the way it was done. A handful of them came down over the ice from different sides and stayed a while, then went back up. Bożena says they do that.' },
+      { when: (S) => !!S.flag('handbell_rung'), text: 'Rang a hand-bell at the ritual ring at dusk, three times, the way it was done. A handful of them came down over the ice from different sides and stayed a while, then went back up. Bożena says they do that.' },
     ],
     beware: 'Do not point at them, and do not whistle. That is how you lose a day, or a year.',
   },
