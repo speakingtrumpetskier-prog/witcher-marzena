@@ -85,7 +85,7 @@ export function install(C, K) {
         // her remark, once, when she first sees them over the kill from the track
         if (!C.has('carcass_said') && alive.length && !G.story?.busy && C.dist(spot.x, spot.z) < 34 && G.cameraOwner === 'rig') {
           C.set('carcass_said');
-          K.say("Wolves at a kill. They'll leave me alone if I leave them alone.", 4.2);
+          K.say("Wolves on a kill. They haven't seen me.", 4.2);
         }
       });
       K.begin('side_carcass');

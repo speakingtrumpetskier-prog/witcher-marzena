@@ -12,7 +12,8 @@ import { props } from '../../../world/props/index.js';
 import { SPECS } from './people.js';
 
 const H = { x: 292, z: -80 }, H2 = { x: 295.6, z: -78.6 }, WINDOW = [6.5, 11];
-const OLD_AT = { x: H.x, z: H.z - 1.5 }, YOUNG_AT = { x: H.x + 0.2, z: H.z + 1.6 };
+const OLD_AT = { x: H.x, z: H.z - 1.5 }, YOUNG_AT = { x: H.x + 0.2, z: H.z + 1.6 }; // where they fish (Wacław on his stool)
+const OLD_STAND = { x: H.x - 1.1, z: H.z - 1.2 }; // where he stands while they argue
 
 const ARGUE = [
   ['old', 'My father cut this hole.'], ['young', "Your father's not here."], ['old', 'Move your bucket.'],
@@ -66,6 +67,15 @@ export function install(C, K) {
     });
   }
 
+  // Wacław goes to his stool at the hole and fishes
+  async function sitDown(old) {
+    old.walkTo(OLD_AT.x, OLD_AT.z, { speed: 1.2 });
+    await C.until(() => old._walk == null, 6, 0.2);
+    old.yaw = 0;
+    old.play('fish_ice', { loop: true, fade: 0.4 });
+    rod(old);
+  }
+
   async function talk(bag, old, young) {
     const r = await C.talk('rs_fishers', { actors: { fisher_old: old, fisher_young: young } });
     if (!G.quests.rec('side_fishers')) K.begin('side_fishers');
@@ -79,8 +89,7 @@ export function install(C, K) {
       if (how === 'old') {
         K.finish('fishers_settled', 'old');
         leave(bag, young, [{ x: 318, z: -68 }, { x: 330, z: -44 }]);
-        old.play('fish_ice', { loop: true, fade: 0.4 });
-        rod(old);
+        await sitDown(old);
       } else if (how === 'young') {
         K.finish('fishers_settled', 'young');
         leave(bag, old, [{ x: 312, z: -104 }, { x: 332, z: -112 }]);
@@ -101,8 +110,7 @@ export function install(C, K) {
         young.yaw = Math.PI;
         young.play('fish_ice', { loop: true, fade: 0.4 });
         rod(young);
-        old.play('fish_ice', { loop: true, fade: 0.4 });
-        rod(old);
+        await sitDown(old);
         bag.busy = false;
       }
     } catch (e) { bag.busy = false; throw e; }
@@ -113,10 +121,10 @@ export function install(C, K) {
     build(bag) {
       const res = settled();
       bag.onFree(() => { st.old = null; st.young = null; st.argue = false; });
-      const place =(spec, at, yaw, anim) => bag.char(spec, { x: at.x, z: at.z, yaw, anim, lowDetail: true });
+      const place = (spec, at, yaw, anim) => bag.char(spec, { x: at.x, z: at.z, yaw, anim, lowDetail: true });
       if (!res) {
         // the quarrel
-        const old = place(SPECS.fisherOld(), OLD_AT, 0, 'hands_hips');
+        const old = place(SPECS.fisherOld(), OLD_STAND, 0.5, 'hands_hips');
         const young = place(SPECS.fisherYoung(), YOUNG_AT, Math.PI, 'cross_arms');
         st.old = old; st.young = young;
         bag.talkTo(old, { id: 'rs_fishers_old', label: 'Wacław', enabled: () => bag.live && !bag.busy, onUse: () => talk(bag, old, young) });

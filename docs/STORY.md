@@ -77,6 +77,13 @@ reads like writing, cut it or make it plainer.
 | `dice_known`, `dice_zbyszek_met`, `dice_met_wojtek`, `dice_met_halina` | Kosci: somebody has explained the dice game to her (starts the side quest), Zbyszek's explanation, her first talk at the middle table |
 | `dice_beat_zbyszek`, `dice_beat_wojtek`, `dice_beat_halina` | A whole match won against that player (set by the game, src/minigames/dice/game.js; a lost or abandoned match sets nothing) |
 | `dice_all_beaten`, `dice_bone_set` | She has beaten all three; Zbyszek has given her the bone dice (her dice are bone with red pips from then on) |
+| `tinker_met`, `tinker_helped`, `tinker_day`, `tinker_hour`, `tinker_stock` | The tinker's sledge (roadside, section 9): first talk, the runner lashed, when it happened, draughts he has left to sell (3 to begin) |
+| `carcass_seen`, `carcass_said`, `carcass_wolves_dead` | Wolves at a kill on the forest track: the kill exists in the world, her remark, the three killed |
+| `goat_asked`, `goat_tied`, `goat_home` | The strayed goat: Zofia asked, the goat is on the rope (not kept across a load), the goat is home |
+| `scarf_asked`, `scarf_found`, `scarf_returned` | Jasiek's scarf: the old woman asked, the scarf found with senses, the scarf returned |
+| `sled_met`, `sled_freed` | The boy's sled on the river bank |
+| `poacher_chased`, `poacher_note` | The lantern in the forest: he ran, she read the tally |
+| `fishers_settled` | The quarrel at the river mouth: `'old'`, `'young'` or `'both'` |
 
 ---
 
@@ -129,6 +136,7 @@ Journal voice: Vesna's working notes. Who, what, where, what it pays, what she s
 - `side_wolves` **Wolves at the Mill.** Second paper on the notice board. Miller Gniewko: wolves took his dog. Track them to a den at the foot of the frozen falls; 4 wolves and a scarred alpha. Reward: 40 grosze, and Gniewko says his father never let anyone fish near the poles: "Warm water comes up there. The ice is never as thick as it looks." (`miller_warm_water`; Vesna can use it with Bogdan.)
 - `side_handbell` **The Hand-Bell.** Optional, after the wolves at the mill. Bożena, Gniewko's wife, wants her father-in-law's brass hand-bell rung at the ritual ring at dusk, three times, the way it was done against the spring hail on the orchard. He left it hanging on a pole of the ring and died the second winter. Journal: *Bożena, the miller's wife, wants her father-in-law's hand-bell rung at the ritual ring at dusk, three times, the way it was done against the hail. He left it tied to one of the poles. Pays 20 grosze.* Stages: take the bell from the pole (it is only an Examine until Bożena has asked), ring it inside the ring between 16:00 and 18:30 (at any other hour Vesna says "Dusk, she said." or "Past dusk." and nothing happens), tell Bożena. The sky answers: after the third ring a handful of herders (`G.spirits.gather`) drift in from all sides and hang over the ring for about a minute and a half, whatever the weather, then go back to their own business; the bell is tied back on its pole. Bożena: "And?" "Some of them came down." "They do that." Pays 20 grosze once. No main-story flag reads any of it.
 - `side_dice` **Dice at the Drowned Bell.** Optional, from day 1 (whenever somebody has explained Kosci to her). Zbyszek keeps the dice behind the bar and plays across it for a grosze or two; Wojtek the woodcutter and Halina sit at the middle table from noon (they go home at 23:00 and 22:30). Beat each of them at a whole match (best of three rounds), then tell Zbyszek. Journal: *Zbyszek keeps the dice behind the bar. He plays across the counter for small stakes, and Wojtek and Halina sit at the middle table from noon. Best of three rounds.* Then one line each as she beats them: *Beat Zbyszek across the bar. He never goes above three grosze. / Beat Wojtek, the woodcutter. He raises on almost anything and rolls most of his dice again. / Beat Halina. She goes up on nothing now and then.* Reward: Zbyszek gives her his father's bone dice (*Zbyszek gave me his father's bone dice. Says he never won with them.*). Details in section 8. Nothing in the main story reads any of it.
+- **Roadside encounters** (section 9): `side_tinker` The Tinker's Sledge, `side_carcass` Wolves on the Forest Track, `side_goat` The Strayed Goat, `side_scarf` Jasiek's Scarf, `side_sled` A Sled on the Bank, `side_poacher` A Lantern in the Forest, `side_fishers` Whose Hole. Optional, small, each walked into at a fitting hour; nothing in the main story reads any of their flags.
 - `side_snow` **Snow Fight.** Day 2 morning, sledding hill. Ola and two kids ambush Vesna. 60-second snowball fight. Afterward, sitting on the sled, Ola asks: "Does it hurt? Drowning?" Choice: *the truth* ("For a bit. Then it doesn't.") or *a lie* ("It won't happen.") (`ola_truth` / `ola_lie`). Ola's last line in ending C changes with it.
 
 ---
@@ -486,3 +494,37 @@ What was added (nothing existing changed outcome): the topic and the nodes `dice
 files, the notes, the quest, two NPCs and the stations the cast table already named for Zbyszek (cast.js, life.js), the dice flags above, the voice cast entries `wojtek` and `halina`.
 
 Needs voicing: every line in the two new dialogues, the dice nodes of `zbyszek_hub.js` and all the barks in `opponents.js` (run `node scripts/voice/extract.mjs --report`).
+
+---
+
+## 9. Roadside encounters
+
+Seven small situations on the roads, the lake edge and the forest track that she comes across, each with a beginning, something to do or
+decide, and an end the world remembers. They are different in kind on purpose: a thing to hold, a thing to avoid or fight, a thing to lead, a
+thing to find with senses, a thing to push, a thing to chase off, a thing to decide. Rules for anyone adding to them: they are optional and
+the main story never reads their flags; each appears only when she comes within range (60 to 90 m) at a fitting hour and in fitting weather
+(never in a blizzard), and is taken down again when she is gone; the people talk about what is in front of them (a runner, a goat, a hole in
+the ice, wool), never about what it means; rewards are small; and a few villagers mention it afterwards.
+
+| Encounter | Where | When | What she does | What it pays | What the world keeps |
+|---|---|---|---|---|---|
+| **The Tinker's Sledge** (`side_tinker`) | pass road, arc 505, on the shoulder (-249, 243) | 8:00 to 17:00 | Talk to him; he needs the corner held up while he lashes the split runner. **Hold E** (the ring is the lift; the sledge rises with it) | a Thaw draught at 8 grosze (tavern 12), two more later (3 in all, `tinker_stock`) | He hauls the sledge off down the road; from an hour or two later he stands at the stalls in the square from midday to 17:30 with the mended sledge parked beside him (`rs_tinker` is his shop talk); the split nose of the runner stays in the snow; villagers mention him |
+| **Wolves on the Forest Track** (`side_carcass`) | forest track, arc 190, a clearing 18 m east of the track (-297, 52) | 15:00 to 19:50 | Three wolves feeding on a roe deer. Walk the track (with the sword sheathed they leave her alone beyond 11 m) or fight (a drawn blade wakes them from 25 m) | nothing | The deer, the blood, the drag marks and the wolf tracks stay once she has seen them; if the wolves are killed they do not come back and crows are on the kill by day (7:00 to 19:00); woodcutters mention the track |
+| **The Strayed Goat** (`side_goat`) | the goat under the corkscrew pines past the marsh (-257, 21); Zofia beside the pass road outside the west gate (-107, 133) | goat 7:30 to 18:30, Zofia 7:00 to 20:30 | Zofia asks after a white goat with a folded ear (or she finds the goat first). **Take the rope**: the goat walks in her footsteps (so trees and houses are no trouble); lead her to the gate. Leave her far behind and the rope comes off | three eggs | Zofia stands at the gate every day with the goat on a short rope; villagers mention it |
+| **Jasiek's Scarf** (`side_scarf`) | the shrine with the bowl of milk on the pass road (-158, 170); the scarf in a drift on the pass road above the abandoned sledge (-410, 377) | woman 8:00 to 18:00 | An old woman kneels at the shrine with milk for her son, who took a sledge up the pass for wood four days ago. With **hunter senses** the boot prints go on from the sledge vignette to a drift and a frozen grey scarf with a red stripe. Take it back | eight grosze from her jar | The scarf hangs on the shrine post; she still brings the milk; villagers mention it |
+| **A Sled on the Bank** (`side_sled`) | the south bank of the river by the mill (322, -60) | 9:00 to 16:30 | A boy has jammed a runner. Talk, stand behind the sled and **tap E** (nine taps; it slides back if she stops) | one grosz | Two grooves from the bank to the road and a gouge where the runner went in; the children say the hunter pushed Stas out of the river |
+| **A Lantern in the Forest** (`side_poacher`) | the forest 30 m west of the track at arc 205 (-348, 57) | 21:00 to 04:00 | A man with a lantern sets snares. Come within 15 m and he runs, lantern and all, down to the track and off north | nothing | Two snare lines (one with a hare in it) and a satchel; the satchel holds a tally of hares and which households got them: *Not a word to B.* (`note_poacher`); villagers mention hare left on doorsteps |
+| **Whose Hole** (`side_fishers`) | the lake ice at the river mouth, fourteen paces from the shore (292, -80) | 6:30 to 11:00 | Wacław (old, cut this hole thirty winters) and Franek (young, line already in it) quarrel and turn to her. *It's his* (Franek goes), *it's his for today* (Wacław goes), or *ice enough for two* (a second hole is cut a few paces over) | four grosze from the one she favoured, nothing for two holes | The hole and the stool stay; on later mornings whoever stayed is fishing there and says something about it (`rs_fisher_old`, `rs_fisher_young`); villagers mention it |
+
+How they are built: `src/story/controller/roadside/` (`kit.js` is the toolbox: a zone builds an encounter into a Bag and frees it again; `K.persist` keeps
+what the world remembers and puts it back after a load; `K.quietly` writes the small ones into the journal without the quest fanfare; one file per
+encounter; `things.js` the props; `people.js` the strangers). Journal entries are in `src/story/content/quests.js`, the readable things in
+`src/ui/content.js` (`item_scarf`, `note_poacher`).
+
+Where the lines are: dialogues `rs_tinker`, `rs_goat_owner`, `rs_shrine_woman`, `rs_sled_boy`, `rs_fishers`, `rs_fisher_old`, `rs_fisher_young` in
+`src/story/content/dialogues/`; the floating lines (the tinker's hail, the poacher's "Who's there?", the quarrel's barks, Vesna's remarks) are listed
+in `rs_barks.js`, which is never started and exists so the voice tools find them; the villagers' mentions are the pools `GOAT_HOME`, `TINKER_HERE`,
+`HARE`, `WOLVES_GONE`, `SHRINE_SCARF`, `FISH_*` and `SLED_PAIR` in `src/gameplay/npcs/barks.js`. Voice cast entries `tinker`, `old_woman`,
+`goat_owner`, `sled_boy`, `fisher_old`, `fisher_young`, `poacher` are in `scripts/voice/cast.json`.
+
+Needs voicing: every line in the dialogues above, `rs_barks.js` and the new bark pools (run `node scripts/voice/extract.mjs --report`).

@@ -343,7 +343,8 @@ export function createKit(C) {
         // gone for good after a short grace, unless she is back or the encounter is still in the middle of something
         const check = () => {
           if (h.bag !== b || !b.live || inside()) return;
-          if (b.busy) { C.later(3, check); return; }
+          // still in the middle of something, or the hour or a flag ran out while she is standing right there: nobody vanishes in front of her
+          if (b.busy || C.dist(x, z) < Math.min(r, 35)) { C.later(3, check); return; }
           drop();
         };
         C.later(grace, check);
@@ -358,7 +359,7 @@ export function createKit(C) {
   // A group that stays in the world while a flag holds. Built when the flag is first seen true (after a load, or the
   // moment it is set) and taken out again when it is cleared (a new game).
   K.persist = (flagFn, build, flags = []) => {
-    const rec = { obj: null, own: false };
+    const rec = { obj: null, own: false, undo: null };
     const sync = () => {
       const want = !!flagFn();
       if (want && !rec.obj) {
@@ -366,12 +367,15 @@ export function createKit(C) {
           const r = build();
           rec.obj = r?.obj ?? r;
           rec.own = !!r?.own;
+          rec.undo = r?.undo ?? null; // e.g. a collider that goes with it
           if (rec.obj && !rec.obj.parent) G.scene.add(rec.obj);
         } catch (e) { console.warn('[roadside] persist', e.message); }
       } else if (!want && rec.obj) {
+        try { rec.undo?.(); } catch (e) { console.warn('[roadside] persist undo', e.message); }
         rec.obj.parent?.remove(rec.obj);
         disposeTree(rec.obj, rec.own);
         rec.obj = null;
+        rec.undo = null;
       }
     };
     K.persists.push(sync);

@@ -23,7 +23,7 @@ export function tinkerSledge({ seed = 5 } = {}) {
   const L = 2.3, W = 0.8;
   const kit = new Kit('tinkerSledge', { seed });
   const k = kit;
-  const wood = [0xffffff, 0xe0d2c0, 0xc4ae98, 0xa08a74];
+  const wood = [0xffffff, 0xe0d2c0, 0xe0d2c0, 0xa08a74];
   const pick = (i) => wood[i % wood.length];
 
   // right runner, full length, upturned nose
@@ -38,7 +38,7 @@ export function tinkerSledge({ seed = 5 } = {}) {
 
   // knees (stanchions) and cross bars
   for (const z of [-0.85, -0.2, 0.45]) {
-    for (const x of [0, W]) k.box('wood', 0.06, 0.13, 0.07, { pos: [x, 0.11, z], tint: 0xc4ae98 });
+    for (const x of [0, W]) k.box('wood', 0.06, 0.13, 0.07, { pos: [x, 0.11, z], tint: 0xe0d2c0 });
     k.box('wood', W + 0.14, 0.055, 0.1, { pos: [W / 2, 0.19, z], tint: 0xe0d2c0, jitter: 0.004 });
   }
   // deck planks
@@ -47,7 +47,7 @@ export function tinkerSledge({ seed = 5 } = {}) {
   }
   // corner stakes and one side rail
   for (const [x, z] of [[-0.05, -1.0], [W + 0.05, -1.0], [-0.05, 0.95], [W + 0.05, 0.95]]) {
-    k.box('wood', 0.045, 0.7, 0.045, { pos: [x, 0.58, z], tint: 0xc4ae98, rot: [0, 0, x < 0 ? -0.04 : 0.04] });
+    k.box('wood', 0.045, 0.7, 0.045, { pos: [x, 0.58, z], tint: 0xe0d2c0, rot: [0, 0, x < 0 ? -0.04 : 0.04] });
   }
   k.tube('rope', [[-0.06, 0.82, -1.0], [-0.07, 0.8, 0], [-0.06, 0.82, 0.95]], 0.012, { radial: 4, tint: 0xa8946a });
   k.tube('rope', [[W + 0.06, 0.82, -1.0], [W + 0.07, 0.8, 0], [W + 0.06, 0.82, 0.95]], 0.012, { radial: 4, tint: 0xa8946a });
@@ -70,11 +70,12 @@ export function tinkerSledge({ seed = 5 } = {}) {
   }
   k.torus('rope', 0.05, 0.01, { pos: [0.28, 0.46, 0.34], rot: [Math.PI / 2, 0, 0], tint: 0x9c8860, seg: 8, rseg: 3 });
   // a pole at the back with pans hung from it
-  k.cyl('wood', 0.022, 0.026, 1.25, { pos: [W - 0.05, 0.87, -0.98], radial: 5, tint: 0xc4ae98 });
-  k.box('wood', 0.5, 0.025, 0.025, { pos: [W - 0.28, 1.4, -0.98], tint: 0xc4ae98 });
-  for (const [dx, dy, r] of [[0.05, 1.24, 0.12], [-0.15, 1.3, 0.1], [-0.4, 1.22, 0.14]]) {
+  k.cyl('wood', 0.022, 0.026, 1.25, { pos: [W - 0.05, 0.87, -0.98], radial: 5, tint: 0xe0d2c0 });
+  k.box('wood', 0.5, 0.025, 0.025, { pos: [W - 0.28, 1.4, -0.98], tint: 0xe0d2c0 });
+  for (const [dx, dy, r] of [[0.05, 1.24, 0.09], [-0.15, 1.3, 0.075], [-0.4, 1.22, 0.1]]) {
     k.tube('iron', [[W - 0.05 + dx, 1.4, -0.98], [W - 0.05 + dx, dy + 0.1, -0.98]], 0.004, { radial: 3, tint: 0x4a4640 });
-    k.cyl('iron', r, r, 0.018, { pos: [W - 0.05 + dx, dy, -0.98], rot: [Math.PI / 2, 0, 0.1], radial: 10, tint: 0x8a867e });
+    // a pan hung by its handle: the face turned a little to the side so it catches the light
+    k.cyl('iron', r, r, 0.018, { pos: [W - 0.05 + dx, dy, -0.98], rot: [Math.PI / 2 - 0.5, 0.3, 0], radial: 10, tint: 0xb4b0a8 });
   }
   // snow on the load
   k.mound(0.5, 0.12, 1.1, { pos: [W * 0.5, 0.7, -0.45], jseed: 1 });
@@ -94,7 +95,7 @@ export function tinkerSledge({ seed = 5 } = {}) {
   }
   bk.mound(0.5, 0.1, 0.9, { pos: [-0.12, 0.0, 0.85], jseed: 2 });
   // his mallet and a coil of rope on the snow where he was working
-  bk.cyl('wood', 0.018, 0.022, 0.42, { pos: [-0.62, 0.035, 0.5], rot: [0, 0.3, Math.PI / 2], radial: 5, tint: 0xc4ae98 });
+  bk.cyl('wood', 0.018, 0.022, 0.42, { pos: [-0.62, 0.035, 0.5], rot: [0, 0.3, Math.PI / 2], radial: 5, tint: 0xe0d2c0 });
   bk.box('wood', 0.11, 0.1, 0.1, { pos: [-0.4, 0.07, 0.53], rot: [0, 0.3, 0], tint: 0xe0d2c0 });
   bk.torus('rope', 0.13, 0.02, { pos: [-0.95, 0.03, 0.15], rot: [Math.PI / 2, 0, 0], tint: 0xb89c6c, seg: 12, rseg: 4 });
   bk.torus('rope', 0.09, 0.018, { pos: [-0.95, 0.055, 0.15], rot: [Math.PI / 2, 0, 0], tint: 0xb89c6c, seg: 10, rseg: 4 });
@@ -151,32 +152,40 @@ export function runnerScrap({ seed = 5 } = {}) {
 }
 
 // ---- a deer pulled down -----------------------------------------------------------------------------------
+// A roe deer on its side, the upper flank torn open to the ribs, a hind quarter chewed, the guts dragged onto the snow. Built standing
+// (y up, +z the head, +x the flank that ends up uppermost) and then rolled onto its other side, so the legs lie out along the snow.
 export function deerKill({ seed = 4 } = {}) {
   const k = new Kit('deerKill', { seed });
-  const hide = 0x7a6a58, belly = 0xb4a68e, dark = 0x4a1c18;
-  k.push({ rot: [0.02, 0, 0.1] });
-  // the body on its side, one flank to the sky
-  k.blob('matte', 1, { pos: [0, 0.3, 0], scale: [0.4, 0.26, 0.85], detail: 2, tint: hide, jitter: 0.03, grime: 0.15 });
-  k.blob('matte', 1, { pos: [0.1, 0.22, -0.9], scale: [0.3, 0.22, 0.34], detail: 1, tint: hide, jitter: 0.02 });
-  k.blob('matte', 1, { pos: [-0.12, 0.17, 0.05], scale: [0.26, 0.12, 0.7], detail: 1, tint: belly, jitter: 0.02 });
-  // neck and head thrown back along the snow
-  k.tube('matte', [[0.05, 0.3, 0.75], [0.2, 0.2, 1.1], [0.42, 0.1, 1.32]], 0.1, { radial: 6, tint: hide, grime: 0.15 });
-  k.blob('matte', 1, { pos: [0.52, 0.08, 1.46], scale: [0.09, 0.08, 0.2], detail: 1, tint: hide });
-  k.tube('matte', [[0.5, 0.12, 1.5], [0.5, 0.3, 1.58], [0.46, 0.5, 1.6]], 0.012, { radial: 4, tint: 0x4a3c32 });
-  k.tube('matte', [[0.55, 0.12, 1.5], [0.6, 0.3, 1.58], [0.62, 0.5, 1.6]], 0.012, { radial: 4, tint: 0x4a3c32 });
-  // the torn flank: dark cavity, ribs standing out of it, the guts dragged onto the snow
-  k.blob('matte', 1, { pos: [0.22, 0.4, -0.05], scale: [0.2, 0.1, 0.42], detail: 1, tint: dark, grime: 0, nosnow: true });
-  for (let i = 0; i < 7; i++) {
-    k.tube('face', [[0.1, 0.46, -0.32 + i * 0.1], [0.3, 0.45, -0.32 + i * 0.1], [0.42, 0.3, -0.3 + i * 0.1]], 0.012, { radial: 4, tint: 0xd8d0be, grime: 0 });
+  const hide = 0x6e5842, hideD = 0x584632, belly = 0xa89a80, rump = 0xd8d0bb, leg = 0x40342b, dark = 0x4a1c18;
+  const Y = (y) => y - 0.7; // measured from the middle of the body
+  k.push({ pos: [0, 0.2, 0], rot: [0, 0, 1.25] });
+  // barrel, chest, haunch, belly
+  k.blob('matte', 1, { pos: [0, Y(0.68), 0.0], scale: [0.2, 0.23, 0.55], detail: 2, tint: hide, jitter: 0.012, grime: 0.1 });
+  k.blob('matte', 1, { pos: [0, Y(0.72), 0.4], scale: [0.2, 0.25, 0.3], detail: 2, tint: hide, jitter: 0.01, grime: 0.1 });
+  k.blob('matte', 1, { pos: [0.0, Y(0.7), -0.42], scale: [0.21, 0.24, 0.32], detail: 2, tint: hideD, jitter: 0.012, grime: 0.1 });
+  k.blob('matte', 1, { pos: [0.0, Y(0.5), 0.0], scale: [0.14, 0.12, 0.5], detail: 1, tint: belly, jitter: 0.01, grime: 0.05 });
+  k.blob('matte', 1, { pos: [0.0, Y(0.78), -0.68], scale: [0.1, 0.1, 0.07], detail: 1, tint: rump, grime: 0 });
+  // neck bent back along the body, head and ears
+  k.tube('matte', [[0, Y(0.86), 0.6], [0.04, Y(1.1), 0.78], [0.1, Y(1.12), 1.0]], 0.075, { radial: 6, tint: hide, grime: 0.1 });
+  k.blob('matte', 1, { pos: [0.12, Y(1.12), 1.14], scale: [0.065, 0.07, 0.15], detail: 1, tint: hide, jitter: 0.004 });
+  k.blob('matte', 1, { pos: [0.12, Y(1.1), 1.27], scale: [0.03, 0.03, 0.04], detail: 0, tint: 0x2a2220, jitter: 0 });
+  for (const sx of [-1, 1]) k.cone('matte', 0.035, 0.12, { pos: [0.12 + sx * 0.07, Y(1.22), 1.08], rot: [0.3, 0, sx * -0.5], radial: 5, tint: hideD });
+  // legs: along the belly side, front folded, hind stretched where they hauled it
+  for (const sx of [-1, 1]) {
+    k.tube('matte', [[sx * 0.09, Y(0.58), 0.42], [sx * 0.09, Y(0.28), 0.5], [sx * 0.09, Y(0.02), 0.44]], 0.032, { radial: 5, tint: leg, grime: 0.05 });
+    k.tube('matte', [[sx * 0.09, Y(0.6), -0.46], [sx * 0.09, Y(0.32), -0.6], [sx * 0.09, Y(0.02), -0.52]], 0.034, { radial: 5, tint: leg, grime: 0.05 });
   }
-  k.blob('matte', 1, { pos: [0.55, 0.06, -0.2], scale: [0.2, 0.05, 0.3], detail: 1, tint: 0x6a2a24, grime: 0, nosnow: true });
-  k.blob('matte', 1, { pos: [0.7, 0.05, 0.12], scale: [0.12, 0.04, 0.18], detail: 1, tint: 0x5a2420, grime: 0, nosnow: true });
-  // legs: two folded, two stretched where the wolves hauled
-  for (const [lx, lz, ex, ez] of [[0.3, 0.55, 0.9, 0.7], [0.25, 0.25, 0.8, 0.0], [0.3, -0.55, 0.9, -0.5], [0.15, -0.8, 0.8, -1.0]]) {
-    k.tube('matte', [[lx, 0.2, lz], [lx + (ex - lx) * 0.5, 0.16, lz + (ez - lz) * 0.5], [ex, 0.06, ez]], 0.03, { radial: 5, tint: 0x4a3c32 });
+  // the torn flank: a dark cavity, and the ribs standing out of it
+  k.blob('matte', 1, { pos: [0.17, Y(0.7), 0.0], scale: [0.07, 0.17, 0.34], detail: 1, tint: dark, grime: 0, nosnow: true });
+  for (let i = 0; i < 6; i++) {
+    const z = -0.22 + i * 0.1;
+    k.tube('face', [[0.13, Y(0.88), z], [0.24, Y(0.74), z], [0.19, Y(0.56), z + 0.015]], 0.012, { radial: 4, tint: 0xdad2c0, grime: 0 });
   }
   k.pop();
-  k.mound(1.0, 0.12, 1.6, { pos: [-0.4, 0.0, -0.1], jseed: 5 });
+  // what was pulled out of it, on the snow
+  k.blob('matte', 1, { pos: [0.5, 0.05, 0.0], scale: [0.2, 0.04, 0.3], detail: 1, tint: 0x6a2a24, grime: 0, nosnow: true });
+  k.blob('matte', 1, { pos: [0.78, 0.04, -0.12], scale: [0.14, 0.035, 0.2], detail: 1, tint: 0x5a2420, grime: 0, nosnow: true });
+  k.mound(0.9, 0.1, 1.5, { pos: [-0.5, 0.0, -0.05], jseed: 5 });
   return k.build();
 }
 

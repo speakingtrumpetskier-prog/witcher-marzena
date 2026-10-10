@@ -429,7 +429,7 @@ const QUESTS = {
     stages: [
       {
         id: 'clear', objective: 'Wolves at a kill off the forest track', marker: (S, G) => G.storyCtl?.roadside?.carcass?.spot,
-        journal: 'Three wolves at a fresh kill, a roe deer, a little off the forest track at dusk. They leave the road alone if I leave them alone.',
+        journal: 'Three wolves at a fresh kill, a roe deer, a little off the forest track at dusk. They have not noticed me.',
         log: 'Killed the three at the roe deer. There were crows on it before I had walked off.',
         done: (S) => !!S.flag('carcass_wolves_dead'), sets: ['carcass_seen', 'carcass_wolves_dead'],
       },

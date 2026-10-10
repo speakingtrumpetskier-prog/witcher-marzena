@@ -26,10 +26,10 @@ export default {
     f6: { s: 'fisher_young', t: 'Since before light.', end: true },
     // the boy, when she gives up on the sled (sled.js)
     b1: { s: 'sled_boy', t: 'Never mind. I will manage.', end: true },
-    // Vesna's remarks (K.say; they are also listed in docs/STORY.md section 5)
+    // Vesna's remarks (K.say: the subtitle, and her voice clip if there is one)
     v1: { s: 'vesna', t: 'Come on, then.', end: true },
     v2: { s: 'vesna', t: 'Left her behind.', end: true },
-    v3: { s: 'vesna', t: "Wolves at a kill. They'll leave me alone if I leave them alone.", end: true },
+    v3: { s: 'vesna', t: "Wolves on a kill. They haven't seen me.", end: true },
     v4: { s: 'vesna', t: 'Roe deer. They pulled it down this morning.', end: true },
     v5: { s: 'vesna', t: 'A roe deer. Not much left of it.', end: true },
   },

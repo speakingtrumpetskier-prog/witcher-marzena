@@ -14,6 +14,7 @@ const ARC = 505, SIDE = 2.7, WINDOW = [8, 17];
 const PRICE = 8;
 // A free spot by the spoons stall in the square (the seller stands behind the counter; this is the end of it).
 const STALL = { kind: 'work', x: -19.5, z: 113.5, yaw: -1.2, anim: 'idle_cold' };
+const PARK = { x: -22.2, z: 111.0, yaw: 0.35 }; // his sledge, parked beside the spot he stands at
 
 export function install(C, K) {
   const { G, S } = C;
@@ -152,6 +153,16 @@ export function install(C, K) {
     g.position.set(sx, C.ground(sx, sz) + 0.02, sz);
     g.rotation.y = yaw + 0.9;
     return g;
+  }, ['tinker_helped']);
+
+  // His sledge, mended, parked in the square beside him: the stall (it stays when he goes home for the night).
+  K.persist(() => C.has('tinker_helped'), () => {
+    const s = tinkerSledge({ seed: 5 });
+    s.setFixed(true);
+    s.setLift(0);
+    K.settle(s.root, PARK.x, PARK.z, PARK.yaw, 2.3, 0.8);
+    const id = G.physics?.addBox(PARK.x, PARK.z, 0.62, 1.25, PARK.yaw, { tag: 'sledge-parked' });
+    return { obj: s.root, own: false, undo: () => { if (id != null) G.physics?.remove(id); } };
   }, ['tinker_helped']);
 
   // ---- later: the village ----------------------------------------------------------------------
