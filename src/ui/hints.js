@@ -314,6 +314,8 @@ export class Hints {
   _tickStory(card, dt) {
     card.t += dt;
     if (card.seconds && card.t > card.seconds) this._end(card, true);
+    // A card about play does not sit over a cutscene that starts while it is up.
+    else if (this.G.cutscenes?.active) this._end(card, false);
   }
 
   _tick(card, dt) {

@@ -64,8 +64,23 @@ export async function build(W) {
 
   // ---- anchors -----------------------------------------------------------------------------------------
   const road = ROADS.find((r) => r.id === 'pass');
-  const near = nearestOnPolyline(L.x, L.z, road.pts);
-  const cx = near.x, cz = near.z;
+  // The pass road runs right past the ruin, so its nearest point is inside the walls: C2 staged Vesna, Kasza
+  // and its cameras in the masonry. The crest is the first road point 13 m on from there toward the village
+  // (the pass road's points run from the pass down to the village), out in the open with the valley ahead.
+  void nearestOnPolyline;
+  let cx = L.x, cz = L.z;
+  {
+    const pts = road.pts, samples = [];
+    for (let i = 0; i < pts.length - 1; i++) {
+      const [ax, az] = pts[i], [bx, bz] = pts[i + 1], n = Math.max(1, Math.ceil(Math.hypot(bx - ax, bz - az) / 0.5));
+      for (let k = 0; k < n; k++) samples.push([ax + ((bx - ax) * k) / n, az + ((bz - az) * k) / n]);
+    }
+    let best = 0, bd = Infinity;
+    samples.forEach(([x, z], i) => { const d = Math.hypot(x - L.x, z - L.z); if (d < bd) { bd = d; best = i; } });
+    for (let i = best; i < samples.length; i++) {
+      if (Math.hypot(samples[i][0] - L.x, samples[i][1] - L.z) >= 13) { [cx, cz] = samples[i]; break; }
+    }
+  }
   const toLake = { x: LAKE_X - cx, z: LAKE_Z - cz };
   const yawToValley = Math.atan2(toLake.x, toLake.z);
   const v = (x, y, z) => new THREE.Vector3(x, y, z);
