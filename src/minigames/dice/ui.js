@@ -507,7 +507,10 @@ export class DiceUI {
     return this.G.input.matches(action, e.code) || e.code === PAD_CODE[action];
   }
 
+  // Returns true for the keys this screen uses (so they go no further); anything else, and any chord with Ctrl, Alt or Meta,
+  // is left alone, so the browser keeps its reload and zoom keys.
   _key(e) {
+    if (e.ctrlKey || e.altKey || e.metaKey) return false;
     if (e.repeat && !/Arrow|Key[ADWS]/.test(e.code)) return true;
     const code = e.code;
     if (code === 'Escape') {
@@ -517,7 +520,7 @@ export class DiceUI {
       return true;
     }
     if (this._is('dice_hands', e)) { this._toggleRef(); return true; }
-    if (this.mode === 'none') return true;
+    if (this.mode === 'none') return false;
     const left = code === 'ArrowLeft' || code === 'KeyA', right = code === 'ArrowRight' || code === 'KeyD';
     const up = code === 'ArrowUp' || code === 'KeyW', down = code === 'ArrowDown' || code === 'KeyS';
     if (this.mode === 'reroll') {
@@ -526,7 +529,7 @@ export class DiceUI {
       if (right) { this._move(1); return true; }
       if (this._is('dice_pick', e)) { this._toggle(this.focus); return true; }
       if (this._is('dice_roll', e) || code === 'Enter' || code === 'NumpadEnter') { this._choose(); return true; }
-      return true;
+      return false;
     }
     if (this.mode === 'stake') {
       if (left) { this._stake(-1); return true; }
@@ -540,7 +543,7 @@ export class DiceUI {
       return true;
     }
     if (code === 'Enter' || code === 'NumpadEnter' || code === 'Space' || this._is('dice_roll', e) || this._is('dice_pick', e)) { this._choose(); return true; }
-    return true;
+    return false;
   }
 
   // Which key stands for a pad button on this screen (the Input class turns the button into a key event of that code).

@@ -161,7 +161,7 @@ export const HINTS = [
   // The tavern dice game (src/minigames/dice/ui.js) shows these itself, with G.hints.show(id, { force: true }), the first
   // time dice can be picked and the first time a raise is possible, and emits the dice:* events the rows wait for.
   {
-    id: 'dice_pick', prio: 9, delay: 0, seconds: 14, watch: () => false,
+    id: 'dice_pick', prio: 9, delay: 999, seconds: 14, watch: () => false, // never ready by itself: the dice game shows it
     rows: [
       {
         action: 'dice_pick', text: 'Pick the dice to roll again', done: 'dice:pick',
@@ -171,7 +171,7 @@ export const HINTS = [
     ],
   },
   {
-    id: 'dice_raise', prio: 9, delay: 0, seconds: 12, watch: () => false,
+    id: 'dice_raise', prio: 9, delay: 999, seconds: 12, watch: () => false,
     rows: [{ action: 'dice_raise', text: 'Raise the stake, or keep it', done: 'dice:raise' }],
   },
 ];
