@@ -1822,9 +1822,9 @@
    "pace": 1
   },
   {
-   "hash": "60b8c76d9e",
+   "hash": "b1ce48c7d7",
    "speaker": "vesna",
-   "text": "Wolves at a kill. They'll leave me alone if I leave them alone.",
+   "text": "Wolves on a kill. They haven't seen me.",
    "kind": "dialogue",
    "source": "src/story/content/dialogues/rs_barks.js",
    "node": "v3",
