@@ -482,7 +482,7 @@ void main() {
         }
       }
       float thick = 0.35 + 0.65 * rim;
-      a = (0.06 + 0.42 * rim) * uF1.w + 0.22 * uS.w * (1.0 - 0.5 * rim) + canal * 0.24 + ring * 0.3 + spot * 0.22 + beads * 0.3 + band * 0.18 + pane * 0.3 + paneFrame * 0.3;
+      a = (0.06 + 0.42 * rim) * uF1.w + 0.3 * uS.w * (1.0 - 0.5 * rim) + canal * 0.24 + ring * 0.3 + spot * 0.22 + beads * 0.3 + band * 0.18 + pane * 0.3 + paneFrame * 0.3;
       vec3 body = mix(skyR * mix(vec3(1.0), c0, 0.4), c0 * lit * 1.05, uS.w * 0.8);
       T = mix(body, pearl * 1.05, clamp(rim * 1.3, 0.0, 1.0));
       T = mix(T, pastel(c1) * lit * (0.75 + 0.25 * skyB), clamp(canal * 0.5 + ring * 0.55 + beads * 0.6 + band * 0.5, 0.0, 1.0));

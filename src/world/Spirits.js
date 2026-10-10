@@ -173,7 +173,7 @@ export function createSpirits(G, opts = {}) {
   for (const sp of species) {
     const { def } = sp;
     const pal = palette(def);
-    const lowCount = opts.solo ? 0 : { swarm: 4, comb: 3, saucer: 2, bell: 1 }[def.id] || 0;
+    const lowCount = opts.solo ? 0 : { swarm: 5, comb: 4, saucer: 3, bell: 2 }[def.id] || 0;
     for (let i = 0; i < sp.total; i++) {
       const low = opts.solo ? (opts.soloPos?.[1] ?? 40) < 12 : i >= sp.total - lowCount;
       const pair = pal[Math.floor(rand() * pal.length)];
@@ -308,7 +308,7 @@ export function createSpirits(G, opts = {}) {
     enabled: true,
     density: Number.isFinite(densityParam) && densityParam > 0 ? densityParam : 1,
     species: species.map((s) => s.def.id),
-    stats: { visible: 0, drawCalls: 0, triangles: 0, active: 0 },
+    stats: { visible: 0, instances: 0, drawCalls: 0, triangles: 0, active: 0 },
     items: species,
     shared,
     near(x, z, r) {
@@ -339,7 +339,7 @@ export function createSpirits(G, opts = {}) {
   const cathItem = species.map((sp) => sp.items[0]).find((it) => it && it.circ) || null;
   let glow = null;
   if (cathItem && !opts.solo) {
-    glow = new THREE.PointLight(0xbfd2ff, 0, 1900, 0);
+    glow = new THREE.PointLight(0xeee4c4, 0, 1900, 0);
     glow.name = 'spirit-cathedral-glow';
     scene.add(glow);
   }
@@ -416,7 +416,7 @@ export function createSpirits(G, opts = {}) {
     const lowOk = night > 0.6 && clear > 0.5 && snow < 0.2 ? 1 : 0;
     const pull = smoothstep(0.35, 0.9, snow);
     const fadeStep = G.shot ? 1 : Math.min(1, dt * 0.35);
-    let active = 0, visible = 0, tris = 0, calls = 0;
+    let active = 0, visible = 0, tris = 0, calls = 0, inst = 0;
     drawn.length = 0;
     const relax = 1 - Math.exp(-dt / TAU_RELAX);
     const planes = frustum.planes;
@@ -552,6 +552,7 @@ export function createSpirits(G, opts = {}) {
           l.ibuf.addUpdateRange(0, l.n * STRIDE);
           l.ibuf.needsUpdate = true;
           tris += l.n * l.tris;
+          inst += l.n;
           calls++;
         }
       }
@@ -576,6 +577,7 @@ export function createSpirits(G, opts = {}) {
       }
     }
     S.stats.visible = visible;
+    S.stats.instances = inst;
     S.stats.active = active;
     S.stats.triangles = tris;
     S.stats.drawCalls = calls;

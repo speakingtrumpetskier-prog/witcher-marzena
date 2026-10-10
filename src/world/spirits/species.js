@@ -17,8 +17,8 @@ export const COLORS = {
   deepViolet: '#9a7cf2',
   whiteGold: '#ffe9ad',
   pearl: '#fff4e0',
-  ivory: '#f3e3ae', // old ivory: the cathedral's body
-  paleGold: '#ffd978',
+  ivory: '#f4e3a6', // old ivory: the cathedral's body
+  paleGold: '#ffd46c',
 };
 const C = COLORS;
 
@@ -40,7 +40,7 @@ export const SPECIES = [
     id: 'bell',
     name: 'Bell',
     kind: 0,
-    count: 30,
+    count: 46,
     size: [1.8, 3.6],
     rate: [0.24, 0.38],
     alt: [30, 190],
@@ -73,7 +73,7 @@ export const SPECIES = [
     id: 'saucer',
     name: 'Saucer',
     kind: 0,
-    count: 28,
+    count: 42,
     size: [2.4, 5.2],
     rate: [0.18, 0.28],
     alt: [25, 150],
@@ -107,7 +107,7 @@ export const SPECIES = [
     id: 'lantern',
     name: 'Lantern',
     kind: 0,
-    count: 20,
+    count: 30,
     size: [1.6, 3.2],
     rate: [0.28, 0.45],
     alt: [30, 150],
@@ -138,7 +138,7 @@ export const SPECIES = [
     id: 'comb',
     name: 'Comb jelly',
     kind: 1,
-    count: 20,
+    count: 30,
     size: [2.0, 3.8],
     rate: [0.2, 0.3],
     alt: [20, 130],
@@ -167,7 +167,7 @@ export const SPECIES = [
     id: 'swarm',
     name: 'Sparks',
     kind: 0,
-    count: 16, // schools
+    count: 24, // schools
     school: [8, 15],
     size: [0.4, 0.7],
     rate: [0.55, 0.95],
@@ -207,12 +207,12 @@ export const SPECIES = [
     alt: [470, 470],
     speed: 0,
     extent: 5.0,
-    lods: [{ detail: 1, ratio: 18 }, { detail: 0.55, ratio: Infinity }],
-    lodRatio: 18,
+    lods: [{ detail: 1, ratio: 11 }, { detail: 0.55, ratio: Infinity }],
+    lodRatio: 11,
     maxDist: 9000,
     order: 1,
     single: true,
-    circuit: { cx: 20, cz: -250, rx: 560, rz: 255, period: 2400, start: 0.58, minAlt: 440, clearance: 390 },
+    circuit: { cx: 20, cz: -250, rx: 560, rz: 255, period: 2400, start: 0.72, minAlt: 430, clearance: 330 },
     palette: [[C.ivory, C.paleGold]],
     panes: ['#f3c9a0', '#f6d98a', '#d9e2b8', '#cdb8de'],
     tentFrac: [1, 1],
@@ -223,7 +223,7 @@ export const SPECIES = [
         spires: [{ s: 0.2, h: 0.4, w: 0.025 }, { s: 0.33, h: 0.3, w: 0.025 }, { s: 0.62, h: 0.2, w: 0.022 }, { s: 0.76, h: 0.26, w: 0.025 }],
         shell: [16, 100], skirt: [260, 2],
         // heart lamps and their halos along the nave
-        cores: [{ q: -0.62, size: 0.7, halo: 1.7 }, { q: -0.15, size: 0.9, halo: 2.2 }, { q: 0.35, size: 0.75, halo: 1.9 }, { q: 0.8, size: 0.55, halo: 1.3 }],
+        cores: [{ q: -0.62, size: 0.7, halo: 1.7, haloI: 0.07 }, { q: -0.15, size: 0.9, halo: 2.2, haloI: 0.07 }, { q: 0.35, size: 0.75, halo: 1.9, haloI: 0.07 }, { q: 0.8, size: 0.55, halo: 1.3, haloI: 0.07 }],
         // hoops of light hanging in the nave
         gonads: [-0.6, -0.2, 0.2, 0.6].map((q) => ({ q, rel: 0.62, halfW: 0.014, y: 0.55, segs: 64, m: 0.4 })),
         arms: [
@@ -239,10 +239,10 @@ export const SPECIES = [
     },
     shader: {
       p0: [0.1, 0.05, 28, 0.035], p1: [0.008, 60, 0.9, 0.04], p2: [0.5, 0.9, 0.7, 0.03], p3: [0, 0.16, 0.04, 0.02], p4: [0, 0, 0, 0],
-      f0: [18, 0.03, 1, 0.2], f1: [0, 1, 2.2, 1.4], f2: [0.25, 0.55, 1.0, 0.5], f3: [2.0, 0.3, 2.0, 1.0],
+      f0: [18, 0.03, 1, 0.2], f1: [0, 1, 2.2, 2.0], f2: [0.2, 0.5, 1.0, 0.5], f3: [1.6, 0.3, 2.0, 1.0],
       s: [0.12, 0.9, 0.1, 0.9], // slow clock, pulse glow, iridescence, ivory tint
       m: [0, 0, 0.06, 0], // long body: contraction across only, the pulse travels along it
-      bright: 0.45,
+      bright: 0.3,
     },
   },
 ];
