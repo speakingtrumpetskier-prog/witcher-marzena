@@ -102,11 +102,14 @@ export function getMaterials() {
     shader.fragmentShader = shader.fragmentShader
       .replace('#include <common>', '#include <common>\nuniform float uWindowLight;\nuniform float uTime;')
       .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
+        // At night (uWindowLight near 1) the panes get brighter still, enough to pass the bloom
+        // threshold, so lit windows glow into the dark instead of reading as flat warm squares.
+        float mzNight = 1.0 + 2.5 * uWindowLight * uWindowLight;
         #ifdef USE_COLOR
           float mzFl = 0.93 + 0.07 * sin(uTime * 7.0 + vColor.g * 40.0) * sin(uTime * 3.1 + vColor.r * 25.0);
-          totalEmissiveRadiance *= vColor.rgb * mzFl * (0.05 + 0.95 * uWindowLight);
+          totalEmissiveRadiance *= vColor.rgb * mzFl * (0.05 + 0.95 * uWindowLight) * mzNight;
         #else
-          totalEmissiveRadiance *= (0.05 + 0.95 * uWindowLight);
+          totalEmissiveRadiance *= (0.05 + 0.95 * uWindowLight) * mzNight;
         #endif`);
   });
 

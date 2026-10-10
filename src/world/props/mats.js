@@ -131,13 +131,14 @@ function addMound(m) {
   });
 }
 
-// Lamp emissive follows uWindowLight (dusk to dawn); dim but not black by day.
+// Lamp emissive follows uWindowLight (dusk to dawn); dim but not black by day, and at full night
+// bright enough to bloom like the windows (architecture/materials.js).
 function addLamp(m) {
   addCompileHook(m, 'lamp', (shader) => {
     shader.uniforms.uWindowLight = U.uWindowLight;
     shader.fragmentShader = 'uniform float uWindowLight;\n' + shader.fragmentShader.replace(
       '#include <emissivemap_fragment>',
-      '#include <emissivemap_fragment>\n totalEmissiveRadiance *= mix(0.12, 1.0, uWindowLight);',
+      '#include <emissivemap_fragment>\n totalEmissiveRadiance *= mix(0.12, 1.0, uWindowLight) * (1.0 + 2.0 * uWindowLight * uWindowLight);',
     );
   });
 }
