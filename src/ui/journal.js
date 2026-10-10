@@ -5,12 +5,13 @@
 // and fall back to content.js. The current objective comes from G.quests.objectives().
 // Notes: G.state.data.notes (ids) resolved through content.js / G.ui.registerNotes.
 // Bestiary: content.js BESTIARY entries unlocked by flags (see unlock()).
-import { h, svg, clear, add, markup, store } from './dom.js';
+import { h, svg, clear, markup, store } from './dom.js';
 import { ICON } from './icons.js';
 import { paperCanvas, grainURL } from './paper.js';
 import { drawSketch } from './sketch.js';
 import { QUEST_FALLBACK } from './content.js';
 import { gwiazda, leluja } from './wycinanki.js';
+import { hintBar } from './glyphs.js';
 
 const seedOf = (t) => { let x = 7; for (const ch of String(t || '')) x = (x * 31 + ch.charCodeAt(0)) >>> 0; return x % 997; };
 const rosette = (t) => gwiazda(seedOf(t), { size: 30, cls: 'jr-rosette' });
@@ -162,11 +163,11 @@ export class Journal {
   }
 
   _hint() {
-    const k = (t) => h('span', { class: 'k' }, t);
-    clear(this.hintEl);
-    add(this.hintEl, [k('Q'), k('E'), ' Tab', h('i'), k('W'), k('S'), ' Select', h('i'),
-      this.tab === 'quests' ? [k('T'), ' Track', h('i')] : this.tab === 'notes' ? [k('Enter'), ' Read', h('i')] : null,
-      k('J'), ' Close']);
+    clear(this.hintEl).appendChild(hintBar(this.G, [
+      ['tabs', 'Tabs'], ['updown', 'Select'],
+      this.tab === 'quests' ? ['confirm', 'Track'] : this.tab === 'notes' ? ['confirm', 'Read'] : null,
+      ['map', 'Map'], ['back', 'Close'],
+    ].filter(Boolean)));
   }
 
   _head(text, sub) {
@@ -339,8 +340,11 @@ export class Journal {
 
   _key(e) {
     if (e.repeat && !/Arrow|KeyW|KeyS/.test(e.code)) return true;
+    const inp = this.G.input;
+    if (inp.matches('journal', e.code)) { this.scr.close(); return true; }
+    if (inp.matches('map', e.code)) { this.ui.openMap(); return true; }
     switch (e.code) {
-      case 'Escape': case 'KeyJ': this.scr.close(); return true;
+      case 'Escape': this.scr.close(); return true;
       case 'KeyQ': case 'ArrowLeft': case 'KeyA': this._cycleTab(-1); return true;
       case 'KeyE': case 'ArrowRight': case 'KeyD': case 'Tab': this._cycleTab(1); return true;
       case 'KeyW': case 'ArrowUp': this._moveSel(-1); return true;
@@ -350,7 +354,6 @@ export class Journal {
       case 'Digit1': this.setTab('quests'); return true;
       case 'Digit2': this.setTab('notes'); return true;
       case 'Digit3': this.setTab('bestiary'); return true;
-      case 'KeyM': this.ui.openMap(); return true;
       default: return false;
     }
   }

@@ -53,6 +53,22 @@ export function cycleTarget(pos, camYaw, current) {
   return byAngle[i + 1]?.e ?? null;
 }
 
+// A flick of the mouse or the right stick while locked on: the candidate nearest to `current` on that side, as the
+// camera sees it (side +1 = right on screen, -1 = left). null when nothing lies that way.
+export function stepTarget(pos, camYaw, current, side) {
+  const list = candidates(pos, camYaw, 30, -0.1);
+  if (list.length < 2) return null;
+  // ang grows toward the camera's left, so "right" means a smaller ang than the current target's.
+  const curAng = list.find((c) => c.e === current)?.ang ?? 0;
+  let best = null, bestD = Infinity;
+  for (const c of list) {
+    if (c.e === current) continue;
+    const d = (curAng - c.ang) * side;
+    if (d > 0.02 && d < bestD) { bestD = d; best = c.e; }
+  }
+  return best;
+}
+
 // Attack assist: the closest enemy roughly where the swing is aimed.
 export function assistTarget(pos, yaw, maxDist = 5.5) {
   const list = candidates(pos, yaw, maxDist, 0.45);

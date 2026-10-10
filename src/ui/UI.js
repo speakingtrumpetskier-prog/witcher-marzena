@@ -4,9 +4,13 @@
 //   choices.js   dialogue choices, hold prompt
 //   note.js      readNote;  journal.js  quests / notes / bestiary;  map.js  painted map
 //   menus.js     pause and settings;  title.js  title screen;  credits.js  credits
+//   controls.js  keys, buttons, camera and controller settings;  hints.js  first-use hint cards (G.hints)
+//   glyphs.js    keycaps and pad buttons drawn in SVG;  setrows.js  setting rows
 //
 // Menus follow one rule: while a screen is open G.input.context is 'ui', the pointer lock is
 // released and the clock is frozen; all of it is restored when the last screen closes.
+// A pad drives the menus through G.input.nav: buttons arrive as key events (see core/Input.js), and the
+// journal and map get their own button mapping from _padNavKey below.
 //
 // Public API (G.ui):
 //   subtitle(speaker, text, seconds) -> Promise, bark(name, text, worldPos), notify(text, kind),
@@ -14,13 +18,16 @@
 //   choices(list, { timer, decisive }) -> Promise<index>, readNote(note) -> Promise,
 //   hold(text, seconds, window) -> Promise<boolean>, openJournal(), openMap(), openPause(),
 //   title() -> Promise<'new' | 'continue'>, credits() -> Promise, hud.show()/hide().
-// Extras: registerNotes(map), registerBestiary(list), openSettings(), closeAll(), isOpen(),
-//   clearSubtitle(), hideTitleCard(), skipRing(p), banner(name, sub), hint([[key, label]], seconds).
+// Extras: registerNotes(map), registerBestiary(list), openSettings(), openControls({ tab }), closeAll(), isOpen(),
+//   clearSubtitle(), hideTitleCard(), skipRing(p), banner(name, sub), hint([[key, label]], seconds) (a story
+//   card through G.hints; key names a default key and shows the player's real binding).
 // Events emitted: ui:open, ui:close ({ name }), title:open, title:close. Listened: discover, inventory,
 //   note, location:enter, game:ready.
 import './ui.css';
 import './book.css';
 import './menus.css';
+import './hints.css';
+import './controls.css';
 import { ORDER } from '../core/G.js';
 import { h } from './dom.js';
 import { Overlays } from './overlays.js';
@@ -32,6 +39,8 @@ import { NoteView } from './note.js';
 import { Journal } from './journal.js';
 import { MapView } from './map.js';
 import { Menus } from './menus.js';
+import { Controls } from './controls.js';
+import { Hints } from './hints.js';
 import { Title } from './title.js';
 import { Credits } from './credits.js';
 import { LOC } from '../world/layout.js';
@@ -66,10 +75,20 @@ class UI {
     this.journal = new Journal(G, this);
     this.mapView = new MapView(G, this);
     this.menus = new Menus(G, this);
+    this.controls = new Controls(G, this);
+    this.hints = new Hints(G, this);
+    G.hints = this.hints;
     this.titleScreen = new Title(G, this);
     this.creditsScreen = new Credits(G, this);
 
     window.addEventListener('keydown', (e) => this._keydown(e), true);
+    // A pad's buttons become key events while a screen or a choice list wants keys.
+    if (G.input) {
+      G.input.nav = {
+        active: () => this.menuOpen || this.keyStack.length > 0,
+        key: (btn) => this._padNavKey(btn),
+      };
+    }
     document.addEventListener('pointerlockchange', () => this._lockChange());
     this._lastLocked = false;
 
@@ -101,7 +120,37 @@ class UI {
       return;
     }
     if (e.repeat || this.titleActive || this.G.input?.context !== 'game' || this.G.story?.busy) return;
-    if (e.code === 'KeyJ') { this.openJournal(); e.preventDefault(); } else if (e.code === 'KeyM') { this.openMap(); e.preventDefault(); } else if (e.code === 'Escape') { this.openPause(); e.preventDefault(); }
+    const inp = this.G.input;
+    if (inp.matches('journal', e.code)) { this.openJournal(); e.preventDefault(); } else if (inp.matches('map', e.code)) { this.openMap(); e.preventDefault(); } else if (inp.matches('pause', e.code)) { this.openPause(); e.preventDefault(); }
+  }
+
+  // Which key a pad button stands for on the screen on top. null: the default (A confirms, B backs out, the
+  // D-pad and left stick are the arrows, LB and RB the tabs).
+  _padNavKey(btn) {
+    const inp = this.G.input;
+    const top = this.screens[this.screens.length - 1]?.name;
+    const key = (a) => inp.codesFor(a, 'kbm')[0] || null;
+    if (top === 'journal') {
+      if (btn === 'PadX') return key('map');
+      if (btn === 'PadBack') return key('journal');
+      if (btn === 'PadRB') return 'KeyE';
+    } else if (top === 'map') {
+      if (btn === 'PadX') return 'Space';
+      if (btn === 'PadY') return key('journal');
+      if (btn === 'PadBack') return key('map');
+      if (btn === 'PadLB') return 'KeyQ';
+      if (btn === 'PadRB') return 'KeyE';
+    }
+    return null;
+  }
+
+  // The pad opens the pause menu, journal and map in play; keys do it through _keydown.
+  _padMenus() {
+    const inp = this.G.input;
+    if (!inp || this.titleActive || inp.context !== 'game' || this.G.story?.busy || this.keyStack.length) return;
+    if (inp.padPressed('pause')) this.openPause();
+    else if (inp.padPressed('journal')) this.openJournal();
+    else if (inp.padPressed('map')) this.openMap();
   }
 
   // ---- context, time and pointer lock ------------------------------------------------------
@@ -267,14 +316,17 @@ class UI {
   openMap(opts) { const p = this.mapView.open(opts); this._closeSiblings('map'); return p; }
   openPause() { return this.menus.openPause(); }
   openSettings() { return this.menus.openSettings(); }
+  openControls(opts) { return this.menus.openControls(opts); }
   closeAll() {
     this.journal.close(); this.mapView.close(); this.menus.closeAll(); this.noteView.close();
   }
   isOpen() { return this.menuOpen; }
 
   update(dt) {
+    this._padMenus();
     this.overlays.updateBarks(dt);
     this.hud.update(dt);
+    this.hints.update(dt);
     this.choicesUI.update(dt);
     this.titleScreen.update(dt);
     this.creditsScreen.update(dt);
@@ -306,6 +358,7 @@ export async function init(G) {
     openMap: (o2) => ui.openMap(o2),
     openPause: () => ui.openPause(),
     openSettings: () => ui.openSettings(),
+    openControls: (o2) => ui.openControls(o2),
     title: (o2) => ui.titleScreen.open(o2),
     credits: (o2) => ui.creditsScreen.open(o2),
     hud: { show: () => ui.hud.show(), hide: () => ui.hud.hide() },

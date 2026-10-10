@@ -8,6 +8,7 @@ import { h, svg, markup, clear, wait, raf2, clamp01 } from './dom.js';
 import { ICON } from './icons.js';
 import { displayName } from './content.js';
 import { gwiazda } from './wycinanki.js';
+import { actionGlyph, labelAction, labelGlyph } from './glyphs.js';
 
 const THREAD_PATH = 'M2 7 C 38 2, 84 10, 140 5 S 232 3, 298 6';
 
@@ -68,26 +69,21 @@ export class Overlays {
     this.cardBox = h('div', { class: 'mz-card-box' }, this.cardRosette, this.cardTitle, h('div', { class: 'mz-card-line' }, this.cardThread, this.cardKnot), this.cardSub);
     this.cardLayer.append(this.cardBox);
 
-    // Place banner (left) and control hints (bottom left).
+    // Place banner (left). Control hints are cards owned by G.hints (hints.js).
     this.bannerLayer = L('mz-bannerlayer');
     this.bannerEl = h('div', { class: 'mz-banner' });
     this.bannerLayer.append(this.bannerEl);
-    this.hintLayer = L('mz-hintlayer');
-    this.hintEl = h('div', { class: 'mz-hints' });
-    this.hintLayer.append(this.hintEl);
     this._bannerToken = 0;
-    this._hintTimer = 0;
 
-    // Hold-to-skip ring for cutscenes (bottom right).
+    // Hold-to-skip ring for cutscenes (bottom right); the key shown is the player's skip binding.
     this.skipFg = svg('<svg viewBox="0 0 34 34"><circle class="bg" cx="17" cy="17" r="13"/><circle class="fg" cx="17" cy="17" r="13"/></svg>');
-    this.skipEl = h('div', { class: 'mz-skip' }, this.skipFg, h('span', null, 'Hold Space to skip'));
+    this.skipEl = h('div', { class: 'mz-skip' }, this.skipFg, h('span', null, 'Hold'), actionGlyph(this.G, 'skip'), h('span', null, 'to skip'));
     this.skipArc = this.skipFg.querySelector('circle.fg');
     this.skipLayer = L('mz-skiplayer');
     this.skipLayer.append(this.skipEl);
 
     this.root.append(this.lbLayer, this.scrimLayer, this.barkLayer, this.subLayer, this.promptLayer, this.noteLayer, this.fadeLayer, this.cardLayer, this.skipLayer);
     this.root.insertBefore(this.bannerLayer, this.noteLayer);
-    this.root.insertBefore(this.hintLayer, this.noteLayer);
 
     this.barks = [];
     this._subToken = 0;
@@ -234,7 +230,8 @@ export class Overlays {
   }
 
   // ---- Interaction prompt -----------------------------------------------------------------
-  // prompt('[E] Read  Notice Board') or prompt({ key, verb, label }) or prompt(null).
+  // prompt('[E] Read  Notice Board') or prompt({ key, verb, label }) or prompt(null). A key that names a default
+  // ('E', 'Hold E') shows the real binding for the device in hand; any other key is drawn as a plain keycap.
   prompt(spec) {
     let key = null, verb = '', label = '';
     if (spec && typeof spec === 'object') ({ key = 'E', verb = '', label = '' } = spec);
@@ -254,8 +251,10 @@ export class Overlays {
     this._promptKey = sig;
     if (sig == null) { this.promptEl.classList.remove('on'); return; }
     clear(this.promptEl);
+    const named = labelAction(key);
     this.promptEl.append(
-      h('span', { class: 'mz-key' + (/hold/i.test(key) ? ' wide' : '') }, key),
+      named?.hold ? h('span', { class: 'mz-holdword' }, 'Hold') : null,
+      named ? labelGlyph(this.G, key) : h('span', { class: 'mz-key' + (/hold/i.test(key) ? ' wide' : '') }, key),
       verb ? h('span', { class: 'mz-verb' }, verb) : null,
       label ? h('span', { class: 'mz-lbl' }, label) : null,
     );
@@ -343,17 +342,10 @@ export class Overlays {
     if (token === this._bannerToken) this.bannerEl.classList.remove('on', 'draw', 'off');
   }
 
-  // ---- Control hints (tutorial): hint([['LMB', 'Light attack'], ['Space', 'Dodge']], 9), hint(null) clears
+  // ---- Control hints for story beats: hint([['LMB', 'Light attack'], ['Space', 'Dodge']], 9), hint(null) clears.
+  // A card in the hints layer (hints.js); the keys name defaults and show the player's real bindings.
   hint(items, seconds = 9) {
-    clearTimeout(this._hintTimer);
-    if (!items || !items.length) { this.hintEl.classList.remove('on'); return; }
-    clear(this.hintEl);
-    for (const it of items) {
-      const [key, label] = Array.isArray(it) ? it : [it.key, it.label];
-      this.hintEl.append(h('div', { class: 'row' }, h('span', { class: 'mz-key' + (String(key).length > 2 ? ' wide' : '') }, key), h('span', { class: 'lab' }, label)));
-    }
-    this.hintEl.classList.add('on');
-    if (Number.isFinite(seconds)) this._hintTimer = setTimeout(() => this.hintEl.classList.remove('on'), seconds * 1000);
+    this.G.hints?.prompt(items, seconds);
   }
 
   // p in 0..1 shows the ring filling, null hides it.

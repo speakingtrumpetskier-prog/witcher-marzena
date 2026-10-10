@@ -15,6 +15,7 @@ import { ICON } from './icons.js';
 import { paperCanvas, grainURL, tornClip } from './paper.js';
 import { createNoise } from '../core/Noise.js';
 import { rng } from '../core/util.js';
+import { hintBar } from './glyphs.js';
 import { LOC, ROADS, LAKE, RIVER } from '../world/layout.js';
 import { lakeSDF } from '../world/heightfield.js';
 
@@ -461,7 +462,7 @@ export class MapView {
       lg(svg('<svg viewBox="0 0 24 24"><path d="M12 3l6 17-6-4-6 4z" fill="#ece6da" stroke="#0b0d12" stroke-width="1"/></svg>'), 'You'),
       lg(svg('<svg viewBox="0 0 24 24"><path d="M12 2.6 20.6 12 12 21.4 3.4 12z" fill="#a8362a" stroke="#ece6da" stroke-width="1.2"/></svg>'), 'Objective'),
       lg(svg('<svg viewBox="0 0 24 24" fill="none" stroke="#ece6da" stroke-width="1.8" stroke-linecap="round"><path d="M3 18C8 18 8 8 13 8s5 10 8 10" stroke-dasharray="0.1 3.6"/></svg>'), 'Road'));
-    this.hintEl = h('div', { class: 'mz-map-hint' }, h('span', { class: 'k' }, 'Drag'), ' Move', h('i'), h('span', { class: 'k' }, 'Wheel'), ' Zoom', h('i'), h('span', { class: 'k' }, 'Space'), ' Centre', h('i'), h('span', { class: 'k' }, 'M'), ' Close');
+    this.hintEl = h('div', { class: 'mz-map-hint' }, hintBar(this.G, [['pan', 'Move'], ['zoom', 'Zoom'], ['centre', 'Centre'], ['journal', 'Journal'], ['back', 'Close']]));
     // Paper-cut rosettes pasted in the corners, the way a farmhouse wall map would be dressed.
     const corners = ['tl', 'tr', 'bl', 'br'].map((c, i) => gwiazda(301 + i * 17, { size: 42, cls: `mz-map-corner ${c}` }));
     const sheet = h('div', { class: 'mz-map-sheet' }, paper, h('div', { class: 'grain', style: { backgroundImage: `url(${grainURL()})` } }), this.canvas, ...corners, this.cartouche, this.status);
@@ -551,9 +552,11 @@ export class MapView {
 
   _key(e) {
     this.keys.add(e.code);
+    const inp = this.G.input;
+    if (inp.matches('map', e.code)) { if (!e.repeat) this.scr.close(); return true; }
+    if (inp.matches('journal', e.code)) { if (!e.repeat) this.ui.openJournal(); return true; }
     switch (e.code) {
-      case 'Escape': case 'KeyM': if (!e.repeat) this.scr.close(); return true;
-      case 'KeyJ': if (!e.repeat) this.ui.openJournal(); return true;
+      case 'Escape': if (!e.repeat) this.scr.close(); return true;
       case 'Space': this._centre(); return true;
       case 'KeyQ': case 'Minus': case 'NumpadSubtract': this._zoomAt(this.cw / 2, this.ch / 2, 0.85); return true;
       case 'KeyE': case 'Equal': case 'NumpadAdd': this._zoomAt(this.cw / 2, this.ch / 2, 1.18); return true;

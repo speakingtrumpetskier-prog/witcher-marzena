@@ -28,7 +28,7 @@
 //   d.ghost(actor, on, { color, opacity }) d.hide(actor) d.show(actor) d.dialogue(id, opts)
 //   d.flag(key, value) d.give(item, n) d.quest(id, stage) d.G d.S
 //
-// Skipping: hold Space. Timed awaits resolve at once, camera moves jump to their end, walks
+// Skipping: hold the 'skip' action (Space, or B on a pad). Timed awaits resolve at once, camera moves jump to their end, walks
 // teleport, fades and subtitles are suppressed, so the script runs to its end state (flags,
 // time, weather, positions) behind a black frame. A choice() stops the skip.
 import * as THREE from 'three';
@@ -105,8 +105,7 @@ export class Cutscenes {
 
   update(dt) {
     if (!this.active) return;
-    const keys = this.G.input?.keys;
-    const held = !!keys && keys.has('Space') && !this._choiceOpen && this._d?.opts.skippable !== false && !this.skipping;
+    const held = !!this.G.input?.down('skip') && !this._choiceOpen && this._d?.opts.skippable !== false && !this.skipping;
     if (held) {
       this._hold += dt;
       if (this._hold > 0.12) this.story.ui.skipRing((this._hold - 0.12) / (HOLD_TO_SKIP - 0.12));

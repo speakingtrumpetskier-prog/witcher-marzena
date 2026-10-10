@@ -2,7 +2,13 @@
 // 3D backdrop so each can be screenshotted.
 //
 //   ?scene=ui&show=hud|subtitle|choices|journal|map|note|title|hold|credits|pause|settings|card|banner|barks|all
+//              |controls|hint|prompt
 //   &backdrop=day|dusk|night     which backdrop (default depends on show)
+//   controls: &tab=bindings|camera|controller  &row=4 &col=2 (focused cell)  &listen=1 (waiting for a key)
+//             &ask=conflict|restore (the question bar)  &sel=2 (rows or tabs to scroll the list to the focus)
+//   hint:     &hint=move|sprint|senses|lock|... (any id in ui/hintDefs.js)  &done=1 (rows ticked)  &stack=a,b (several cards: last wins)
+//   any:      &device=pad|kbm (the glyphs shown; pad also fakes a connected controller)  &padstyle=xbox|playstation
+//             &rebind=attack:kbm:0:KeyG (change a binding first, for screenshots of non-default state)
 //   &real=1|full|0               real=1 loads terrain, sky and ice, full adds trees, locations and weather,
 //                                0 forces the fake backdrop (title defaults to real=1)
 //   journal: &tab=quests|notes|bestiary &quest=main_straw &index=2 &all=1 (unlock every beast)
@@ -291,8 +297,28 @@ export async function init(G) {
   }
   const ui = G.uiImpl;
   if (SHOW === 'map' && ui) G.readyGates.push(ui.mapView.prepare());
+  fakeDevice(G);
 
   G.events.once('game:ready', () => run(G, ui));
+}
+
+// &device=pad shows pad glyphs and pretends a controller is connected (the real scan would unset it).
+function fakeDevice(G) {
+  const inp = G.input;
+  if (P.get('padstyle')) G.settings.set('padStyle', P.get('padstyle'));
+  if (P.get('rebind')) {
+    const [action, kind, slot, code] = P.get('rebind').split(':');
+    inp.bind(action, kind, parseInt(slot, 10), code, 'steal');
+  }
+  const device = P.get('device');
+  if (!device) return;
+  if (device === 'pad') {
+    inp._scanPads = () => {};
+    inp.padConnected = true;
+    inp.padName = P.get('padstyle') === 'playstation' ? 'DualSense Wireless Controller (STANDARD GAMEPAD)' : 'Xbox Wireless Controller (STANDARD GAMEPAD)';
+  }
+  inp.device = device;
+  document.documentElement.dataset.input = device;
 }
 
 async function run(G, ui) {
@@ -372,6 +398,27 @@ async function run(G, ui) {
     case 'settings':
       U.openSettings();
       break;
+    case 'controls': {
+      U.openControls({ tab: P.get('tab') || 'bindings' });
+      const c = ui.controls;
+      if (P.has('row')) { c.cur = { r: num('row', 0), c: num('col', 0) }; c._paintCursor(); }
+      if (P.has('listen')) c._listen(c.items[c.cur.r], c.cur.c);
+      if (P.get('ask') === 'conflict') {
+        c.listening = { item: c.items[c.cur.r], a: c.items[c.cur.r].a, kind: 'kbm', slot: 0, cell: c.items[c.cur.r].cells[0], timer: 0, since: 0 };
+        c._assign('Mouse2');
+      } else if (P.get('ask') === 'restore') c._restoreAsk();
+      if (P.has('list')) c.list?.setFocus(num('list', 0), true);
+      break;
+    }
+    case 'hint': {
+      U.hud.show();
+      for (const id of (P.get('stack') || P.get('hint') || 'move').split(',')) G.hints.show(id, { force: true, seconds: Infinity });
+      if (P.has('done')) {
+        const card = G.hints.cur;
+        for (const row of card.rows) { card.done.add(row.key); row.el.classList.add('done'); }
+      }
+      break;
+    }
     case 'card':
       U.titleCard('MARZENA', 'A tale of the long winter', { hold: 60 });
       break;
