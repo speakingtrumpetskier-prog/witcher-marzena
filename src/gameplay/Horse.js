@@ -46,6 +46,7 @@ export async function init(G_) {
     state: 'idle',
     mounted: false,
     mounting: false,
+    scripted: false, // a cutscene is driving her (set by the story stage): this system leaves gait and pose alone
     get yaw() { return h.root.rotation.y; },
     set yaw(v) { h.root.rotation.y = v; },
     get speed() { return h.speed; },
@@ -517,6 +518,8 @@ export async function init(G_) {
   function update(dt) {
     const player = P();
     if (!player) return;
+    // The cutscene director sets the gait itself; tickIdle would reset it to 0 every frame and she would glide.
+    if (H.scripted) { hooves(); return; }
     const inp = G_.input;
     if (H.barkCool > 0) H.barkCool -= dt;
     // X: whistle, mount, dismount.

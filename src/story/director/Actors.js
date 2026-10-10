@@ -104,6 +104,10 @@ export class Actor {
     this.loopPose = null;
     this._ghost = null;
     if (npc) { try { npc.pause?.(true); } catch (e) { console.error(e); } }
+    // Kasza on stage is the gameplay horse's own character: tell the gameplay system to stand back.
+    this.gameplayHorse = null;
+    const gh = G.horse;
+    if (gh && character && (character === gh.character || character === gh.horse)) { this.gameplayHorse = gh; gh.scripted = true; }
   }
 
   get root() { return this.c.root; }
@@ -297,6 +301,7 @@ export class Actor {
     this.lookAt(null);
     this.faceYaw = null;
     if (this.npc) { try { this.npc.pause?.(false); } catch (e) { console.error(e); } }
+    if (this.gameplayHorse) { this.gameplayHorse.scripted = false; this.gameplayHorse = null; }
     if (this.owned && !this.persist) {
       try {
         if (typeof this.c.dispose === 'function') this.c.dispose();
