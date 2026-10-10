@@ -52,6 +52,7 @@ try { acorn = await import('acorn'); } catch {
 }
 
 const cast = JSON.parse(fs.readFileSync(path.join(ROOT, 'scripts/voice/cast.json'), 'utf8'));
+const CAST_IDS = new Set(Object.keys(cast.speakers || {}));
 const SPEAKERS = Object.keys(cast.speakers);
 const NAME_TO_ID = new Map();
 for (const [id, c] of Object.entries(cast.speakers)) {
@@ -287,7 +288,13 @@ function extractCutscene(file, src) {
     const s = strOf(a, consts);
     if (s != null) return s;
     if (a.type === 'Identifier' && actorVars.has(a.name)) return actorVars.get(a.name);
-    return speakerFromCall(a);
+    const fromCall = speakerFromCall(a);
+    if (fromCall) return fromCall;
+    // Actors bound by helpers or destructuring (spawn(d, 'dobra', ...), const { bogdan } = cast,
+    // cast.ola) are named after the speaker: accept the name when it is a cast id.
+    if (a.type === 'Identifier' && CAST_IDS.has(a.name)) return a.name;
+    if (a.type === 'MemberExpression' && !a.computed && a.property.type === 'Identifier' && CAST_IDS.has(a.property.name)) return a.property.name;
+    return null;
   };
   const optsSpeaker = (o) => {
     if (!o || o.type !== 'ObjectExpression') return null;

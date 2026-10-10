@@ -64,10 +64,15 @@ export default async function c1(d) {
     kasza.play('snort');
     vesna.c.stop?.(0.1);
     d.face(vesna, S.father, { instant: true });
-    const walk = d.walk(vesna, S.vesna.x, S.vesna.z, { speed: 1.35 });
+    // Round the overturned cart, not through it: when it sits on her line, off its far side and in
+    // along the outside of the family; the low camera waits ahead on that path, the family in the
+    // foreground as she comes round.
+    const route = routeAround(S, vesna.pos(V3(0, 0, 0)));
+    const walk = (async () => { for (const p of route.points) await d.walk(vesna, p.x, p.z, { speed: 1.35 }); })();
     d.follow(vesna, [-1.4, 1.75, -3.6], () => vesna.at(0.78, V3(0, 0, 0)), 0, { lag: 2.2, fov: 38, shake: 0.3 });
     await d.wait(3.6);
-    d.shot({ from: S.lowCam, to: S.lowCam.clone().add(V3(0.1, 0.04, 0.12)), look: () => vesna.at(0.8, V3(0, 0, 0)), fov: 34, frame: [0.0, 0.1], dur: 3.4, ease: 'linear', shake: 0.15 });
+    const low = route.low ? ground(G, route.low.x, route.low.z, 0.3) : S.lowCam;
+    d.shot({ from: low, to: low.clone().add(V3(0.1, 0.04, 0.12)), look: () => vesna.at(0.8, V3(0, 0, 0)), fov: 34, frame: [0.0, 0.1], dur: route.low ? 4.2 : 3.4, ease: 'linear', shake: 0.15 });
     await walk;
 
     // 7. CLOSE: the father, frozen, twisted at the waist, looking back over his shoulder up the road.
@@ -78,10 +83,13 @@ export default async function c1(d) {
 
     // 8. Vesna closes his eyes with two fingers, checks inside his coat, finds a folded letter, puts it away.
     const here = vesna.pos(V3(0, 0, 0));
-    const cam8 = V3(here.x, 0, here.z).add(V3(0, 1.45, 0));
-    const sideR = off(here.x, here.z, vesna.yaw, 1.1, -1.0);
-    cam8.set(sideR[0], here.y + 1.35, sideR[1]);
+    // Side-on to the two of them, 2.6 m out, on the side away from the cart.
     const mid = here.clone().lerp(S.father, 0.5).add(V3(0, 0.75, 0));
+    let px = -(S.father.z - here.z), pz = S.father.x - here.x;
+    const pl = Math.hypot(px, pz) || 1;
+    px /= pl; pz /= pl;
+    if (S.cart && (S.cart.x - mid.x) * px + (S.cart.z - mid.z) * pz > 0) { px = -px; pz = -pz; }
+    const cam8 = ground(G, mid.x + px * 2.6, mid.z + pz * 2.6, 1.35);
     d.cut({ pos: cam8, look: mid, fov: 34, frame: [0, 0.04] });
     d.shot({ from: cam8, to: cam8.clone().lerp(mid, 0.1), look: mid, fov: 34, frame: [0, 0.04], dur: 6.5, ease: 'sine', shake: 0.2 });
     await d.wait(2.4);
@@ -127,4 +135,24 @@ export default async function c1(d) {
     K.run();
     if (d.G.story) { try { await unseat(d, d.player(), d.horse(), { instant: true }); } catch { /* already on foot */ } }
   }
+}
+
+// Walk points from P to Vesna's mark that keep clear of the cart, and a low camera ahead on the last
+// leg. A straight walk (and the default low camera) when the cart is not on the line.
+function routeAround(S, P) {
+  const E = S.vesna;
+  if (!S.cart) return { points: [E], low: null };
+  const L = Math.hypot(E.x - P.x, E.z - P.z) || 1;
+  const dx = (E.x - P.x) / L, dz = (E.z - P.z) / L, px = -dz, pz = dx;
+  const t = (S.cart.x - P.x) * dx + (S.cart.z - P.z) * dz;
+  const side = (S.cart.x - P.x) * px + (S.cart.z - P.z) * pz;
+  if (t < 0 || t > L || Math.abs(side) > 2.6) return { points: [E], low: null };
+  // Come in on the family's outer side, so the last leg never crosses them.
+  const fam = [S.father, S.mother].filter(Boolean);
+  const fx = fam.reduce((a, v) => a + v.x, 0) / fam.length, fz = fam.reduce((a, v) => a + v.z, 0) / fam.length;
+  const sgn = (fx - P.x) * px + (fz - P.z) * pz >= 0 ? 1 : -1;
+  const w1 = { x: S.cart.x + px * sgn * 3.2, z: S.cart.z + pz * sgn * 3.2 };
+  const w2 = { x: E.x + px * sgn * 1.6, z: E.z + pz * sgn * 1.6 };
+  const lx = w2.x - w1.x, lz = w2.z - w1.z, ll = Math.hypot(lx, lz) || 1;
+  return { points: [w1, w2, E], low: { x: w2.x + (lx / ll) * 3.0, z: w2.z + (lz / ll) * 3.0 } };
 }

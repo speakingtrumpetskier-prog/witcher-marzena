@@ -4,3 +4,4 @@ refs/
 *.part
 .venv/
 .venv-*/
+models/

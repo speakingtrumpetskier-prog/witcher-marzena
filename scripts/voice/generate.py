@@ -398,6 +398,44 @@ class KokoroEngine:
         return out, SR
 
 
+class KokoroOnnxEngine:
+    """Kokoro-82M v1.0 through ONNX Runtime (kokoro-onnx): the same voices and blends as KokoroEngine,
+    no PyTorch, fast enough on any CPU. Files: the official onnx-community export and voice packs,
+    fetched by scripts/voice/fetch_onnx.sh into scripts/voice/models/kokoro/ (model.onnx, voices.npz)."""
+    name = "kokoro-onnx"
+    sr = SR
+
+    def __init__(self, device: str, model_dir: Path):
+        try:
+            import numpy as np  # noqa: F401
+            from kokoro_onnx import Kokoro
+        except ImportError as e:
+            raise EngineUnavailable(f"kokoro-onnx is not installed ({e}). In the venv: pip install kokoro-onnx soundfile") from e
+        model, voices = model_dir / "model.onnx", model_dir / "voices.npz"
+        if not model.exists() or not voices.exists():
+            raise EngineUnavailable(f"missing {model} or {voices}; run scripts/voice/fetch_onnx.sh first")
+        log(f"loading Kokoro-82M (ONNX, British 'en-gb') from {model_dir} on cpu ...")
+        self.k = Kokoro(str(model), str(voices))
+        self._voices: dict[str, object] = {}
+
+    def voice(self, blend: dict):
+        key = json.dumps(blend, sort_keys=True)
+        if key not in self._voices:
+            total = float(sum(blend.values())) or 1.0
+            self._voices[key] = sum(self.k.get_voice_style(n) * (float(w) / total) for n, w in blend.items())
+        return self._voices[key]
+
+    def synth(self, text: str, speaker: str, cfg: dict, line: dict):
+        import numpy as np
+
+        speed = clamp(float(cfg.get("speed", 1.0)) * float(line.get("pace", 1.0)), 0.6, 1.4)
+        audio, sr = self.k.create(text, voice=self.voice(cfg["voice"]), speed=speed, lang="en-gb")
+        out = np.asarray(audio, dtype="float32").reshape(-1)
+        if not out.size:
+            raise RuntimeError("Kokoro returned no audio")
+        return out, sr
+
+
 class ChatterboxEngine:
     name = "chatterbox"
 
@@ -444,7 +482,8 @@ class ChatterboxEngine:
 
 def parse_args():
     ap = argparse.ArgumentParser(description="Generate MARZENA voice lines offline.", formatter_class=argparse.RawDescriptionHelpFormatter, epilog=__doc__)
-    ap.add_argument("--engine", choices=["kokoro", "chatterbox", "auto"], default="auto")
+    ap.add_argument("--engine", choices=["kokoro", "kokoro-onnx", "chatterbox", "auto"], default="auto")
+    ap.add_argument("--onnx-dir", default=str(HERE / "models" / "kokoro"), help="model.onnx and voices.npz for --engine kokoro-onnx")
     ap.add_argument("--only", default="", help="comma separated speaker ids (vesna,hanka,...)")
     ap.add_argument("--kind", default="", help="comma separated: dialogue,cutscene,bark")
     ap.add_argument("--hash", default="", help="comma separated line hashes to (re)generate")
@@ -624,7 +663,7 @@ def main() -> int:
             check_espeak()
         if args.device in ("auto", "mps"):
             os.environ.setdefault("PYTORCH_ENABLE_MPS_FALLBACK", "1")
-        device = pick_device(args.device)
+        device = "cpu" if args.engine == "kokoro-onnx" else pick_device(args.device)
         log(f"  device: {device}")
 
     def get_engine(name: str):
@@ -634,7 +673,10 @@ def main() -> int:
             return engines.setdefault("dry", DryEngine())
         if name not in engines:
             try:
-                engines[name] = KokoroEngine(device) if name == "kokoro" else ChatterboxEngine(device)
+                if args.engine == "kokoro-onnx" and name != "chatterbox":
+                    engines[name] = KokoroOnnxEngine(device, Path(args.onnx_dir))
+                else:
+                    engines[name] = KokoroEngine(device) if name == "kokoro" else ChatterboxEngine(device)
             except EngineUnavailable as e:
                 if name == "chatterbox" and args.engine == "auto":
                     warn(f"{e}\n  Falling back to Kokoro for the characters set to chatterbox.")

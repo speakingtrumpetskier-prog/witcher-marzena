@@ -1,6 +1,6 @@
 {
  "version": 1,
- "count": 579,
+ "count": 612,
  "lines": [
   {
    "hash": "48b25a91dc",
@@ -428,7 +428,8 @@
     "src/story/content/dialogues/dobra_rite.js:kn11",
     "src/story/content/dialogues/dobra_rite.js:ka7",
     "src/story/content/dialogues/jarek_bird.js:no1",
-    "src/story/content/dialogues/zbyszek_hub.js:cart7"
+    "src/story/content/dialogues/zbyszek_hub.js:cart7",
+    "src/story/content/cutscenes/c3_song.js:line 102"
    ]
   },
   {
@@ -1954,6 +1955,75 @@
    "pace": 1
   },
   {
+   "hash": "28832638bc",
+   "speaker": "vesna",
+   "text": "Easy. I know.",
+   "kind": "cutscene",
+   "source": "src/story/content/cutscenes/c1_blizzard.js",
+   "node": "line 109",
+   "direction": "plain, restrained",
+   "exaggeration": 0.33,
+   "pace": 1
+  },
+  {
+   "hash": "923c4526d0",
+   "speaker": "vesna",
+   "text": "Does she.",
+   "kind": "cutscene",
+   "source": "src/story/content/cutscenes/c3_song.js",
+   "node": "line 106",
+   "direction": "plain, restrained; short, quiet",
+   "exaggeration": 0.33,
+   "pace": 0.96,
+   "level": -1.5
+  },
+  {
+   "hash": "f006435892",
+   "speaker": "vesna",
+   "text": "Who's the ice lady?",
+   "kind": "cutscene",
+   "source": "src/story/content/cutscenes/c3_song.js",
+   "node": "line 126",
+   "direction": "plain, restrained; flat question, not rising",
+   "exaggeration": 0.33,
+   "pace": 1
+  },
+  {
+   "hash": "cd3c45b0d4",
+   "speaker": "vesna",
+   "text": "Let her go.",
+   "kind": "cutscene",
+   "source": "src/story/content/cutscenes/c6_procession.js",
+   "node": "line 184",
+   "direction": "plain, restrained; short, quiet",
+   "exaggeration": 0.33,
+   "pace": 0.96,
+   "level": -1.5
+  },
+  {
+   "hash": "d97c3ab95a",
+   "speaker": "vesna",
+   "text": "Hanka.",
+   "kind": "cutscene",
+   "source": "src/story/content/cutscenes/ending_looking_back.js",
+   "node": "line 33",
+   "direction": "plain, restrained; short, quiet",
+   "exaggeration": 0.33,
+   "pace": 0.96,
+   "level": -1.5
+  },
+  {
+   "hash": "b7e621add0",
+   "speaker": "vesna",
+   "text": "His name was Wit. He told me he found me in a ditch.",
+   "kind": "cutscene",
+   "source": "src/story/content/cutscenes/epilogue_knot.js",
+   "node": "line 112",
+   "direction": "plain, restrained",
+   "exaggeration": 0.33,
+   "pace": 1
+  },
+  {
    "hash": "4a936eced0",
    "speaker": "vesna",
    "text": "Kasza. Don't.",
@@ -2514,6 +2584,40 @@
    "level": -1
   },
   {
+   "hash": "0f64312518",
+   "speaker": "hanka",
+   "text": "Wiesiu.",
+   "kind": "cutscene",
+   "source": "src/story/content/cutscenes/ending_looking_back.js",
+   "node": "line 56",
+   "direction": "plain, restrained; short, quiet",
+   "exaggeration": 0.33,
+   "pace": 0.96,
+   "level": -1.5
+  },
+  {
+   "hash": "daacf7bbcc",
+   "speaker": "hanka",
+   "text": "Wiesiu, I'm here. I'm sorry. I'm here.",
+   "kind": "cutscene",
+   "source": "src/story/content/cutscenes/ending_looking_back.js",
+   "node": "line 58",
+   "direction": "plain, restrained",
+   "exaggeration": 0.33,
+   "pace": 1
+  },
+  {
+   "hash": "4049070564",
+   "speaker": "hanka",
+   "text": "I know. I know it is.",
+   "kind": "cutscene",
+   "source": "src/story/content/cutscenes/ending_looking_back.js",
+   "node": "line 69",
+   "direction": "plain, restrained",
+   "exaggeration": 0.33,
+   "pace": 1
+  },
+  {
    "hash": "630e7efd7a",
    "speaker": "hanka",
    "text": "The milk freezes by morning.",
@@ -3028,6 +3132,29 @@
    "exaggeration": 0.3,
    "pace": 0.902,
    "level": -1
+  },
+  {
+   "hash": "e76b57c780",
+   "speaker": "bogdan",
+   "text": "Enough.",
+   "kind": "cutscene",
+   "source": "src/story/content/cutscenes/c6_procession.js",
+   "node": "line 155",
+   "direction": "plain, restrained; short, quiet",
+   "exaggeration": 0.33,
+   "pace": 0.96,
+   "level": -1.5
+  },
+  {
+   "hash": "13f7b5e0d7",
+   "speaker": "bogdan",
+   "text": "Stay out of this, hunter.",
+   "kind": "cutscene",
+   "source": "src/story/content/cutscenes/c6_procession.js",
+   "node": "line 186",
+   "direction": "plain, restrained",
+   "exaggeration": 0.33,
+   "pace": 1
   },
   {
    "hash": "c61333dd9d",
@@ -4308,6 +4435,107 @@
    "pace": 1
   },
   {
+   "hash": "c98af44af0",
+   "speaker": "dobra",
+   "text": "Ola. Straw.",
+   "kind": "cutscene",
+   "source": "src/story/content/cutscenes/c3_song.js",
+   "node": "line 133",
+   "direction": "plain, restrained; short, quiet",
+   "exaggeration": 0.33,
+   "pace": 0.96,
+   "level": -1.5
+  },
+  {
+   "hash": "20db5d3f50",
+   "speaker": "dobra",
+   "text": "Wait. Wait, I'm old.",
+   "kind": "cutscene",
+   "source": "src/story/content/cutscenes/epilogue_knot.js",
+   "node": "line 87",
+   "direction": "plain, restrained",
+   "exaggeration": 0.33,
+   "pace": 1
+  },
+  {
+   "hash": "bfdac2307a",
+   "speaker": "dobra",
+   "text": "There was a winter, before you'd remember anything. We were boiling bark. The wolves came down and got into the graves.",
+   "kind": "cutscene",
+   "source": "src/story/content/cutscenes/epilogue_knot.js",
+   "node": "line 89",
+   "direction": "plain, restrained",
+   "exaggeration": 0.33,
+   "pace": 1
+  },
+  {
+   "hash": "480b081b90",
+   "speaker": "dobra",
+   "text": "A hunter came through. One of yours. Lynx. We had nothing to give him.",
+   "kind": "cutscene",
+   "source": "src/story/content/cutscenes/epilogue_knot.js",
+   "node": "line 92",
+   "direction": "plain, restrained",
+   "exaggeration": 0.33,
+   "pace": 1
+  },
+  {
+   "hash": "cd00f0b793",
+   "speaker": "dobra",
+   "text": "I had a baby I couldn't feed.",
+   "kind": "cutscene",
+   "source": "src/story/content/cutscenes/epilogue_knot.js",
+   "node": "line 95",
+   "direction": "plain, restrained",
+   "exaggeration": 0.33,
+   "pace": 1
+  },
+  {
+   "hash": "fe2d093b4a",
+   "speaker": "dobra",
+   "text": "I tie it the same way every time. I can't do it any other way.",
+   "kind": "cutscene",
+   "source": "src/story/content/cutscenes/epilogue_knot.js",
+   "node": "line 106",
+   "direction": "plain, restrained",
+   "exaggeration": 0.33,
+   "pace": 1
+  },
+  {
+   "hash": "cf2a33fc41",
+   "speaker": "dobra",
+   "text": "He came back. Years after. Asked did I want to know where you were.",
+   "kind": "cutscene",
+   "source": "src/story/content/cutscenes/epilogue_knot.js",
+   "node": "line 114",
+   "direction": "plain, restrained",
+   "exaggeration": 0.33,
+   "pace": 1
+  },
+  {
+   "hash": "46cde6701a",
+   "speaker": "dobra",
+   "text": "I said no.",
+   "kind": "cutscene",
+   "source": "src/story/content/cutscenes/epilogue_knot.js",
+   "node": "line 116",
+   "direction": "plain, restrained; short, quiet",
+   "exaggeration": 0.33,
+   "pace": 0.96,
+   "level": -1.5
+  },
+  {
+   "hash": "a864a3e4a3",
+   "speaker": "dobra",
+   "text": "Where would I have looked?",
+   "kind": "cutscene",
+   "source": "src/story/content/cutscenes/epilogue_knot.js",
+   "node": "line 126",
+   "direction": "plain, restrained; flat question, not rising",
+   "exaggeration": 0.33,
+   "pace": 1
+  },
+  {
    "hash": "a7cd299d6e",
    "speaker": "dobra",
    "text": "Straw, straw, straw.",
@@ -5077,6 +5305,83 @@
    "level": -3
   },
   {
+   "hash": "74cdb0dc54",
+   "speaker": "ola",
+   "text": "Are you a witch?",
+   "kind": "cutscene",
+   "source": "src/story/content/cutscenes/c3_song.js",
+   "node": "line 100",
+   "direction": "child, matter of fact; flat question, not rising",
+   "exaggeration": 0.38,
+   "pace": 1.04
+  },
+  {
+   "hash": "d4797c3c79",
+   "speaker": "ola",
+   "text": "Mama says mutants eat snow.",
+   "kind": "cutscene",
+   "source": "src/story/content/cutscenes/c3_song.js",
+   "node": "line 104",
+   "direction": "child, matter of fact",
+   "exaggeration": 0.38,
+   "pace": 1.04
+  },
+  {
+   "hash": "9e5245f15f",
+   "speaker": "ola",
+   "text": "And that you've got cat's eyes.",
+   "kind": "cutscene",
+   "source": "src/story/content/cutscenes/c3_song.js",
+   "node": "line 108",
+   "direction": "child, matter of fact",
+   "exaggeration": 0.38,
+   "pace": 1.04
+  },
+  {
+   "hash": "e7f2d57599",
+   "speaker": "ola",
+   "text": "They're just yellow.",
+   "kind": "cutscene",
+   "source": "src/story/content/cutscenes/c3_song.js",
+   "node": "line 115",
+   "direction": "child, matter of fact",
+   "exaggeration": 0.38,
+   "pace": 1.04
+  },
+  {
+   "hash": "cf8be33966",
+   "speaker": "ola",
+   "text": "Are you here for the ice lady?",
+   "kind": "cutscene",
+   "source": "src/story/content/cutscenes/c3_song.js",
+   "node": "line 124",
+   "direction": "child, matter of fact; flat question, not rising",
+   "exaggeration": 0.38,
+   "pace": 1.04
+  },
+  {
+   "hash": "ee9b6e9cf5",
+   "speaker": "ola",
+   "text": "Mama!",
+   "kind": "cutscene",
+   "source": "src/story/content/cutscenes/ending_looking_back.js",
+   "node": "line 154",
+   "direction": "plain, restrained; raised but controlled; short, quiet",
+   "exaggeration": 0.45,
+   "pace": 0.96
+  },
+  {
+   "hash": "a3f5254127",
+   "speaker": "ola",
+   "text": "You said it wouldn't.",
+   "kind": "cutscene",
+   "source": "src/story/content/cutscenes/ending_nothing_changes.js",
+   "node": "line 135",
+   "direction": "plain, restrained",
+   "exaggeration": 0.33,
+   "pace": 1
+  },
+  {
    "hash": "4340930783",
    "speaker": "ola",
    "text": "You're Marzanna!",
@@ -5141,6 +5446,78 @@
    "exaggeration": 0.4,
    "pace": 0.96,
    "level": -3
+  },
+  {
+   "hash": "567c49f8fd",
+   "speaker": "wiesia",
+   "text": "Did Mama send you?",
+   "kind": "cutscene",
+   "source": "src/story/content/cutscenes/c5_lair.js",
+   "node": "line 95",
+   "direction": "small, close, slow; a question, not a threat; flat question, not rising",
+   "exaggeration": 0.28,
+   "pace": 0.9,
+   "level": -2
+  },
+  {
+   "hash": "f9850d8606",
+   "speaker": "wiesia",
+   "text": "Don't go.",
+   "kind": "cutscene",
+   "source": "src/story/content/cutscenes/c7_emergence.js",
+   "node": "line 131",
+   "direction": "small, close, slow; a question, not a threat; short, quiet",
+   "exaggeration": 0.28,
+   "pace": 0.864,
+   "level": -3.5
+  },
+  {
+   "hash": "84bd612252",
+   "speaker": "wiesia",
+   "text": "Mama, it's cold.",
+   "kind": "cutscene",
+   "source": "src/story/content/cutscenes/ending_looking_back.js",
+   "node": "line 67",
+   "direction": "small, close, slow; a question, not a threat",
+   "exaggeration": 0.28,
+   "pace": 0.9,
+   "level": -2
+  },
+  {
+   "hash": "137d96b007",
+   "speaker": "wiesia",
+   "text": "Oh.",
+   "kind": "cutscene",
+   "source": "src/story/content/cutscenes/ending_thaw.js",
+   "node": "line 55",
+   "direction": "small, close, slow; a question, not a threat; short, quiet",
+   "exaggeration": 0.28,
+   "pace": 0.864,
+   "level": -3.5
+  },
+  {
+   "hash": "eba5d0adff",
+   "speaker": "wiesia",
+   "text": "I don't want to go down there. It's dark down there.",
+   "kind": "cutscene",
+   "source": "src/story/content/cutscenes/finale_choice.js",
+   "node": "line 56",
+   "direction": "small, close, slow; a question, not a threat",
+   "exaggeration": 0.28,
+   "pace": 0.9,
+   "level": -2
+  },
+  {
+   "hash": "b33251daf3",
+   "speaker": "wiesia",
+   "text": "Mama?",
+   "kind": "cutscene",
+   "source": "src/story/content/cutscenes/finale_choice.js",
+   "node": "line 59",
+   "direction": "small, close, slow; a question, not a threat; flat question, not rising",
+   "exaggeration": 0.28,
+   "pace": 0.9,
+   "level": -2
   },
   {
    "hash": "49abf2f8ea",
