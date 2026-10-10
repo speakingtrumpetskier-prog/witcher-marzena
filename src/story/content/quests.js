@@ -28,16 +28,19 @@ const QUESTS = {
       {
         id: 'pass', objective: 'Get through the pass', marker: 'passStart',
         journal: 'Hollow Pass. Snowing hard. Lost the road twice.',
+        done: (S) => !!S.flag('pass_arrived'), sets: ['pass_arrived'],
         debug: { day: 1, time: 14.5, weather: 'blizzard', at: [SPAWN.prologue.x, SPAWN.prologue.z, SPAWN.prologue.yaw] },
       },
       {
         id: 'wreck', objective: 'Examine the wreck', marker: [-556, 514],
         log: 'Cart on the pass road. A man, a woman, a small girl, all frozen. Letter on the man, to his brother.',
+        done: (S) => !!S.flag('letter_read'), sets: ['cart_examined', 'letter_read'],
         debug: { day: 1, time: 14.7, weather: 'blizzard', at: [-551, 511, 2.4] },
       },
       {
         id: 'wolves', objective: 'Survive the wolves',
         log: 'Three wolves on the road. Starving, all ribs.',
+        done: (S) => !!S.flag('wolves_prologue_done'), sets: ['wolves_prologue_done'],
         debug: { day: 1, time: 14.9, weather: 'blizzard', at: [-548, 506, 2.4] },
       },
       {
@@ -143,6 +146,7 @@ const QUESTS = {
       },
       {
         id: 'dawn', objective: 'Return to the village at dawn', marker: 'fishingHuts',
+        done: (S) => !!S.flag('dawn_done'), sets: ['dawn_done'],
         debug: { day: 1, time: 23.8, weather: 'clear', at: [114, -140, 2.6] },
       },
     ],
@@ -185,7 +189,8 @@ const QUESTS = {
         debug: { day: 2, time: 19.8, weather: 'snow', at: [-10, 58, 3.0] },
       },
       {
-        id: 'survive', objective: 'Survive', marker: null, sets: ['boss_started'],
+        id: 'survive', objective: 'Survive', marker: null, sets: ['boss_started', 'boss_yielded'],
+        done: (S) => !!S.flag('boss_yielded'),
         debug: { day: 2, time: 20.5, weather: 'blizzard', at: [6, -20, 3.14] },
       },
       {

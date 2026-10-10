@@ -98,6 +98,18 @@ export async function init(G) {
 
   G.addSystem('story-camera', (dt) => story.cam.update(dt * story.timeScale), ORDER.camera + 1);
 
+  // The story controller wires triggers, interactions, NPC talk, quest flow, the finale and the
+  // playthrough hooks (src/story/controller). Debug scenes other than the playthrough do not get it.
+  const scene = G.params.get('scene');
+  if (!G.params.has('nostory') && (!scene || scene === 'playthrough' || G.params.has('controller'))) {
+    try {
+      await (await import('./controller/index.js')).init(G);
+    } catch (e) {
+      console.error('[story controller]', e);
+      G.errors.push(`story controller: ${e.message}`);
+    }
+  }
+
   G.events.once('game:ready', () => {
     flow.boot().catch((e) => {
       console.error('[story boot]', e);
