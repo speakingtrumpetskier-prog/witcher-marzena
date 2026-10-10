@@ -56,4 +56,9 @@ voice clips generated offline. Work happens on the branch `claude/optimistic-boh
   setup script runs `npm install`. Playwright and Chromium are preinstalled in the container.
 - Local sessions: `npm install`, then `npm install --no-save playwright` and
   `npx playwright install chromium` for the screenshot harness. `npm run dev` to play at
-  http://localhost:5173/witcher-marzena/.
+  http://localhost:5173/witcher-marzena/. On a machine with Google Chrome (the user's Windows
+  laptop: Intel integrated GPU, 16 GB RAM, Node 24 via winget, PowerShell blocks npm.ps1 so use
+  `npm.cmd` / `npx.cmd`), install only `npm install --no-save playwright-core` and set `MZ_CHROME=1`:
+  shot.mjs then drives the installed Chrome on the GPU. Keep to one headless browser at a time there.
+- The in-app browser pane and background Chrome tabs pause or throttle requestAnimationFrame when
+  hidden, so never time frames there; use the headless harness.

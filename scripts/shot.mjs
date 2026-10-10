@@ -15,6 +15,8 @@
 //   --wait 0 (extra ms after ready)  --server http://127.0.0.1:5173 (reuse a running server)
 // "shot" is always added to the query. Output paths are relative to the repo root.
 // Rendering: software by default; MZ_GPU=1 for the local GPU, MZ_HEADED=1 for a visible window.
+// MZ_CHROME=1 drives the installed Google Chrome (GPU) through playwright-core, so a local machine
+// needs only `npm install --no-save playwright-core` and no Chromium download.
 /* global window, document, requestAnimationFrame */
 import { createServer } from 'vite';
 import path from 'node:path';
@@ -26,7 +28,9 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 async function loadPlaywright() {
   try { return await import('playwright'); } catch { /* fall through */ }
   try { return await import('/opt/node-tools/node_modules/playwright/index.mjs'); } catch { /* fall through */ }
+  try { return await import('playwright-core'); } catch { /* fall through */ }
   console.error('Playwright is not installed. Run:  npm install --no-save playwright  then  npx playwright install chromium');
+  console.error('With Google Chrome installed:  npm install --no-save playwright-core  and set MZ_CHROME=1');
   process.exit(2);
 }
 
@@ -68,11 +72,12 @@ const { chromium } = await loadPlaywright();
 // Default: software WebGL (SwiftShader), which works anywhere, including GPU-less cloud containers.
 // MZ_GPU=1 uses the machine's GPU instead (full Chromium in new headless mode; Metal on macOS);
 // MZ_HEADED=1 opens a visible window, the most reliable way to get the GPU on some desktops.
-const GPU = process.env.MZ_GPU === '1';
+const CHROME = process.env.MZ_CHROME === '1';
+const GPU = process.env.MZ_GPU === '1' || CHROME;
 const SOFTWARE_ARGS = ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist', '--disable-gpu-sandbox'];
 const GPU_ARGS = ['--ignore-gpu-blocklist', '--enable-gpu-rasterization', ...(process.platform === 'darwin' ? ['--use-angle=metal'] : [])];
 const browser = await chromium.launch({
-  ...(GPU ? { channel: 'chromium' } : {}),
+  ...(CHROME ? { channel: 'chrome' } : GPU ? { channel: 'chromium' } : {}),
   headless: process.env.MZ_HEADED !== '1',
   args: [...(GPU ? GPU_ARGS : SOFTWARE_ARGS), '--autoplay-policy=no-user-gesture-required'],
 });
