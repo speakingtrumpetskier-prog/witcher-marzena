@@ -293,8 +293,10 @@ export async function init(G_) {
     const rx = -Math.cos(R.yaw), rz = Math.sin(R.yaw);
     _pivot.set(R.focus.x, R.focus.y + cur.pivotH, R.focus.z);
     _want.copy(_pivot).addScaledVector(_dir, -cur.dist);
-    _want.x += rx * cur.side * R.sideK;
-    _want.z += rz * cur.side * R.sideK;
+    // The shoulder offset grows with the preferred distance so the character stays where W3 frames her.
+    const sideLen = cur.side * R.sideK * (S?.camDist ?? 1);
+    _want.x += rx * sideLen;
+    _want.z += rz * sideLen;
 
     // Collision: pull in at once when something is between the head and the camera, ease back out after a
     // short hold so a pole edge does not make the lens flutter.

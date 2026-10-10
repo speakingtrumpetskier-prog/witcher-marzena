@@ -33,6 +33,10 @@ function liveBox(G, cls, build) {
   const el = h('span', { class: cls });
   el._refresh = () => { el.replaceChildren(...[].concat(build())); };
   el._refresh();
+  // Prompts come and go all game; forget the ones that left the page (not the ones still being assembled).
+  const now = performance.now();
+  if (live.size > 120) for (const e of live) if (!e.isConnected && now - e._born > 3000) live.delete(e);
+  el._born = now;
   live.add(el);
   return el;
 }

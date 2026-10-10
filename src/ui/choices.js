@@ -160,7 +160,7 @@ export class Choices {
     requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add('on')));
     const hc = {
       el, fg: ring.querySelector('circle.fg'), wbar, need: Math.max(0.2, seconds), win: Math.max(1, windowSecs),
-      t: 0, p: 0, needRelease: this.eHeld, resolve: null, done: false, last: -1,
+      t: 0, p: 0, needRelease: this.eHeld || !!this.G.input?.down?.('interact'), resolve: null, done: false, last: -1,
     };
     this.hcur = hc;
     return new Promise((resolve) => { hc.resolve = resolve; });

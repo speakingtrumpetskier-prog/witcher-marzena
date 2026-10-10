@@ -439,6 +439,9 @@ triangles are real. On a machine with a GPU, `MZ_GPU=1 node scripts/shot.mjs ...
 (add `MZ_HEADED=1` if headless falls back to software); the harness prints the renderer it got. A shot takes 5 to 30 s. Put your shots under `shots/<your-area>/` (gitignored).
 Each builder should add a gallery scene in `src/debug/scenes/` for its area.
 
+Input, camera, menus and hints have a functional test with a mocked gamepad: `MZ_CHROME=1 node scripts/inputtest.mjs [input|lock|menus|hints|defs]`
+(about 100 checks). UI screens for screenshots: `?scene=ui&show=controls&tab=camera&device=pad`, `show=hint&hint=senses` (see the header of `src/debug/scenes/ui.js`).
+
 ## Collaboration rules (several builders work in this tree at once)
 - **Only edit files you own** (listed in your brief). Read anything.
 - Do not run git commands that change state (no commit, checkout, stash, reset). The lead commits.
