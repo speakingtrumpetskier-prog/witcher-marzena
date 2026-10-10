@@ -19,6 +19,10 @@ voice clips generated offline. Work happens on the branch `claude/optimistic-boh
 - The lead reviews builders' output directly and fixes what it finds.
 
 ## Working practice
+- The user is not a programmer: handle git for them. At the start of every session, cloud or local,
+  run `git fetch origin` and bring the working branch up to date (`git checkout claude/optimistic-bohr-1pcwao`
+  then `git pull --ff-only`), and say in one line what came in. At the end of every piece of work,
+  commit and push, and tell the user it is pushed. Never leave work only on one machine.
 - Commit and push after every meaningful step (the user moves between cloud and local sessions;
   only pushed work exists on the other side). End commit messages with the session's attribution lines.
 - Builders (subagents) work in git worktrees (`isolation: "worktree"`), commit early and often in
