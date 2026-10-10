@@ -3,15 +3,25 @@
 // held while inside and runs again after. Screenshots and the saved PNGs go to --out (default shots/photo).
 //
 //   node scripts/phototest.mjs [--out dir] [--url http://localhost:5173/witcher-marzena/]
-// Needs the dev server running. Uses installed Chrome (MZ_CHROME=1 style) through playwright-core.
+// Starts its own Vite server on this checkout unless --url is given. Uses installed Chrome on the GPU
+// through playwright-core (the MZ_CHROME=1 setup in CLAUDE.md).
 /* global window, document, getComputedStyle */
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { createServer } from 'vite';
 
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const args = process.argv.slice(2);
 const arg = (k, d) => { const i = args.indexOf(k); return i >= 0 ? args[i + 1] : d; };
 const OUT = arg('--out', 'shots/photo');
-const URL = arg('--url', 'http://localhost:5173/witcher-marzena/');
+let URL = arg('--url', null);
+let server = null;
+if (!URL) {
+  server = await createServer({ root: ROOT, logLevel: 'error', server: { port: 0, host: '127.0.0.1', hmr: false, watch: null } });
+  await server.listen();
+  URL = `http://127.0.0.1:${server.httpServer.address().port}/witcher-marzena/`;
+}
 fs.mkdirSync(OUT, { recursive: true });
 
 let chromium;
@@ -139,4 +149,5 @@ check(await ev(() => !window.__G.photoMode.active && window.__G.input.context ==
 check(errs.length === 0, 'no errors', JSON.stringify(errs.slice(0, 5)));
 console.log(`\nSUMMARY pass=${pass} fail=${fail}`);
 await browser.close();
+await server?.close();
 process.exit(fail ? 1 : 0);
