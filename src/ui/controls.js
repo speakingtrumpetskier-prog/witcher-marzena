@@ -19,6 +19,7 @@ const TABS = [['bindings', 'Bindings'], ['camera', 'Camera'], ['controller', 'Co
 const LISTEN_SECONDS = 12;
 // Pad glyphs that carry their own name; the rest get a word beside them.
 const SELF_NAMED = new Set(['PadA', 'PadB', 'PadX', 'PadY', 'PadLB', 'PadRB', 'PadLT', 'PadRT']);
+const MOUSE_WORDS = { Mouse0: 'Left click', Mouse1: 'Middle click', Mouse2: 'Right click' };
 const BASE_FOV = 54;
 
 export class Controls {
@@ -114,7 +115,7 @@ export class Controls {
 
   // ---- bindings tab ------------------------------------------------------------------------------------
   _buildBindings() {
-    const head = h('div', { class: 'ctl-cols' }, h('span', null, 'Action'), h('span', { class: 'c1' }, 'Keyboard and mouse'), h('span', { class: 'c2' }), h('span', { class: 'c3' }, 'Controller'), h('span'));
+    const head = h('div', { class: 'ctl-cols' }, h('span', null, 'Action'), h('span', { class: 'c1' }, 'Keyboard and mouse'), h('span', { class: 'c3' }, 'Controller'));
     const list = h('div', { class: 'ctl-list' });
     this.body.append(head, list);
     this.fixedRows = [];
@@ -170,7 +171,7 @@ export class Controls {
     const txt = (t) => h('span', { class: 'nm' }, t);
     return [
       row('Look around', [lookGlyph(G, 'kbm'), txt('Mouse')], [lookGlyph(G, 'pad'), txt('Right stick')]),
-      row('Zoom', [txt('Mouse wheel')], [txt('Camera distance in the Camera tab')]),
+      row('Zoom', [txt('Mouse wheel')], [txt('Camera tab')]),
       row('Switch target while locked on', [lookGlyph(G, 'kbm'), txt('Flick sideways')], [lookGlyph(G, 'pad'), txt('Flick sideways')]),
     ];
   }
@@ -183,7 +184,8 @@ export class Controls {
       const none = kind === 'kbm' && slot === 1 && input.codesFor(a.id, 'kbm').length ? 'Add another' : 'Unbound';
       return [h('span', { class: 'ctl-none' }, none)];
     }
-    return [codeGlyph(code, style), isPad(code) && !SELF_NAMED.has(code) ? h('span', { class: 'nm' }, padLabel(code, style)) : null];
+    const word = isPad(code) ? (SELF_NAMED.has(code) ? null : padLabel(code, style)) : MOUSE_WORDS[code];
+    return [codeGlyph(code, style), word ? h('span', { class: 'nm' }, word) : null];
   }
 
   _refreshAll() {

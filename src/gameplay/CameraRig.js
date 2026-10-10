@@ -46,7 +46,7 @@ const PITCH_MIN = -0.5, PITCH_MAX = 1.12;
 const ZOOM_MIN = 0.55, ZOOM_MAX = 1.65;
 const MOUSE_SENS = 0.0022; // radians per pixel at sensitivity 1
 const PAD_YAW = 2.9, PAD_PITCH = 1.9; // radians per second at full stick, sensitivity 1
-const RECENTER = { gentle: { delay: 1.5, rate: 0.9 }, strong: { delay: 0.7, rate: 2.7 } };
+const RECENTER = { gentle: { delay: 1.5, rate: 0.55 }, strong: { delay: 0.7, rate: 1.7 } };
 const FLICK_PX = 110; // mouse pixels (decaying) that count as a flick while locked on
 const LENS = 0.26, LENS_TIGHT = 0.16; // collision sphere radius, and indoors
 

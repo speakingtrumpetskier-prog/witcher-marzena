@@ -58,7 +58,7 @@ export class Title {
     ], { onSelect: (it) => this._choose(it.id), sfx: (n) => ui.sfx(n, { volume: 0.4 }) });
     this.menu = menu;
     const cover = h('div', { class: 'cover' });
-    const press = h('div', { class: 'press' }, 'Press any key');
+    const press = h('div', { class: 'press' }, 'Press any key or button');
     const el = h('div', { class: 'mz-title' }, h('div', { class: 'shade' }), h('div', { class: 'box' }, logo, line), h('div', { class: 'menuwrap' }, menu.el), press, cover);
     this.el = el;
 

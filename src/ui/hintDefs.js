@@ -16,9 +16,9 @@ import { LOC } from '../world/layout.js';
 
 // Events the hint system listens to. 'ui:open' also fires as 'ui:open:<name>'.
 export const EVENTS = [
-  'combat:start', 'combat:end', 'player:hit', 'player:dodge', 'player:parry', 'player:block', 'player:cast', 'player:draw',
-  'player:drink', 'player:lock', 'camera:retarget', 'horse:call', 'horse:arrived', 'horse:mount', 'horse:dismount',
-  'interact:use', 'senses:on', 'quest:update', 'discover', 'cutscene:start', 'ui:open:journal', 'ui:open:map', 'ui:open:pause',
+  'combat:start', 'player:hit', 'player:dodge', 'player:parry', 'player:block', 'player:cast', 'player:draw',
+  'player:drink', 'player:lock', 'camera:retarget', 'horse:call', 'horse:mount', 'horse:dismount',
+  'interact:use', 'senses:on', 'ui:open:journal', 'ui:open:map', 'ui:open:pause',
 ];
 
 const near = (c, x, z, r) => c.P && Math.hypot(c.P.position.x - x, c.P.position.z - z) < r;
@@ -75,7 +75,7 @@ export const HINTS = [
   {
     id: 'journal', prio: 4, delay: 3, seconds: 10,
     rows: [{ action: 'journal', text: 'Open the journal', done: 'ui:open:journal', pad: { action: 'pause', text: 'Pause menu, then Journal' } }],
-    watch: (c) => c.since('quest:update') < 60 && c.live > 4 && !c.inCombat,
+    watch: (c) => Object.keys(c.G.state?.data?.quests || {}).length > 0 && c.live > 10 && !c.inCombat,
   },
   {
     id: 'lock', prio: 4, delay: 0.8, seconds: 10,
@@ -95,7 +95,7 @@ export const HINTS = [
   {
     id: 'map', prio: 5, delay: 6, seconds: 10,
     rows: [{ action: 'map', text: 'Open the map', done: 'ui:open:map' }],
-    watch: (c) => c.since('discover') < 120 && c.live > 8 && !c.inCombat,
+    watch: (c) => (c.G.state?.data?.discovered?.length || 0) > 0 && c.live > 45 && !c.inCombat,
   },
   {
     id: 'switch', prio: 5, delay: 1, seconds: 9,

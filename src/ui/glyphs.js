@@ -49,11 +49,11 @@ function cap(text, extra = '') {
 function mouse(button) {
   const fill = 'fill="currentColor" stroke="none"';
   const parts = {
-    Mouse0: `<path d="M5 10V8a8 8 0 0 1 7-7.9V10z" ${fill}/>`,
-    Mouse2: `<path d="M19 10V8a8 8 0 0 0-7-7.9V10z" ${fill}/>`,
-    Mouse1: `<rect x="10.4" y="3" width="3.2" height="7" rx="1.6" ${fill}/>`,
+    Mouse0: `<path d="M2.8 12.4V10.4A9.2 9.2 0 0 1 12 1.2V12.4z" ${fill}/>`,
+    Mouse2: `<path d="M21.2 12.4V10.4A9.2 9.2 0 0 0 12 1.2V12.4z" ${fill}/>`,
+    Mouse1: `<rect x="9.9" y="3.6" width="4.2" height="7.6" rx="2.1" ${fill}/>`,
   };
-  return svg(`<svg viewBox="0 0 24 32" aria-hidden="true"><rect x="2.6" y="1" width="18.8" height="30" rx="9.4" fill="rgba(8,10,14,0.55)" stroke="currentColor" stroke-width="1.5"/>${button ? parts[button] || '' : ''}<path d="M2.6 12h18.8M12 1v11" fill="none" stroke="currentColor" stroke-width="1.2"/></svg>`, 'mz-mouse');
+  return svg(`<svg viewBox="0 0 24 32" aria-hidden="true"><rect x="2.6" y="1" width="18.8" height="30" rx="9.4" fill="rgba(8,10,14,0.6)" stroke="currentColor" stroke-width="1.5"/>${button ? parts[button] || '' : ''}<path d="M2.8 12.4h18.4M12 1.2v11.2" fill="none" stroke="rgba(8,10,14,0.85)" stroke-width="1"/><rect x="2.6" y="1" width="18.8" height="30" rx="9.4" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>`, 'mz-mouse');
 }
 
 // ---- pad ---------------------------------------------------------------------------------------------
@@ -71,8 +71,9 @@ function padSvg(inner, wide = false) {
   return svg(`<svg viewBox="0 0 ${wide ? 38 : 28} 28" aria-hidden="true">${inner}</svg>`, `mz-pad${wide ? ' wide' : ''}`);
 }
 
+// A stick seen from above: the well, the cap with its letter. A click is shown by the cap pressed in (dashed ring).
 function stick(label, clicked) {
-  return padSvg(`<circle cx="14" cy="14" r="11.5" ${RING}/><circle cx="14" cy="14" r="5.6" fill="currentColor" opacity="0.85"/>${clicked ? '<circle cx="14" cy="14" r="8.6" fill="none" stroke="currentColor" stroke-width="1" stroke-dasharray="2 2.4"/>' : ''}<text x="14" y="${clicked ? 25.4 : 25}" text-anchor="middle" font-size="7.5" font-weight="700" fill="currentColor" stroke="none" opacity="0.9">${label}</text>`);
+  return padSvg(`<circle cx="14" cy="14" r="11.8" ${RING}/><circle cx="14" cy="14" r="${clicked ? 6.6 : 7.8}" fill="currentColor" opacity="0.92"/>${clicked ? '<circle cx="14" cy="14" r="9.4" fill="none" stroke="currentColor" stroke-width="1" stroke-dasharray="2 2.2"/>' : ''}<text x="14" y="${clicked ? 16.8 : 17.2}" text-anchor="middle" font-size="${label.length > 1 ? 7 : 9.5}" font-weight="700" fill="#0b0d12" stroke="none">${label}</text>`);
 }
 
 function dpad(arms) {
@@ -92,9 +93,9 @@ function padGlyph(code, style) {
     case 'PadA': case 'PadB': case 'PadX': case 'PadY':
       return padSvg(`<circle cx="14" cy="14" r="11.5" ${RING}/><text x="14" y="19.4" text-anchor="middle" font-size="15" font-weight="700" fill="${FACE_COLORS[code]}" stroke="none">${padLabel(code)}</text>`);
     case 'PadLB': case 'PadRB':
-      return padSvg(`<rect x="2" y="6" width="34" height="16" rx="5" ${RING}/><text x="19" y="17.4" text-anchor="middle" font-size="10.5" font-weight="700" fill="currentColor" stroke="none">${padLabel(code, style)}</text>`, true);
+      return padSvg(`<rect x="2" y="6" width="34" height="16" rx="5" ${RING}/><text x="19" y="17.8" text-anchor="middle" font-size="11.5" font-weight="700" fill="currentColor" stroke="none">${padLabel(code, style)}</text>`, true);
     case 'PadLT': case 'PadRT':
-      return padSvg(`<path d="M3 24V12a8 8 0 0 1 8-8h16a8 8 0 0 1 8 8v12z" ${RING} stroke-linejoin="round"/><text x="19" y="19.4" text-anchor="middle" font-size="10.5" font-weight="700" fill="currentColor" stroke="none">${padLabel(code, style)}</text>`, true);
+      return padSvg(`<path d="M2.5 25.5V13a9 9 0 0 1 9-9h15a9 9 0 0 1 9 9v12.5z" ${RING} stroke-linejoin="round"/><text x="19" y="19.6" text-anchor="middle" font-size="12.5" font-weight="700" fill="currentColor" stroke="none">${padLabel(code, style)}</text>`, true);
     case 'PadL3': return stick('L3', true);
     case 'PadR3': return stick('R3', true);
     case 'PadUp': return dpad(['up']);

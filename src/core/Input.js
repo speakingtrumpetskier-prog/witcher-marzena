@@ -212,7 +212,9 @@ export class Input {
   get padStyle() {
     const pref = G.settings?.padStyle;
     if (pref === 'xbox' || pref === 'playstation') return pref;
-    return /dualshock|dualsense|054c|playstation|ps[345]|wireless controller/i.test(this.padName) ? 'playstation' : 'xbox';
+    const id = this.padName;
+    if (/xbox|xinput|045e/i.test(id)) return 'xbox';
+    return /dualshock|dualsense|054c|playstation|ps[345]|^wireless controller/i.test(id) ? 'playstation' : 'xbox';
   }
 
   _scanPads() {

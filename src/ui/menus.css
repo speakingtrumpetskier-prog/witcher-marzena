@@ -51,7 +51,7 @@
 .mz-set-row input[type='range']::-moz-range-thumb { width: 9px; height: 9px; background: var(--mz-bone-hi); border: 1px solid #b0382a; border-radius: 0; transform: rotate(45deg); }
 .mz-set-row.seg-row { grid-template-columns: 270px 1fr; }
 .mz-set-row .segs { display: flex; flex-wrap: wrap; gap: 6px 10px; }
-.mz-set-row .seg, .mz-set-row .act { padding: 4px 12px 5px; background: none; border: 0; border-bottom: 1px solid rgba(236, 230, 218, 0.2); cursor: pointer; font-family: var(--mz-body); font-weight: 500; font-size: 19px; color: rgba(236, 230, 218, 0.5); transition: color 0.2s, border-color 0.2s; }
+.mz-set-row .seg, .mz-set-row .act { line-height: 24px; padding: 4px 12px 5px; background: none; border: 0; border-bottom: 1px solid rgba(236, 230, 218, 0.2); cursor: pointer; font-family: var(--mz-body); font-weight: 500; font-size: 19px; color: rgba(236, 230, 218, 0.5); transition: color 0.2s, border-color 0.2s; }
 .mz-set-row .seg:hover, .mz-set-row .act:hover { color: rgba(236, 230, 218, 0.85); }
 .mz-set-row .seg.on { color: var(--mz-bone-hi); font-weight: 600; border-bottom-color: #c4402f; }
 .mz-set-row .act { color: rgba(236, 230, 218, 0.78); border-bottom-color: rgba(236, 230, 218, 0.34); }

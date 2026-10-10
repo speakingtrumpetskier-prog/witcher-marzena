@@ -252,12 +252,12 @@ export class Overlays {
     if (sig == null) { this.promptEl.classList.remove('on'); return; }
     clear(this.promptEl);
     const named = labelAction(key);
-    this.promptEl.append(
+    this.promptEl.append(...[
       named?.hold ? h('span', { class: 'mz-holdword' }, 'Hold') : null,
       named ? labelGlyph(this.G, key) : h('span', { class: 'mz-key' + (/hold/i.test(key) ? ' wide' : '') }, key),
       verb ? h('span', { class: 'mz-verb' }, verb) : null,
       label ? h('span', { class: 'mz-lbl' }, label) : null,
-    );
+    ].filter(Boolean));
     this.promptEl.classList.add('on');
   }
 
