@@ -42,6 +42,7 @@ class Beast {
     this.want = 0;
     this.group = o.group || null;
     this.antlers = kind === 'deer' && o.buck ? this._antlers() : null;
+    if (kind === 'lynx') this._tufts();
   }
 
   // A roe buck's short forked antlers on the head bone.
@@ -62,6 +63,17 @@ class Beast {
     g.position.set(0, 0.04, -0.02);
     head.add(g);
     return g;
+  }
+
+  // The lynx's black ear tufts.
+  _tufts() {
+    const mat = new THREE.MeshStandardMaterial({ color: 0x15110e, roughness: 1 });
+    for (const ear of [this.rig.b.earL, this.rig.b.earR]) {
+      if (!ear) continue;
+      const t = new THREE.Mesh(new THREE.ConeGeometry(0.008, 0.06, 4), mat);
+      t.position.set(0, 0.1, 0);
+      ear.add(t);
+    }
   }
 
   threat() {
