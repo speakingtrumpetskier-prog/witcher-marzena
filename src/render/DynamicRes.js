@@ -6,6 +6,7 @@
 //   .targetMs       frame time to hold (33.3 = 30 fps)
 //   .setEnabled(on)
 //
+// It starts from a pixel budget for the quality level, then adjusts.
 // Changes are stepped and rare: every change reallocates the post-processing targets, so it waits
 // at least 2.5 s between steps, drops faster than it climbs, and ignores single hitches (shader
 // compiles, autosaves) and hidden tabs. ?res=0.75 pins a fixed pixel ratio instead.
@@ -49,6 +50,15 @@ export function installDynamicRes(G) {
   }
 
   if (pinned > 0) { apply(pinned); return D; }
+
+  // Start near the right resolution instead of climbing down to it from the cap over several slow
+  // seconds: a pixel budget per quality (integrated graphics at medium hold ~30 fps at about 1 MP).
+  if (D.enabled) {
+    const budget = { low: 0.6e6, medium: 1.0e6, high: 3.7e6 }[G.quality] || 1.0e6;
+    const el = R.domElement.parentElement || R.domElement;
+    const css = Math.max(1, el.clientWidth * el.clientHeight);
+    apply(Math.sqrt(budget / css));
+  }
 
   let ready = false, settleUntil = 0;
   G.events.once?.('loading:done', () => { ready = true; settleUntil = performance.now() + 4000; });

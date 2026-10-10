@@ -208,14 +208,18 @@ async function warmTitle() {
   await compileScene();
   setProgress(0.99, 'Lighting the valley');
   await waitFrames(3);
-  // Settled: three frames in a row under 120 ms, or give up after 25 s.
+  // Settled: the median of the last ten frames under 70 ms (the first draws with new programs and
+  // textures run slow for a few seconds on integrated graphics), or give up after 15 s.
   const tSettle = performance.now();
-  let good = 0, last = performance.now();
-  while (good < 3 && performance.now() - tSettle < 25000) {
+  const recent = [];
+  let last = performance.now();
+  while (performance.now() - tSettle < 15000) {
     await waitFrames(1);
     const now = performance.now();
-    good = now - last < 120 ? good + 1 : 0;
+    recent.push(now - last);
     last = now;
+    if (recent.length > 10) recent.shift();
+    if (recent.length === 10 && [...recent].sort((a, b) => a - b)[5] < 70) break;
   }
 }
 

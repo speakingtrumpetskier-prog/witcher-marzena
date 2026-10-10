@@ -121,6 +121,16 @@ export async function init(G) {
   const farDir = new THREE.Vector3(0, 1, 0);
   let farClock = 0;
 
+  // Near map cadence: re-rendered every frame at high quality, every second frame below (it redraws
+  // the whole village, a fifth of the frame on integrated graphics). The light camera only moves on
+  // frames that re-render the map, so the map always matches its projection; a jump (a cut, a
+  // teleport, a sun step) re-renders at once.
+  const nearEvery = G.quality === 'high' ? 1 : 2;
+  key.shadow.autoUpdate = nearEvery === 1;
+  const nearAt = new THREE.Vector3(1e9, 0, 0);
+  const nearDir = new THREE.Vector3(0, 1, 0);
+  let nearFrame = 0;
+
   function updateShadowFrustum(dt) {
     // Focus: the player's hint while the gameplay rig is the view, else the ground in front of the
     // camera. One rule per owner, never a mix: the near map must not jump between two centers.
@@ -136,7 +146,15 @@ export async function init(G) {
       const gy = G.world?.grid ? G.world.heightAt(A.shadowFocus.x, A.shadowFocus.z) : 0;
       A.shadowFocus.y = Math.min(cam.position.y, gy + 2);
     }
-    fitShadow(key, A.shadowFocus, shadowDir, A.shadowRadius, 22, 500);
+    const refit = nearEvery === 1 || ++nearFrame >= nearEvery
+      || A.shadowFocus.distanceToSquared(nearAt) > 9 || shadowDir.angleTo(nearDir) > 0.002;
+    if (refit) {
+      nearFrame = 0;
+      fitShadow(key, A.shadowFocus, shadowDir, A.shadowRadius, 22, 500);
+      nearAt.copy(A.shadowFocus);
+      nearDir.copy(shadowDir);
+      if (nearEvery > 1) key.shadow.needsUpdate = true;
+    }
 
     // Far cascade: re-rendered only when the view or the sun moved enough, or every 3 s.
     if (far.castShadow) {
