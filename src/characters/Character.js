@@ -17,6 +17,7 @@ import { armJoints } from './rig.js';
 import { makeSword } from './gear.js';
 import { getClip } from './clips/index.js';
 import { strafeSet } from './clips/strafe.js';
+import { armProfile, clearArms } from './armclear.js';
 
 const _v = new THREE.Vector3(), _v2 = new THREE.Vector3(), _v3 = new THREE.Vector3();
 const _q = new THREE.Quaternion(), _q2 = new THREE.Quaternion();
@@ -47,6 +48,9 @@ export class Character {
       'handL', 'handR', 'thighL', 'thighR', 'shinL', 'shinR', 'footL', 'footR', 'eyeL', 'eyeR']) this.bones[n] = by[n];
     this.anim = new Animator(this);
     this.springs = new Springs(this);
+    // arms are kept out of the torso and coat (armclear.js); armClear = false turns it off for one character
+    this._armProfile = b.look.headOnly ? null : armProfile(b.mesh.geometry, b.rig, b.M);
+    this.armClear = G.params?.get('armclear') !== '0'; // ?armclear=0 shows the raw clips
     this.speed = 0;
     this.autoGround = true;
     this.ground = null;
@@ -245,6 +249,7 @@ export class Character {
     if (this.autoGround) this.root.position.y = this.groundAt(this.root.position.x, this.root.position.z);
     this.anim.update(dt, ctx);
     if (ctx.lod === 0 && ctx.ik !== false) this._footIK();
+    if (ctx.lod <= 1 && this.armClear) clearArms(this);
     if (ctx.lod <= 1) {
       // riding: find the horse this character is parented under (saddle anchor)
       let o = this.root.parent, horse = null;
