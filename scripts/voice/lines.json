@@ -1960,7 +1960,7 @@
    "text": "Easy. I know.",
    "kind": "cutscene",
    "source": "src/story/content/cutscenes/c1_blizzard.js",
-   "node": "line 109",
+   "node": "line 117",
    "direction": "plain, restrained",
    "exaggeration": 0.33,
    "pace": 1

@@ -114,3 +114,15 @@ One entry per unique (speaker, text): `hash`, `speaker`, `text`, `kind` (dialogu
 | Test the file logic without models | `python scripts/voice/generate.py --dry-run` (tones, written to a temp folder, never to `public/`) |
 
 Licences: Kokoro-82M is Apache-2.0, Chatterbox is MIT (it embeds an inaudible Perth watermark in its output).
+
+## Fastest route: Kokoro through ONNX (any CPU, no PyTorch)
+
+This is how the shipped clips were made (about 16 minutes for all 612 lines on 4 CPU cores):
+
+```
+pip install kokoro-onnx soundfile          # in a venv; ffmpeg must be on the PATH
+scripts/voice/fetch_onnx.sh                # official onnx-community Kokoro-82M v1.0 + the 8 British voices
+node scripts/voice/extract.mjs             # refresh lines.json after editing dialogue or cutscenes
+python scripts/voice/generate.py --engine kokoro-onnx   # renders only lines without a clip
+```
+The voices, blends and speeds come from cast.json exactly as in the PyTorch route.
