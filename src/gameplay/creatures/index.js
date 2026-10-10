@@ -137,8 +137,39 @@ class Creatures {
 
 }
 
+// One of each creature built out of sight, for the boot shader warm-up (render/warmShaders.js): their
+// first spawn otherwise compiles their programs mid-fight (the boss froze her own emergence for about
+// 3 s on the laptop). Built hidden and unregistered from combat. The returned function parks them:
+// everything they added to the scene is taken out again, but nothing is disposed, because three
+// deletes a program as soon as no material uses it and the real spawn would compile it all again.
+function prewarm() {
+  const made = [];
+  const before = new Set(G.scene.children);
+  const at = { x: 0, z: -3800 };
+  const make = (f) => {
+    try {
+      const c = f();
+      if (!c) return;
+      G.combat?.unregister?.(c);
+      c.root.visible = false;
+      if (!c.root.parent) G.scene.add(c.root);
+      made.push(c);
+    } catch (e) { console.warn('[creatures] prewarm', e); }
+  };
+  make(() => new Wolf(at.x, at.z, {}));
+  make(() => new Effigy(at.x + 6, at.z, { dormant: true }));
+  make(() => new Bear(at.x + 12, at.z, { sleeping: true }));
+  make(() => new Boss(at.x + 20, at.z, { passive: true }));
+  const added = G.scene.children.filter((o) => !before.has(o));
+  return () => {
+    for (const o of added) G.scene.remove(o);
+    G.creatures.parked = made; // kept alive (and their materials undisposed) so the programs stay cached
+  };
+}
+
 export async function init(G_) {
   const C = new Creatures();
+  C.prewarm = prewarm;
   G_.creatures = C;
   // The boss's glow, made once at boot and never removed or hidden (intensity 0 when unused): adding
   // or hiding a light changes the light count, and every lit shader recompiles, a long freeze at the

@@ -89,11 +89,15 @@ function shadowStandIns(G) {
   return out;
 }
 
-export async function warmShaders(G, { timeoutMs = 90000 } = {}) {
+export async function warmShaders(G, { timeoutMs = 90000, creatures = false } = {}) {
   const R = G.renderer;
   if (!R || !G.scene || !G.camera || !R.compileAsync) return { pending: 0 };
   const prev = R.getRenderTarget();
   const t0 = performance.now();
+  // Creatures that only appear later (wolves, Marzanny, the bear, the boss) are built hidden for the
+  // duration so their programs compile now too, then disposed once everything is ready.
+  let unwarm = null;
+  if (creatures) { try { unwarm = G.creatures?.prewarm?.() || null; } catch (e) { console.warn('[warm] creatures', e); } }
   try {
     // 1. Scene materials, keyed the way the scene pass will draw them.
     R.setRenderTarget(sceneTarget(G));
@@ -118,5 +122,6 @@ export async function warmShaders(G, { timeoutMs = 90000 } = {}) {
     R.setRenderTarget(prev);
   }
   const pending = await programsReady(R, Math.max(0, timeoutMs - (performance.now() - t0)));
+  unwarm?.();
   return { pending, programs: (R.info.programs || []).length, ms: Math.round(performance.now() - t0) };
 }

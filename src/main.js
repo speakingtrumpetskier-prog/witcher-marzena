@@ -141,7 +141,7 @@ async function boot() {
   // desktop browsers) the GPU process does the work off the main thread, so the loading screen keeps
   // moving instead of the first frame freezing the page while it compiles everything at once.
   setProgress(0.94, 'Lighting the valley');
-  await compileScene({ tick: true });
+  await compileScene({ tick: true, creatures: !G.shot && !sceneName });
   const tCompiled = performance.now();
   setProgress(0.96, 'Lighting the valley');
   if (!G.shot) installDynamicRes(G);
@@ -190,10 +190,10 @@ function preTick() {
   }
 }
 
-async function compileScene({ tick = false } = {}) {
+async function compileScene({ tick = false, creatures = false } = {}) {
   if (tick) preTick();
   try {
-    const r = await warmShaders(G);
+    const r = await warmShaders(G, { creatures });
     if (r.pending) console.warn(`[boot] ${r.pending} shader programs still compiling after the warm-up`);
   } catch (e) { console.warn('[boot] shader warm-up', e); }
 }
