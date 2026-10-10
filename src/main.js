@@ -20,6 +20,8 @@ import { gwiazda } from './ui/wycinanki.js';
 import { World } from './world/World.js';
 import { FreeCam } from './debug/FreeCam.js';
 import { Collision } from './core/Collision.js';
+import { installDynamicRes } from './render/DynamicRes.js';
+import { warmShaders } from './render/warmShaders.js';
 
 installMaterialPatches();
 
@@ -98,10 +100,12 @@ async function boot() {
   }
 
   let i = 0;
+  G.bootTimes = [];
   for (const [name, loader] of MODULES) {
     i++;
     if (!wanted.includes(name)) continue;
     setProgress(0.32 + (i / MODULES.length) * 0.6, `Loading ${name}`);
+    const t0 = performance.now();
     try {
       const mod = await loader();
       if (mod.init) await mod.init(G);
@@ -109,6 +113,7 @@ async function boot() {
       console.error(`[module ${name}]`, e);
       G.errors.push(`module ${name}: ${e.message}`);
     }
+    G.bootTimes.push([name, Math.round(performance.now() - t0)]);
   }
 
   if (sceneMod?.init) {
@@ -131,23 +136,87 @@ async function boot() {
   if (G.debug || (!G.cameraRig && !G.shot && !cam && !sceneName)) fly.enable();
 
   await Promise.all(G.readyGates.map((p) => p.catch((e) => G.errors.push(`gate: ${e.message}`))));
-  setProgress(1, 'Ready');
+  const tModules = performance.now();
+  // Compile every material in the scene before the first frame. With parallel shader compile (most
+  // desktop browsers) the GPU process does the work off the main thread, so the loading screen keeps
+  // moving instead of the first frame freezing the page while it compiles everything at once.
+  setProgress(0.94, 'Lighting the valley');
+  await compileScene({ tick: true });
+  const tCompiled = performance.now();
+  setProgress(0.96, 'Lighting the valley');
+  if (!G.shot) installDynamicRes(G);
   engine.start();
 
   const frames = parseInt(G.params.get('frames') || '4', 10);
-  const startFrame = G.clock.frame;
-  const waitFrames = () => new Promise((resolve) => {
-    const tick = () => (G.clock.frame - startFrame >= frames ? resolve() : requestAnimationFrame(tick));
-    tick();
-  });
-  await waitFrames();
+  await waitFrames(frames);
+  const tFirst = performance.now();
+
+  // The story opens the title on game:ready. In normal play the loading screen stays over it until
+  // the title owns the camera and every shader it needs is compiled, so the first thing on screen is
+  // the title picture running smoothly, not the bare world stalling on its first frames.
+  let loadingDone;
+  G.loadingDone = new Promise((resolve) => { loadingDone = resolve; });
+  G.events.emit('game:ready', {});
+  if (!G.shot && !sceneName && !cam && !G.params.has('keepLoading')) await warmTitle();
   if (loading && !G.params.has('keepLoading')) {
     if (G.shot) loading.style.display = 'none';
     else loading.classList.add('hidden');
   }
-  G.events.emit('game:ready', {});
+  loadingDone();
+  G.events.emit('loading:done', {});
+  const slow = [...G.bootTimes].sort((a, b) => b[1] - a[1]).slice(0, 4).map(([n, ms]) => `${n} ${ms}`).join(', ');
+  const ms = (a, b) => Math.round(b - a);
+  console.info(`[boot] ${Math.round(performance.now())} ms to the first picture: modules ${Math.round(tModules)}, compile ${ms(tModules, tCompiled)}, first frames ${ms(tCompiled, tFirst)}, title warm-up ${ms(tFirst, performance.now())} (slowest modules: ${slow})`);
   window.__MZ_ERRORS = G.errors;
   window.__MZ_READY = true;
+}
+
+function waitFrames(n) {
+  const start = G.clock.frame;
+  return new Promise((resolve) => {
+    const tick = () => (G.clock.frame - start >= n ? resolve() : requestAnimationFrame(tick));
+    tick();
+  });
+}
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+// One systems update without a render, so the scene is in its first-frame state before shaders are
+// compiled: the sky has built its environment map (every lit program is keyed on it), and culling
+// and LOD have put in the objects the first view needs.
+function preTick() {
+  for (const s of G.systems) {
+    try { s.update(1 / 60, G.clock.elapsed); } catch (e) { console.warn(`[boot] pre-tick ${s.name}`, e); }
+  }
+}
+
+async function compileScene({ tick = false } = {}) {
+  if (tick) preTick();
+  try {
+    const r = await warmShaders(G);
+    if (r.pending) console.warn(`[boot] ${r.pending} shader programs still compiling after the warm-up`);
+  } catch (e) { console.warn('[boot] shader warm-up', e); }
+}
+
+// Under the loading screen: wait for the title to take the camera, compile the scene's materials from
+// that view without blocking the page (parallel shader compile where the browser has it), let the
+// first frames build the shadow and post programs, then wait until frames come at a steady pace.
+async function warmTitle() {
+  const t0 = performance.now();
+  while (G.cameraOwner !== 'title' && performance.now() - t0 < 5000) await sleep(50);
+  setProgress(0.97, 'Lighting the valley');
+  await compileScene();
+  setProgress(0.99, 'Lighting the valley');
+  await waitFrames(3);
+  // Settled: three frames in a row under 120 ms, or give up after 25 s.
+  const tSettle = performance.now();
+  let good = 0, last = performance.now();
+  while (good < 3 && performance.now() - tSettle < 25000) {
+    await waitFrames(1);
+    const now = performance.now();
+    good = now - last < 120 ? good + 1 : 0;
+    last = now;
+  }
 }
 
 boot().catch((e) => {

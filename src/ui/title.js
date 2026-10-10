@@ -89,7 +89,12 @@ export class Title {
     el.classList.add('intro');
     if (this.attract) el.classList.add('attract');
     else el.classList.add('auto');
-    setTimeout(() => el.classList.remove('intro'), 60);
+    // On first boot the title opens under the loading screen while shaders compile: start the fade up
+    // and the camera's opening move only when that screen lifts, so the whole opening is seen.
+    (G.loadingDone || Promise.resolve()).then(() => {
+      this.scene.t = opts.startAt ?? 0;
+      setTimeout(() => el.classList.remove('intro'), 60);
+    });
     this.promise = new Promise((resolve) => { this._resolve = resolve; });
     return this.promise;
   }

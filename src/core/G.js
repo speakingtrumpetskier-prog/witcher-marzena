@@ -5,6 +5,7 @@ import { Events } from './Events.js';
 import { State } from './State.js';
 import { Time } from './Time.js';
 import { U } from '../render/Uniforms.js';
+import { pickQuality } from './Quality.js';
 
 const params = new URLSearchParams(location.search);
 
@@ -24,7 +25,7 @@ export const G = {
   uniforms: U,
   events: new Events(),
   clock: { elapsed: 0, delta: 0, frame: 0 },
-  quality: params.get('quality') || 'high', // 'low' | 'medium' | 'high'
+  quality: pickQuality(params), // 'low' | 'medium' | 'high': ?quality=, the saved choice, else a GPU guess (core/Quality.js)
 
   // Filled by modules:
   world: null, // World (core, src/world/World.js)
