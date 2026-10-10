@@ -10,6 +10,10 @@ import { ICON } from './icons.js';
 import { paperCanvas, grainURL } from './paper.js';
 import { drawSketch } from './sketch.js';
 import { QUEST_FALLBACK } from './content.js';
+import { gwiazda, leluja } from './wycinanki.js';
+
+const seedOf = (t) => { let x = 7; for (const ch of String(t || '')) x = (x * 31 + ch.charCodeAt(0)) >>> 0; return x % 997; };
+const rosette = (t) => gwiazda(seedOf(t), { size: 30, cls: 'jr-rosette' });
 
 const TABS = [['quests', 'Quests'], ['notes', 'Notes'], ['bestiary', 'Bestiary']];
 const SEEN_KEY = 'marzena.journal.seen';
@@ -179,7 +183,7 @@ export class Journal {
     const flat = groups.flatMap(([, r]) => r);
     if (!flat.length) {
       this.left.append(this._empty('Nothing written yet. The book is new, and so is the valley.'));
-      this.right.append(h('div', { class: 'jr-blank' }, svg(ICON.knot)));
+      this.right.append(h('div', { class: 'jr-blank' }, leluja(23, { w: 96, h: 160 })));
       return;
     }
     this.sel.quests = Math.max(0, Math.min(flat.length - 1, this.sel.quests));
@@ -207,7 +211,7 @@ export class Journal {
     // Right page
     const scroll = h('div', { class: 'jr-scroll' });
     const kindLabel = q.kind === 'main' ? 'Main quest' : 'Side quest';
-    this.right.append(h('div', { class: 'jr-qhead' }, h('div', { class: 'sub' }, kindLabel), h('h2', null, q.title), h('div', { class: 'rule' }, svg(ICON.knot))));
+    this.right.append(h('div', { class: 'jr-qhead' }, rosette(q.title), h('div', { class: 'sub' }, kindLabel), h('h2', null, q.title), h('div', { class: 'rule' }, svg(ICON.knot))));
     if (q.state !== 'active') this.right.append(h('div', { class: 'jr-stamp' }, q.state === 'failed' ? 'Lost' : 'Settled'));
     const entries = h('div', { class: 'jr-entries' });
     q.log.forEach((e, i) => {
@@ -243,7 +247,7 @@ export class Journal {
     this.left.append(h('div', { class: 'jr-scroll' }, list));
     const n = rows[this.sel.notes].info;
     const scroll = h('div', { class: 'jr-scroll' });
-    this.right.append(h('div', { class: 'jr-qhead' }, h('div', { class: 'sub' }, n.where || 'Found'), h('h2', null, n.title || ''), h('div', { class: 'rule' }, svg(ICON.knot))));
+    this.right.append(h('div', { class: 'jr-qhead' }, rosette(n.title || ''), h('div', { class: 'sub' }, n.where || 'Found'), h('h2', null, n.title || ''), h('div', { class: 'rule' }, svg(ICON.knot))));
     const body = h('div', { class: 'jr-entries note-' + (n.kind || 'letter') });
     if (n.kind === 'drawing') {
       const c = h('canvas', { class: 'jr-sketch', width: 640, height: 440 });
@@ -271,7 +275,7 @@ export class Journal {
     const b = rows[this.sel.bestiary];
     const scroll = h('div', { class: 'jr-scroll' });
     if (!b?.open) {
-      this.right.append(h('div', { class: 'jr-qhead' }, h('div', { class: 'sub' }, 'Not yet met'), h('h2', null, '? ? ?'), h('div', { class: 'rule' }, svg(ICON.knot))));
+      this.right.append(h('div', { class: 'jr-qhead' }, rosette('? ? ?'), h('div', { class: 'sub' }, 'Not yet met'), h('h2', null, '? ? ?'), h('div', { class: 'rule' }, svg(ICON.knot))));
       scroll.append(this._empty('I have not seen this one. When I do, I will write it down.'));
       this.right.append(scroll);
       return;
@@ -279,7 +283,7 @@ export class Journal {
     const c = h('canvas', { class: 'jr-sketch', width: 640, height: 440 });
     drawSketch(c, b.sketch, 3);
     this.left.append(h('div', { class: 'jr-sketchbox' }, c));
-    this.right.append(h('div', { class: 'jr-qhead' }, h('div', { class: 'sub' }, b.sub), h('h2', null, b.name), h('div', { class: 'rule' }, svg(ICON.knot))));
+    this.right.append(h('div', { class: 'jr-qhead' }, rosette(b.name), h('div', { class: 'sub' }, b.sub), h('h2', null, b.name), h('div', { class: 'rule' }, svg(ICON.knot))));
     const body = h('div', { class: 'jr-entries' });
     b.text.forEach((p) => body.append(h('div', { class: 'jr-entry latest' }, h('p', null, markup(p)))));
     scroll.append(body);

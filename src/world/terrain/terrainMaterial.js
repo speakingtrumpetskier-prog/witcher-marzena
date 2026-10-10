@@ -180,7 +180,7 @@ const FRAG_SHADE = /* glsl */ `
       float tz = texture2D(uTrackMap, tuv + vec2(0.0, e)).r - texture2D(uTrackMap, tuv - vec2(0.0, e)).r;
       trkG = vec2(tx, tz);
       trk *= 1.0 - onRoad * 0.85;
-      snowCol = mix(snowCol, snowCol * vec3(0.7, 0.76, 0.86), trk * 0.85);
+      snowCol = mix(snowCol, snowCol * vec3(0.56, 0.64, 0.8), trk * 0.9);
       snowRough = mix(snowRough, 0.55, trk);
     }
   }
@@ -222,7 +222,7 @@ const FRAG_SHADE = /* glsl */ `
     }
   }
   // Print walls: the map's slope bends the normal (the rim catches the low sun, the floor shades).
-  Np = normalize(Np + vec3(trkG.x, 0.0, trkG.y) * 2.2 * snow);
+  Np = normalize(Np + vec3(trkG.x, 0.0, trkG.y) * 2.4 * snow);
   normal = normalize((viewMatrix * vec4(Np, 0.0)).xyz);
   mzGlintN = Np;
   mzSnowAmt = snow;

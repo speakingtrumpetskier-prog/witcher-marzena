@@ -16,6 +16,7 @@ import * as THREE from 'three';
 import { G } from './core/G.js';
 import { createEngine } from './core/Engine.js';
 import { installMaterialPatches } from './render/Materials.js';
+import { gwiazda } from './ui/wycinanki.js';
 import { World } from './world/World.js';
 import { FreeCam } from './debug/FreeCam.js';
 import { Collision } from './core/Collision.js';
@@ -41,6 +42,8 @@ const MODULES = [
 const SCENE_DEFAULT_MODULES = ['atmosphere', 'sky', 'postfx'];
 
 const loading = document.getElementById('loading');
+// A paper-cut star turning slowly over the name while the valley builds.
+loading?.querySelector('.loading-inner')?.prepend(gwiazda(5, { size: 76, cls: 'loading-wyc', color: '#b9402f' }));
 const bar = document.getElementById('loading-bar');
 const msg = document.getElementById('loading-msg');
 const setProgress = (p, text) => {

@@ -7,6 +7,7 @@ import * as THREE from 'three';
 import { h, svg, markup, clear, wait, raf2, clamp01 } from './dom.js';
 import { ICON } from './icons.js';
 import { displayName } from './content.js';
+import { gwiazda } from './wycinanki.js';
 
 const THREAD_PATH = 'M2 7 C 38 2, 84 10, 140 5 S 232 3, 298 6';
 
@@ -63,7 +64,8 @@ export class Overlays {
     this.cardThread = svg(`<svg viewBox="0 0 300 12" preserveAspectRatio="none" aria-hidden="true"><path d="${THREAD_PATH}" pathLength="1"/></svg>`, 'mz-card-thread');
     this.cardKnot = svg(ICON.knot, 'mz-card-knot');
     this.cardSub = h('div', { class: 'mz-card-sub' });
-    this.cardBox = h('div', { class: 'mz-card-box' }, this.cardTitle, h('div', { class: 'mz-card-line' }, this.cardThread, this.cardKnot), this.cardSub);
+    this.cardRosette = gwiazda(77, { size: 54, cls: 'mz-card-rosette', color: '#c4402f' });
+    this.cardBox = h('div', { class: 'mz-card-box' }, this.cardRosette, this.cardTitle, h('div', { class: 'mz-card-line' }, this.cardThread, this.cardKnot), this.cardSub);
     this.cardLayer.append(this.cardBox);
 
     // Place banner (left) and control hints (bottom left).

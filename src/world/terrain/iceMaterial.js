@@ -23,6 +23,8 @@ uniform vec4 uMzGlow;
 uniform vec3 uMzGlowColor;
 uniform vec4 uMzCrack;
 uniform float uMzThaw;
+uniform sampler2D uTrackMap;
+uniform vec4 uTrackRect; // gameplay/SnowTracks.js: x0, z0, size, on
 uniform float uTime;
 uniform vec4 uWind;
 ${TERRAIN_SAMPLE_GLSL}
@@ -190,6 +192,19 @@ const SHADE = /* glsl */ `
     glintMask *= 1.0 - water;
   }
 
+  // Tracks in the snow lying on the ice (gameplay/SnowTracks.js); bare ice keeps no prints.
+  if (uTrackRect.w > 0.5) {
+    vec2 tuv = (xz - uTrackRect.xy) / uTrackRect.z;
+    if (all(greaterThan(tuv, vec2(0.002))) && all(lessThan(tuv, vec2(0.998)))) {
+      float e = 1.0 / 1024.0, ts = snowIce * (1.0 - thaw);
+      float tk = texture2D(uTrackMap, tuv).r * ts;
+      vec2 tg = vec2(texture2D(uTrackMap, tuv + vec2(e, 0.0)).r - texture2D(uTrackMap, tuv - vec2(e, 0.0)).r,
+                     texture2D(uTrackMap, tuv + vec2(0.0, e)).r - texture2D(uTrackMap, tuv - vec2(0.0, e)).r) * ts;
+      col = mix(col, col * vec3(0.56, 0.64, 0.8), tk * 0.9);
+      g -= tg * 2.4;
+      glintMask *= 1.0 - tk * 0.9;
+    }
+  }
   vec3 Nw = normalize(vec3(-g.x, 1.0, -g.y));
   normal = normalize((viewMatrix * vec4(Nw, 0.0)).xyz);
   mzIceN = Nw;
@@ -238,6 +253,10 @@ export function createIceMaterial(G, uniforms, kind = 'lake') {
     Object.assign(shader.uniforms, uniforms);
     shader.uniforms.uTime = G.uniforms.uTime;
     shader.uniforms.uWind = G.uniforms.uWind;
+    G.uniforms.uTrackMap ||= { value: null };
+    G.uniforms.uTrackRect ||= { value: new THREE.Vector4(0, 0, 128, 0) };
+    shader.uniforms.uTrackMap = G.uniforms.uTrackMap;
+    shader.uniforms.uTrackRect = G.uniforms.uTrackRect;
     const riv = kind === 'river';
     shader.vertexShader = (riv ? 'attribute float aAcross;\nvarying float vMzAcross;\n' : '') + 'varying vec3 vMzIceWP;\n' + shader.vertexShader.replace('#include <begin_vertex>',
       '#include <begin_vertex>\nvMzIceWP = (modelMatrix * vec4(transformed, 1.0)).xyz;' + (riv ? '\nvMzAcross = aAcross;' : ''));

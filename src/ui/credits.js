@@ -4,6 +4,7 @@
 import { h, svg } from './dom.js';
 import { ICON } from './icons.js';
 import { CREDITS, CREDITS_LAST_LINE } from './content.js';
+import { leluja } from './wycinanki.js';
 
 const SPEED = 46; // px per second
 
@@ -25,6 +26,7 @@ export class Credits {
         : h('p', { class: 'cr-text' }, l)))));
     this.last = h('p', { class: 'cr-last' }, opts.last || CREDITS_LAST_LINE);
     this.roll = h('div', { class: 'cr-roll' },
+      h('div', { class: 'cr-leluja' }, leluja(41, { w: 110, h: 184, color: '#c4402f' })),
       h('div', { class: 'cr-logo' }, 'MARZENA'),
       h('div', { class: 'cr-thread' }, svg(ICON.knot)),
       h('div', { class: 'cr-tag' }, 'A tale of the long winter'),

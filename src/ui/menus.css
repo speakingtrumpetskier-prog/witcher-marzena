@@ -94,6 +94,7 @@
 .mz-credits { position: absolute; inset: 0; z-index: 85; background: #000; overflow: hidden; transition: opacity 2.4s ease; }
 .mz-credits.out { opacity: 0; }
 .cr-roll { position: absolute; left: 0; right: 0; top: 0; text-align: center; will-change: transform; padding: 0 8vw; box-sizing: border-box; transform: translate3d(0, 110vh, 0); }
+.cr-leluja { display: flex; justify-content: center; margin: 0 0 26px; filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.8)); }
 .cr-logo { font-family: var(--mz-serif); font-weight: 600; font-size: clamp(48px, 8vw, 120px); line-height: 1; letter-spacing: 0.5em; padding-left: 0.5em; color: var(--mz-bone-hi); }
 .cr-thread { display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 20px; color: #c4402f; }
 .cr-thread::before, .cr-thread::after { content: ''; width: min(18vw, 180px); height: 2px; background: #b9402f; }
