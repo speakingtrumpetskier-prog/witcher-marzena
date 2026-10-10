@@ -5,6 +5,7 @@
 //   &phase=2                                             boss starts in this phase (1 to 3)       &emerge=1  boss rises from the ice
 //   &lite=1                                              flat stand-in ground, no terrain or water (fast, logic only)
 //   &hp=100 &god=1 &signs=1 &drawn=0                     vitals; god = 9999 health; unlimited sign energy; sword out or not
+//   &mounted=1                                           start in the saddle on Kasza (sword out unless drawn=0)
 //   &ap=1  &sign=ember|gale|ward                         autopilot: Vesna locks on, closes in, strikes and dodges by herself (and casts the sign)
 //   &hud=0  &hour=23.2  &weather=clear|snow|blizzard|fog &dist=9 (enemy distance)  &camyaw=0.5 &zoom=0.9
 //   &rig=wolf|bear                                       rig gallery: gaits and poses in a row (no gameplay)
@@ -25,7 +26,8 @@ export const modules = Q.has('rig')
     ? ['atmosphere', 'sky', 'weather', 'characters', 'ui', 'audio', 'gameplay', 'postfx']
     : ['atmosphere', 'sky', 'terrain', 'water', 'weather', 'characters', 'ui', 'audio', 'gameplay', 'postfx'];
 
-const SITE = { x: 10, z: -30 };
+// The fight's spot: the ice by the ritual site by default, &site=x,z moves it (the horse will not set a hoof on ice: ride on snow, e.g. -10,60)
+const SITE = (() => { const s = (Q.get('site') || '').split(',').map(Number); return s.length === 2 && s.every(Number.isFinite) ? { x: s[0], z: s[1] - 8 } : { x: 10, z: -30 }; })();
 
 function flatGround(G, y = 0) {
   const m = new THREE.Mesh(
@@ -84,10 +86,11 @@ async function fight(G) {
   G.input.context = 'game';
   if (!Q.has('cam')) G.cameraOwner = 'rig';
   if (Q.get('hud') === '0') G.ui?.hud?.hide?.();
-  if (!G.terrain) flatGround(G);
+  if (!G.terrain) flatGround(G, G.world.heightAt(SITE.x, SITE.z + 8));
   if (G.state) G.state.data.inventory.thaw = 3;
+  const mounted = Q.has('mounted') && !!G.horse;
   if (G.horse?.teleport) G.horse.teleport(SITE.x + 40, SITE.z + 60, 0);
-  if (G.horse?.root) G.horse.root.visible = false;
+  if (G.horse?.root) G.horse.root.visible = mounted;
 
   // Vesna on the ice, facing north (-Z), sword out.
   const dist = parseFloat(Q.get('dist') || (kind === 'bear' ? '12' : kind === 'boss' ? '10' : kind === 'effigies' ? '9' : '10'));
@@ -98,6 +101,11 @@ async function fight(G) {
   if (Q.has('god')) { P.maxHealth = 9999; P.health = 9999; }
   P.stamina = P.maxStamina;
   P.warmth = 1;
+  if (mounted) {
+    // In the saddle at the same spot, facing the enemy (the horse is the body the wolves circle).
+    G.horse.teleport(px, pz, Math.PI);
+    G.horse.mount({ instant: true });
+  }
   if (Q.get('drawn') !== '0') { P.character._setSword?.(true); P.moves.lastDraw = P.moves.t + 1000; }
   if (Q.has('signs')) P.signEnergy = 1;
   G.cameraRig.snapBehind(Math.PI + parseFloat(Q.get('camyaw') || '0'));

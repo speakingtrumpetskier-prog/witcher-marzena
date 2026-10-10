@@ -19,6 +19,7 @@ import { G } from '../../core/G.js';
 import { clamp, wrapAngle } from '../../core/util.js';
 import { spendStamina, spendSign } from './stats.js';
 import { enemyPos, assistTarget, isAlive } from './lock.js';
+import { RideCombat } from './mounted.js';
 
 const ATTACKS = {
   light1: { clip: 'attack_1', speed: 1.15, whoosh: 0.14, contact: 0.27, chain: 0.37, end: 0.8, cost: 7, kind: 'light', combo: 1, reach: 2.0, arc: 1.75, dmg: 20, lunge: [0.9, 0.04, 0.27], kb: 0.2 },
@@ -68,6 +69,7 @@ export class Moves {
     this.lastCombat = -100;
     this.lastDraw = 0;
     this.out = { owns: false, speedMul: 1, face: null, noSprint: false };
+    this.ride = new RideCombat(this); // the sword from the saddle (player/mounted.js)
   }
 
   // ---- queries ---------------------------------------------------------------------------------
@@ -97,6 +99,7 @@ export class Moves {
     this.pending = null;
     this.combo = 0;
     this.comboWindow = 0;
+    this.ride?.stop();
     void keepSword;
   }
 
@@ -141,7 +144,7 @@ export class Moves {
 
     // A blade left out in a quiet valley goes back on her back after a while (hunter senses need it sheathed).
     if (c.swordDrawn && enabled && !this.act && !this.upper && !this.blocking && !P.target && !G.combat?.inCombat
-      && this.t - Math.max(this.lastCombat, this.lastDraw) > 20 && !P.mounted) this.toggleSword(false);
+      && this.t - Math.max(this.lastCombat, this.lastDraw) > 20) this.toggleSword(false);
 
     // Input.
     if (enabled) this._input(dt, ctx);
@@ -149,6 +152,7 @@ export class Moves {
     // Active action.
     if (this.act) this._tickAct(dt, ctx);
     else this._tickBlock(dt, ctx);
+    if (P.mounted) this.ride.update(dt);
 
     if (this.act) out.owns = true;
     return out;
@@ -156,7 +160,19 @@ export class Moves {
 
   _input(dt, ctx) {
     const P = this.P, inp = G.input, c = P.character;
-    if (P.mounted) { if (inp.pressed('potion') && !this.upper) this.drinkPotion(); return; }
+    if (P.mounted) {
+      // In the saddle: draw and sheathe, swing to the side (startAttack hands it to ride), drink. No dodge, parry or signs.
+      const lmb = inp.pressed('attack') && !ctx.swallowClick;
+      const rmb = inp.pressed('heavy') && c.swordDrawn;
+      if (lmb || rmb) {
+        const kind = rmb ? 'heavy' : 'light';
+        if (!c.swordDrawn) { if (lmb) { this.pending = 'light'; if (!this.upper) this.toggleSword(true); } } else if (this.act) this.buf = { kind, at: this.t };
+        else this.startAttack(kind, ctx);
+      }
+      if (inp.pressed('draw') && !this.act && !this.upper) this.toggleSword();
+      if (inp.pressed('potion') && !this.upper) this.drinkPotion();
+      return;
+    }
     const lmb = inp.pressed('attack') && !ctx.swallowClick;
     const rmb = inp.pressed('heavy') && c.swordDrawn;
     const dodge = inp.pressed('dodge');
@@ -220,6 +236,7 @@ export class Moves {
   startAttack(kind, ctx) {
     const P = this.P, c = P.character;
     if (!c.swordDrawn || P.state === 'dead') return false;
+    if (P.mounted) return this.ride.start(kind, ctx);
     let id;
     if (kind === 'heavy') id = 'heavy';
     else {
@@ -550,16 +567,9 @@ export class Moves {
     return this._takeHit(amount, o, ax, az, 'hit');
   }
 
+  // A bite costs health as ever; a heavy blow, or a hit while she is winded, throws her (player/mounted.js).
   _hurtMounted(amount, o, ax, az) {
-    const P = this.P;
-    P.health = Math.max(0, P.health - amount);
-    G.audio?.sfx?.('vesna_hurt', { volume: 0.8 });
-    G.events.emit('player:hit', { amount, from: o.from, health: P.health });
-    G.cameraRig?.shake?.(0.3, 0.25);
-    this.mercy = 0.4;
-    void ax; void az;
-    if (P.health <= 0) { P.dismountInstant?.(); this.die(); return { result: 'dead', dealt: amount }; }
-    return { result: 'hit', dealt: amount };
+    return this.ride.hurt(amount, o, ax, az);
   }
 
   _takeHit(amount, o, ax, az, result) {
@@ -620,7 +630,7 @@ export class Moves {
     const a = this.act;
     a.t += dt * a.speed;
     switch (a.kind) {
-      case 'attack': this._tickAttack(a, dt, ctx); break;
+      case 'attack': if (a.mounted) this.ride.tick(a, dt, ctx); else this._tickAttack(a, dt, ctx); break;
       case 'dodge': this._tickDodge(a, dt, ctx); break;
       case 'parry': this._tickParry(a, dt, ctx); break;
       case 'cast': this._tickCast(a, dt); break;

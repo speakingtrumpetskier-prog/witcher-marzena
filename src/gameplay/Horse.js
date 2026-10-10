@@ -65,6 +65,7 @@ export async function init(G_) {
     tilt: 0,
     prevLeg: [0, 0, 0, 0],
     wantDismount: false,
+    bolt: null, // Kasza running off after she threw her rider (tickBolt)
     ride: '',
     seq: null, // mount / dismount sequence state
     tmp: {},
@@ -194,6 +195,7 @@ export async function init(G_) {
   H.call = function call() {
     if (H.mounted || H.mounting || !P() || P().dead) return false;
     G_.audio?.sfx?.('whistle');
+    H.bolt = null; // a whistle stops her running off
     G_.events.emit('horse:call', {});
     const c = P().character;
     if (!c.swordDrawn && !P().moves.act) c.gesture?.('beckon');
@@ -279,7 +281,7 @@ export async function init(G_) {
 
   H.mount = function mount(opts = {}) {
     const player = P();
-    if (!player || H.state === 'mounted' || H.state === 'mounting' || H.state === 'dismounting' || !player.control || player.dead) return false;
+    if (!player || H.state === 'mounted' || H.state === 'mounting' || H.state === 'dismounting' || H.state === 'thrown' || !player.control || player.dead) return false;
     const c = player.character;
     player.moves.cancelAll();
     if (c.swordDrawn) player.moves.toggleSword(false);
@@ -368,6 +370,10 @@ export async function init(G_) {
     if (!opts.instant && h.speed > 1.3) { H.wantDismount = true; return true; }
     H.wantDismount = false;
     const c = player.character;
+    // The blade goes away for the climb down (it would be in the way of the saddle) and any swing or ready pose stops.
+    player.moves.cancelAll();
+    c.stopUpper(0.05);
+    c._setSword?.(false);
     const spot = mountSpot(new THREE.Vector3());
     G_.scene.add(c.root);
     c.root.position.set(spot.x, G_.world.heightAt(spot.x, spot.z), spot.z);
@@ -412,6 +418,168 @@ export async function init(G_) {
       player.loco.reset(h.root.rotation.y);
       c.stop(0.2);
       G_.events.emit('horse:dismount', {});
+    }
+  }
+
+  // ---- thrown, and bolting -------------------------------------------------------------------------------
+  // A heavy blow, or a bite while she is winded (player/mounted.js hurt), throws Vesna out of the saddle: a clip of the
+  // fall (ride_thrown_l / _r), the root carried sideways from the seat to where she lands, input dead and every hit
+  // ignored until she is up in guard. Kasza bolts forward a few metres, veering away, then stands snorting; X whistles her
+  // back as ever.
+  const FALL = { dur: 2.35, land: 0.66, away: 1.9, ahead: 0.5, slide: 0.35 };
+  const _tp = new THREE.Vector3();
+
+  H.throwRider = function throwRider(o = {}) {
+    const player = P();
+    if (!player || H.state !== 'mounted') return false;
+    const c = player.character;
+    const hy = h.root.rotation.y;
+    const lx = Math.cos(hy), lz = -Math.sin(hy);
+    // away from whatever hit her (ax, az point at it); with nothing to go by, away from the camera's side
+    const lat = (o.ax ?? 0) * lx + (o.az ?? 0) * lz;
+    let side;
+    if (Math.abs(lat) > 0.15) side = lat > 0 ? -1 : 1;
+    else {
+      const cam = G_.camera.position;
+      side = (cam.x - h.root.position.x) * lx + (cam.z - h.root.position.z) * lz > 0 ? -1 : 1;
+    }
+    player.moves.cancelAll();
+    c.stopUpper(0.05);
+    h.saddle.updateWorldMatrix(true, false);
+    const sp = _tp.setFromMatrixPosition(h.saddle.matrixWorld);
+    G_.scene.add(c.root);
+    c.root.position.set(sp.x, G_.world.heightAt(sp.x, sp.z), sp.z);
+    c.root.rotation.set(0, hy, 0);
+    c.autoGround = true; // the clip carries the pelvis up and down; the root follows the ground
+    player.mounted = false;
+    player._mounting = true;
+    player.position.copy(c.root.position);
+    player.loco.reset(hy);
+    H.mounted = false;
+    H.state = 'thrown';
+    H.ride = '';
+    H.wantDismount = false;
+    H.seq = { t: 0, side, x0: sp.x, z0: sp.z, hy, landed: false };
+    c.play(side > 0 ? 'ride_thrown_l' : 'ride_thrown_r', { fade: 0 });
+    // Kasza: a start, then away
+    H.bolt = { t: 0, turn: -side * 0.5, v0: h.speed };
+    h.play('rear', { amount: 0.5, speed: 1.6 });
+    G_.audio?.sfx?.('horse_whinny', { pos: h.root.position, volume: 0.9 });
+    G_.audio?.sfx?.('vesna_effort', { volume: 0.7 });
+    G_.events.emit('horse:thrown', { side });
+    return true;
+  };
+
+  function endThrow() {
+    const player = P(), c = player.character;
+    player._mounting = false;
+    H.state = 'idle';
+    H.seq = null;
+    c.autoGround = true;
+    player.position.copy(c.root.position);
+    player.position.y = G_.world.heightAt(player.position.x, player.position.z);
+    player.loco.reset(c.root.rotation.y);
+    c.stop(0.3);
+    player.moves.mercy = Math.max(player.moves.mercy, 0.8);
+    G_.events.emit('horse:thrown_end', {});
+  }
+  H.endThrow = function () { if (H.state === 'thrown') endThrow(); };
+
+  function tickThrown(dt) {
+    const player = P(), c = player.character, S = H.seq;
+    S.t += dt;
+    const e1 = (u) => 1 - (1 - Math.min(1, Math.max(0, u))) * (1 - Math.min(1, Math.max(0, u)));
+    // out and down to where she lands, then a short slide on the snow
+    const k = e1(S.t / FALL.land) + FALL.slide / FALL.away * e1((S.t - FALL.land) / 0.5);
+    const lx = Math.cos(S.hy), lz = -Math.sin(S.hy), fx = Math.sin(S.hy), fz = Math.cos(S.hy);
+    const away = FALL.away * k * S.side, ahead = FALL.ahead * k;
+    const p = c.root.position;
+    p.x = S.x0 + lx * away + fx * ahead;
+    p.z = S.z0 + lz * away + fz * ahead;
+    G_.physics.resolve(p, 0.38);
+    player.position.copy(p);
+    player.position.y = G_.world.heightAt(p.x, p.z);
+    if (!S.landed && S.t >= FALL.land) {
+      S.landed = true;
+      G_.audio?.sfx?.('body_fall', { volume: 0.9 });
+      G_.cameraRig?.shake?.(0.35, 0.3);
+      G_.postfx?.flash?.(0xffffff, 0.12);
+    }
+    tickBolt(dt);
+    if (S.t >= FALL.dur) endThrow();
+  }
+
+  // Kasza running off: up to a gallop in a third of a second, a little more than a second of it, then easing to a stop
+  // about seven metres on. She veers away from the fallen rider and steers round trees and the lake.
+  function tickBolt(dt) {
+    const B = H.bolt;
+    if (!B) return;
+    B.t += dt;
+    const run = B.t < 0.7 ? 6.2 * smoothstep(0, 0.35, B.t) : 6.2 * (1 - smoothstep(0.7, 1.9, B.t));
+    const v = Math.max(run, B.v0 * (1 - smoothstep(0.1, 1.6, B.t))); // she was already moving when it happened
+    const yaw = h.root.rotation.y;
+    const want = steer(yaw + B.turn * Math.min(1, B.t) * 0.5);
+    h.root.rotation.y = wrapAngle(yaw + clamp(wrapAngle(want - yaw), -1.6 * dt, 1.6 * dt));
+    let speed = v;
+    if (iceAhead(h.root.rotation.y, speed)) speed = 0;
+    h.speed = speed;
+    h.setGait(speed);
+    advance(dt);
+    if (B.t > 2 && h.speed < 0.3) {
+      H.bolt = null;
+      h.setGait(0);
+      h.play('snort');
+      G_.audio?.sfx?.('horse_snort', { pos: h.root.position, volume: 0.7 });
+    }
+  }
+
+  // A wolf launching itself at her head: a start away from it, a small rear (a hop at speed) and a step to the side.
+  // Once every few seconds; the bite it aimed at her is easier to dodge for it, harder to land.
+  H.shyT = 0;
+  H.shyDir = 0;
+  H.shyCool = 0;
+  H.shy = function shy(wolfSide) {
+    if (H.shyT > 0 || H.state === 'thrown' || H.scripted) return false;
+    H.shyCool = 3.5;
+    H.shyT = 1e-4;
+    H.shyDir = wolfSide >= 0 ? -1 : 1;
+    const fast = h.speed > 3.5;
+    h.play('rear', { amount: fast ? 0.25 : 0.5, speed: fast ? 2.2 : 1.7 });
+    G_.audio?.sfx?.('horse_whinny', { pos: h.root.position, volume: 0.7 });
+    G_.events.emit('horse:shy', { dir: H.shyDir });
+    return true;
+  };
+  const SHY = { dur: 0.45, step: 0.8, twist: 0.2 };
+  function shyStep(dt) {
+    if (H.shyT <= 0) return;
+    const e = (t) => { const u = Math.min(1, t / SHY.dur); return 1 - (1 - u) * (1 - u); };
+    const prev = H.shyT;
+    H.shyT += dt;
+    const d = (e(H.shyT) - e(prev)) * SHY.step * H.shyDir;
+    const yaw = h.root.rotation.y;
+    const pos = h.root.position;
+    pos.x += Math.cos(yaw) * d;
+    pos.z -= Math.sin(yaw) * d;
+    G_.physics.resolve(pos, RADIUS);
+    const sway = (Math.sin(Math.PI * Math.min(1, H.shyT / SHY.dur)) - Math.sin(Math.PI * Math.min(1, prev / SHY.dur)));
+    h.root.rotation.y = wrapAngle(yaw + sway * SHY.twist * H.shyDir);
+    if (H.shyT >= SHY.dur) H.shyT = 0;
+  }
+  function shyCheck(dt) {
+    if (H.shyCool > 0) H.shyCool -= dt;
+    const list = G_.combat?.enemies;
+    if (!list || H.shyCool > 0 || H.shyT > 0) return;
+    const p = h.root.position, hy = h.root.rotation.y;
+    const lx = Math.cos(hy), lz = -Math.sin(hy), fx = Math.sin(hy), fz = Math.cos(hy);
+    for (const e of list) {
+      if (e.kind !== 'wolf' || !e.alive || e.state !== 'lunge' || !e.attack || e._shy === e.attack) continue;
+      const dx = e.position.x - p.x, dz = e.position.z - p.z;
+      const f = dx * fx + dz * fz, s = dx * lx + dz * lz;
+      if (f > 0.6 && f < 4.8 && Math.abs(s) < 2.2 && e.stateT < 0.3) {
+        e._shy = e.attack;
+        H.shy(s);
+        break;
+      }
     }
   }
 
@@ -516,6 +684,7 @@ export async function init(G_) {
 
   // ---- idle life ------------------------------------------------------------------------------------
   function tickIdle(dt) {
+    if (H.bolt) { tickBolt(dt); return; }
     h.setGait(0);
     advance(dt, true);
     H.idleTimer -= dt;
@@ -540,7 +709,7 @@ export async function init(G_) {
     // X: whistle, mount, dismount.
     if (player.control && inp.context === 'game' && !player.dead && inp.pressed('horse')) {
       if (H.state === 'idle' || H.state === 'called') {
-        if (dist2(player.position) < MOUNT_RANGE && !H.needPlace && H.callDelay <= 0) H.mount();
+        if (dist2(player.position) < MOUNT_RANGE && !H.needPlace && H.callDelay <= 0 && !H.bolt) H.mount();
         else if (H.state === 'idle') H.call();
       }
     }
@@ -549,14 +718,19 @@ export async function init(G_) {
       case 'mounting': tickMounting(dt); break;
       case 'mounted': tickMounted(dt); break;
       case 'dismounting': tickDismounting(dt); break;
+      case 'thrown': tickThrown(dt); break;
       default: tickIdle(dt);
     }
+    if (H.state === 'mounted' || H.state === 'idle') { shyCheck(dt); shyStep(dt); }
     hooves();
   }
   G_.addSystem('horse', update, ORDER.logic + 3);
 
   H.teleport = function teleport(x, z, yaw = h.root.rotation.y) {
     if (H.mounted) H.dismount({ instant: true });
+    H.endThrow();
+    H.bolt = null;
+    H.shyT = 0;
     h.setPosition(x, z);
     h.root.rotation.y = yaw;
     h.speed = 0;

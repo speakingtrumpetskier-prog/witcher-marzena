@@ -2,7 +2,7 @@
 //
 //   const h = createHorse('kasza');  G.scene.add(h.root);  h.setPosition(x, z);  h.yaw = a;
 //   h.setGait(speed)      m/s: 0 idle, ~1.7 walk, ~3.6 trot, 7+ gallop (blended, phase-matched)
-//   h.play('rear' | 'snort') -> Promise;  h.saddle (Object3D seat anchor: put the rider's
+//   h.play('rear' | 'snort', { speed, amount }) -> Promise (amount < 1: a smaller rear, a shy);  h.saddle (Object3D seat anchor: put the rider's
 //   root here and play ride_idle / ride_trot / ride_gallop);  h.bones, h.height, h.gait
 // Clips: idle, walk, trot, gallop (procedural, by speed), rear, snort (one-shots).
 // Footfalls: walk is four-beat lateral (LH, LF, RH, RF), trot two-beat diagonal, gallop
@@ -623,7 +623,8 @@ class Horse {
     if (name === 'gallop') { this.setGait(9); return Promise.resolve(); }
     const dur = name === 'rear' ? 2.6 : name === 'snort' ? 1.4 : 0;
     if (!dur) return Promise.resolve();
-    return new Promise((resolve) => { this.one = { name, t: 0, dur, resolve, speed: o.speed ?? 1 }; });
+    // o.amount scales a rear: 1 is the full rear, about 0.3 a start and a toss of the head (a shy), o.speed plays it faster
+    return new Promise((resolve) => { this.one = { name, t: 0, dur, resolve, speed: o.speed ?? 1, amount: o.amount ?? 1 }; });
   }
   attach(bone, obj) { (this.bones[bone] || this.saddle).add(obj); return obj; }
   setVisible(v) { this.visible = v; this.root.visible = v; }
@@ -675,7 +676,7 @@ class Horse {
       const u = Math.min(1, o.t / o.dur);
       const env = Math.min(1, u / 0.12, (1 - u) / 0.2);
       if (o.name === 'rear') {
-        const up = smoothstep(0.1, 0.4, u) * (1 - smoothstep(0.7, 0.95, u));
+        const up = smoothstep(0.1, 0.4, u) * (1 - smoothstep(0.7, 0.95, u)) * (o.amount ?? 1);
         pitch += -48 * up;
         lift += 0.08 * up;
         for (const S of ['L', 'R']) {

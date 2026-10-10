@@ -35,6 +35,19 @@ export function legs(pose, drop, fl, fr, o = {}) {
 }
 export const A = 0.081; // ankle height
 export const SADDLE_H = 1.4; // height of the horse's saddle anchor above the ground (characters/horse.js)
+// Pelvis offset that seats a rider: the root is the saddle anchor, the pelvis sits 0.11 m above it.
+export const SEAT = -(REF.pelvisY - 0.11);
+// The rider's pose at rest in the saddle (both hands on the reins); riding.js builds the swings and the fall from it.
+let ridePoseCache = null;
+export function ridePose() {
+  if (ridePoseCache) return ridePoseCache;
+  const p = { $hips: [0, SEAT, 0], hips: [4, 0, 0], spine: [2, 0, 0], chest: [0, 0, 0], neck: [0, 0, 0], head: [-2, 0, 0],
+    thighL: [58, 22, 34], thighR: [58, 22, 34], shinL: [76, 0, -4], shinR: [76, 0, -4], footL: [-6, 18, -6], footR: [-6, 18, -6] };
+  let q = R(p, 'L', [0.08, 0.38, 0.32], { elbow: elbowDown('L') });
+  q = R(q, 'R', [-0.08, 0.38, 0.32], { elbow: elbowDown('R') });
+  ridePoseCache = { ...q, handL: [10, -60, 0], handR: [10, -60, 0], ...FIST('L'), ...FIST('R') };
+  return ridePoseCache;
+}
 
 export function buildLibrary(lib, lazy) {
   // Lazy blocks: a block bakes (all its clips) the first time any of its clips is requested.
@@ -551,14 +564,7 @@ export function buildLibrary(lib, lazy) {
   B(['ride_idle', 'ride_trot', 'ride_gallop', 'mount', 'dismount'], () => {
   
     // ------------------------------------------------------------------ riding (root = saddle seat)
-    const SEAT = -(REF.pelvisY - 0.11);
-    const RIDE = (() => {
-      const p = { $hips: [0, SEAT, 0], hips: [4, 0, 0], spine: [2, 0, 0], chest: [0, 0, 0], neck: [0, 0, 0], head: [-2, 0, 0],
-        thighL: [58, 22, 34], thighR: [58, 22, 34], shinL: [76, 0, -4], shinR: [76, 0, -4], footL: [-6, 18, -6], footR: [-6, 18, -6] };
-      let q = R(p, 'L', [0.08, 0.38, 0.32], { elbow: elbowDown('L') });
-      q = R(q, 'R', [-0.08, 0.38, 0.32], { elbow: elbowDown('R') });
-      return { ...q, handL: [10, -60, 0], handR: [10, -60, 0], ...FIST('L'), ...FIST('R') };
-    })();
+    const RIDE = ridePose();
     clip('ride_idle', 3, [[0, RIDE], [1.5, { ...RIDE, head: [0, 8, 0], chest: [1, 2, 0] }], [3, RIDE]], { loop: true, base: RIDE });
     fn('ride_trot', 0.6, (u) => {
       const t = u * Math.PI * 2;

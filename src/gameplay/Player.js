@@ -135,6 +135,7 @@ class Player {
 
   teleport(x, z, yaw = this.yaw, y) {
     if (this.mounted) this.dismountInstant();
+    G.horse?.endThrow?.(); // a fall in progress ends where she is, then she is moved
     const c = this.character;
     this._strafing = false;
     c.setStrafe(false, 0, 0);
@@ -217,7 +218,8 @@ class Player {
       return;
     }
 
-    const enabled = inp.context === 'game';
+    // Input is dead while she climbs on or off, or is thrown from the saddle: a click then must not start a swing.
+    const enabled = inp.context === 'game' && !this._mounting;
     const camYaw = G.cameraRig ? G.cameraRig.yaw : cameraHeading();
     if (enabled && inp.pressed('walk')) this.walkToggle = !this.walkToggle;
 
@@ -235,11 +237,12 @@ class Player {
       }
     }
 
-    // Lock-on: T or middle mouse cycles; with nothing to lock it recenters the camera behind her.
-    if (enabled && !this.mounted && inp.pressed('lock')) {
+    // Lock-on: T or middle mouse cycles; with nothing to lock it recenters the camera behind her. In the saddle it works
+    // with the blade out (it picks the side the swings go to); with the sword away the key does nothing there.
+    if (enabled && (!this.mounted || this.swordDrawn) && inp.pressed('lock')) {
       const next = cycleTarget(this.position, camYaw, this.target);
       if (next || this.target) this.setTarget(next);
-      else G.cameraRig?.recenter?.();
+      else if (!this.mounted) G.cameraRig?.recenter?.();
     }
     if (this.target && (!isAlive(this.target) || enemyDist(this.target, this.position) > 40)) this.setTarget(null);
 

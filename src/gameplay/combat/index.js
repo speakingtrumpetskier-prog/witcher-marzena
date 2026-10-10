@@ -207,6 +207,7 @@ class Combat {
   // ---- holds (grabs) ----------------------------------------------------------------------------------------------------
   hold(enemy, o = {}) {
     if (this.hold_ || !G.player || G.player.dead) return null;
+    if (G.player.mounted) G.player.dismountInstant?.(); // a grab pins her to the ground: out of the saddle first
     const h = {
       enemy, anchor: o.anchor, breakAt: o.breakAt ?? 3, maxTime: o.maxTime ?? 4.5, dps: o.dps ?? 5, tick: o.tick ?? 0.8,
       onEnd: o.onEnd, onBreak: o.onBreak, t: 0, progress: 0, tickT: o.tick ?? 0.8, active: true, lethal: o.lethal ?? false,

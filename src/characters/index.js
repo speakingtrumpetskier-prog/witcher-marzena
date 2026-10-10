@@ -17,11 +17,13 @@ import { clipNames, registerClips, getClip } from './clips/index.js';
 import { buildLibrary } from './clips/library.js';
 import { buildFishing } from './clips/fishing.js';
 import { buildStrafe } from './clips/strafe.js';
+import { buildRiding } from './clips/riding.js';
 import { createHorse as makeHorse } from './horse.js';
 
 registerClips(buildLibrary);
 registerClips(buildFishing);
 registerClips(buildStrafe);
+registerClips(buildRiding);
 
 const live = [];
 const _frustum = new THREE.Frustum();
