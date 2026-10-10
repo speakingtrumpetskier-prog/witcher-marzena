@@ -5,6 +5,8 @@
 // Sets:  met_dobra (start), dobra_knot_noticed (the knot beat; it fires from the "red thread" topic
 //        or, if Vesna never asks, as she turns to leave, so it always happens).
 // Reads: lair_seen (the belfry topic, where Dobra tells the story of her boy under the bed).
+//        knows_wiesia: without it Vesna asks after Hanka's older girl without the name, and Dobra says it (sets it).
+// Sets:  matka_asked (the Matka topic; the bestiary page quotes her).
 // Topics (all `once`): how long one takes, the rite, why not turn round (follows the rite), how old it
 //        is (the island stones), the red thread, Wiesia, the tower, Matka (needs matka_seen).
 export default {
@@ -24,7 +26,7 @@ export default {
         { t: 'Tell me how the rite goes.', next: 'ri1', once: true },
         { t: 'How old is it, the rite?', next: 'ol1', once: true },
         { t: 'The straw ones on the ice had red thread at the neck.', next: 'kn1', once: true },
-        { t: 'Hanka\'s older girl. Wiesia.', next: 'wi1', once: true },
+        { t: (S) => (S.flag('knows_wiesia') ? 'Hanka\'s older girl. Wiesia.' : 'Hanka\'s older girl.'), next: 'wi1', once: true },
         { t: 'I was in the drowned tower last night.', next: 'to1', once: true, if: (S) => !!S.flag('lair_seen') },
         { t: 'Something very big goes round the valley.', next: 'mt1', once: true, if: (S) => !!S.flag('matka_seen') },
         { t: 'That is all I wanted.', next: 'leave', exit: true },
@@ -69,7 +71,12 @@ export default {
     kn11: { s: 'vesna', t: 'No.', next: 'kn12' },
     kn12: { s: 'dobra', t: 'No.', wait: 0.8, next: 'hub' },
 
-    wi1: { s: 'vesna', t: "Hanka's older girl. Wiesia. Did you know her?", next: 'wi2' },
+    wi1: {
+      s: 'vesna',
+      t: (S) => (S.flag('knows_wiesia') ? "Hanka's older girl. Wiesia. Did you know her?" : "Hanka's older girl, the one who drowned. Did you know her?"),
+      next: (S) => (S.flag('knows_wiesia') ? 'wi2' : 'wi1b'),
+    },
+    wi1b: { s: 'dobra', t: 'Wiesia.', a: 'mend_net', wait: 0.8, do: (S) => S.set('knows_wiesia'), next: 'wi2' },
     wi2: { s: 'dobra', t: "She helped me one winter. Good hands. Tied a better knot than me by the end. Don't tell her mother I said that.", a: 'mend_net', next: 'wi3' },
     wi3: { s: 'vesna', t: 'Why not?', next: 'wi4' },
     wi4: { s: 'dobra', t: "She'd only go home and think about it.", next: 'hub' },
@@ -90,7 +97,7 @@ export default {
     mt1: { s: 'vesna', t: 'Something very big goes round the valley. High up, with lights in it.', next: 'mt2' },
     mt2: { s: 'dobra', t: 'Matka.', a: 'mend_net', next: 'mt3' },
     mt3: { s: 'vesna', t: 'Does she ever come down?', next: 'mt4' },
-    mt4: { s: 'dobra', t: "She's never once looked down. Not in my time, not in my mother's.", next: 'mt5' },
+    mt4: { s: 'dobra', t: "She's never once looked down. Not in my time, not in my mother's.", do: (S) => S.set('matka_asked'), next: 'mt5' },
     mt5: { s: 'dobra', t: 'Hand me the long one. No. The long one.', next: 'hub' },
 
     // leaving

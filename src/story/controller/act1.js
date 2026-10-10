@@ -4,8 +4,9 @@
 //   wolves     three wolves come off the road when the letter is read
 //   watchtower C2 at the crest of the pass road, title card, Q1 done
 //   ride       C3 at the west gate (or anywhere inside the village core), Q2 -> board
-//   board      the notice board: the contract, and the second paper (the mill wolves)
+//   board      the notice board: the same contract she carries from the toll house, and the second paper (the mill wolves)
 // The talks in Act I (Zbyszek, Bogdan, Hanka) live in npcs.js. Resting lives in world.js.
+import { LOC } from '../../world/layout.js';
 
 export function install(C) {
   const { G, L } = C;
@@ -106,8 +107,10 @@ export function install(C) {
   });
   const gate = C.V.gate;
   if (gate) song('west_gate', gate.x, gate.z, 11);
-  // Rode in some other way (the shore): the village itself triggers it.
+  // Rode in some other way (the shore): the village itself triggers it, and so does Hanka's house on the shore, so Ola
+  // and Hanka are never met before the song.
   song('village_core', 0, 115, 52);
+  song('hanka_shore', LOC.hanka.x, LOC.hanka.z, 30);
 
   // ---- the notice board ----------------------------------------------------------------------
   const board = C.V.noticeBoard;
@@ -115,9 +118,12 @@ export function install(C) {
     C.interact({
       id: 'notice_board', pos: board, radius: 2.5, verb: 'Read', label: 'Notice board',
       onUse: async () => {
-        await C.read('note_contract');
+        // She has carried her own copy since the toll house; the paper on the board is the same one.
+        let pause = 0.5;
+        if (!C.S.data.notes.includes('note_contract')) await C.read('note_contract');
+        else { C.say('Same as the one at the toll house.', 2.6); pause = 2.2; }
         C.set('contract_taken');
-        await C.sleep(0.5);
+        await C.sleep(pause);
         await C.read('note_wolves_contract');
         if (!C.has('wolves_contract_read')) {
           C.set('wolves_contract_read');

@@ -2,7 +2,12 @@
 //
 // Entry: first interaction with Hanka at her house (not met_hanka). cast: hanka. Ola joins mid-scene
 //        (node o1): pass opts.spawnAt = { ola: [x, z] } just inside the door if she is elsewhere.
-// Sets:  met_hanka (start), hanka_hired (at the payment).
+// Sets:  met_hanka (start), hanka_hired (at the payment), knows_rite and heard_of_maiden (she has told her
+//        about Ola and the rite), knows_wiesia (the name, from the topic about the daughter who drowned).
+// Reads: knows_fair_hand (Zbyszek has told her whose hand the paper is in): without it she does not know the
+//        name at the door, so she says what the paper says (ask at the shore) and learns the name from Hanka.
+//        knows_rite (Zbyszek or Bogdan has told her about the rite): without it she asks what Ola is picked for
+//        and Hanka tells her in a line.
 // Gives: S.give('coins', 61) and S.give('ring', 1) at the payment, once (guarded by hanka_hired).
 // Topics after Ola leaves (all `once`): the bowl, the daughter who drowned, where the men went out
 //        from, tomorrow night, the dress. The scene always ends on the same ordinary line.
@@ -11,15 +16,26 @@ export default {
   cast: ['hanka'],
   start: 'h1',
   nodes: {
-    h1: { s: 'vesna', t: 'Hanka?', do: (S) => S.set('met_hanka'), next: 'h2' },
+    h1: { if: (S) => !!S.flag('knows_fair_hand'), else: 'h1b', s: 'vesna', t: 'Hanka?', do: (S) => S.set('met_hanka'), next: 'h2' },
     h2: { s: 'hanka', t: 'Yes.', a: 'mend_net', next: 'h3' },
-    h3: { s: 'narrator', t: 'Vesna lays the contract on the table.', italic: true, dur: 2.2, next: 'h4' },
-    h4: { s: 'hanka', t: "I didn't think anyone would come.", wait: 1.4, cam: 'close', next: 'h5' },
+    // nobody has told her whose hand it is: the paper says to ask at the shore, so she asks at the shore
+    h1b: { s: 'vesna', t: 'The paper says to ask at the shore.', do: (S) => S.set('met_hanka'), next: 'h2b' },
+    h2b: { s: 'hanka', t: 'What paper?', a: 'mend_net', next: 'h3' },
+    h3: { s: 'narrator', t: 'Vesna lays the contract on the table. It is the copy from the toll house, folded small.', italic: true, dur: 3, next: 'h4' },
+    h4: { s: 'hanka', t: "I didn't think anyone would come.", wait: 1.4, cam: 'close', next: (S) => (S.flag('knows_fair_hand') ? 'h5' : 'hn1') },
+    hn1: { s: 'vesna', t: "You're H.", next: 'hn2' },
+    hn2: { s: 'hanka', t: 'Hanka.', next: 'h5' },
     h5: { s: 'vesna', t: "Tell me what it doesn't say.", next: 'h6' },
     h6: { s: 'hanka', t: "They've picked Ola. My youngest.", next: 'h7' },
-    h7: { s: 'vesna', t: 'For the rite.', next: 'h8' },
+    h7: { if: (S) => !!S.flag('knows_rite'), else: 'h7b', s: 'vesna', t: 'For the rite.', next: 'h8' },
     h8: { s: 'hanka', t: 'For the rite.', wait: 0.8, next: 'h9' },
-    h9: { s: 'hanka', t: "They say the goddess took one from this house, so she'll want the other. That's what they're saying.", next: 'h10' },
+    // nobody has told her about the rite yet
+    h7b: { s: 'vesna', t: 'Picked for what?', next: 'h8b' },
+    h8b: { s: 'hanka', t: 'For the rite. Tomorrow night. They drown a straw Marzanna in the lake, and a girl carries it out to the hole.', wait: 0.8, next: 'h9' },
+    h9: {
+      s: 'hanka', t: "They say the goddess took one from this house, so she'll want the other. That's what they're saying.",
+      do: (S) => { S.set('knows_rite'); S.set('heard_of_maiden'); }, next: 'h10',
+    },
     h10: { s: 'hanka', t: "If whatever's out there is dead before tomorrow night, they'll have no reason.", next: 'h11' },
     h11: { s: 'vesna', t: 'Do you know what it is?', next: 'h12' },
     h12: { s: 'hanka', t: 'No.', wait: 1.2, next: 'h13' },
@@ -70,7 +86,7 @@ export default {
     wi1: { s: 'vesna', t: 'You said the goddess took one from this house.', next: 'wi2' },
     wi2: { s: 'hanka', t: 'She drowned. Three years ago. At the rite.', cam: 'close', next: 'wi3' },
     wi3: { s: 'vesna', t: 'What was her name?', next: 'wi4' },
-    wi4: { s: 'hanka', t: 'Wiesia.', next: 'wi5' },
+    wi4: { s: 'hanka', t: 'Wiesia.', do: (S) => S.set('knows_wiesia'), next: 'wi5' },
     wi5: { s: 'narrator', t: 'She picks the dress back up. That is all.', italic: true, dur: 2.8, do: (S, D) => D.actor('hanka')?.play('mend_net'), next: 'hub' },
 
     ca1: { s: 'vesna', t: 'Where did the three go out from?', next: 'ca2' },

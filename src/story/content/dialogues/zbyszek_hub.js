@@ -2,9 +2,12 @@
 // entry node picks the greeting from the flags and the day.
 //
 // Entry: interact with Zbyszek (any time). cast: zbyszek.
-// Sets:  heard_of_maiden (first visit, he lets the girl slip), met_zbyszek, knows_fair_hand
-//        (both set in the first visit's spine, so the journal line is true), zbyszek_echo_greeted
-//        (first visit after echo_seen, free soup).
+// Sets:  knows_rite (first visit, the rite is tomorrow night), heard_of_maiden (he lets the girl slip),
+//        met_zbyszek, knows_fair_hand (both set in the first visit's spine, so the journal line is true),
+//        zbyszek_echo_greeted (first visit after echo_seen and the dawn, free soup).
+// Order: she always carries the contract (her copy from the toll house below the pass). If she has been
+//        hired at Hanka's before her first visit (hanka_hired), the spine skips who the girl is and whose
+//        hand the paper is in: he has heard where she has been (fh1 to fh3), and knows_fair_hand stays unset.
 // Gives: soup 2 grosze (warms Vesna), Thaw draught 12 grosze (S.give('thaw')).
 // Rest:  the dialogue cannot call G.story.rest itself (it refuses while a dialogue is running).
 //        Choosing the bed ends at the node 'rest_dusk' (check result.end === 'rest_dusk'); the story
@@ -34,8 +37,9 @@ export default {
         if (!S.flag('met_zbyszek')) return 'f1';
         if (S.flag('dice_all_beaten') && !S.flag('dice_bone_set')) return 'bz1';
         if (S.flag('ending')) return 'r1';
-        if (S.flag('echo_seen') && !S.flag('zbyszek_echo_greeted')) return 'e1';
-        if (day(D) >= 2) return 'd1';
+        // After the night on the ice and the dawn; between the echo and the dawn it is still night one.
+        if (S.flag('echo_seen') && S.flag('dawn_done') && !S.flag('zbyszek_echo_greeted')) return 'e1';
+        if (day(D) >= 2 && S.flag('dawn_done')) return 'd1';
         return night(D) ? 'a1n' : 'a1';
       },
     },
@@ -51,10 +55,7 @@ export default {
     f8: { s: 'zbyszek', t: 'Fish soup. Two grosze.', next: 'f9' },
     f9: { s: 'vesna', t: 'Fish.', next: 'f10' },
     f10: { s: 'zbyszek', t: 'What did you want, a goose?', next: 'f11' },
-    f11: { if: (S) => !!S.flag('contract_taken'), else: 'f11b', s: 'vesna', t: "There's a paper on the board in the square. Three men, it says.", next: 'f12' },
-    f11b: { s: 'vesna', t: 'Is there any work here for a hunter?', next: 'f11c' },
-    f11c: { s: 'zbyszek', t: "Work. There's a paper on the board since the morning. Go and read it.", next: 'f11d' },
-    f11d: { s: 'vesna', t: "I'm asking you.", next: 'f12' },
+    f11: { s: 'vesna', t: 'This was nailed up at the toll house below the pass. Three men, it says.', next: 'f12' },
     f12: { s: 'zbyszek', t: 'Three gone this month. Stach, Bolek, and the younger Wrona.', next: 'f13' },
     f13: { s: 'zbyszek', t: 'Went to their holes at dusk and the holes were empty in the morning. Not even the stools.', next: 'f14' },
     f14: { s: 'vesna', t: 'Did anyone go and look?', next: 'f15' },
@@ -66,8 +67,8 @@ export default {
     f20: { s: 'zbyszek', t: "I didn't count. Four. Five. I had a line out, I'm allowed to have a line out.", next: 'f20b' },
     f20b: { s: 'zbyszek', t: "Out past the poles. I wasn't going to go and measure.", next: 'f23' },
     f23: { s: 'vesna', t: 'And before the equinox, it says.', next: 'f24' },
-    f24: { s: 'zbyszek', t: "The rite's tomorrow night. Equinox. We drown Marzanna and the winter goes.", next: 'f25' },
-    f25: { s: 'zbyszek', t: "We've done it three years running. Look outside.", wait: 1.1, a: 'point', next: 'f26' },
+    f24: { s: 'zbyszek', t: "The rite's tomorrow night. Equinox. We drown Marzanna and the winter goes.", do: (S) => S.set('knows_rite'), next: 'f25' },
+    f25: { s: 'zbyszek', t: "We've done it three years running. Look outside.", wait: 1.1, a: 'point', next: (S) => (S.flag('hanka_hired') ? 'fh1' : 'f26') },
     f26: { s: 'zbyszek', t: "The girl's picked, anyway. Last week.", wait: 1.2, do: (S) => S.set('heard_of_maiden'), next: 'f27' },
     f27: { s: 'vesna', t: 'Who?', next: 'f28' },
     f28: { s: 'zbyszek', t: "Ask the reeve. It's not my business and I'm not saying it.", a: 'cross_arms', next: 'f29' },
@@ -78,6 +79,13 @@ export default {
     f33: {
       s: 'zbyszek', t: "I'm not sure of anything. I said only Hanka writes that fair. I didn't say it was her.",
       do: (S) => { S.set('met_zbyszek'); S.set('knows_fair_hand'); }, next: 'hub',
+    },
+    // She went to Hanka's before she came in here: word has got round, and he keeps out of it.
+    fh1: { s: 'zbyszek', t: "You've been down at Hanka's already. Somebody saw you go in.", wait: 1.0, next: 'fh2' },
+    fh2: { s: 'vesna', t: 'She wrote the paper.', next: 'fh3' },
+    fh3: {
+      s: 'zbyszek', t: "Then you know more than I'd tell you.", a: 'cross_arms',
+      do: (S) => { S.set('heard_of_maiden'); S.set('met_zbyszek'); }, next: 'hub',
     },
 
     // ---- later visits ----------------------------------------------------------------------
@@ -124,7 +132,7 @@ export default {
         { t: 'I came over the pass. There was a cart on the road.', next: 'cart1', once: true, if: (S) => !!S.data.notes?.includes('note_cart_family') },
         { t: "I found your three. They're under the ice, out by the old tower.", next: 'men1', once: true, if: (S) => !!S.flag('lair_seen') && !S.flag('ending') },
         { t: 'Three years ago. At the rite. Where were you?', next: 'rite1', once: true, if: (S) => !!S.flag('echo_seen') && !S.flag('ending') },
-        { t: 'Are you going tonight?', next: 'tonight1', once: true, if: (S) => !!S.flag('echo_seen') && !S.flag('ending') },
+        { t: 'Are you going tonight?', next: 'tonight1', once: true, if: (S) => !!S.flag('echo_seen') && !!S.flag('dawn_done') && !S.flag('ending') },
         { t: 'There were lights over the lake when I came in.', next: 'sky1', once: true, if: (S) => !!S.flag('planetnicy_seen') && !S.flag('ending') },
         { t: 'A bowl of the soup. (2 grosze)', next: 'soup0' },
         { t: 'A Thaw draught. (12 grosze)', next: 'thaw0' },

@@ -19,6 +19,7 @@
 import * as THREE from 'three';
 import QUESTS, { MAIN_ORDER } from '../../story/content/quests.js';
 import { roadsideSteps } from './playthrough_roadside.js';
+import { knowledgeSteps } from './playthrough_knowledge.js';
 
 const Q = new URLSearchParams(location.search);
 const LITE = Q.has('lite');
@@ -347,12 +348,20 @@ async function run(G, O, report) {
   S.set('planetnicy_seen');
   S.set('matka_seen');
 
+  // What she knows in other orders than the one this run takes (pure logic over the dialogue data).
+  knowledgeSteps({ ok, step });
+  step('start');
+
   // ---- Q1: the pass ---------------------------------------------------------------------------------
   if (wants('main_pass:pass')) {
     step('pass');
     await waitFor(() => !G.cutscenes.active && !G.story.busy, 60, 'c1 over');
     await wait(0.5);
     stageIs('main_pass', 'wreck', 'C1 over: Q1 at the wreck');
+    // Why she is here: her copy of the contract from the toll house, from the first frame.
+    ok('she carries the contract from the start', S.data.notes.includes('note_contract'));
+    const firstEntry = S.data.quests.main_pass?.log?.[0]?.text || '';
+    ok('the first journal entry says where she is going and why', /toll house/.test(firstEntry) && /Marzena/.test(firstEntry), firstEntry.slice(0, 80));
   }
   if (wants('main_pass:wreck') && stage('main_pass') === 'wreck') {
     step('wreck');
@@ -413,7 +422,7 @@ async function run(G, O, report) {
     await useIt('ctl:notice_board', { wantPrompt: true });
     flagOK(['contract_taken', 'wolves_contract_read'], 'both papers read');
     repair('contract_taken');
-    ok('notes read: contract and wolves', notesRead.includes('note_contract') && notesRead.includes('note_wolves_contract'));
+    ok('notes: her own contract and the wolves paper', S.data.notes.includes('note_contract') && notesRead.includes('note_wolves_contract'));
     ok('side quest started: side_wolves', !!G.quests.rec('side_wolves'));
     stageIs('main_ice', 'ask', 'Q2 asking around');
   }

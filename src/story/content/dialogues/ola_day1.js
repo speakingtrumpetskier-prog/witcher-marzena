@@ -4,7 +4,8 @@
 // Entry: Vesna talks to Ola outside her house, any time after C3 and before the snow fight.
 // cast: ola. Sets nothing (met_ola belongs to C3).
 // Reads: hanka_hired (she knows the dress and the broom practice only makes sense once Vesna has met
-//        Hanka; the "carrying" topic is hidden until then).
+//        Hanka; the "picked" topic is hidden until then).
+// Sets:  knows_wiesia (the bowl topic: Ola says her sister's name).
 // Topics (all `once`): what she is making, the horse, the song, the bowl at home, carrying it.
 export default {
   id: 'ola_day1',
@@ -23,7 +24,7 @@ export default {
         { t: 'Do you want to see the horse?', next: 'hs1', once: true },
         { t: 'That song. Do you know all of it?', next: 'so1', once: true },
         { t: 'Your mother puts a bowl out at the door.', next: 'bw1', once: true, if: (S) => !!S.flag('hanka_hired') },
-        { t: "I heard you're carrying her this year.", next: 'ca1', once: true, if: (S) => !!S.flag('hanka_hired') },
+        { t: "I hear you've been picked. For tomorrow night.", next: 'ca1', once: true, if: (S) => !!S.flag('hanka_hired') },
         { t: 'Your lips are moving. What are you counting?', next: 'cn1', once: true },
         { t: 'I have to go.', next: 'bye', exit: true },
       ],
@@ -56,11 +57,11 @@ export default {
     bw1: { s: 'vesna', t: 'Your mother puts a bowl of milk out at the door.', next: 'bw2' },
     bw2: { s: 'ola', t: "It's stupid. It freezes. I told her.", next: 'bw3' },
     bw3: { s: 'vesna', t: 'Who is it for?', next: 'bw4' },
-    bw4: { s: 'ola', t: "It's for Wiesia. She's dead. She can't drink it.", cam: 'close', next: 'bw5' },
+    bw4: { s: 'ola', t: "It's for Wiesia. She's dead. She can't drink it.", cam: 'close', do: (S) => S.set('knows_wiesia'), next: 'bw5' },
     bw5: { s: 'ola', t: 'Dobra says she tied good knots.', wait: 0.9, next: 'hub' },
 
-    ca1: { s: 'vesna', t: "I heard you're carrying her this year.", next: 'ca2' },
-    ca2: { s: 'ola', t: "The big one. Dobra said I can hold the pole.", next: 'ca3' },
+    ca1: { s: 'vesna', t: "I hear you've been picked. For tomorrow night.", next: 'ca2' },
+    ca2: { s: 'ola', t: "I carry the big one. Dobra said I can hold the pole.", next: 'ca3' },
     ca3: { s: 'ola', t: "It's heavy. I have to practise.", next: 'ca4' },
     ca4: { s: 'vesna', t: 'How?', next: 'ca5' },
     ca5: { s: 'ola', t: 'With a broom.', next: 'ca6' },

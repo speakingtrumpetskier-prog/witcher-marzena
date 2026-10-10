@@ -46,11 +46,15 @@ reads like writing, cut it or make it plainer.
 | `prologue_done` | Reveal cutscene ends |
 | `song_heard` | C3 plays at the workshop |
 | `met_ola` | First Ola exchange |
-| `contract_taken` | Notice board read |
+| `contract_taken` | Notice board read (the same contract she has carried from the toll house; `note_contract` is in her notes from the first frame) |
 | `met_zbyszek` | Tavern first talk |
 | `met_bogdan` | Longhouse first talk |
 | `took_reeve_money` / `refused_reeve_money` | Bogdan's offer |
-| `knows_fair_hand` | Zbyszek mentions Hanka's handwriting |
+| `knows_fair_hand` | Zbyszek mentions Hanka's handwriting (not set if she was hired at Hanka's before her first visit to the tavern) |
+| `knows_rite` | Somebody has told her there is a rite tomorrow night, at the equinox: Zbyszek's first visit, Bogdan's "What happens at the equinox?", or Hanka ("Picked for what?") |
+| `heard_of_maiden` | She knows a girl has been picked for the rite: Zbyszek lets it slip, Bogdan answers "Who carries her out?", or Hanka tells her it is Ola |
+| `knows_wiesia` | She has heard the drowned girl's name: Hanka's topic, Ola's bowl topic, Jarek, Dobra, or the name on the grave post |
+| `matka_asked` | Dobra has told her Matka never once looked down (the bestiary page quotes it) |
 | `met_hanka`, `hanka_hired` | Hanka's house |
 | `night1` | Player rested or waited past 20:00 with `hanka_hired` |
 | `trail_found` | Senses clue at the ice camp |
@@ -87,6 +91,26 @@ reads like writing, cut it or make it plainer.
 | `poacher_chased`, `poacher_note` | The lantern in the forest: he ran, she read the tally |
 | `fishers_settled` | The quarrel at the river mouth: `'old'`, `'young'` or `'both'` |
 
+### What Vesna knows, and when
+
+She can see Zbyszek, Bogdan and Hanka in any order once C3 has played (C3 also plays if she rides to Hanka's house first),
+and meet the side people at any time. A line may only presume what she has been told. Rule for writers: when a talk can come
+before the fact, gate the option or line on the flag, or give the person a plain line that tells a stranger, briefly, the
+way a local would. The logic playthrough checks the other orders (src/debug/scenes/playthrough_knowledge.js).
+
+| Fact | Where she learns it | Flag | What reads it |
+|---|---|---|---|
+| Why she is here: the contract (something on the ice, three men, before the equinox, signed H., ask at the shore) | Her copy from the toll house below the pass, from the first frame (Q1 journal, C1 line to Kasza) | (note `note_contract`) | The board aside, Zbyszek's opening, Bogdan "This contract. Who wrote it?", Hanka's door |
+| The rite is tomorrow night, they drown a straw Marzanna | Zbyszek's spine, Bogdan, Hanka | `knows_rite` | Bogdan's question and answer, Hanka "For the rite." / "Picked for what?", the ledger objective |
+| A girl is picked | Zbyszek, Bogdan, Hanka | `heard_of_maiden` | Bogdan "And the girl?" / "Who carries her out?" |
+| The girl is Ola | Hanka | `hanka_hired` | Zbyszek's Ola topic, Ola's "picked" and bowl topics |
+| H. is Hanka, and where she lives | Zbyszek ("Only Hanka writes that fair"), or Hanka herself | `knows_fair_hand` | Hanka's door ("Hanka?" or "The paper says to ask at the shore."), the tavern journal line |
+| Hanka lost a daughter at the rite | Hanka ("the goddess took one from this house") | `hanka_hired` | Jarek, Dobra, Bogdan later |
+| Her name was Wiesia | Hanka, Ola, Jarek, Dobra, the grave post | `knows_wiesia` | Jarek "Hanka's girl." / "Who's Wiesia?", Dobra's topic, Bogdan later, the bestiary page |
+| The three men's names | Zbyszek's spine (locals name them in passing) | | |
+| The miller's paper | The board | `wolves_contract_read` | The miller "Wolves." / "What paper?", his wife |
+| Zbyszek and the Drowned Bell | The tavern | `met_zbyszek` | The tinker "He is." / "I haven't been down yet." |
+
 ---
 
 ## 2. Quests and journal (Vesna's terse notes)
@@ -94,16 +118,16 @@ reads like writing, cut it or make it plainer.
 Journal voice: Vesna's working notes. Who, what, where, what it pays, what she saw. Plain and short. Feeling shows only in what she chooses to write down, never in commentary.
 
 ### Q1 `main_pass` "The Hollow Pass"
-1. **Get through the pass.** Journal: *Hollow Pass. Snowing hard. Lost the road twice.*
+1. **Cross the pass to Marzena.** Journal, at the start: *Contract nailed up at the toll house below the Hollow Pass. From Marzena, the village on the lake on the other side: something walks the ice at night, three fishermen gone. Kill it before the equinox. Signed only "H." Pays "all I have".* On completion: *Hollow Pass. Snowing hard. Lost the road twice.* (Hanka sent a copy of her contract out over the pass when it opened; Vesna has carried it from the toll house, so `note_contract` is in her notes from the first frame.)
 2. **Examine the wreck** (cart, senses). *Cart on the pass road. A man, a woman, a small girl, all frozen. Letter on the man, to his brother.*
 3. **Wolves.** *Three wolves on the road. Starving, all ribs.*
 4. **Ride on to the watchtower** (marker watchtower). Completes with C2.
 
 ### Q2 `main_ice` "Something Walks the Ice"
 1. **Ride into Marzena** (marker west gate). C3 at the workshop on the way in.
-2. **Read the notice board** (square). *Contract on the board in the square: something walks the ice at night. Three fishermen missing. Signed only "H."*
+2. **Check the notice board** (square). *The same contract is up on the board in the square, in the same hand.*
 3. Parallel: **Ask at the Drowned Bell** and **See the reeve**.
-   - After Zbyszek: *Zbyszek at the tavern: the missing men are Stach, Bolek and the younger Wrona. Their rite is tomorrow night. Says the hand on the contract is Hanka's.*
+   - After Zbyszek: *Zbyszek at the tavern: the missing men are Stach, Bolek and the younger Wrona. Their rite is tomorrow night. Says the hand on the contract is Hanka's.* (The last sentence only with `knows_fair_hand`.)
    - After Bogdan: (took) *The reeve, Bogdan Kral, paid me 100 grosze to leave. Took it. He wants me off the lake.* (refused) *The reeve, Bogdan Kral, offered 100 grosze to leave. Didn't take it. He wants me off the lake.*
 4. **Find Hanka** (house on the shore, east). *Hanka posted it. They have picked her daughter Ola for the rite. Paid 61 grosze and her wedding ring. Wants it done before tomorrow night.*
 5. Completes, starts Q3.
@@ -121,7 +145,7 @@ Journal voice: Vesna's working notes. Who, what, where, what it pays, what she s
 3. **Return to the village at dawn.** Leaving the tower triggers a fade: "Dawn." Morning fog on the lake. Starts Q5.
 
 ### Q5 `main_hanka` "What Hanka Saw"
-1. **Ask Dobra about the rite** (workshop). *Dobra, the effigy maker. Says the old carvings on the island show real girls, before the straw. Kept looking at the knot on my chain.*
+1. **Ask the effigy maker about the rite** (workshop). *Dobra, the effigy maker. Says the old carvings on the island show real girls, before the straw. Kept looking at the knot on my chain.*
 2. **Confront Hanka.** Decisive choice. (comforted) *Told Hanka what I saw. She'll be on the ice tonight.* (blamed) *Told Hanka what I saw, and what I think of it. She'll be on the ice tonight.*
 3. **Wait for the equinox night** (rest until evening; the side quests live here). *The rite is tonight, after dark.*
 
@@ -155,7 +179,7 @@ Place: pass road near SPAWN.prologue. Time 14:30. Weather blizzard. Music: `pass
 Shot list:
 1. BLACK. Wind. A horse's breath. Fade up.
 2. EXTREME WIDE, low, through blowing snow: a lone rider, small, on the switchback road, mountain walls vanishing upward into white.
-3. MEDIUM, tracking alongside: Vesna, hood up, scarf over her mouth, head down into the wind. Kasza's mane whipping.
+3. MEDIUM, tracking alongside: Vesna, hood up, scarf over her mouth, head down into the wind. Kasza's mane whipping. VESNA (low, to the horse): "Keep on, girl. There's work on the other side." (With the first journal entry, this is why she is on the pass.)
 4. CLOSE on Kasza's eye and flattened ear. She stops dead. Snorts.
 5. OVER THE SHOULDER of Vesna: ahead, a dark shape in the snow. An overturned cart, a dead mule half-buried.
 6. Vesna dismounts (anim `dismount`), walks to the cart. LOW ANGLE past a frozen hand in the snow.
@@ -190,7 +214,7 @@ Beats: Children sit on straw bales stuffing a small straw doll, singing the Marz
 - Dobra keeps looking at Vesna a moment longer, then goes inside. Sets `song_heard`, `met_ola`.
 
 ### Notice board (interaction)
-Reads `note_contract`. Second paper `note_wolves_contract`. Sets `contract_taken`.
+She already carries the contract, so the board's copy gets an aside, VESNA: "Same as the one at the toll house." (an old save without the note reads it as before). Second paper `note_wolves_contract`. Sets `contract_taken`.
 
 ### Zbyszek, the Drowned Bell (dialogue hub)
 Beats: Zbyszek puts a mug in front of her before she asks. "It's thin. I know it's thin. You try brewing with what we've got." Then gossip:
@@ -201,7 +225,9 @@ Beats: Zbyszek puts a mug in front of her before she asks. "It's thin. I know it
 - About the maiden: he won't say. "Ask the reeve. It's not my business and I'm not saying it."
 - Shop: Thaw draughts (12 grosze), a bowl of fish soup (restores warmth, 2 grosze).
 - Rest: a bed upstairs (pass time).
-Sets `met_zbyszek`, `knows_fair_hand`.
+- Her opener: she shows him her copy. VESNA: "This was nailed up at the toll house below the pass. Three men, it says."
+- If she has already been hired at Hanka's, after "Look outside." he skips the girl and the hand: "You've been down at Hanka's already. Somebody saw you go in." VESNA: "She wrote the paper." ZBYSZEK: "Then you know more than I'd tell you." (The Ola topic in the hub follows on from that.)
+Sets `met_zbyszek`, `knows_rite`, `heard_of_maiden`, `knows_fair_hand` (the last only on the first path).
 
 ### Bogdan, the longhouse (dialogue)
 Beats: Bogdan at the long table with his ledger, a cold hearth to save wood.
@@ -209,21 +235,22 @@ Beats: Bogdan at the long table with his ledger, a cold hearth to save wood.
 - VESNA: "Someone did."
 - BOGDAN: "Then someone can pay you." (He finishes the column he is adding before he looks at her.)
 - On the village: "We went into the winter with ninety sacks of rye. There's forty-one. There's a hundred and eighty-six of us. You can do sums."
-- About the rite: "Tomorrow night we do the rite, and that's the end of it."
-- VESNA: "And the girl?"
+- About the rite: "Tomorrow night we do the rite, and that's the end of it." (She asks "What happens tomorrow night?" only with `knows_rite`. Otherwise she has only the contract: "The paper says before the equinox. What happens then?" BOGDAN: "Tomorrow night's the equinox. We carry a straw woman out to the poles and put her through the ice, the way it's always done. And that's the end of it.")
+- VESNA: "And the girl?" (only with `heard_of_maiden`; otherwise "Who carries her out?" BOGDAN: "A girl from the village. Same as every year.")
 - BOGDAN (stops writing): "You've been talking to people."
 - He puts a purse on the table: 100 grosze. "The pass will take one rider, if she's careful."
 - Choice: **Take the money** ("All right.") / **Leave it** ("Keep it.")
 - As she goes: "And stay off the lake. People go through it."
 Sets `met_bogdan`, `took_reeve_money` or `refused_reeve_money`.
-Later (after `echo_seen`): option "About the rite three years ago." VESNA: "Wiesia didn't just fall in. Her mother saw her in the water, and everyone kept walking." BOGDAN: "Who told you that?" If `ledger_found`: VESNA: "I was in your cellar. You've been giving your own ration to the Nowak children." (He looks at her a long time.) "Ola's eleven." He sits down, and doesn't say anything else; `reeve_told`. Without the ledger: "Get out of my house."
+Later (after `echo_seen`): option "About the rite three years ago." VESNA: "Wiesia didn't just fall in. Her mother saw her in the water, and everyone kept walking." (without `knows_wiesia`: "Hanka's girl didn't just fall in. Hanka saw her in the water, and everyone kept walking.") BOGDAN: "Who told you that?" If `ledger_found`: VESNA: "I was in your cellar. You've been giving your own ration to the Nowak children." (He looks at her a long time.) "Ola's eleven." He sits down, and doesn't say anything else; `reeve_told`. Without the ledger: "I was at the poles last night. I saw it." "You got here yesterday." "Get out of my house." (On the same night as the echo: "tonight", "this afternoon".)
 Fish (`bogdan_fish`, run before the usual talk when it has something to say: she has fish to sell, was turned away from a hole for want of a rod, has fished and not heard about the pike yet, or has landed it; "Something else." goes on to the usual talk): "I need a rod." (`rod_lent`, item `rod`); "I have fish for you." (he weighs them, says what there is, and pays by the kilo: "Put them on the scale."); "What bites out there, and where?" (once; sets `oldone_heard`: "Nobody sits by the tower." "There's a pike under it."); "About the pike by the tower." (once heard, until she takes it on: `oldone_asked`, item `strong_line`: "Don't lose the line."); after she has landed it: "Put it on the scale." ... "That's Stach's." ... `oldone_paid`. Side quest `side_oldone`.
 
 ### Hanka's house (dialogue)
 Beats: cold hearth, a bowl of milk by the door with a skin of ice on it. Hanka mending a white dress (Ola's rite dress). She does not stand.
-- VESNA lays the contract on the table.
+- VESNA: "Hanka?" HANKA: "Yes." (Without `knows_fair_hand` she does not know the name: VESNA: "The paper says to ask at the shore." HANKA: "What paper?", and after Hanka's next line, VESNA: "You're H." HANKA: "Hanka.")
+- VESNA lays the contract on the table: the copy from the toll house, folded small.
 - HANKA (looks at the paper, not at her): "I didn't think anyone would come."
-- She explains in few words: "They've picked Ola. My youngest. They say the goddess took one from this house, so she'll want the other. That's what they're saying."
+- She explains in few words: "They've picked Ola. My youngest." VESNA: "For the rite." (without `knows_rite`: "Picked for what?" HANKA: "For the rite. Tomorrow night. They drown a straw Marzanna in the lake, and a girl carries it out to the hole.") "They say the goddess took one from this house, so she'll want the other. That's what they're saying."
 - "If whatever's out there is dead before tomorrow night, they'll have no reason."
 - She pays up front: a purse, sixty-one grosze, and a wedding ring on a string. VESNA: "Keep the ring." HANKA: "Take it. It's what I've got."
 - Ola comes in stamping snow off her boots, sees Vesna: "It's the witch." HANKA: "Ola." OLA: "She said she isn't one." Ola drops a handful of snow into the bowl by the door. Hanka goes very still and says nothing.
@@ -272,7 +299,7 @@ Beats: Dobra twisting straw into a new Marzanna for tonight, hands never stop. E
 - DOBRA (without looking up): "Mind your feet, that's tonight's."  (Vesna is standing on the straw for the new effigy.)
 - On the rite: "Every year I make her and every year they drown her. My mother made them before me." (beat) "You walk her out, you burn her, in she goes, you walk back singing. You don't turn round. That's all there is to it." If asked why not: "Because you don't. My mother didn't. Her mother didn't."
 - Island lore: "There's old stones out on the island with pictures cut in them. My grandmother used to say it was real girls once, before the straw. I don't know. She said a lot of things." (beat) "Bogdan's been out to look at those stones. Twice this winter."
-- On Wiesia: "She helped me one winter. Good hands. Tied a better knot than me by the end. Don't tell her mother I said that."
+- On Wiesia: "She helped me one winter. Good hands. Tied a better knot than me by the end. Don't tell her mother I said that." (If she has not heard the name, `knows_wiesia`, she asks after "Hanka's older girl, the one who drowned" and Dobra says "Wiesia." first.)
 - The knot: Dobra's eyes go to the red-thread knot on Vesna's medallion chain. Her hands stop for the first time. "Where did you get that?" VESNA: "I've always had it." DOBRA: "Hm." She goes back to work, fast. A little later, without looking up: "Do you sing, hunter?" VESNA: "No." DOBRA: "No." (`dobra_knot_noticed`)
 - On the marzanna, if Vesna describes the belfry: Dobra is quiet a while. "My boy, when he was little, he'd get under the bed when it thundered. You couldn't pull him out. You had to sit on the floor and wait." (She ties off a knot.) "Took half the night, some nights."
 Sets `met_dobra`.
@@ -295,7 +322,7 @@ Sets `hanka_confronted`.
 
 ### Jarek (side, dialogue)
 At the Drowned Bell after dark or at the huts by day, mending nets with numb fingers.
-- "You're going out there. To her." He takes out a carved wooden waxwing. "I made this. For the rite. For after. I was going to give it to her after." (beat) "I was drunk. I was drunk the night they cut the hole. Maybe I cut it in the wrong place. Maybe the ice was thin because of me." (Vesna can tell him about the warm water if `miller_warm_water`: "It wasn't you. Warm water comes up under the poles." He cries.)
+- "You're going out there. To her." "To who?" "Wiesia." VESNA: "Hanka's girl." (without `knows_wiesia`: "Who's Wiesia?" JAREK: "Hanka's girl. She went through the ice at the rite.") He takes out a carved wooden waxwing. "I made this. For the rite. For after. I was going to give it to her after." (beat) "I was drunk. I was drunk the night they cut the hole. Maybe I cut it in the wrong place. Maybe the ice was thin because of me." (Vesna can tell him about the warm water if `miller_warm_water`: "It wasn't you. Warm water comes up under the poles." He cries.)
 - "Give it to her. Please."
 
 ### Snow Fight (side)
@@ -389,7 +416,7 @@ Morning. Vesna saddles Kasza at the west gate. Weather matches the ending (sprin
 ## 4. Notes and readable text (final copy)
 
 - **note_cart_family** (frozen cart): "Brother. If this finds you, we did not make it over. Three winters and the snow up here has not gone soft once, not even at midsummer. The old women in Marzena say the lake will not let anyone leave until it gets what it wants. I say a man can walk. Mira says I am a fool. Zosia's cough is worse. We go tomorrow if it stops snowing, and the day after if it does not. Tomasz."
-- **note_contract** (notice board): "Something walks the ice at night. It has taken three men from the fishing holes. Kill it before the equinox. Payment: all I have. Ask at the shore. H."
+- **note_contract** (her copy, from the toll house below the pass; the same paper is on the notice board): "Something walks the ice at night. It has taken three men from the fishing holes. Kill it before the equinox. Payment: all I have. Ask at the shore. H."
 - **note_wolves_contract** (notice board): "WOLVES at the mill. Took my dog and near took my boy. Will pay what I have, which is not much but is honest. Gniewko, miller."
 - **note_tally** (watchtower wall, examine): "Rows of tally marks scratched into the stone, hundreds of them. Beneath: COLD. WOLVES. COLD. BORED. KAZIMIERZ WAS HERE AND IS BETTER AT DICE THAN YOU."
 - **note_hanged** (pinned to the hanged man's coat): "He took three loaves for my children. The reeve cried when he gave the order, as if that helps anyone. Cut him down if you can, I can't reach. Agnieszka."
@@ -420,7 +447,7 @@ Fishermen, to someone who has a rod (she has fished or been lent one; src/gamepl
 Children: "You're Marzanna!" "No, you are!" / "Witch! Do your eyes glow?" / (to each other) "If you look back she gets you!"
 Zbyszek: "Shut the door, you're letting the heat out." / "Wipe your boots."
 Dobra: "Straw, straw, straw." / "Hands, girl. Use your hands."
-Vesna (exploration, rare and short): "Kasza. Don't." / (finding a corpse) "Not long ago." / (low warmth) "Need a fire." / (on the horse, uphill) "Come on, girl." / (the first time she has really looked at Matka Chmur) "That's a long way up." / (the hand-bell, too early) "Dusk, she said." / (too late) "Past dusk." / (the bell on its pole, before she is asked) "A hand-bell tied to the pole, a rag round the clapper."
+Vesna (exploration, rare and short): "Kasza. Don't." / (finding a corpse) "Not long ago." / (low warmth) "Need a fire." / (on the horse, uphill) "Come on, girl." / (the first time she has really looked at Matka Chmur) "That's a long way up." / (the hand-bell, too early) "Dusk, she said." / (too late) "Past dusk." / (the bell on its pole, before she is asked) "A hand-bell tied to the pole, a rag round the clapper." / (the notice board, the contract she already carries) "Same as the one at the toll house."
 Herders (only once `planetnicy_seen`, now and then, never from the named cast; src/gameplay/npcs/barks.js `SKY_` pools): fishermen on a clear evening: "Low tonight. No snow by morning." / "They're thick over the poles. Hard frost." / "Low and many. Bring your water in." Fishermen otherwise: "Not one up since dawn. Snow by noon." / "They've gone high. Cover your nets." / "Can't see a single herder. I'm going home." Villagers after dark and clear: "Clear tonight. Bank the fire." / "They're down low. The well will freeze." / "Put your hand down. Not at them." By day: "Didn't see one this morning. I'm taking the washing in." / "They're sitting over the roofs again. It'll snow on somebody's yard." / "Put your hand down, you will lose a day." Children: "Nine! Ten!" / "There's a pink one! There's a pink one!" / "Stop at twenty, Kuba!" / "Don't talk to me, I'm at seventeen." Pairs: "Where are they today?" "Up. Snow by evening." / "Matka's early." "She's no earlier than yesterday." / "They're over the mill again." "They're always over the mill." Children: "Eleven. Twelve." "Stop at twenty." / "Is that Matka?" "That's a cloud." While Matka Chmur swells, nobody outdoors says anything.
 
 ---

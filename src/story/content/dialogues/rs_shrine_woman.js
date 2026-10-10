@@ -12,7 +12,7 @@ export default {
     entry: { next: (S) => (S.flag('scarf_returned') ? 'after' : S.flag('scarf_found') ? 'b1' : S.flag('scarf_asked') ? 'again' : 'a1') },
 
     a1: { s: 'old_woman', t: 'Are you from the pass?', next: 'a2' },
-    a2: { s: 'vesna', t: 'I came down it today.', next: 'a3' },
+    a2: { s: 'vesna', t: (S, D) => ((D.G.time?.day ?? 1) >= 2 ? 'I came down it yesterday.' : 'I came down it today.'), next: 'a3' },
     a3: { s: 'old_woman', t: "My Jasiek went up four days ago with the sledge, for wood. He's sixteen. I put the milk here for him, in case he comes by this way. It's no use to the shrine.", next: 'a4' },
     a4: { s: 'vesna', t: 'What does he look like?', next: 'a5' },
     a5: { s: 'old_woman', t: "Tall. He stoops. A grey scarf with a red stripe, I knitted it, it's too long, he trips on it.", next: 'a6' },

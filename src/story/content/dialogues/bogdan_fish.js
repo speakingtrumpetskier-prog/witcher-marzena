@@ -83,7 +83,11 @@ export default {
     old6: { s: 'bogdan', t: "Not this one.", next: 'old7' },
     old7: { s: 'bogdan', t: "It was my father's. Horsehair and flax, waxed. I have never let anyone put it in the water.", next: 'old8' },
     old8: { s: 'vesna', t: 'Why me?', next: 'old9' },
-    old9: { s: 'bogdan', t: "You have nothing to do till tomorrow night. And nobody here has the evenings.", next: 'old10' },
+    old9: {
+      s: 'bogdan',
+      t: (S, D) => ((D.G.time?.day ?? 1) >= 2 ? 'You have nothing to do till tonight. And nobody here has the evenings.' : 'You have nothing to do till tomorrow night. And nobody here has the evenings.'),
+      next: 'old10',
+    },
     old10: { s: 'bogdan', t: "There's a place by the tower where the ice is thin. Somebody tied a rag to a stake there, years ago, I don't know who. Cut a hole there. Not wider than a bucket.", next: 'old11' },
     old11: { s: 'bogdan', t: "Go at night, and keep it on the bottom, and be patient. It doesn't come to a jig by day. I've tried.", next: 'oldc' },
     oldc: {

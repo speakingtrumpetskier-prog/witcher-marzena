@@ -1,7 +1,8 @@
 // miller: Gniewko at the frozen mill. Side quest "Wolves at the Mill".
 //
 // Entry: any interaction with Gniewko. cast: miller.
-//   not wolves_mill_done -> the contract: what happened, what he pays, where the den is
+//   not wolves_mill_done -> the contract: what happened, what he pays, where the den is (if she has not read
+//                           his paper on the board, wolves_contract_read, she asks what paper and he tells her)
 //   wolves_mill_done     -> the payment and the warm water line
 // Sets:  miller_warm_water (second half only). Gives S.give('coins', 40) once (guarded by miller_paid).
 // The den marker, the wolves and the journal belong to quests.js.
@@ -15,7 +16,9 @@ export default {
     // before the wolves
     g1: { s: 'miller', t: 'Hunter.', a: 'carry_bucket', next: 'g2' },
     g2: { s: 'miller', t: 'Is it about the paper?', next: 'g3' },
-    g3: { s: 'vesna', t: 'Wolves.', next: 'g4' },
+    g3: { if: (S) => !!S.flag('wolves_contract_read'), else: 'g3b', s: 'vesna', t: 'Wolves.', next: 'g4' },
+    g3b: { s: 'vesna', t: 'What paper?', next: 'g3c' },
+    g3c: { s: 'miller', t: 'On the board in the square. Wolves.', next: 'g4' },
     g4: { s: 'miller', t: 'Took my dog. Near took my boy.', next: 'hub' },
 
     hub: {

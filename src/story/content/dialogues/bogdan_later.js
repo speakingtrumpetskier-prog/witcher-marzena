@@ -6,6 +6,7 @@
 //        bogdan_threw_out when she tries without the ledger; he lets her back in later (greeting changes,
 //        the scene is the same), so she can come again with it.
 // Reads: ledger_found, miller_warm_water (an extra argument, it does not unlock reeve_told by itself).
+//        knows_wiesia (she says the girl's name only if she has heard it), the day (the echo can be the same night).
 // If reeve_told is already set the scene is a short, quiet exchange and changes nothing.
 export default {
   id: 'bogdan_later',
@@ -39,7 +40,13 @@ export default {
     bye: { s: 'bogdan', t: 'Then close the door.', end: true },
 
     // the rite three years ago
-    a1: { s: 'vesna', t: "Wiesia didn't just fall in. Her mother saw her in the water, and everyone kept walking.", cam: 'close', next: 'a2' },
+    a1: {
+      s: 'vesna', cam: 'close',
+      t: (S) => (S.flag('knows_wiesia')
+        ? "Wiesia didn't just fall in. Her mother saw her in the water, and everyone kept walking."
+        : "Hanka's girl didn't just fall in. Hanka saw her in the water, and everyone kept walking."),
+      next: 'a2',
+    },
     a2: { s: 'narrator', t: 'Bogdan puts the pen down and stands.', italic: true, dur: 2.4, next: 'a3' },
     a3: { s: 'bogdan', t: 'Who told you that?', next: 'say' },
 
@@ -53,8 +60,8 @@ export default {
     },
 
     // without the ledger
-    s1: { s: 'vesna', t: 'I was at the poles last night. I saw it.', next: 's2' },
-    s2: { s: 'bogdan', t: 'You got here yesterday.', next: 's3' },
+    s1: { s: 'vesna', t: (S, D) => ((D.G.time?.day ?? 1) >= 2 ? 'I was at the poles last night. I saw it.' : 'I was at the poles tonight. I saw it.'), next: 's2' },
+    s2: { s: 'bogdan', t: (S, D) => ((D.G.time?.day ?? 1) >= 2 ? 'You got here yesterday.' : 'You got here this afternoon.'), next: 's3' },
     s3: { s: 'bogdan', t: 'Get out of my house.', do: (S) => S.set('bogdan_threw_out'), end: true },
 
     n1: { s: 'bogdan', t: 'Then sit down or go.', end: true },

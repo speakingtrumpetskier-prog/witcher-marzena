@@ -36,8 +36,12 @@ export default async function c1(d) {
     d.fade(0, 2.2);
     await d.shot({ from: pt(-35, 15, 0.7), to: pt(-34, 14.2, 0.9), look: pt(-34, -1, 3.4), fov: 52, dur: 6.6, ease: 'linear', shake: 0.3 });
 
-    // 3. MEDIUM, tracking alongside on her scarred side, head down into the wind.
-    await d.follow(kasza, [-3.3, 1.9, 0.6], lookRider, 5.6, { lag: 2.4, fov: 36, shake: 0.35, frame: [0.16, -0.02] });
+    // 3. MEDIUM, tracking alongside on her scarred side, head down into the wind. VESNA (low, to the horse): where they
+    //    are going and why (the contract from the toll house, docs/STORY.md Q1).
+    const track = d.follow(kasza, [-3.3, 1.9, 0.6], lookRider, 5.6, { lag: 2.4, fov: 36, shake: 0.35, frame: [0.16, -0.02] });
+    await d.wait(1.3);
+    d.say(vesna, "Keep on, girl. There's work on the other side.", 3.2);
+    await track;
 
     // 4. CLOSE on Kasza's eye and flattened ear. She stops dead. Snorts.
     const headPos = (k) => () => { const h = hdWorld(); const yy = kasza.yaw; const L = V3(Math.cos(yy), 0, -Math.sin(yy)); const Fw = V3(Math.sin(yy), 0, Math.cos(yy)); return h.addScaledVector(L, k.l).addScaledVector(Fw, k.f).add(V3(0, k.u, 0)); };

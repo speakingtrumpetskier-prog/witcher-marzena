@@ -7,6 +7,7 @@
 //   bird_taken, not bird_given   -> a short reminder
 // Sets:  jarek_met (start), bird_taken (on accepting, with S.give('bird', 1)).
 // Reads: miller_warm_water (the line that makes him cry), time of day (tavern at night, huts by day).
+//        knows_wiesia: without it she has not heard the name, so she asks who Wiesia is and he tells her (sets it).
 export default {
   id: 'jarek_bird',
   cast: ['jarek'],
@@ -26,8 +27,10 @@ export default {
     j1: { s: 'jarek', t: "You're going out there. To her.", next: 'j2' },
     j2: { s: 'vesna', t: 'To who?', next: 'j3' },
     j3: { s: 'jarek', t: 'Wiesia.', wait: 1.2, next: 'j4' },
-    j4: { s: 'vesna', t: "Hanka's girl.", next: 'j5' },
-    j5: { s: 'jarek', t: 'She was fourteen.', next: 'j6' },
+    j4: { if: (S) => !!S.flag('knows_wiesia'), else: 'j4b', s: 'vesna', t: "Hanka's girl.", next: 'j5' },
+    j4b: { s: 'vesna', t: "Who's Wiesia?", next: 'j4c' },
+    j4c: { s: 'jarek', t: "Hanka's girl. She went through the ice at the rite.", wait: 0.8, next: 'j5' },
+    j5: { s: 'jarek', t: 'She was fourteen.', do: (S) => S.set('knows_wiesia'), next: 'j6' },
     j6: { s: 'narrator', t: 'He takes a small carved bird out of his coat.', italic: true, dur: 2.6, next: 'j7' },
     j7: { s: 'jarek', t: 'I made this. For the rite. For after. I was going to give it to her after.', next: 'j8' },
     j8: { s: 'vesna', t: 'A waxwing.', next: 'j9' },
