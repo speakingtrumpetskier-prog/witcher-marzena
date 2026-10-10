@@ -7,6 +7,7 @@
 //   G.snowTracks.map / rect                                 the render target and { x0, z0, size }
 //
 // Sources stamped here every frame: the player's feet, Kasza's hooves, every NPC near the player.
+// Running in snow also kicks up a puff of powder at each footfall (player:step).
 // Creatures stamp their own paws (quadruped.js), anything else may call stamp().
 import * as THREE from 'three';
 import { ORDER } from '../core/G.js';
@@ -186,6 +187,19 @@ export async function init(G) {
       if (footDown(bone, G.world.heightAt(_v.x, _v.z), 0.12)) api.stamp('hoof', _v.x, _v.z, yaw, 1);
     }
   }
+
+  // Running in snow kicks up powder at each footfall, more the faster she goes.
+  let fxBurst = null;
+  import('../world/props/index.js').then((m) => { fxBurst = (...a) => m.props.fx?.burst?.(...a); }).catch(() => {});
+  G.events.on('player:step', ({ surface, foot, speed }) => {
+    const P = G.player;
+    if (!fxBurst || !P?.character?.bones || speed < 3.6 || (surface && surface !== 'snow')) return;
+    const f = P.character.bones[foot === 'R' ? 'footR' : 'footL'];
+    if (!f) return;
+    f.getWorldPosition(_v);
+    const k = Math.min(1, (speed - 3.6) / 3);
+    fxBurst('snow', [_v.x, G.world.heightAt(_v.x, _v.z) + 0.05, _v.z], { count: Math.round(5 + 9 * k), speed: 0.9 + 1.2 * k, up: 0.9, size: 0.1 + 0.06 * k });
+  });
 
   let fadeAcc = 0;
   G.addSystem('snow-tracks', (dt) => {
