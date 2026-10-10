@@ -30,7 +30,8 @@ export function install(C) {
     });
     C.on('quest:update', (e) => {
       if (e.id === 'main_straw' && e.stage === 'camp') {
-        C.later(3, () => { if (C.stage('main_straw') === 'camp' && C.near(camp.center.x, camp.center.z, 90)) C.hint([['Hold RMB', 'Hunter senses']], 12); });
+        const still = () => C.stage('main_straw') === 'camp' && C.near(camp.center.x, camp.center.z, 90);
+        C.later(3, () => { if (still()) C.hintFree([['Hold RMB', 'Hunter senses']], 12, still); });
       }
     });
   }

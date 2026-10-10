@@ -132,6 +132,17 @@ export function createContext(G) {
     return C.ui()?.subtitle?.(who, text, t);
   };
   C.hint = (items, secs = 8) => G.ui?.hint?.(items, secs);
+  // A hint for play, not for a cutscene: waits for free play with the hint card empty, after the
+  // first-use Move card has had its turn (falling back to plain free play after 40 s), then shows it
+  // if `when` still holds.
+  C.hintFree = (items, secs = 8, when = null) => {
+    const free = () => !C.busy() && G.cameraOwner === 'rig' && (!G.hints || G.hints._live());
+    const clear = () => free() && (!G.hints || (!G.hints.slot.left && (G.hints.seen('move') || G.hints.walked >= 2)));
+    (async () => {
+      if (!(await C.until(clear, 40, 0.5)) && !(await C.until(free, 60, 0.5))) return;
+      if (!when || when()) C.hint(items, secs);
+    })().catch(() => {});
+  };
   C.sfx = (name, o) => { try { G.audio?.sfx?.(name, o); } catch { /* audio is optional */ } };
   C.bark = (npcId, text) => {
     const n = G.npcs?.get?.(npcId);

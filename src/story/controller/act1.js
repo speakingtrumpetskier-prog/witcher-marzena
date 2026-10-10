@@ -41,7 +41,8 @@ export function install(C) {
     });
     C.on('quest:update', (e) => {
       if (e.id === 'main_pass' && e.stage === 'wreck' && !C.has('cart_examined')) {
-        C.later(2.5, () => { if (C.stage('main_pass') === 'wreck' && !C.has('cart_examined')) C.hint([['Hold RMB', 'Hunter senses']], 14); });
+        const still = () => C.stage('main_pass') === 'wreck' && !C.has('cart_examined');
+        C.later(2.5, () => { if (still()) C.hintFree([['Hold RMB', 'Hunter senses']], 14, still); });
       }
     });
   }

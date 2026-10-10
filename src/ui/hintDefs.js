@@ -22,6 +22,8 @@ export const EVENTS = [
 ];
 
 const near = (c, x, z, r) => c.P && Math.hypot(c.P.position.x - x, c.P.position.z - z) < r;
+// The Move card goes first on a new profile; hints about things nearby wait for it.
+const settled = (c) => c.seen('move') || c.walked >= 2 || c.rode > 0;
 
 function signHint(sign, selectAction, pickText, castText, prio, watch) {
   const cast = { action: 'sign', done: (c) => c.fired('player:cast', (p) => p?.sign === sign) };
@@ -49,14 +51,14 @@ export const HINTS = [
   {
     id: 'interact', prio: 2, delay: 1.2, seconds: 9,
     rows: [{ action: 'interact', text: 'Talk, read or open', done: 'interact:use' }],
-    watch: (c) => !!c.G.interact?.current && c.live > 2,
+    watch: (c) => !!c.G.interact?.current && c.live > 2 && settled(c),
   },
   {
     id: 'senses', prio: 2, delay: 4, seconds: 11, // the story teaches it first at the cart (G.ui.hint); this covers the other clues
     rows: [{ action: 'senses', hold: true, text: 'Hunter senses', done: 'senses:on' }],
     watch: (c) => {
       const S = c.G.senses;
-      if (!S || S.active || c.P?.swordDrawn) return false;
+      if (!S || S.active || c.P?.swordDrawn || !settled(c)) return false;
       for (const cl of S.clues.values()) {
         if (cl.examined || (cl.enabled && !cl.enabled())) continue;
         if (c.P && Math.hypot(cl.pos.x - c.P.position.x, cl.pos.z - c.P.position.z) < 14) return true;
