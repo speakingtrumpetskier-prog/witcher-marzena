@@ -85,6 +85,11 @@ export async function init(G) {
     sun: key, key, hemi, farCascade: far,
     moon: { dir: new THREE.Vector3(), phase: MOON_PHASE },
     shadowFocus: new THREE.Vector3(),
+    // Where the player's shadows matter, published every frame by the player (shadowHintFrame is the
+    // frame it was written). Used only while the gameplay camera rig owns the view; every other
+    // camera (title, cutscene, debug) gets a focus ahead of its own lens.
+    shadowHint: new THREE.Vector3(),
+    shadowHintFrame: -10,
     override: null,
     look,
     grade: {
@@ -99,7 +104,7 @@ export async function init(G) {
     moonPhase: MOON_PHASE,
     lightLevel: 1,
     shadowRadius: 70,
-    setShadowFocus(v) { this.shadowFocus.copy(v); },
+    setShadowFocus(v) { this.shadowHint.copy(v); this.shadowHintFrame = G.clock.frame; },
   };
   A.moon.dir = A.moonDir;
   G.atmosphere = A;
@@ -107,8 +112,6 @@ export async function init(G) {
   const sunDir = new THREE.Vector3();
   const moonDir = A.moonDir;
   const shadowDir = new THREE.Vector3(0, 1, 0);
-  const lastWritten = new THREE.Vector3(1e9, 0, 0);
-  let manualFocus = 0;
   const fwd = new THREE.Vector3();
   const center = new THREE.Vector3();
   const tmp = new THREE.Color();
@@ -119,21 +122,20 @@ export async function init(G) {
   let farClock = 0;
 
   function updateShadowFrustum(dt) {
-    // Focus: externally written this frame (rig), else the ground in front of the camera.
-    if (!A.shadowFocus.equals(lastWritten)) manualFocus = 0.5;
+    // Focus: the player's hint while the gameplay rig is the view, else the ground in front of the
+    // camera. One rule per owner, never a mix: the near map must not jump between two centers.
     const cam = G.camera;
     cam.getWorldDirection(fwd);
     fwd.y = 0;
     if (fwd.lengthSq() < 1e-6) fwd.set(0, 0, -1);
     fwd.normalize();
-    if (manualFocus > 0) {
-      manualFocus -= dt;
+    if (G.cameraOwner === 'rig' && G.clock.frame - A.shadowHintFrame <= 3) {
+      A.shadowFocus.copy(A.shadowHint);
     } else {
       A.shadowFocus.copy(cam.position).addScaledVector(fwd, A.shadowRadius * 0.55);
       const gy = G.world?.grid ? G.world.heightAt(A.shadowFocus.x, A.shadowFocus.z) : 0;
       A.shadowFocus.y = Math.min(cam.position.y, gy + 2);
     }
-    lastWritten.copy(A.shadowFocus);
     fitShadow(key, A.shadowFocus, shadowDir, A.shadowRadius, 22, 500);
 
     // Far cascade: re-rendered only when the view or the sun moved enough, or every 3 s.

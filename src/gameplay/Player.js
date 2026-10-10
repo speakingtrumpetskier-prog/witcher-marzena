@@ -308,9 +308,10 @@ class Player {
     if (!this.dead) this.steps.update(dt);
     G.uniforms.uPlayerPos.value.copy(this.position);
     const A = G.atmosphere;
-    if (A?.shadowFocus) {
+    if (A?.shadowHint) {
       const yaw = G.cameraRig ? G.cameraRig.yaw : cameraHeading();
-      A.shadowFocus.set(this.position.x + Math.sin(yaw) * 8, this.position.y, this.position.z + Math.cos(yaw) * 8);
+      A.shadowHint.set(this.position.x + Math.sin(yaw) * 8, this.position.y, this.position.z + Math.cos(yaw) * 8);
+      A.shadowHintFrame = G.clock.frame;
     }
   }
 }
