@@ -142,9 +142,24 @@ export function brown(n, r) {
   return b;
 }
 // Smooth random control signal in [-1, 1] with about `hz` bandwidth (for jitter, drift, gusts).
-export function wander(n, sr, hz, r) {
-  const b = new Float32Array(n);
+// Smooth random wander: a new random point every 1/hz s, eased between. With loop, the length is rounded to a
+// whole number of steps and the last step eases back to the first point, so the buffer loops without a jump (a
+// looped modulation source with a seam steps the pitch and level of every note it drives, once per pass).
+export function wander(n, sr, hz, r, loop = false) {
   const step = Math.max(1, Math.floor(sr / hz));
+  if (loop) {
+    const m = Math.max(2, Math.round(n / step));
+    const pts = Array.from({ length: m }, () => r.bi());
+    const b = new Float32Array(m * step);
+    for (let i = 0; i < b.length; i++) {
+      const k = i % step, j = (i - k) / step;
+      const a = pts[j], c = pts[(j + 1) % m];
+      const t = k / step, s = t * t * (3 - 2 * t);
+      b[i] = a + (c - a) * s;
+    }
+    return b;
+  }
+  const b = new Float32Array(n);
   let a = r.bi(), c = r.bi();
   for (let i = 0; i < n; i++) {
     const k = i % step;

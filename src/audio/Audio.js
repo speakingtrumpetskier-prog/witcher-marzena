@@ -9,7 +9,7 @@
 //   G.audio.volumes = { master, music, sfx, ambience, voice }   (each 0..1; also settable one at a time)
 //   G.voice (also G.audio.voice)              voice-over player, see src/audio/voice.js and docs/VOICES.md
 //   G.audio.setEnvironment('hall' | 'room' | 'cave')     reverb space and muffled outdoors for interiors
-//   G.audio.mood, G.audio.ready, G.audio.info()
+//   G.audio.mood, G.audio.ready, G.audio.info(), G.audio.stats() (output buffer, dropouts; ?audiolatency= to change it)
 // Events emitted: 'music:mood' { mood }, 'music:lyric' { mood, line, text } (procession subtitles).
 //
 // Before unlock every call is a safe no-op (setMood and loops are remembered and start on unlock).
@@ -81,7 +81,9 @@ class AudioFacade {
     const AC = window.AudioContext || window.webkitAudioContext;
     if (!AC) return Promise.resolve(false);
     try {
-      this.ctx = new AC({ latencyHint: 'interactive' });
+      // ?audiolatency=interactive|balanced|playback|<seconds> to try a bigger output buffer on a machine that glitches.
+      const lat = new URLSearchParams(location.search).get('audiolatency');
+      this.ctx = new AC({ latencyHint: lat ? (Number.isFinite(+lat) ? +lat : lat) : 'interactive' });
       this.ctx.resume?.().catch(() => {});
       this.eng = createEngine(this.ctx, {
         volumes: this._vol,
@@ -120,6 +122,12 @@ class AudioFacade {
     this._loops.add(h);
     if (this.ready) h.attach(this.eng);
     return h;
+  }
+
+  // Output buffer and dropouts so far (playoutStats needs Chrome with --enable-blink-features=AudioContextPlayoutStats).
+  stats() {
+    const c = this.ctx, p = c?.playoutStats;
+    return c ? { state: c.state, rate: c.sampleRate, baseLatency: c.baseLatency, outputLatency: c.outputLatency, dropouts: p ? p.fallbackFramesEvents : null, dropoutMs: p ? p.fallbackFramesDuration : null } : null;
   }
 
   duck(amount = 0.5, seconds) { if (this.ready) this.eng.mixer.duck(amount, seconds); }

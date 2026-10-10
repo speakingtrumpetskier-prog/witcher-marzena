@@ -7,7 +7,7 @@ import { Bank, BAKE_RATE } from './bank.js';
 import { Director } from './music/director.js';
 import { SfxPlayer } from './sfx/player.js';
 import { Ambience } from './ambience.js';
-import { rng, hash, white, pink, wander } from './dsp.js';
+import { rng, hash, white, pink, wander, makeLoop } from './dsp.js';
 
 export function createEngine(ctx, { offline = false, seed = 1, volumes, quality = 'high', env = null, emit = null } = {}) {
   const eng = { ctx, offline, quality };
@@ -38,9 +38,11 @@ export function createEngine(ctx, { offline = false, seed = 1, volumes, quality 
     return b;
   };
   const r = rng(hash('shared-buffers', 3));
+  // All three loop forever under every live voice, so each must loop without a seam (white noise has none to
+  // hide; pink is crossfaded tail into head; the jitter eases back to its first point).
   eng.noiseBuf = mk(white(BAKE_RATE * 3, r), BAKE_RATE);
-  eng.pinkBuf = mk(pink(BAKE_RATE * 8, r), BAKE_RATE);
-  eng.jitterBuf = mk(wander(8000 * 20, 8000, 9, r), 8000);
+  eng.pinkBuf = mk(makeLoop(pink(BAKE_RATE * 8 + BAKE_RATE / 2, r), BAKE_RATE, 0.5), BAKE_RATE);
+  eng.jitterBuf = mk(wander(8000 * 20, 8000, 9, r, true), 8000);
 
   eng.director = new Director(eng);
   eng.sfx = new SfxPlayer(eng);
