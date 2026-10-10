@@ -334,7 +334,8 @@ function fishSketch(ctx, r, f) {
   outline(ctx, [top[0], [X(-0.01) + 3, cy + hh * 0.05], bot[0]], r, { w: 1.3, j: 0.6 });
   // the head: gill cover, mouth, eye
   pen(ctx, [[X(0.2), topAt(0.2) + 4], [X(0.215), cy], [X(0.2), botAt(0.2) - 3]], r, { w: 1.2, j: 0.7 });
-  pen(ctx, [[X(0.0) - 1, cy + hh * 0.12], [X(0.08), cy + hh * 0.2], [X(0.12), cy + hh * 0.12]], r, { w: 1.1, j: 0.5 });
+  // the gape: one short line back from the snout, sloping down a little (a curved one read as a smile)
+  pen(ctx, [[X(0.0) - 1, cy + hh * 0.06], [X(0.05), cy + hh * 0.1], [X(0.095), cy + hh * 0.13]], r, { w: 1.1, j: 0.4 });
   ctx.fillStyle = INK;
   ctx.beginPath(); ctx.arc(X(0.085), cy - hh * 0.28, Math.max(2.4, hh * 0.1), 0, 7); ctx.fill();
   if (f.redEye) { ctx.strokeStyle = '#9a2e22'; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.arc(X(0.085), cy - hh * 0.28, Math.max(4, hh * 0.15), 0, 7); ctx.stroke(); }

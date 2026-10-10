@@ -46,6 +46,9 @@ voice clips generated offline. Work happens on the branch `claude/optimistic-boh
 - `node scripts/gpu-demo.mjs` times one frame on the local GPU against software.
 - `node scripts/inputtest.mjs [input|lock|menus|hints|defs]` drives the arena and the Controls screen
   with a mocked gamepad (114 checks, about 4 minutes); run it after touching input, camera, menus or hints.
+- Pure-logic tests (Node, seconds): `node scripts/dicetest.mjs` (Kosci rules, AI, roll paths) and
+  `node scripts/fishtest.mjs` (fishing model). `node scripts/dicedrive.mjs` (MZ_CHROME=1) plays a dice
+  match with real keys, mouse and a mocked pad.
 - `node scripts/phototest.mjs [--out dir]` plays into photo mode (own Vite server, installed Chrome; 24
   checks, about 2 minutes): held world, flying camera, click focus, filters, crops, borders, a saved
   PNG at full resolution, clean exit.
