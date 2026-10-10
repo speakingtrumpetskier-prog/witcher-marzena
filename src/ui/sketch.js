@@ -182,7 +182,34 @@ function iceLady(ctx, r) {
   hatch(ctx, r, 120, 120, 200, 186, 36, 14, 1.0, 'rgba(58,52,48,0.35)', 1.6);
 }
 
-const SKETCHES = { wolf, marzanny, marzanna, ice_lady: iceLady };
+// A platnik: a bell with its canals, a frilled hem and long threads, drawn small over a roofline
+// so the size reads. Two little ones beside it.
+function planetnik(ctx, r) {
+  const bell = [[96, 92], [100, 62], [128, 38], [160, 32], [192, 38], [220, 62], [224, 92]];
+  wash(ctx, [...bell, [200, 100], [160, 104], [120, 100]], 'rgba(150,190,200,0.22)');
+  outline(ctx, bell, r, { w: 1.6 });
+  outline(ctx, [[96, 92], [118, 100], [140, 96], [160, 102], [182, 96], [204, 100], [224, 92]], r, { w: 1.3 });
+  for (let i = -3; i <= 3; i++) pen(ctx, [[160 + i * 4, 36], [160 + i * 17, 64], [160 + i * 21, 98]], r, { w: 0.8, alpha: 0.5, j: 1 });
+  outline(ctx, [[110, 98], [120, 106], [132, 100], [144, 108], [158, 102], [172, 108], [186, 101], [200, 107], [212, 99]], r, { w: 0.9, j: 1.4 });
+  // oral arms and threads
+  outline(ctx, [[150, 100], [146, 124], [154, 146], [148, 168]], r, { w: 1.1, j: 1.6 });
+  outline(ctx, [[170, 100], [176, 126], [168, 150], [174, 172]], r, { w: 1.1, j: 1.6 });
+  for (const x of [112, 132, 190, 208]) {
+    pen(ctx, [[x, 104], [x + (x < 160 ? -8 : 8), 140], [x + (x < 160 ? 4 : -4), 176], [x + (x < 160 ? -6 : 6), 200]], r, { w: 0.7, alpha: 0.6, j: 1.6 });
+  }
+  // two small ones
+  for (const [x, y, k] of [[48, 56, 0.34], [276, 70, 0.28]]) {
+    outline(ctx, [[x - 40 * k, y], [x - 30 * k, y - 22 * k], [x, y - 30 * k], [x + 30 * k, y - 22 * k], [x + 40 * k, y]], r, { w: 1, j: 0.8 });
+    pen(ctx, [[x - 14 * k, y], [x - 20 * k, y + 50 * k], [x - 12 * k, y + 90 * k]], r, { w: 0.6, alpha: 0.6, j: 1 });
+    pen(ctx, [[x + 14 * k, y], [x + 22 * k, y + 50 * k], [x + 12 * k, y + 90 * k]], r, { w: 0.6, alpha: 0.6, j: 1 });
+  }
+  // roofline and a spruce for scale
+  outline(ctx, [[20, 206], [58, 206], [60, 206], [60, 194], [60, 192], [75, 184], [90, 176], [105, 184], [120, 192], [120, 194], [120, 206], [122, 206], [300, 206]], r, { w: 1.3, j: 0.8 });
+  outline(ctx, [[248, 206], [256, 176], [262, 188], [268, 160], [276, 186], [282, 174], [290, 206]], r, { w: 1.1, j: 1 });
+  hatch(ctx, r, 112, 50, 206, 84, 16, 9, 1.35, INK_SOFT, 0.7);
+}
+
+const SKETCHES = { wolf, marzanny, marzanna, ice_lady: iceLady, planetnik };
 
 // Draws sketch `kind` onto `canvas` (320x220 logical pixels).
 export function drawSketch(canvas, kind, seed = 3) {
