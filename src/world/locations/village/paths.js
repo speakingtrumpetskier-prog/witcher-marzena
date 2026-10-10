@@ -26,9 +26,12 @@ const COLORS = {
   yard: [0.66, 0.68, 0.74],
   sled: [0.55, 0.62, 0.74],
   mud: [0.4, 0.34, 0.28],
+  // Wheel and runner ruts cut through to the frozen mud. Dark on purpose: in full sun the snow and anything
+  // above about 0.4 both tone-map to near white, so a lighter rut does not show at all.
+  rut: [0.13, 0.11, 0.09],
 };
 
-// strips: [{ pts: [[x, z], ...], width, kind: 'path' | 'yard' | 'sled' | 'mud', alpha }]
+// strips: [{ pts: [[x, z], ...], width, kind: 'path' | 'yard' | 'sled' | 'mud' | 'rut', alpha }]
 export function buildRibbons(G, strips, name = 'village-paths') {
   const pos = [], col = [], idx = [], nor = [];
   const hAt = (x, z) => G.world.heightAt(x, z);
@@ -66,10 +69,12 @@ export function buildRibbons(G, strips, name = 'village-paths') {
         col.push(base[0], base[1], base[2], a2);
       }
     }
+    // Counter-clockwise seen from above (r runs to the left of travel), so the faces point up. The old
+    // order (a, c, b) faced down and every ribbon was back-face culled: no path ever showed.
     for (let i = 0; i < pts.length - 1; i++) {
       for (let r = 0; r < rows - 1; r++) {
         const a = v0 + i * rows + r, b = a + 1, c = a + rows, d = c + 1;
-        idx.push(a, c, b, b, c, d);
+        idx.push(a, b, c, b, d, c);
       }
     }
   }
