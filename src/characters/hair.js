@@ -233,7 +233,8 @@ function buildHairCards(ctx, h, shell) {
     if (ge <= 0) continue;
     const pe = info.cast(dirAt(phi, ge));
     const az = Math.atan2(pe.x, pe.z);
-    let L = cd.wisp ? 0.05 + R() * 0.03 : cd.bang ? h.bangs * (0.8 + R() * 0.35) : lenAt(az, pe);
+    // Bangs: an even cut with a little give (a wide length spread made the edge a sawtooth).
+    let L = cd.wisp ? 0.05 + R() * 0.03 : cd.bang ? h.bangs * (0.93 + R() * 0.12) : lenAt(az, pe);
     if (L <= 0) continue;
     // keep bangs and baby hairs off the brows and eyes
     if (Math.abs(az) < 1.0 && pe.z > 0.03) L = Math.min(L, Math.max(0, (pe.y - (cd.bang ? 0.093 : 0.1)) * 1.15));
@@ -252,7 +253,7 @@ function buildHairCards(ctx, h, shell) {
       const lift = cd.wisp ? lerp(0.0022, 0.004, t) : cd.bang ? lerp(0.003, 0.0016, t) : lerp(0.0024, 0.0006, t);
       pts.push(toW(ctx, p.clone().addScaledVector(nrm, lift)));
       nrms.push(nrm.clone());
-      widths.push(cd.bang ? w0 * (1 - Math.pow(t, 3) * 0.75) : w0 * Math.sin(lerp(0.25, 1, Math.min(1, t * 2.5)) * Math.PI * 0.5) * Math.pow(1 - t * 0.92, 0.9));
+      widths.push(cd.bang ? w0 * (1 - Math.pow(t, 4) * 0.45) : w0 * Math.sin(lerp(0.25, 1, Math.min(1, t * 2.5)) * Math.PI * 0.5) * Math.pow(1 - t * 0.92, 0.9));
     }
     if (!vis) continue;
     const sides = pts.map((p, i) => {
