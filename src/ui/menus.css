@@ -87,7 +87,7 @@
 .mz-title.attract .menuwrap { opacity: 0; transform: translateY(10px); pointer-events: none; }
 .mz-title.ready .menuwrap { transition-delay: 0.5s; }
 .mz-title.auto .menuwrap { transition-delay: 6.4s; }
-.mz-title .press { position: absolute; left: clamp(40px, 9vw, 150px); bottom: 14vh; text-align: left; font-family: var(--mz-serif); font-style: italic; font-size: clamp(16px, 1.3vw, 21px); letter-spacing: 0.32em; color: rgba(242, 235, 220, 0.82); text-shadow: 0 1px 2px #000, 0 0 12px rgba(0, 0, 0, 0.8); pointer-events: none; opacity: 0; transition: opacity 0.6s ease; }
+.mz-title .press { position: absolute; left: clamp(40px, 9vw, 150px); bottom: 14vh; text-align: left; font-family: var(--mz-body); font-weight: 500; font-size: clamp(19px, 1.5vw, 24px); letter-spacing: 0.04em; color: rgba(242, 235, 220, 0.82); text-shadow: 0 1px 2px #000, 0 0 12px rgba(0, 0, 0, 0.8); pointer-events: none; opacity: 0; transition: opacity 0.6s ease; }
 .mz-title.attract .press { animation: mz-press 3.2s ease-in-out 7s infinite both; }
 @keyframes mz-press { 0% { opacity: 0; } 35% { opacity: 1; } 65% { opacity: 1; } 100% { opacity: 0.15; } }
 .mz-title .foot { position: absolute; left: 0; right: 0; bottom: 3.2vh; display: flex; justify-content: center; align-items: center; gap: 12px; font-family: var(--mz-serif); font-style: italic; font-size: 15px; letter-spacing: 0.1em; color: rgba(236, 230, 218, 0.4); text-shadow: var(--mz-halo); }
