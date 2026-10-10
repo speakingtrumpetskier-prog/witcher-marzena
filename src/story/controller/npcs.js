@@ -11,8 +11,10 @@ export function install(C) {
   const handlers = {
     // The Drowned Bell: one hub. Shop and gossip live in the scene; G.storyCtl.buy is there for its `do`.
     async zbyszek() {
-      await C.talk('zbyszek_hub');
+      const r = await C.talk('zbyszek_hub');
       C.set('met_zbyszek');
+      // "Is there a bed?" ends on rest_dusk; resting waits until the dialogue has closed.
+      if (r?.end === 'rest_dusk') await C.rest();
     },
 
     async bogdan() {
@@ -22,8 +24,10 @@ export function install(C) {
         C.set('met_bogdan');
         if (!C.has('took_reeve_money') && !C.has('refused_reeve_money')) C.set('refused_reeve_money');
         if (C.has('took_reeve_money')) C.ensureGain('coins', coins, 100);
-      } else {
+      } else if (C.has('echo_seen') && !C.has('reeve_told')) {
         await C.talk('bogdan_later');
+      } else {
+        await C.talk(G.dialogue?.has?.('bogdan_day2') ? 'bogdan_day2' : 'bogdan_later');
       }
     },
 
