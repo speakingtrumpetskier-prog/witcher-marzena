@@ -23,6 +23,18 @@ export const EVENTS = [
 
 const near = (c, x, z, r) => c.P && Math.hypot(c.P.position.x - x, c.P.position.z - z) < r;
 
+function signHint(sign, selectAction, pickText, castText, prio, watch) {
+  const cast = { action: 'sign', done: (c) => c.fired('player:cast', (p) => p?.sign === sign) };
+  return {
+    id: sign, prio, delay: 1, seconds: 12, watch,
+    rows: [
+      { action: selectAction, text: pickText, when: (c) => c.P.sign !== sign },
+      { ...cast, text: 'Cast the sign', when: (c) => c.P.sign !== sign },
+      { ...cast, text: castText, when: (c) => c.P.sign === sign },
+    ],
+  };
+}
+
 export const HINTS = [
   {
     id: 'move', prio: 1, delay: 3, seconds: 16,
@@ -107,30 +119,13 @@ export const HINTS = [
     rows: [{ action: 'sign', text: 'Cast a sign', done: 'player:cast' }],
     watch: (c) => c.inCombat && c.P.signEnergy > 0.5 && c.since('combat:start') > 4,
   },
-  {
-    id: 'ember', prio: 5, delay: 1, seconds: 12,
-    rows: [
-      { action: 'sign1', text: 'Ember sets straw alight', when: (c) => c.P.sign !== 'ember' },
-      { action: 'sign', text: 'Cast the sign', done: (c) => c.fired('player:cast', (p) => p?.sign === 'ember') },
-    ],
-    watch: (c) => c.enemies(24).some((e) => e.kind === 'effigy') && c.P.signEnergy > 0.3,
-  },
-  {
-    id: 'gale', prio: 6, delay: 1, seconds: 12,
-    rows: [
-      { action: 'sign2', text: 'Gale knocks enemies back', when: (c) => c.P.sign !== 'gale' },
-      { action: 'sign', text: 'Cast the sign', done: (c) => c.fired('player:cast', (p) => p?.sign === 'gale') },
-    ],
-    watch: (c) => c.enemies(11).length >= 3 && c.P.signEnergy > 0.3,
-  },
-  {
-    id: 'ward', prio: 6, delay: 1, seconds: 12,
-    rows: [
-      { action: 'sign3', text: 'Ward stops the next blow', when: (c) => c.P.sign !== 'ward' },
-      { action: 'sign', text: 'Cast the sign', done: (c) => c.fired('player:cast', (p) => p?.sign === 'ward') },
-    ],
-    watch: (c) => c.inCombat && c.P.health < c.P.maxHealth * 0.55 && c.P.signEnergy > 0.34,
-  },
+  // One hint per sign. If the sign is not the one in hand the card says how to pick it, then how to cast.
+  signHint('ember', 'sign1', 'Ember sets straw alight', 'Cast Ember to set straw alight', 5,
+    (c) => c.enemies(24).some((e) => e.kind === 'effigy') && c.P.signEnergy > 0.3),
+  signHint('gale', 'sign2', 'Gale knocks enemies back', 'Cast Gale to knock enemies back', 6,
+    (c) => c.enemies(11).length >= 3 && c.P.signEnergy > 0.3),
+  signHint('ward', 'sign3', 'Ward stops the next blow', 'Cast Ward to stop the next blow', 6,
+    (c) => c.inCombat && c.P.health < c.P.maxHealth * 0.55 && c.P.signEnergy > 0.34),
   {
     id: 'parry', prio: 6, delay: 1, seconds: 11,
     rows: [{ action: 'parry', hold: true, text: 'Parry, hold to block', done: (c) => c.down('parry') || c.fired('player:parry') || c.fired('player:block') }],

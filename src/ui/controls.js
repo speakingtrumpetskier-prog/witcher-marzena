@@ -364,6 +364,7 @@ export class Controls {
     this.askBar.append(h('span', { class: 'ask-text' }, text), h('span', { class: 'ask-opts' }, ...btns));
     this._paintAsk();
     this.say('');
+    requestAnimationFrame(() => this._paintCursor()); // the list just got shorter: keep the focused row in view
     this.ui.sfx('ui_hover', { volume: 0.4 });
   }
 

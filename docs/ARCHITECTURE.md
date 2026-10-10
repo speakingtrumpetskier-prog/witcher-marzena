@@ -40,7 +40,9 @@ atmosphere 90, late 100. The engine calls `G.postfx.render(dt)` (or a plain rend
 | `G.events` | core/Events.js | `on(name, fn)`, `once`, `off`, `emit(name, payload)`, `wait(name, pred) -> Promise` |
 | `G.state` | core/State.js | flags, inventory, notes, discoveries, save/load |
 | `G.time` | core/Time.js | `hours` (0..24), `day`, `scale`, `setHours(h)`, `advanceTo(h)`, `isNight`, `sunAltitude` |
-| `G.input` | core/Input.js | `down/pressed/released(action)`, `move {x,y}`, `look {dx,dy}`, `context`, `requestLock()` |
+| `G.input` | core/Input.js | `down/pressed/released(action)`, `move {x,y}`, `look {dx,dy}`, `lookPad {x,y}`, `device` ('kbm' or 'pad'), `context`, `requestLock()`, rebinding (see "Input, controls and hints") |
+| `G.settings` | ui/settings.js | persisted player settings: camera, look, controller, hints, subtitles, volumes (see "Input, controls and hints") |
+| `G.hints` | ui/hints.js | first-use hint cards, `show(id)`, `prompt(items)`, `reset()` |
 | `G.world` | world/World.js | `heightAt`, `terrainAt`, `normalAt`, `isLake`, `surfaceAt`, `lakeSDF`, `stations`, `thawed` |
 | `G.physics` | core/Collision.js | `addCircle`, `addBox`, `remove`, `resolve(pos, r)`, `raycast`, `query` |
 | `G.atmosphere` | world/Atmosphere.js | lights, time-of-day look, `shadowFocus` |
@@ -245,11 +247,20 @@ Writes `G.uniforms.uPlayerPos` and `G.atmosphere.shadowFocus` each frame. Footst
 anchors (`G.world.fires`, a list of {x, z, r} registered by locations), indoors, in the banya.
 
 ### Camera rig (`G.cameraRig`; src/gameplay/CameraRig.js)
-Third person over the right shoulder; modes 'explore' | 'combat' (lock-on framing) | 'mounted'
-| 'interior' (closer); collision via `G.physics.raycast`; `shake(intensity, seconds)`;
-`setTarget(object|null)`; only writes the camera when `G.cameraOwner === 'rig'`.
+Third person over the right shoulder (or the left: `G.settings.shoulder`, swapped by the `shoulder` action with an
+eased slide, `cameraRig.sideK`); modes 'explore' | 'combat' (lock-on framing) | 'mounted' | 'interior' (closer);
+`shake(intensity, seconds)`; `setTarget(object|null)`; only writes the camera when `G.cameraOwner === 'rig'`.
+- Look: mouse pixels times `mouseSensX/Y`, right stick (`G.input.lookPad`) integrated with dt times `padSensX/Y` with a
+  ramp for a held full push (`padRamp`); `invertX/Y` apply to both. `fovOffset` (degrees) and `camDist` (a multiplier of
+  each mode's distance; the wheel zooms around it) are read every frame.
+- Recenter (`recenter`: 'auto' | 'off' | 'gentle' | 'strong'; auto is gentle with a pad, off with a mouse): after a
+  short delay with no look input the camera swings behind the direction of travel, never while she runs toward the lens.
+- Lock-on: a quick sideways mouse flick or right-stick push hands the lock to the next target on that side
+  (`lock.js stepTarget`); emits `camera:retarget`.
+- Collision: a sphere (0.26 m) is marched from the head pivot to the lens against `G.physics` colliders and the terrain;
+  pulls in at once, eases out after a short hold; the lens keeps 0.4 m above the highest terrain point around it.
 
-### Horse (`G.horse`; src/gameplay/Horse.js) wraps `createHorse('kasza')`: call (X) to trot to the
+### Horse (`G.horse`; src/gameplay/Horse.js) wraps `createHorse('kasza')`: call (the `horse` action, X) to trot to the
 player from off-screen, mount/dismount, gaits, refuses lake ice, road-follow assist.
 
 ### Combat (`G.combat`; src/gameplay/combat/*) and creatures (`G.creatures`; src/gameplay/creatures/*)
@@ -273,7 +284,8 @@ const id = G.interact.add({
 });
 G.interact.remove(id)
 ```
-Shows `G.ui.prompt('[E] Read  Notice Board')` for the best candidate (distance + facing).
+Shows `G.ui.prompt('[E] Read  Notice Board')` for the best candidate (distance + facing). The `[E]` names the default key of the
+`interact` action; the prompt draws the player's real binding (a rebound key, or the pad button).
 
 ### Hunter senses (`G.senses`; src/gameplay/Senses.js, story systems builder)
 ```js
@@ -281,7 +293,7 @@ G.senses.addClue({ id, pos, radius: 1.5, kind: 'clue' | 'echo', object, label, e
 G.senses.addTrail({ id, points: [[x, z], ...], kind: 'footprints' | 'drag' | 'scent', enabled })
 G.senses.active
 ```
-Hold RMB (sheathed) to activate: ramps `uSenses`, highlights clue objects (via the PostFX
+Hold the `senses` action (RMB, or LT on a pad; sword sheathed) to activate: ramps `uSenses`, highlights clue objects (via the PostFX
 highlight API), draws trails as glowing decals/particles, clues become interactable.
 
 ### Dialogue (`G.dialogue`; src/story/Dialogue.js, story systems builder)
@@ -362,16 +374,51 @@ and in blizzards. Animals: dogs, chickens, goats (one on a roof), a cat, ravens 
 `subtitle(speaker, text, seconds)`, `bark(name, text, worldPos)`, `notify(text, kind)`,
 `prompt(text | null)`, `letterbox(on)`, `fade(to, seconds) -> Promise`, `titleCard(title, sub)`,
 `choices(list, { timer, decisive }) -> Promise<index>`, `readNote(note)`, `hold(text, seconds, window) -> Promise<bool>`,
-`openJournal()`, `openMap()`, `openPause()`, `title() -> Promise<'new' | 'continue'>`, `credits()`,
-`hud.show()/hide()`. HUD reads `G.player` and `G.quests.objectives()` each frame. Compass at
+`openJournal()`, `openMap()`, `openPause()`, `openSettings()`, `openControls({ tab })`, `title() -> Promise<'new' | 'continue'>`,
+`credits()`, `hud.show()/hide()`. `hint([[key, label]], seconds)` shows a story card through `G.hints` (the key names a default
+key and draws the player's binding). HUD reads `G.player` and `G.quests.objectives()` each frame. Compass at
 the top center with objective markers and discovered location icons. Map: parchment rendered
 from `G.world` heights with LOC labels and markers.
+
+## Input, controls and hints
+
+### Input (`G.input`; src/core/Input.js, src/core/bindings.js)
+- Actions are names read with `down/pressed/released(action)`; each maps to codes: keyboard `KeyW`, mouse `Mouse0` (left)
+  `Mouse1` (middle) `Mouse2` (right), pad `PadA` `PadB` `PadX` `PadY` `PadLB` `PadRB` `PadLT` `PadRT` `PadBack` `PadStart`
+  `PadL3` `PadR3` `PadUp` `PadDown` `PadLeft` `PadRight` (Gamepad API standard mapping). Pad buttons live in the same sets as keys.
+  Actions: forward back left right sprint walk dodge attack heavy senses draw sign sign1 sign2 sign3 lock shoulder parry
+  interact horse potion journal map pause skip advance (defaults and the table the Controls screen is built from: bindings.js).
+- `G.input.move` is digital from the keys and analog from the left stick (radial dead zone, curve), so its length picks walk or
+  run. `G.input.lookPad` is the right stick in [-1, 1] (the camera integrates it with dt). The sprint button latches while the stick is held.
+- `G.input.device` is `'kbm'` or `'pad'`, switched by the last meaningful input; `input:device` announces it. `padConnected`, `padName`, `padStyle` ('xbox' or 'playstation').
+- Rebinding: `bind(action, kind, slot, code, mode)` (kind 'kbm' or 'pad', two slots), `unbind`, `reset(action?, kind?)`, `findConflicts`,
+  `codesFor(action, kind)`, `matches(action, code)`. Two actions clash only if they share a code and a context (game or scene) and are not
+  the intentional pair (heavy attack drawn, senses sheathed). Reserved: Esc, F1 and Start. Persisted as differences in `marzena.bindings`; `input:bindings` fires on change.
+- Menus: while `G.input.nav.active()` (the UI sets it: a screen or choice list is open) pad buttons and the left stick become real `KeyboardEvent`s
+  marked `__pad`, so every key handler works with a pad. A button the UI consumed is hidden from the game until released. `nav.key(button)` lets a screen remap one.
+- `capturePad(cb)` hands the next pad button to cb (the Controls screen uses it). `rumble(strong, weak, ms)` honours `G.settings.rumble`.
+- Code that reads keys should go through actions (`G.input.pressed('interact')`, `G.input.matches('journal', e.code)`), never a literal key.
+
+### Settings (`G.settings`; src/ui/settings.js)
+`set(key, value)` validates, persists (`marzena.<key>`) and emits `settings` { key, value }. Keys: mouseSensX mouseSensY padSensX padSensY invertX invertY
+fovOffset camDist shoulder recenter padRamp padDeadzone rumble padStyle hints subScale (limits and defaults in `SCHEMA`).
+
+### Controls screen and glyphs (src/ui/controls.js, glyphs.js, setrows.js)
+`G.ui.openControls({ tab: 'bindings' | 'camera' | 'controller' })`, from Settings (title and pause) and from the pause menu. Glyphs are drawn in
+SVG and CSS: `actionGlyph(G, action)` shows the binding for the device in hand and redraws itself when the device, bindings or button style change.
+
+### Hints (`G.hints`; src/ui/hints.js, hintDefs.js)
+One card at a time the first time a mechanic becomes relevant (move and look, sprint, walk, interact, senses, journal, map, whistle, mount, gallop,
+dismount, draw, attack, dodge, parry, lock-on and switching, each sign, potion, skipping a scene, pause). Rows tick when the player does the thing;
+never during cutscenes, dialogue, menus, the title; shown once per profile (`marzena.hints.seen`); `G.settings.hints = false` silences them.
+`G.hints.show(id, { force })`, `prompt(items, seconds)` (story cards), `reset()`. Add one by appending to `HINTS` in hintDefs.js. In shot mode they are off unless the URL has `&hints`.
 
 ## Event names
 `flag`, `inventory`, `note`, `discover`, `saved`, `loaded`, `reset`, `time:hour`, `time:day`,
 `time:jump`, `weather:change`, `resize`, `game:ready`, `player:hit`, `player:death`,
 `enemy:death`, `combat:start`, `combat:end`, `quest:update`, `dialogue:start`, `dialogue:end`,
-`cutscene:start`, `cutscene:end`, `senses:on`, `senses:off`, `location:enter`, `location:leave`.
+`cutscene:start`, `cutscene:end`, `senses:on`, `senses:off`, `location:enter`, `location:leave`,
+`input:device`, `input:pad`, `input:bindings`, `settings`, `camera:retarget`, `camera:shoulder`.
 
 ## Test hooks and the screenshot harness
 `window.__G` is the context. `window.__MZ_READY` turns true when loaded. `window.__MZ_STATS`

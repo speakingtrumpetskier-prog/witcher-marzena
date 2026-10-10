@@ -140,11 +140,11 @@ export function keyLabel(code) {
   if (!code) return '';
   if (MOUSE_NAMES[code]) return MOUSE_NAMES[code];
   if (KEY_NAMES[code]) return KEY_NAMES[code];
+  let m = /^Digit(\d)$/.exec(code);
+  if (m) return m[1]; // the number row reads as numbers on every layout
   const lay = layout?.get?.(code);
   if (lay && lay.length === 1) return lay.toUpperCase();
-  let m = /^Key([A-Z])$/.exec(code);
-  if (m) return m[1];
-  m = /^Digit(\d)$/.exec(code);
+  m = /^Key([A-Z])$/.exec(code);
   if (m) return m[1];
   m = /^Numpad(.+)$/.exec(code);
   if (m) return `Num ${m[1].replace('Add', '+').replace('Subtract', '-').replace('Multiply', '*').replace('Divide', '/').replace('Decimal', '.')}`;

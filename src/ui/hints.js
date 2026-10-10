@@ -234,7 +234,7 @@ export class Hints {
   // ---- per frame ------------------------------------------------------------------------------------------
   update(dt) {
     const G = this.G, P = G.player, inp = G.input;
-    if (!P || !inp) return;
+    if (!inp) return;
     const cur = this.cur;
     if (!this.enabled && !(cur && (cur.force || cur.story))) {
       if (cur) this._end(cur, false);

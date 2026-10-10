@@ -35,11 +35,11 @@
 }
 .mz-hintcard { isolation: isolate; }
 /* A soft dark halo, like the one behind the stat bars, so the type holds on snow. */
-.mz-hintcard::before { content: ''; position: absolute; inset: -26px -74px -26px -40px; z-index: -1; pointer-events: none;
-  background: radial-gradient(ellipse 62% 64% at 38% 50%, rgba(6, 9, 14, 0.56), rgba(6, 9, 14, 0.26) 60%, rgba(6, 9, 14, 0) 88%); }
+.mz-hintcard::before { content: ''; position: absolute; inset: -30px -80px -30px -44px; z-index: -1; pointer-events: none;
+  background: radial-gradient(ellipse 64% 66% at 38% 50%, rgba(6, 9, 14, 0.4), rgba(6, 9, 14, 0.17) 58%, rgba(6, 9, 14, 0) 92%); }
 .mz-hintcard.left { left: 34px; }
 .mz-hintcard.right { right: 34px; bottom: calc(var(--mz-lb) + 84px); padding: 15px 22px 14px 28px; }
-.mz-hintcard.right::before { inset: -26px -40px -26px -74px; background: radial-gradient(ellipse 62% 64% at 62% 50%, rgba(6, 9, 14, 0.56), rgba(6, 9, 14, 0.26) 60%, rgba(6, 9, 14, 0) 88%); }
+.mz-hintcard.right::before { inset: -30px -44px -30px -80px; background: radial-gradient(ellipse 64% 66% at 62% 50%, rgba(6, 9, 14, 0.4), rgba(6, 9, 14, 0.17) 58%, rgba(6, 9, 14, 0) 92%); }
 .mz-hintcard.on { opacity: 1; transform: none; }
 .mz-hintcard.off { opacity: 0; transform: translateY(-4px); transition-duration: 0.6s; }
 .mz-hintcard .thread { position: absolute; left: 0; top: 10px; bottom: 10px; width: 2px; background: #b9402f; box-shadow: 0 0 6px rgba(185, 64, 47, 0.55); transform: scaleY(0); transform-origin: top; transition: transform 0.8s var(--mz-ease) 0.15s; }
