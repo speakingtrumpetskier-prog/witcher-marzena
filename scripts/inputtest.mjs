@@ -512,6 +512,12 @@ async function testHintDefs() {
     P.health = P.maxHealth * 0.4; out.ward = watch('ward'); P.health = P.maxHealth;
     out.lock_when_unlocked = watch('lock');
     P.setTarget(en[0]); out.switch = watch('switch'); P.setTarget(null);
+    // from the saddle: its own card, and the on-foot cards that do not apply there stay away
+    P.mounted = true;
+    out.ride_attack = watch('ride_attack');
+    out.ride_hides = !watch('attack') && !watch('dodge') && !watch('draw') && !watch('sign') && !watch('parry') && !watch('ember') && !watch('ward');
+    P.mounted = false;
+    out.ride_off_foot = !watch('ride_attack');
     return out;
   });
   console.log('   ', JSON.stringify(w));
@@ -523,6 +529,7 @@ async function testHintDefs() {
   check('map trigger after a discovery and some play', w.map === true);
   check('sprint trigger after walking without sprinting', w.sprint === true);
   check('pause trigger after five minutes', w.pause === true);
+  check('the saddle card shows in a fight on Kasza only, and the on-foot attack, dodge, draw, sign and parry cards stay away there', w.ride_attack === true && w.ride_hides === true && w.ride_off_foot === true, JSON.stringify({ r: w.ride_attack, h: w.ride_hides, f: w.ride_off_foot }));
   check('ember, gale, ward, lock, switch triggers in a fight', w.ember === true && w.gale === true && w.ward === true && w.lock_when_unlocked === true && w.switch === true, JSON.stringify({ e: w.ember, g: w.gale, w: w.ward, l: w.lock_when_unlocked, s: w.switch }));
 
   // the skip hint during a skippable cutscene

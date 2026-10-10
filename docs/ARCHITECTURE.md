@@ -211,7 +211,15 @@ drink, eat, lean_wall, pray, fall_through_ice, drown_reach, combat_idle, draw_sw
 sheathe_sword, attack_1, attack_2, attack_3, heavy_attack, dodge_left, dodge_right, dodge_back,
 roll, parry, block_idle, hit_react, stagger, death, cast_sign, senses, drink_potion, mount,
 dismount, ride_idle, ride_trot, ride_gallop`.
-Horse: `createHorse('kasza')` with `setGait(speed)`, clips `idle, walk, trot, gallop, rear, snort`, a `saddle` anchor.
+Lock-on clips (characters/clips/strafe.js, solved with the 3D leg solver in clips/legs3.js): `strafe_<guard|free>_<walk|run>_<f|fl|l|bl|b|br|r|fr>` and
+`strafe_<guard|free>_turn_<l|r>`. `c.locoSet({ strafe: 'guard' | 'free' | null })` picks the set (guard: sword out), `c.setStrafe(on, lx, lz)` switches the
+animator to the directional blend tree and hands it her velocity in her own frame (x = left, z = ahead). The tree splits the velocity between the two
+neighbouring directions (weights are the components, the cycle runs faster by their sum) and plays the turn clips when the body turns on the spot; it
+eases in and out against the forward tree, so cutscenes and sprinting are unchanged. `node scripts/strafetest.mjs` measures foot slide on the baked clips.
+Riding clips (characters/clips/riding.js): `ride_ready` (sword hand, upper body, loop), `ride_slash_l/r`, `ride_chop_l/r` (upper body over the ride clip, event `hit`),
+`ride_thrown_l/r` (full body, the fall). `ride_idle` and the mount and dismount clips end on the saddle exactly (library.js `SADDLE_H`, `SEAT`, `ridePose()`).
+Horse: `createHorse('kasza')` with `setGait(speed)`, clips `idle, walk, trot, gallop, rear, snort` (`play('rear', { amount, speed })`: amount below 1 is a start or a
+shy), a `saddle` anchor. A character parented under the saddle is placed in the character update by its world position (it used to animate at 3 Hz).
 
 ## Audio (`G.audio`, audio builder)
 ```js
@@ -249,7 +257,13 @@ G.player.teleport(x, z, yaw)
 G.player.mount(), dismount()  // with Kasza (G.horse)
 G.player.damage(amount, { from, knockback }), heal(n)
 ```
-Writes `G.uniforms.uPlayerPos` and `G.atmosphere.shadowFocus` each frame. Footstep SFX by
+Lock-on on foot: with a target locked within 20 m (24 once it is on) her body keeps to the target and the feet go where the stick points (sideways at 84 percent of her
+run speed, backwards at 62); the lock-on clips above play, turn-in-place steps follow a target that circles her, and holding sprint runs where the stick points as before.
+In the saddle (`player/mounted.js`, `moves.ride`): with the blade out (R draws and sheathes there too) the attack button swings to a side: the locked target's, else the
+nearest enemy beside the horse in front of the camera, else the side the camera is on. The blow is an ordinary `player:swing` (origin out beside the saddle, `mounted: true`),
+so combat resolves it, with hit stop, shake, sounds and the trail; damage 19 (light) or 40 (heavy), up to 35 percent more at a gallop, which also staggers; stamina 6 or 14.
+Lock-on works there with the sword drawn. No dodge, parry or signs from the saddle. A bite costs health as ever; a blow that staggers or knocks back hard, or any hit while
+stamina is under 20, throws her (`G.horse.throwRider`). Writes `G.uniforms.uPlayerPos` and `G.atmosphere.shadowFocus` each frame. Footstep SFX by
 `G.world.surfaceAt`. Warmth drains outdoors at night and in snow/blizzard, refills near fire
 anchors (`G.world.fires`, a list of {x, z, r} registered by locations), indoors, in the banya.
 
@@ -269,6 +283,14 @@ eased slide, `cameraRig.sideK`); modes 'explore' | 'combat' (lock-on framing) | 
 
 ### Horse (`G.horse`; src/gameplay/Horse.js) wraps `createHorse('kasza')`: call (the `horse` action, X) to trot to the
 player from off-screen, mount/dismount, gaits, refuses lake ice, road-follow assist.
+- Mounting ends exactly on the saddle (the climb moves the rider's root so the pelvis meets the saddle anchor on any slope, and the slope's lean is added at the pelvis;
+  the swap moves under 1.2 cm). Dismounting puts the blade away.
+- `throwRider({ ax, az, from, heavy })`: the state `thrown` for 2.35 s: the clip `ride_thrown_l/r`, the root carried 1.9 m out to the side away from `(ax, az)`, input dead
+  and every hit ignored; then she is on her feet in guard (events `horse:thrown { side }`, `horse:thrown_end`). Kasza bolts (`H.bolt`): a gallop in a third of a second,
+  about seven metres, steering round trees and the lake, then a snort; X whistles her back (it clears the bolt) and she can be mounted again. `endThrow()` finishes a fall
+  at once (`Player.teleport` does).
+- `shy(side)` (also automatic: a wolf in its lunge, from the front, within 5 m of her head, once per lunge, at most every 3.5 s): a small rear and a step of 0.8 m away,
+  event `horse:shy { dir }`.
 
 ### Combat (`G.combat`; src/gameplay/combat/*) and creatures (`G.creatures`; src/gameplay/creatures/*)
 ```js
@@ -470,7 +492,7 @@ SVG and CSS: `actionGlyph(G, action)` shows the binding for the device in hand a
 
 ### Hints (`G.hints`; src/ui/hints.js, hintDefs.js)
 One card at a time the first time a mechanic becomes relevant (move and look, sprint, walk, interact, senses, journal, map, whistle, mount, gallop,
-dismount, draw, attack, dodge, parry, lock-on and switching, each sign, potion, skipping a scene, pause). Rows tick when the player does the thing;
+dismount, draw, attack, attacking from the saddle (`ride_attack`), dodge, parry, lock-on and switching, each sign, potion, skipping a scene, pause). Rows tick when the player does the thing;
 never during cutscenes, dialogue, menus, the title; shown once per profile (`marzena.hints.seen`); `G.settings.hints = false` silences them.
 `G.hints.show(id, { force })`, `prompt(items, seconds)` (story cards), `reset()`. Add one by appending to `HINTS` in hintDefs.js. In shot mode they are off unless the URL has `&hints`.
 A def with `fishing: true` belongs to the seat at a hole: it is shown only while a session is running (not while she walks to the stool or stands up),
@@ -540,6 +562,7 @@ G.dice.canPlay(id) -> { ok, reason }     G.dice.purse(id)     G.dice.record()   
 `cutscene:start`, `cutscene:end`, `senses:on`, `senses:off`, `location:enter`, `location:leave`,
 `input:device`, `input:pad`, `input:bindings`, `settings`, `camera:retarget`, `camera:shoulder`, `photo:enter`, `photo:exit`, `photo:capture`, `dice:start`, `dice:phase`, `dice:round`, `dice:match`,
 and from fishing `fishing:start`, `fishing:end`, `fishing:hooked`, `fishing:lost`, `fish:caught`, `fish:sold`, `fish:cooked`, `fish:cut`.
+From the horse: `horse:call`, `horse:arrived`, `horse:mount`, `horse:dismount`, `horse:refuse`, `horse:thrown { side }`, `horse:thrown_end`, `horse:shy { dir }`. `player:swing` carries `mounted: true` and `speed` for a blow from the saddle.
 
 ## Test hooks and the screenshot harness
 `window.__G` is the context. `window.__MZ_READY` turns true when loaded. `window.__MZ_STATS`
@@ -561,7 +584,7 @@ triangles are real. On a machine with a GPU, `MZ_GPU=1 node scripts/shot.mjs ...
 Each builder should add a gallery scene in `src/debug/scenes/` for its area.
 
 Input, camera, menus and hints have a functional test with a mocked gamepad: `MZ_CHROME=1 node scripts/inputtest.mjs [input|lock|menus|hints|defs]`
-(114 checks, about 4 minutes). The fishing model has a pure Node test: `node scripts/fishtest.mjs` (72 checks, a second). UI screens for screenshots: `?scene=ui&show=controls&tab=camera&device=pad`, `show=hint&hint=senses` (see the header of `src/debug/scenes/ui.js`).
+(122 checks, about 4 minutes). Fighting on the move has a Node test for the clips and the blend (`node scripts/strafetest.mjs`: 113 checks, foot slide on every clip and every blend, no browser) and a browser test of the real game (`MZ_CHROME=1 node scripts/combatmove.mjs [strafe|ride|fall]`: 46 checks on lock-on strafing, swings from the saddle, the fall, the whistle and the shy). The fishing model has a pure Node test: `node scripts/fishtest.mjs` (72 checks, a second). UI screens for screenshots: `?scene=ui&show=controls&tab=camera&device=pad`, `show=hint&hint=senses` (see the header of `src/debug/scenes/ui.js`).
 
 ## Collaboration rules (several builders work in this tree at once)
 - **Only edit files you own** (listed in your brief). Read anything.

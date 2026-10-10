@@ -268,6 +268,7 @@ export async function init(G_) {
     c.root.position.set(0, 0, 0);
     c.root.rotation.set(0, 0, 0);
     c.autoGround = false;
+    c.anim.post = null; // the saddle carries the lean from here
     H.ride = '';
     H.state = 'mounted';
     H.mounted = true;
@@ -308,11 +309,28 @@ export async function init(G_) {
     return true;
   };
 
-  // Where the root of a character playing the mount or dismount clip must stand so its pelvis is on the saddle.
-  const _s = new THREE.Vector3();
-  function seatRootY(c) {
+  // Where the root of a character playing the mount or dismount clip stands: w = 0 on the ground beside the horse, w = 1
+  // where its pelvis (SADDLE_H above the root, 0.55 m to the right of it in the clip) is exactly on the saddle anchor,
+  // whatever the slope and the lean of the spine. The swap to the saddle then moves nothing.
+  const _s = new THREE.Vector3(), _climb = new THREE.Vector3(), _spot = new THREE.Vector3();
+  function climbRoot(c, w) {
+    const ls = c.anim.legScale ?? 1;
     h.saddle.updateWorldMatrix(true, false);
-    return _s.setFromMatrixPosition(h.saddle.matrixWorld).y - SADDLE_H * (c.anim.legScale ?? 1);
+    _s.setFromMatrixPosition(h.saddle.matrixWorld);
+    const yaw = h.root.rotation.y;
+    const spot = mountSpot(_spot);
+    const gy = G_.world.heightAt(spot.x, spot.z);
+    return _climb.set(
+      lerp(spot.x, _s.x + Math.cos(yaw) * 0.55 * ls, w),
+      lerp(gy, _s.y - SADDLE_H * ls, w),
+      lerp(spot.z, _s.z - Math.sin(yaw) * 0.55 * ls, w),
+    );
+  }
+  // The horse leans with the slope and the seated rider with it. During the climb the rider hangs from a root on the
+  // ground, so the lean is added at the pelvis as she nears the saddle (and taken off again on the way down).
+  H.climbW = 0;
+  function climbLean(c) {
+    c.anim.post = (out, idx, dt, addEuler) => addEuler(out, idx.hips, h.root.rotation.x * (180 / Math.PI) * H.climbW, 0, 0);
   }
 
   function tickMounting(dt) {
@@ -340,16 +358,16 @@ export async function init(G_) {
         c._setSword?.(false);
         c.speed = c.targetSpeed = 0;
         c.autoGround = false; // the root climbs to the saddle height below
+        H.climbW = 0;
+        climbLean(c);
         c.play('mount', { fade: 0.15 });
       }
       return;
     }
-    // Clip phase: stand at her left and climb on; swap to the saddle when the clip ends. The clip puts her pelvis
-    // SADDLE_H above the root, so the root drifts up or down to the height that lands it on the saddle exactly
-    // (the ground beside the horse is not the ground under her, and the saddle rides the spine).
-    const spot = mountSpot(_v);
-    const gy = G_.world.heightAt(spot.x, spot.z);
-    c.root.position.set(spot.x, lerp(gy, seatRootY(c), smoothstep(0.9, 1.75, S.t)), spot.z);
+    // Clip phase: stand at her left and climb on; swap to the saddle at the end of the clip. Her root drifts from the
+    // spot beside the horse to where the clip's last pose has the pelvis on the saddle (see climbRoot).
+    H.climbW = smoothstep(0.9, 1.75, S.t);
+    c.root.position.copy(climbRoot(c, H.climbW));
     c.root.rotation.y = h.root.rotation.y;
     player.position.copy(c.root.position);
     player.loco.yaw = c.root.rotation.y;
@@ -396,6 +414,8 @@ export async function init(G_) {
     H.state = 'dismounting';
     H.mounted = false;
     H.seq = { phase: 'clip', t: 0 };
+    H.climbW = 1;
+    climbLean(c);
     c.play('dismount', { fade: 0 });
     return true;
   };
@@ -404,17 +424,17 @@ export async function init(G_) {
     const player = P(), c = player.character, S = H.seq;
     S.t += dt;
     h.setGait(0);
-    const spot = mountSpot(_v);
-    const gy = G_.world.heightAt(spot.x, spot.z);
-    c.root.position.set(spot.x, lerp(seatRootY(c), gy, smoothstep(0, 0.7, S.t)), spot.z);
+    H.climbW = 1 - smoothstep(0, 0.7, S.t);
+    c.root.position.copy(climbRoot(c, H.climbW));
     c.root.rotation.y = h.root.rotation.y;
     player.position.copy(c.root.position);
-    player.position.y = gy;
+    player.position.y = G_.world.heightAt(c.root.position.x, c.root.position.z);
     if (S.t >= 1.45) {
       player._mounting = false;
       H.state = 'idle';
       H.seq = null;
       c.autoGround = true;
+      c.anim.post = null;
       player.loco.reset(h.root.rotation.y);
       c.stop(0.2);
       G_.events.emit('horse:dismount', {});

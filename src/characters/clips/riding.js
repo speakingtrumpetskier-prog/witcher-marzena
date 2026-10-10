@@ -15,12 +15,12 @@ import { combatGuard } from './locomotion.js';
 import { legs, A, ridePose, SEAT, SADDLE_H } from './library.js';
 
 const UPPER = {
-  spine: 0.7, chest: 1, neck: 1, head: 1,
+  spine: 0.7, chest: 0.85, neck: 0.6, head: 0.8,
   shoulderL: 1, armL: 1, forearmL: 1, handL: 1, fingersL: 1, fingers2L: 1, thumbL: 1,
   shoulderR: 1, armR: 1, forearmR: 1, handR: 1, fingersR: 1, fingers2R: 1, thumbR: 1,
 };
-// The sword hand only: the left stays on the reins.
-const RIGHT_ARM = { spine: 0.7, chest: 1, neck: 1, head: 1, shoulderR: 1, armR: 1, forearmR: 1, handR: 1, fingersR: 1, fingers2R: 1, thumbR: 1 };
+// The sword hand only (the left stays on the reins), the torso lightly: at a gallop the rider keeps leaning with the horse.
+const RIGHT_ARM = { spine: 0.35, chest: 0.5, head: 0.4, shoulderR: 1, armR: 1, forearmR: 1, handR: 1, fingersR: 1, fingers2R: 1, thumbR: 1 };
 
 const elbowOut = (S) => v3(S === 'L' ? 1 : -1, -0.3, -0.25);
 const R = (p, S, t, o) => reachArm(p, S, v3(...t), o);

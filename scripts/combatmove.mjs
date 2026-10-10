@@ -75,7 +75,10 @@ async function testStrafe() {
     // feet: sample the ankle bones and the body each frame while she steps
     const gy = (x, z) => G.world.heightAt(x, z);
     const ankleH = c.M.ankleY;
+    let steps = 0;
+    G.events.on('player:step', () => { steps++; });
     const probe = (keys, secs, label) => {
+      steps = 0;
       for (const k of keys) A.key(k, true);
       A.advance(0.6);
       let slipSum = 0, slipN = 0, errMax = 0;
@@ -96,7 +99,7 @@ async function testStrafe() {
         }
       }
       const lx = L.lx, lz = L.lz;
-      const res = { label, speed: +P.loco.speed.toFixed(2), lx: +lx.toFixed(2), lz: +lz.toFixed(2), faceErr: +errMax.toFixed(3), strafing: P._strafing, names: names(), slip: slipN ? +(slipSum / slipN).toFixed(2) : null, slipN };
+      const res = { label, speed: +P.loco.speed.toFixed(2), lx: +lx.toFixed(2), lz: +lz.toFixed(2), faceErr: +errMax.toFixed(3), strafing: P._strafing, names: names(), slip: slipN ? +(slipSum / slipN).toFixed(2) : null, slipN, steps };
       for (const k of keys) A.key(k, false);
       A.advance(0.7);
       res.stopped = P.loco.speed < 0.1;
@@ -144,6 +147,7 @@ async function testStrafe() {
     const x = r[k];
     check(`${x.label}: planted feet slide ${x.slip == null ? 'n/a' : Math.round(x.slip * 100) + '%'} of her speed on the snow (${x.slipN} samples)`, x.slip != null && x.slip < 0.35);
   }
+  check('footfalls are heard while she steps sideways and back', r.left.steps >= 3 && r.right.steps >= 3 && r.back.steps >= 3, JSON.stringify([r.left.steps, r.right.steps, r.back.steps]));
   check('sprint with a lock runs where the stick points, not in the lock stance', !r.sprint.strafing && r.sprint.faceErr > 1 && r.sprint.speed > 3.5, JSON.stringify(r.sprint));
   check('standing, a target circling her turns her with it in turn steps', r.turn.turnW > 0.3 && r.turn.faceErr < 0.2, JSON.stringify(r.turn));
   check('a target more than 24 m away is only a camera lock', r.far.strafing === false);
