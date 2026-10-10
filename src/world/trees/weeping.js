@@ -70,7 +70,7 @@ export function buildWeeping(v, lod = 0) {
     });
     // hang points on the outer part of the arch
     for (let k = Math.floor(sp.length * 0.35); k < sp.length; k++) {
-      if ((k + i) % (lod === 0 ? 1 : 3) !== 0) continue;
+      if ((k + i) % (lod === 0 ? 1 : 2) !== 0) continue;
       hangs.push({ p: sp[k], out, i, k, n: sp.length });
     }
   }
@@ -86,7 +86,7 @@ export function buildWeeping(v, lod = 0) {
     const a = Math.atan2(p[0] - tx(0), p[2]);
     return Math.abs(Math.atan2(Math.sin(a - doorAz), Math.cos(a - doorAz))) < 0.5 && Math.hypot(p[0] - tx(0), p[2]) > 0.5;
   };
-  if (lod === 0) {
+  if (lod <= 1) {
     whipB.uvOverride = ODD_UV.solid;
     const ball = [0, v.crownY * 0.6, 0];
     for (const h of hangs) {
@@ -94,16 +94,16 @@ export function buildWeeping(v, lod = 0) {
       const len = Math.max(0.6, h.p[1] - ground - (gap ? 2.9 : 0) - r() * (h.k % 3 === 0 ? 0.9 : 0.25));
       const up = norm3([h.out[0] * 0.07, -1, h.out[2] * 0.07]);
       const right = norm3([-h.out[2], 0, h.out[0]]);
-      const w = 0.9 + r() * 0.5;
-      const tint = [0.78 + r() * 0.14, 0.76 + r() * 0.14, 0.72 + r() * 0.14];
-      card(whipB, h.p, up, right, w, len, ODD_UV.curtain, tint, 0.9, r() * 6.28, ball, 0.55, 0);
+      const w = (0.9 + r() * 0.5) * (lod === 1 ? 1.7 : 1);
+      const tint = [0.92 + r() * 0.16, 0.9 + r() * 0.16, 0.84 + r() * 0.16];
+      card(whipB, h.p, up, right, w, len, ODD_UV.curtain, tint, 0.9, r() * 6.28, ball, 0.55, 0.12);
       if (h.k % 2 === 0) {
         const o2 = [h.p[0] - h.out[0] * 0.18, h.p[1], h.p[2] - h.out[2] * 0.18];
         const r2 = norm3([-h.out[2] * 0.8 + h.out[0] * 0.5, 0, h.out[0] * 0.8 + h.out[2] * 0.5]);
-        card(whipB, o2, up, r2, w * 0.9, len * 0.92, ODD_UV.curtain, tint, 0.9, r() * 6.28, ball, 0.4, 0);
+        card(whipB, o2, up, r2, w * 0.9, len * 0.92, ODD_UV.curtain, tint, 0.9, r() * 6.28, ball, 0.4, 0.1);
       }
       // a few single whips as real tubes: they catch the light and give the skirt depth
-      if (h.k % 3 === 1) {
+      if (lod === 0 && h.k % 3 === 1) {
         const m = 8;
         const wp = [];
         const sway = r() * 6.28;
@@ -157,7 +157,7 @@ export function buildWeeping(v, lod = 0) {
   return {
     parts: [
       { geometry: trunkB.toGeometry(), mode: 'birch' },
-      lod === 0
+      lod <= 1
         ? { geometry: whipB.toGeometry(), mode: 'needles', tex: 'needle', map: oddAtlas(), noShadow: true }
         : { geometry: whipB.toGeometry(), mode: 'cards', card: true, haze: true, map: oddAtlas(), noShadow: true },
     ],

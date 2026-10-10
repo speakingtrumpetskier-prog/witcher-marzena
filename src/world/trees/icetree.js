@@ -16,7 +16,7 @@ export const ICE_VARIANTS = [
 const PAL = {
   dark: rgb('#2a211c'),
   mid: rgb('#4b3d33'),
-  ice: rgb('#8cc0da'),
+  ice: rgb('#78b6d8'),
   iceDeep: rgb('#4f86a8'),
   iceHi: rgb('#c6e6f4'),
 };
@@ -41,7 +41,7 @@ export function buildIce(v, lod = 0) {
     onLimb: (pts, depth, rad) => {
       // the glaze: a fatter, lumpier sheath over the whole limb
       const taper = 0.3;
-      const thick = 0.045 + 0.02 * depth;
+      const thick = (0.045 + 0.02 * depth) * (lod === 0 ? 1 : 1.9);
       sweep(ice, pts, iceSides, {
         radius: (i, t, ang) => (rad * (1 - t * (1 - taper)) + thick) * (1 + 0.16 * Math.sin(ang * 3 + i * 1.7 + rad * 40)),
         color: (i, t, ang, k, dir) => mixRGB(PAL.ice, PAL.iceHi, 0.2 + 0.5 * sstep(-0.2, 0.9, dir[1])),

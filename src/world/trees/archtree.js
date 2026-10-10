@@ -103,7 +103,7 @@ export function buildArch(v, lod = 0) {
 
   // pads: a full crown on each carrying stem (centered on its axis) and a few on the shoulders of the arch
   const padSpecs = [];
-  const nUp = lod === 2 ? 3 : 6;
+  const nUp = lod === 2 ? 4 : 8;
   for (const sd of stems) {
     // the stem axis above the keystone: the last 45 percent of the path
     const pts = sd.pts;
@@ -113,14 +113,14 @@ export function buildArch(v, lod = 0) {
       const f = i / (nUp - 1);
       const p = at(f);
       const th = i * 2.4 + r() * 2 + (sd.side > 0 ? 0 : 1.3);
-      const reach = (1 - 0.5 * f) * (1.8 + r() * 1.4);
-      padSpecs.push({ x: p[0] + Math.cos(th) * reach, y: p[1] + 0.3 + r() * 0.5, z: p[2] + Math.sin(th) * reach, R: (3.4 + r() * 1.1) * (1 - 0.32 * f), limb: p });
+      const reach = (1 - 0.5 * f) * (1.4 + r() * 1.2);
+      padSpecs.push({ x: p[0] + Math.cos(th) * reach, y: p[1] + 0.2 + r() * 0.5, z: p[2] + Math.sin(th) * reach, R: (4.6 + r() * 1.3) * (1 - 0.34 * f), limb: p });
     }
     const top = pts[pts.length - 1];
-    padSpecs.push({ x: top[0], y: top[1] + 0.9, z: top[2], R: 3.1, limb: null });
+    padSpecs.push({ x: top[0], y: top[1] + 0.9, z: top[2], R: 4.0, limb: null });
     // shoulder pads on the arch itself
-    padSpecs.push({ x: sd.side * (a + 1.9), y: 4.2 + r() * 0.6, z: (r() - 0.5) * 1.6, R: 3.0 + r() * 0.5, limb: [sd.side * (a - 0.1), 3.8, 0] });
-    if (lod < 2) padSpecs.push({ x: sd.side * (a - 0.2), y: apexY - 0.3, z: 1.2 * sd.side, R: 2.4, limb: [sd.side * (a - 1.5), apexY - 1.2, 0.2 * sd.side] });
+    padSpecs.push({ x: sd.side * (a + 1.1), y: 4.0 + r() * 0.6, z: (r() - 0.5) * 1.2, R: 3.6 + r() * 0.5, limb: [sd.side * (a - 0.1), 3.6, 0] });
+    if (lod < 2) padSpecs.push({ x: sd.side * (a - 0.4), y: apexY - 0.5, z: 1.0 * sd.side, R: 2.8, limb: [sd.side * (a - 1.5), apexY - 1.2, 0.2 * sd.side] });
   }
   for (const p of padSpecs) {
     if (p.limb && lod < 2) {
