@@ -274,11 +274,11 @@ export class Hints {
     const scene = this._sceneLive();
     const fishing = this._fishing();
     // which kind of moment a hint belongs to: a cutscene, a seat at a fishing hole, or free play
-    const ok = (d) => (d.scene ? scene : d.fishing ? fishing : live);
+    const fits = (d) => (d.scene ? scene : d.fishing ? fishing : live);
 
     for (const card of this._cards()) {
       if (card.story) this._tickStory(card, dt);
-      else if (!card.force && (!ok(card.def) || (card.def.until && card.def.until(this.c)))) this._end(card, false);
+      else if (!card.force && (!fits(card.def) || (card.def.until && card.def.until(this.c)))) this._end(card, false);
       else this._tick(card, dt);
     }
     if (!this.enabled) return;
@@ -287,7 +287,7 @@ export class Hints {
     if (this._scanT <= 0) {
       this._scanT = SCAN;
       for (const d of this.defs.values()) {
-        if (this.seenSet.has(d.id) || !ok(d)) { d._t = 0; continue; }
+        if (this.seenSet.has(d.id) || !fits(d)) { d._t = 0; continue; }
         let ok = false;
         try { ok = !!d.watch(this.c); } catch { ok = false; }
         d._t = ok ? d._t + SCAN : 0;

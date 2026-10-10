@@ -7,8 +7,8 @@
 //        Ends at 'regular' (she wants the ordinary talk after all) or at 'bye'.
 // Sets:  bogdan_fish_met, rod_lent (item rod), oldone_heard, oldone_asked (item strong_line), oldone_paid (the pike's price
 //        in coins; the line goes back to him). Selling goes through G.fishing.sellAll, which leaves the pike in the basket.
+// The amounts are not spoken (so every line stays one fixed text that can be voiced): the HUD note "+N grosze" says what she was paid.
 const money = (D) => D.G.fishing?.lastSale?.coins ?? 0;
-const grosze = (n) => (n === 1 ? 'One grosz.' : `${n} grosze.`);
 
 export default {
   id: 'bogdan_fish',
@@ -57,7 +57,7 @@ export default {
     sell1: { s: 'vesna', t: 'I have fish for you.', next: 'sell2' },
     sell2: { s: 'bogdan', t: 'Put them on the scale.', a: 'cross_arms', do: (S, D) => { D.G.fishing?.sellAll?.(); }, next: 'sell3' },
     sell3: { s: 'bogdan', t: (S, D) => D.G.fishing?.lastSale?.line || 'Nothing.', wait: 1.2, next: 'sell4' },
-    sell4: { s: 'bogdan', t: (S, D) => `${grosze(money(D))} I'll put it in the book.`, next: 'sell5' },
+    sell4: { s: 'bogdan', t: "I'll put it in the book.", next: 'sell5' },
     sell5: { if: (S, D) => money(D) >= 25, else: 'hub', s: 'bogdan', t: "The big ones go to Pawlak's first. She has seven at the table.", next: 'hub' },
 
     // ---- what bites -----------------------------------------------------------------------------------------------------
@@ -102,11 +102,12 @@ export default {
     // ---- she has landed it ---------------------------------------------------------------------------------------------
     p1: { s: 'vesna', t: "I've got it.", next: 'p2' },
     p2: { s: 'bogdan', t: 'Put it on the scale.', a: 'cross_arms', wait: 0.8, next: 'p3' },
-    p3: { s: 'bogdan', t: (S, D) => `${D.G.fishing?.pikeWeightText?.() || 'Over twenty kilos'}. I'll pay by the kilo, like anything else.`, wait: 1.3, next: 'p4' },
+    p3: { s: 'bogdan', t: (S, D) => D.G.fishing?.pikeWeightText?.() || 'Over twenty kilos.', wait: 1.3, next: 'p3b' },
+    p3b: { s: 'bogdan', t: "I'll pay by the kilo, like anything else.", next: 'p4' },
     p4: { s: 'vesna', t: 'There were hooks in its jaw. Three. One still had line on it, tied with red wool.', next: 'p5' },
     p5: { s: 'bogdan', t: "That's Stach's.", wait: 1.8, next: 'p6' },
     p6: {
-      s: 'bogdan', t: (S, D) => `${grosze(money(D))} And the line, if you have it.`,
+      s: 'bogdan', t: 'And the line, if you have it.',
       do: (S, D) => {
         D.G.fishing?.payOldOne?.();
         S.take('strong_line', S.count('strong_line'));

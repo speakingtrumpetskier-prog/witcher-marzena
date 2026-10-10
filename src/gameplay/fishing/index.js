@@ -119,7 +119,7 @@ export async function init(G) {
     },
     // The old pike is not sold with the rest: Bogdan weighs it on its own and pays for it by the kilo.
     pikeWeight() { const d = fishData(S); return d.basket.find((e) => e.special)?.w ?? d.oldone?.w ?? 0; },
-    pikeWeightText() { return spokenKg(this.pikeWeight()); },
+    pikeWeightText() { return `${spokenKg(this.pikeWeight())}.`; },
     payOldOne() {
       const d = fishData(S);
       const i = d.basket.findIndex((e) => e.special);
