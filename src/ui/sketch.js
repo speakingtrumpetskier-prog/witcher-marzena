@@ -209,7 +209,69 @@ function planetnik(ctx, r) {
   hatch(ctx, r, 112, 50, 206, 84, 16, 9, 1.35, INK_SOFT, 0.7);
 }
 
-const SKETCHES = { wolf, marzanny, marzanna, ice_lady: iceLady, planetnik };
+// Matka Chmur: the long lopsided vault with rows of lit windows and threads falling from its rim,
+// over a village roofline and a spruce so the size reads. Drawn from the shore, looking up.
+function matka(ctx, r) {
+  const top = [[30, 100], [34, 74], [54, 50], [92, 38], [138, 40], [188, 48], [234, 58], [272, 68], [294, 84], [288, 96]];
+  const hem = [[288, 96], [262, 104], [226, 100], [190, 106], [150, 101], [112, 107], [74, 102], [42, 108], [30, 100]];
+  wash(ctx, [...top, ...hem.slice(1)], 'rgba(238,224,170,0.3)');
+  outline(ctx, top, r, { w: 1.7 });
+  outline(ctx, hem, r, { w: 1.3, j: 1.6 });
+  // spires along the back
+  for (const [x, y, h] of [[70, 44, 14], [112, 38, 10], [210, 54, 12], [250, 61, 15]]) pen(ctx, [[x, y], [x + 1, y - h], [x + 3, y]], r, { w: 1.1, j: 0.6 });
+  // rows of lit windows inside the nave
+  for (let row = 0; row < 2; row++) {
+    for (let i = 0; i < 11; i++) {
+      const x = 56 + i * 20 + row * 8, y = 66 + row * 16 + Math.sin(i * 0.5) * 3;
+      wash(ctx, [[x, y], [x + 7, y], [x + 7, y + 9], [x, y + 9]], 'rgba(246,206,110,0.55)');
+      pen(ctx, [[x, y], [x + 7, y], [x + 7, y + 9], [x, y + 9], [x, y]], r, { w: 0.7, j: 0.6, alpha: 0.7 });
+    }
+  }
+  // threads and veils hanging from the rim, long and uneven
+  for (let i = 0; i < 26; i++) {
+    const x = 40 + i * 9.6 + r() * 4, y = 102 + Math.sin(i * 0.7) * 3;
+    const len = 30 + r() * 52;
+    pen(ctx, [[x, y], [x + (r() - 0.5) * 6, y + len * 0.5], [x + (r() - 0.5) * 8, y + len]], r, { w: 0.6, alpha: 0.5, j: 1.2 });
+  }
+  hatch(ctx, r, 40, 44, 280, 96, 34, 9, 1.3, INK_SOFT, 0.7);
+  // hill behind, a roofline and a spruce for scale
+  outline(ctx, [[150, 206], [190, 190], [226, 184], [262, 176], [300, 180]], r, { w: 1.2, j: 1 });
+  outline(ctx, [[20, 206], [48, 206], [48, 192], [64, 182], [80, 192], [80, 206], [96, 206], [96, 198], [108, 192], [120, 198], [120, 206], [140, 206]], r, { w: 1.3, j: 0.8 });
+  outline(ctx, [[248, 206], [256, 176], [262, 188], [268, 160], [276, 186], [282, 174], [290, 206]], r, { w: 1.1, j: 1 });
+  pen(ctx, [[60, 182], [60, 168]], r, { w: 0.9, j: 0.5, alpha: 0.7 });
+}
+
+// A child's drawing of the herders over the roofs: nineteen little bells with squiggly threads, one
+// in pink, a house, and a stick child looking up with an open mouth. Counting is on the caption.
+function childHerders(ctx, r) {
+  const col = '#3a3430';
+  const chunky = (pts, w = 3, c = col) => pen(ctx, pts, r, { w, j: 3, col: c });
+  ctx.fillStyle = 'rgba(58,52,48,0.07)';
+  ctx.fillRect(0, 0, 320, 30);
+  // nineteen bells in four loose rows
+  let n = 0;
+  const rows = [[6, 24, 26], [5, 48, 52], [5, 22, 84], [3, 52, 118]];
+  rows.forEach(([count, x0, y]) => {
+    for (let i = 0; i < count && n < 19; i++, n++) {
+      const x = x0 + i * (count > 5 ? 44 : 52) + (r() - 0.5) * 10, yy = y + (r() - 0.5) * 8;
+      const c = n === 11 ? '#c4506c' : col;
+      ctx.beginPath(); ctx.arc(x, yy, 9 + r() * 3, Math.PI, 0); ctx.strokeStyle = c; ctx.lineWidth = 2.8; ctx.stroke();
+      chunky([[x - 10, yy], [x + 10, yy]], 2.6, c);
+      for (const dx of [-5, 0, 5]) chunky([[x + dx, yy], [x + dx + (r() - 0.5) * 6, yy + 8], [x + dx + (r() - 0.5) * 6, yy + 16]], 1.6, c);
+    }
+  });
+  // house and a child
+  chunky([[200, 196], [200, 160], [250, 160], [250, 196], [200, 196]]);
+  chunky([[194, 162], [225, 136], [256, 162]]);
+  chunky([[212, 196], [212, 176], [226, 176], [226, 196]], 2.4);
+  ctx.beginPath(); ctx.arc(110, 150, 10, 0, 7); ctx.strokeStyle = col; ctx.lineWidth = 3; ctx.stroke();
+  chunky([[110, 160], [110, 188]], 2.8); chunky([[110, 168], [96, 180]], 2.4); chunky([[110, 168], [124, 180]], 2.4);
+  chunky([[110, 188], [102, 206]], 2.4); chunky([[110, 188], [118, 206]], 2.4);
+  ctx.beginPath(); ctx.arc(110, 154, 2.6, 0, 7); ctx.stroke();
+  chunky([[20, 207], [150, 205], [300, 208]], 2.2);
+}
+
+const SKETCHES = { wolf, marzanny, marzanna, ice_lady: iceLady, planetnik, matka, child_herders: childHerders };
 
 // Draws sketch `kind` onto `canvas` (320x220 logical pixels).
 export function drawSketch(canvas, kind, seed = 3) {

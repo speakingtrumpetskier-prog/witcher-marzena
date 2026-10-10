@@ -6,7 +6,7 @@
 //        or, if Vesna never asks, as she turns to leave, so it always happens).
 // Reads: lair_seen (the belfry topic, where Dobra tells the story of her boy under the bed).
 // Topics (all `once`): how long one takes, the rite, why not turn round (follows the rite), how old it
-//        is (the island stones), the red thread, Wiesia, the tower.
+//        is (the island stones), the red thread, Wiesia, the tower, Matka (needs matka_seen).
 export default {
   id: 'dobra_rite',
   cast: ['dobra'],
@@ -26,6 +26,7 @@ export default {
         { t: 'The straw ones on the ice had red thread at the neck.', next: 'kn1', once: true },
         { t: 'Hanka\'s older girl. Wiesia.', next: 'wi1', once: true },
         { t: 'I was in the drowned tower last night.', next: 'to1', once: true, if: (S) => !!S.flag('lair_seen') },
+        { t: 'Something very big goes round the valley.', next: 'mt1', once: true, if: (S) => !!S.flag('matka_seen') },
         { t: 'That is all I wanted.', next: 'leave', exit: true },
       ],
     },
@@ -84,6 +85,13 @@ export default {
     to8: { s: 'vesna', t: 'And then?', next: 'to9' },
     to9: { s: 'dobra', t: 'Then he came out. He was hungry.', wait: 0.6, next: 'to10' },
     to10: { s: 'dobra', t: 'Always hungry after.', next: 'hub' },
+
+    // the big one over the valley (needs matka_seen, set when Vesna has watched her a while)
+    mt1: { s: 'vesna', t: 'Something very big goes round the valley. High up, with lights in it.', next: 'mt2' },
+    mt2: { s: 'dobra', t: 'Matka.', a: 'mend_net', next: 'mt3' },
+    mt3: { s: 'vesna', t: 'Does she ever come down?', next: 'mt4' },
+    mt4: { s: 'dobra', t: "She's never once looked down. Not in my time, not in my mother's.", next: 'mt5' },
+    mt5: { s: 'dobra', t: 'Hand me the long one. No. The long one.', next: 'hub' },
 
     // leaving
     leave: { next: (S) => (S.flag('dobra_knot_noticed') ? 'bye' : 'ka1') },
