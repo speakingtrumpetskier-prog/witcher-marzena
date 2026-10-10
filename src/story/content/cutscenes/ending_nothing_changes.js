@@ -5,7 +5,7 @@
 // Trigger: the finale controller plays it when the player steps back (only offered with took_reeve_money).
 // Reads ola_truth / ola_lie. Sets ending = 'nothing_changes'. Standalone: it stages the finale itself.
 // Ends in the grey: snow falling, the clock at the next afternoon, Vesna on the ice at the hole.
-import { kit, finaleStage, riteCast, riteSpots, ribbonFor, torchFor, carry, ground, off, V3, jolt, yawTo } from './_cine.js';
+import { kit, finaleStage, riteCast, riteSpots, ribbonFor, torchFor, carry, ground, off, V3, jolt, yawTo, applyEndingWorld } from './_cine.js';
 
 const LYRICS = [
   'Marzanno, Marzanno, white bride of the frost,',
@@ -169,6 +169,7 @@ export async function run(d, S, K) {
 
   // 9. Later, by day: children stuffing next year's effigy in Dobra's yard, singing.
   d.flag('ending', 'nothing_changes');
+  applyEndingWorld(G, 'nothing_changes');
   d.weather('snow', 0);
   d.time(14.4, { day: 3 });
   await yardEpilogue(d, K);

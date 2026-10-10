@@ -5,7 +5,7 @@
 // Trigger: the player comes up through the belfry hatch (G.world.locations.bellTower.belfry.hatch), once,
 // lair_seen unset. Sets lair_seen and wiesia_spoke. Ends with Vesna standing at the table.
 // If bird_taken and not bird_given the controller offers "Leave the bird" at belfry.birdSpot afterwards.
-import { kit, towerSite, off, V3, yawTo } from './_cine.js';
+import { kit, towerSite, off, V3, yawTo, hold } from './_cine.js';
 
 export default async function c5(d) {
   const G = d.G, K = kit(d);
@@ -20,6 +20,8 @@ export default async function c5(d) {
     const vesna = d.player();
     vesna.c.autoGround = false;
     K.add(() => { vesna.c.autoGround = true; });
+    // place() and a skipped walk snap her to the terrain far below; keep her on the belfry floor.
+    const onFloor = () => { vesna.c.root.position.y = F; };
     const hatch = T.hatch;
     // She comes up out of the hatch, facing the head of the table.
     const faceYaw = T.yaw + yawTo(0, 0, -1, -0.2); // toward the head of the table (local -x)
@@ -45,7 +47,7 @@ export default async function c5(d) {
     const l2 = S(0.5, F + 0.95, -0.2);
     d.cut({ pos: w2, look: l2, fov: 64, shake: 0.35 });
     d.shot({ from: w2, to: S(-2.2, F + 1.6, 2.35), look: l2, fov: 64, dur: 7.5, ease: 'sine', shake: 0.35 });
-    d.walk(vesna, S(1.2, F, 1.9).x, S(1.2, F, 1.9).z, { speed: 0.9 });
+    d.walk(vesna, S(1.2, F, 1.9).x, S(1.2, F, 1.9).z, { speed: 0.9 }).then(onFloor);
     await d.wait(7.2);
 
     // 3. CLOSE: a small music box on the table. Vesna turns the crank and lets it play to the end.
@@ -53,6 +55,7 @@ export default async function c5(d) {
     const c3 = S(3.0, F + 1.6, -1.5);
     const stand = S(2.05, F, 1.5);
     d.place(vesna, stand.x, stand.z, yawTo(stand.x, stand.z, bx.x, bx.z));
+    onFloor();
     d.face(vesna, bx, { instant: true });
     d.cut({ pos: c3, look: bx.clone().add(V3(0, 0.1, 0.45)), fov: 34, frame: [0.0, 0.0], shake: 0.2 });
     d.anim(vesna, 'stir', { loop: true });
@@ -70,8 +73,8 @@ export default async function c5(d) {
 
     // 5. She looks down through the gap in the floor: three men under the clear ice, faces up.
     const ld = T.lookDown;
-    d.walk(vesna, ld.x, ld.z, { speed: 1.0 });
-    d.cut({ pos: S(2.6, F + 2.15, 1.2), look: () => vesna.c.root.position.clone().add(V3(0, 0.9, 0)), fov: 38, frame: [0.1, -0.02], shake: 0.2 });
+    d.walk(vesna, ld.x, ld.z, { speed: 1.0 }).then(onFloor);
+    hold(d, { pos: S(2.6, F + 2.15, 1.2), look: () => vesna.c.root.position.clone().add(V3(0, 0.9, 0)), fov: 38, frame: [0.1, -0.02], shake: 0.2 });
     await d.wait(3.0);
     d.face(vesna, T.menCenter);
     vesna.c.lookAt?.(T.menCenter.clone().setY(-0.4));
@@ -96,7 +99,7 @@ export default async function c5(d) {
     const turnTo = S(-1.0, F, 3.0);
     d.face(vesna, turnTo);
     const wide7 = S(2.6, F + 1.7, -2.4);
-    d.cut({ pos: wide7, look: () => vesna.c.root.position.clone().add(V3(0, 1.0, 0)), fov: 46, shake: 0.2 });
+    hold(d, { pos: wide7, look: () => vesna.c.root.position.clone().add(V3(0, 1.0, 0)), fov: 46, shake: 0.2 });
     await d.wait(2.2);
     const g0 = T.glide.from, g1 = T.glide.to;
     const pale = V3(0, 0, 0);
@@ -117,9 +120,9 @@ export default async function c5(d) {
 
     // 8. Vesna puts the music box back exactly where it was. No line.
     const back = S(2.7, F, 1.2);
-    d.walk(vesna, back.x, back.z, { speed: 1.0 });
+    d.walk(vesna, back.x, back.z, { speed: 1.0 }).then(onFloor);
     const c8 = S(-1.6, F + 1.75, 2.8);
-    d.cut({ pos: c8, look: () => vesna.c.root.position.clone().add(V3(0, 0.95, 0)), fov: 36, frame: [-0.05, 0.0], shake: 0.12 });
+    hold(d, { pos: c8, look: () => vesna.c.root.position.clone().add(V3(0, 0.95, 0)), fov: 36, frame: [-0.05, 0.0], shake: 0.12 });
     await d.wait(2.4);
     d.face(vesna, bx);
     d.anim(vesna, 'crouch_examine');
@@ -128,8 +131,9 @@ export default async function c5(d) {
     await d.wait(1.8);
 
     d.flag('lair_seen');
+    onFloor();
     const vp = vesna.pos(V3(0, 0, 0));
-    d.end({ player: { x: vp.x, z: vp.z, yaw: vesna.yaw }, fadeIn: 0.8 });
+    d.end({ player: { x: vp.x, y: F, z: vp.z, yaw: vesna.yaw }, fadeIn: 0.8 });
   } finally {
     G.water?.setUnderGlow?.(glow.x, glow.z, glow.radius, 0);
     K.run();

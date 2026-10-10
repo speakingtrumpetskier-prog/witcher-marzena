@@ -2,7 +2,7 @@
 // wreck of a family's cart; the father is frozen looking back over his shoulder.
 // Trigger: Flow.newGame() plays it with the player at the pass. Sets c1_seen. Ends with Vesna on foot at
 // the father, Kasza ten meters up the road, the wolves about to come (the combat tutorial follows).
-import { kit, passSite, seat, unseat, moveAlong, off, ground, V3, jolt, disposeProp } from './_cine.js';
+import { kit, passSite, seat, unseat, moveAlong, off, ground, V3, jolt, disposeProp, hold } from './_cine.js';
 import * as THREE from 'three';
 
 export default async function c1(d) {
@@ -98,7 +98,7 @@ export default async function c1(d) {
     d.face(vesna, kasza, { instant: true });
     const vp = vesna.pos(V3(0, 0, 0));
     const c9 = off(vp.x, vp.z, vesna.yaw, 0.7, 2.3);
-    d.cut({ pos: ground(G, c9[0], c9[1], 1.45), look: () => vesna.eye(V3(0, 0, 0)).add(V3(0, -0.04, 0)), fov: 32, frame: [0.12, 0.05] });
+    hold(d, { pos: ground(G, c9[0], c9[1], 1.45), look: () => vesna.eye(V3(0, 0, 0)).add(V3(0, -0.04, 0)), fov: 32, frame: [0.12, 0.05] });
     d.sfx('horse_snort', kasza);
     kasza.play('snort');
     const side = off(kp.x, kp.z, kasza.yaw, 0.9, 0);
@@ -114,7 +114,7 @@ export default async function c1(d) {
     await d.wait(2.6);
     d.lookAt(vesna, pt(-60, -20, 1.6));
     d.sfx('wolf_howl', V3(vp.x - 38, vp.y + 3, vp.z + 22), { volume: 0.95 });
-    d.shot({ to: V3(c9[0], vp.y + 1.5, c9[1]).lerp(vesna.eye(V3(0, 0, 0)), 0.14), dur: 3.4, ease: 'sine', shake: 0.2 });
+    d.shot({ to: V3(c9[0], vp.y + 1.5, c9[1]).lerp(vesna.eye(V3(0, 0, 0)), 0.14), look: () => vesna.eye(V3(0, 0, 0)).add(V3(0, -0.04, 0)), dur: 3.4, ease: 'sine', shake: 0.2 });
     await d.wait(3.4);
 
     d.flag('c1_seen');

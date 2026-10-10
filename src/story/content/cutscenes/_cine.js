@@ -186,6 +186,13 @@ export function disposeProp(g) {
   g.parent?.remove(g);
 }
 
+// A cut whose look (or position) follows a moving actor. CineCamera.cut() resolves function specs once, so a
+// long hold is run as a shot that stays on the target until the next cut or shot replaces it.
+export function hold(d, o) {
+  if (typeof o.look !== 'function' && typeof o.pos !== 'function') { d.cut(o); return; }
+  d.shot({ from: o.pos, look: o.look, fov: o.fov, frame: o.frame || [0, 0], roll: o.roll, shake: o.shake ?? 0, label: o.label, dur: 900, ease: 'linear' });
+}
+
 // Camera impact: handheld shake that settles.
 export function jolt(d, amount = 1.2, secs = 1.2) {
   const cam = d.G.story.cam;

@@ -81,10 +81,13 @@ export async function init(G) {
     const t0 = G.story.sched.time;
     const done = new Set();
     const dump = (t) => {
-      const out = { t, cam: G.camera.position.toArray().map((v) => +v.toFixed(1)), actors: {} };
+      const fw = G.camera.getWorldDirection(new THREE.Vector3());
+      const out = { t, cam: G.camera.position.toArray().map((v) => +v.toFixed(1)), dir: fw.toArray().map((v) => +v.toFixed(2)), fov: +G.camera.fov.toFixed(1), actors: {} };
       for (const a of G.cutscenes.stage?.list?.() || []) {
         const wp = a.c.root.getWorldPosition(new THREE.Vector3());
-        out.actors[a.id] = { p: wp.toArray().map((v) => +v.toFixed(1)), vis: a.c.root.visible, par: a.c.root.parent?.type };
+        let ey = null;
+        try { ey = +a.eye(new THREE.Vector3()).y.toFixed(2); } catch { /* no eyes */ }
+        out.actors[a.id] = { p: wp.toArray().map((v) => +v.toFixed(1)), eyeY: ey, vis: a.c.root.visible, par: a.c.root.parent?.type };
       }
       log('probe', JSON.stringify(out));
     };

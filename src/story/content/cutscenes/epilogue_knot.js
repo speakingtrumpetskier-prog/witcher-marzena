@@ -32,7 +32,7 @@ export default async function epilogue(d) {
     const yo = yawTo(gate.x, gate.z, out[0], out[1]);
     const at = (back, right = 0, h = 0, ref = gate) => { const [x, z] = off(ref.x, ref.z, yo, right, -back); return ground(G, x, z, h); };
     const vPos = off(gate.x, gate.z, yo, 0, 6.5);
-    const kPos = off(vPos[0], vPos[1], yo, -1.35, 0.4);
+    const kPos = off(vPos[0], vPos[1], yo, 1.35, 0.4);
     const vesna = d.player(), kasza = d.horse();
     d.place(kasza, kPos[0], kPos[1], yo - 0.15);
     const ms = (() => { const y = kasza.yaw; return [kPos[0] + Math.cos(y) * 0.8, kPos[1] - Math.sin(y) * 0.8]; })();
@@ -53,10 +53,10 @@ export default async function epilogue(d) {
     const eye = () => vesna.eye(V3(0, 0, 0));
 
     // 1. Morning at the west gate. Vesna saddles Kasza.
-    const est = at(-6.5, 5.5, 2.4);
+    const est = at(-6.5, -5.5, 2.4);
     d.cut({ pos: est, look: () => vesna.at(0.7, V3(0, 0, 0)), fov: 40, shake: 0.05 });
     d.fade(0, 1.8);
-    d.shot({ from: est, to: at(-5.2, 4.4, 2.2), look: () => vesna.at(0.7, V3(0, 0, 0)), fov: 40, dur: 6.5, ease: 'sine', shake: 0.05 });
+    d.shot({ from: est, to: at(-5.2, -4.4, 2.2), look: () => vesna.at(0.7, V3(0, 0, 0)), fov: 40, dur: 6.5, ease: 'sine', shake: 0.05 });
     await d.wait(1.5);
     d.anim(vesna, 'crouch_examine', { loop: true });
     d.sfx('horse_snort', kasza);
@@ -71,7 +71,7 @@ export default async function epilogue(d) {
     d.cut({ pos: camStart, look: () => dobra.at(0.62, V3(0, 0, 0)), fov: 32 });
     d.shot({ from: camStart, to: ground(G, gate.x + 2.2, gate.z + 1.0, 1.55), look: () => dobra.at(0.62, V3(0, 0, 0)), fov: 32, dur: 7, ease: 'linear', shake: 0.05 });
     await d.wait(6.5);
-    d.follow(dobra, [-1.6, 1.4, 3.0], () => dobra.at(0.72, V3(0, 0, 0)), 0, { lag: 2.6, fov: 36, shake: 0.06 });
+    d.follow(dobra, [-0.5, 1.45, -3.2], () => dobra.at(0.72, V3(0, 0, 0)), 0, { lag: 2.6, fov: 36, shake: 0.06 });
     await walk;
     void gateAt;
     d.face(vesna, dobra);
@@ -151,7 +151,7 @@ export default async function epilogue(d) {
     d.stinger('discover');
 
     // 4. Vesna mounts and rides down the road. WIDE: a rider small on the road.
-    d.cut({ pos: at(-3.5, 4.0, 1.7), look: () => vesna.at(0.7, V3(0, 0, 0)), fov: 38 });
+    d.cut({ pos: at(-3.5, -4.0, 1.7), look: () => vesna.at(0.7, V3(0, 0, 0)), fov: 38 });
     d.face(vesna, kasza);
     await d.anim(vesna, 'mount', { fade: 0.1 });
     seat(d, vesna, kasza, 'ride_idle');
@@ -187,7 +187,7 @@ export default async function epilogue(d) {
       const gateLook = () => ground(G, dp.x, dp.z, 1.7);
       await d.shot({ from: cp, to: cp, look: fwdLook, lookTo: sideLook, fov: 40, dur: 0.9, ease: 'in', shake: 0.2 });
       await d.shot({ from: cp, to: cp, look: sideLook, lookTo: gateLook, fov: 40, fovTo: 22, dur: 1.4, ease: 'out', shake: 0.2 });
-      d.shot({ from: cp, to: cp, look: gateLook, fov: 22, fovTo: 14, dur: 5.5, ease: 'sine', shake: 0.12 });
+      d.shot({ from: cp, to: cp, look: gateLook, fov: 22, fovTo: 10, dur: 13, ease: 'sine', shake: 0.1 });
       if (olaAlive) {
         const fence = [gate.x - 3.0, gate.z + 8.0];
         const o = await spawn(d, 'ola_wave', 'ola', fence[0] + 4, fence[1] + 3, 0, {});
