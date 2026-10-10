@@ -82,17 +82,17 @@ export const SPECS = {
   // Wildlife (gameplay/fauna): the valley's animals, not enemies.
   deer: {
     name: 'deer', hoof: true,
-    pelvisY: 0.8, bodyLen: 0.6, shoulderDY: 0.05, hipX: 0.085, shX: 0.09,
-    stride: 1.15, lift: 1.25,
-    front: { L1: 0.3, L2: 0.31, L3: 0.2, r0: 0.075, r1: 0.034, r2: 0.022, phi: -0.06, bend: -1, ankle: 0.05, depth: 1.0, belly: 1.05 },
-    hind: { L1: 0.32, L2: 0.34, L3: 0.25, r0: 0.11, r1: 0.04, r2: 0.022, phi: 0.5, bend: 1, ankle: 0.05, depth: 1.2, belly: 1.1 },
+    pelvisY: 0.72, bodyLen: 0.74, shoulderDY: 0.05, hipX: 0.085, shX: 0.09,
+    stride: 1.1, lift: 1.2,
+    front: { L1: 0.27, L2: 0.28, L3: 0.18, r0: 0.075, r1: 0.034, r2: 0.022, phi: -0.06, bend: -1, ankle: 0.05, depth: 1.0, belly: 1.05 },
+    hind: { L1: 0.29, L2: 0.31, L3: 0.22, r0: 0.11, r1: 0.04, r2: 0.022, phi: 0.5, bend: 1, ankle: 0.05, depth: 1.2, belly: 1.1 },
     pawR: [0.03, 0.035, 0.05],
     pelvis: [
-      { z: -0.3, w: 0.07, h: 0.09, y: 0.02 }, { z: -0.2, w: 0.12, h: 0.15, y: 0.02 }, { z: -0.04, w: 0.13, h: 0.16, y: 0.0 },
+      { z: -0.3, w: 0.07, h: 0.09, y: 0.02 }, { z: -0.2, w: 0.12, h: 0.15, y: 0.02 }, { z: -0.04, w: 0.14, h: 0.175, y: 0.0 },
       { z: 0.14, w: 0.12, h: 0.155, y: -0.01 }, { z: 0.3, w: 0.11, h: 0.14, y: -0.015 },
     ],
     chest: [
-      { z: -0.32, w: 0.11, h: 0.14, y: -0.02 }, { z: -0.16, w: 0.135, h: 0.18, y: -0.025 }, { z: 0.0, w: 0.145, h: 0.205, y: -0.01 },
+      { z: -0.32, w: 0.11, h: 0.14, y: -0.02 }, { z: -0.16, w: 0.135, h: 0.18, y: -0.025 }, { z: 0.0, w: 0.15, h: 0.22, y: -0.01 },
       { z: 0.15, w: 0.13, h: 0.19, y: 0.0 }, { z: 0.27, w: 0.1, h: 0.15, y: 0.01 }, { z: 0.34, w: 0.06, h: 0.09, y: 0.02 },
     ],
     neckPivot: [0, 0.12, 0.27], neckLen: 0.36,
@@ -106,7 +106,7 @@ export const SPECS = {
     ear: { x: 0.04, y: 0.06, z: -0.04, h: 0.13, w: 0.06 },
     tail: { len: [0.05, 0.04, 0.03], r: [0.03, 0.035, 0.025, 0.01], base: [0, 0.06, -0.3] },
     ruff: 0,
-    furBase: [0.26, 0.21, 0.16], bellyBase: [0.5, 0.46, 0.4], legBase: [0.24, 0.2, 0.16],
+    furBase: [0.44, 0.35, 0.26], bellyBase: [0.66, 0.62, 0.56], legBase: [0.38, 0.31, 0.24],
     texKey: 'deer', texSeed: 31,
   },
   fox: {
