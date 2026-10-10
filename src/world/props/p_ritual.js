@@ -8,32 +8,78 @@ const RED = [0x8a281e, 0x962e22, 0x7a2219];
 // Ribbons catch the low sun hard; keep them deeper than the embroidery red.
 const RIBBON = [0x6e2018, 0x7a241a, 0x631c14];
 
-// ---- the carved pale face and straw hair, shared by effigy and effigyHead ----------------------
+// ---- the linen face and straw hair, shared by effigy and effigyHead ------------------------------
+// A Marzanna's face is a scrap of linen pulled over a straw ball and tied off at the neck, with the
+// features stitched or painted on flat: dark almond eyes, a thin brow, a red mouth and red cheek
+// rosettes. Nothing is carved and nothing has a white of the eye, which is what read as a cartoon.
+const FACE_R = [0.09, 0.112, 0.094]; // radii of the linen ovoid (x, y, z)
+// A point on the front of the ovoid at (x, y), lifted `lift` off the cloth.
+function onFace(x, y, lift = 0.0015) {
+  const u = 1 - (x / FACE_R[0]) ** 2 - (y / FACE_R[1]) ** 2;
+  return [x, y, FACE_R[2] * Math.sqrt(Math.max(u, 0.02)) + lift];
+}
+// A stitched line along points given in face (x, y).
+function stitch(k, mat, xy, r, tint, closed = false) {
+  k.tube(mat, xy.map(([x, y]) => onFace(x, y)), r, { closed, radial: 4, segs: Math.max(6, xy.length * 3), tint, grime: 0, var: 0 });
+}
+
+// The face itself, built at the kit's current transform (head centre at the origin). Shared with the
+// living effigies (gameplay/creatures/effigyParts.js).
+export function linenFace(k, { tint = 0xe9e0cc, burn = 0 } = {}) {
+  const c = burn ? 0x3a2e26 : tint;
+  const ink = burn ? 0x1a120e : 0x2a2018;
+  const red = burn ? 0x2a1a14 : RED[0];
+  // The linen over the straw: smooth, with the straw pressing small lumps through it.
+  k.sph('linen', 0.1, { scale: [FACE_R[0] / 0.1, FACE_R[1] / 0.1, FACE_R[2] / 0.1], ws: 18, hs: 13, tint: c, jitter: 0.003, grime: burn ? 0.4 : 0.03, var: 0.04 });
+  // Gathered cloth at the neck where it is tied off, and the red thread round it.
+  k.cyl('linen', 0.05, 0.034, 0.05, { pos: [0, -0.125, -0.004], radial: 10, tint: c, jitter: 0.004, cap: null, grime: 0.03 });
+  if (!burn) twine(k, -0.112, 0.045, RED[2], 0.005);
+  for (const sx of [-1, 1]) {
+    const ex = sx * 0.035, ey = 0.014;
+    // Eye: a dark painted almond, outer corner a little raised, with no white and no highlight.
+    k.sph('matte', 0.017, { pos: onFace(ex, ey, 0.0006), rot: [0, sx * 0.35, sx * -0.12], scale: [1, 0.4, 0.22], ws: 10, hs: 6, tint: ink, grime: 0, var: 0 });
+    // A faint charcoal brow.
+    stitch(k, 'matte', [[ex - sx * 0.018, ey + 0.016], [ex, ey + 0.021], [ex + sx * 0.018, ey + 0.019]], 0.0012, 0x6a5848);
+    // Cheek: one round red patch painted flat on the cloth.
+    k.sph('paint', 0.012, { pos: onFace(sx * 0.05, -0.032, 0.0004), rot: [0.3, sx * 0.55, 0], scale: [1, 1, 0.2], ws: 10, hs: 6, tint: red, grime: 0, var: 0 });
+  }
+  // Mouth: a short straight red stitch.
+  stitch(k, 'paint', [[-0.013, -0.06], [0, -0.0605], [0.013, -0.06]], 0.0026, burn ? 0x2a1a14 : 0x8a2a20);
+}
+
+// A wreath of twisted straw sitting where the head is still wide (0.07 up), snug on the cloth instead
+// of floating out from the crown like a brim, bristling with loose ends so it never reads as a flat
+// cap from the side, a few red bits, and two long ribbons hanging down the back. At (0, y) in k space.
+export function strawWreath(k, y, s, { frozen = false, ribbons = true } = {}) {
+  const strawTint = frozen ? 0xdbe8f0 : 0xc8b070;
+  k.with({ pos: [0, y + 0.07 * s, 0.0], rot: [0.12, 0, 0] }, () => {
+    k.torus('straw', 0.074 * s, 0.02 * s, { rot: [Math.PI / 2, 0, 0], seg: 18, rseg: 6, tint: strawTint, var: 0.18, grime: 0, jitter: 0.006 });
+    for (let i = 0; i < 26; i++) {
+      const a = (i / 26) * TAU + k.rs(0.1);
+      const len = (0.045 + k.r(0, 0.05)) * s;
+      k.blade('straw', 0.01 * s, len, {
+        pos: [Math.sin(a) * 0.076 * s, 0.01 * s + len * 0.48, Math.cos(a) * 0.076 * s], yaw: a,
+        rot: [-0.12 - k.r(0, 0.22), 0, k.rs(0.12)], taper: 0.25, tint: frozen ? strawTint : k.pick(STRAW), var: 0.12, grime: 0,
+      });
+    }
+    for (let i = 0; i < 6; i++) {
+      const a = (i / 6) * TAU + 0.3;
+      k.box('ribbon', 0.014, 0.022, 0.014, { pos: [Math.sin(a) * 0.082 * s, 0, Math.cos(a) * 0.082 * s], rot: [0, a, 0], tint: RED[i % 3], grime: 0, var: 0 });
+    }
+    if (ribbons) {
+      for (const sx of [-1, 1]) {
+        k.hang('ribbon', 0.016 * s, (0.42 + k.r(0, 0.14)) * s, { pos: [sx * 0.03 * s, -0.01, -0.078 * s], rot: [0.12, 0, sx * 0.06], tint: RIBBON[sx > 0 ? 0 : 1], sway: 1.1, sy: 6, grime: 0, var: 0 });
+      }
+    }
+  });
+}
+
 function addHead(k, o = {}) {
-  const tint = o.tint || 0xe6dac4;
   const y = o.y == null ? 1.5 : o.y;
   const s = o.scale || 1;
   const burn = o.burn || 0;
-  const c = burn ? 0x3a2e26 : tint;
   k.with({ pos: [0, y, 0], rot: [o.tilt || 0, o.turn || 0, o.roll || 0], scale: s }, () => {
-    k.sph('face', 0.1, { scale: [0.9, 1.16, 0.96], ws: 12, hs: 9, flat: true, tint: c, jitter: 0.002, grime: 0, var: 0.06, tile: 0.45 });
-    // Chin, jaw weight and small ears
-    k.sph('face', 0.055, { pos: [0, -0.095, 0.03], scale: [1.0, 0.8, 0.9], ws: 8, hs: 6, tint: c, grime: 0, tile: 0.45 });
-    for (const sx of [-1, 1]) k.sph('face', 0.022, { pos: [sx * 0.092, -0.01, 0.0], scale: [0.5, 1.2, 0.9], ws: 6, hs: 5, tint: c, grime: 0, tile: 0.45 });
-    // Nose wedge, brow ridge, cheekbones
-    k.box('face', 0.04, 0.07, 0.05, { pos: [0, -0.012, 0.094], rot: [0.35, 0, 0], taper: [0.45, 0.5], tint: c, grime: 0, var: 0.04, tile: 0.45 });
-    k.box('face', 0.15, 0.018, 0.034, { pos: [0, 0.047, 0.082], rot: [0.1, 0, 0], tint: burn ? c : 0xd8c8ae, grime: 0, tile: 0.45 });
-    for (const sx of [-1, 1]) k.sph('face', 0.03, { pos: [sx * 0.062, -0.025, 0.065], scale: [1, 0.8, 0.8], ws: 6, hs: 5, tint: c, grime: 0, tile: 0.45 });
-    // Painted brows, deep dark eye sockets with almond eyes, mouth and cheek dots in folk red.
-    for (const sx of [-1, 1]) {
-      k.box('matte', 0.05, 0.009, 0.01, { pos: [sx * 0.042, 0.037, 0.098], rot: [0, 0, sx * -0.18], tint: 0x2a1a12, grime: 0, var: 0 });
-      k.sph('matte', 0.02, { pos: [sx * 0.042, 0.02, 0.087], scale: [1.55, 0.7, 0.5], ws: 6, hs: 5, tint: 0x5a4636, grime: 0, var: 0 });
-      k.sph('matte', 0.0155, { pos: [sx * 0.042, 0.02, 0.0925], scale: [1.6, 0.62, 0.35], ws: 6, hs: 5, tint: 0xece6d8, grime: 0, var: 0 });
-      k.sph('matte', 0.0075, { pos: [sx * 0.04, 0.02, 0.0975], scale: [1, 1.2, 0.5], ws: 5, hs: 4, tint: 0x14100c, grime: 0, var: 0 });
-      k.cyl('paint', 0.02, 0.02, 0.004, { pos: [sx * 0.063, -0.045, 0.074], rot: [Math.PI / 2 - 0.35, sx * 0.3, 0], radial: 8, tint: burn ? 0x2a1a14 : RED[0], grime: 0, var: 0, cap: 'paint' });
-    }
-    k.box('paint', 0.05, 0.008, 0.012, { pos: [0, -0.066, 0.092], tint: burn ? 0x2a1a14 : 0x8a2a20, grime: 0, var: 0, rot: [0.15, 0, 0] });
-    k.box('paint', 0.04, 0.007, 0.012, { pos: [0, -0.078, 0.09], tint: burn ? 0x2a1a14 : 0x7a1f18, grime: 0, var: 0, rot: [0.1, 0, 0] });
+    linenFace(k, { tint: o.tint || 0xe9e0cc, burn });
   });
   // Straw hair: strands hanging from the crown, longer at the back; a fringe at the sides only.
   const n = o.hairCount || 56;
@@ -52,16 +98,7 @@ function addHead(k, o = {}) {
       taper: 0.35, tint: o.frozen ? k.pick([0xe0ecf4, 0xd0dfe8, 0xc4d6e2]) : k.pick(STRAW), var: 0.12, grime: 0.05, tile: 0.4,
     });
   }
-  // Wreath of twisted straw with a few red bits.
-  if (o.wreath !== false && !burn) {
-    k.with({ pos: [0, y + 0.098 * s, 0.0], rot: [0.12, 0, 0] }, () => {
-      k.torus('straw', 0.092 * s, 0.02 * s, { rot: [Math.PI / 2, 0, 0], seg: 16, rseg: 5, tint: o.frozen ? 0xdbe8f0 : 0xc8b070, var: 0.18, grime: 0, jitter: 0.004 });
-      for (let i = 0; i < 6; i++) {
-        const a = (i / 6) * TAU + 0.3;
-        k.box('ribbon', 0.014, 0.022, 0.014, { pos: [Math.sin(a) * 0.1 * s, 0, Math.cos(a) * 0.1 * s], rot: [0, a, 0], tint: RED[i % 3], grime: 0, var: 0 });
-      }
-    });
-  }
+  if (o.wreath !== false && !burn) strawWreath(k, y, s, { frozen: o.frozen });
   // The frozen ones carry an ice crust over the face.
   if (o.ice) {
     k.with({ pos: [0, y, 0], rot: [o.tilt || 0, o.turn || 0, o.roll || 0], scale: s }, () => {
@@ -201,8 +238,9 @@ export function effigy(o = {}) {
     const burnt = variant === 'burnt' ? 1 : variant === 'burning' ? 0.5 : 0;
     const frozen = variant === 'frozen';
     k.push({ rot: [0, 0, burnt ? 0.28 : lean], pos: [burnt ? 0.1 : 0, 0, 0] });
-    // Central pole through the body, crossbar for the arms.
-    const poleTop = 1.62 + raised;
+    // Central pole through the body, crossbar for the arms. It ends inside the head (centre about
+    // 1.55 m): any higher and its log end pokes up through the wreath like a hat.
+    const poleTop = 1.43 + raised;
     k.cyl('wood', 0.034, 0.046, poleTop + 0.25, { pos: [0, (poleTop - 0.25) / 2 + 0.12, -0.01], radial: 6, tint: burnt ? 0x2a2420 : 0xb8a690, jitter: 0.005, cap: 'logEnd' });
     if (variant === 'pole') k.cyl('wood', 0.025, 0.025, 1.1, { pos: [0, 1.27 + raised, -0.01], rot: [0, 0, Math.PI / 2], radial: 5, tint: 0xb8a690, cap: 'logEnd' });
     const headY = addBody(k, {

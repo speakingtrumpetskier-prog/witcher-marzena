@@ -11,6 +11,7 @@
 //   pilePart(seed)    wet straw and rags left after the collapse, plus knotMesh() for the red knot
 import * as THREE from 'three';
 import { Kit, TAU } from '../../world/props/kit.js';
+import { linenFace, strawWreath } from '../../world/props/p_ritual.js';
 
 const FROZEN_STRAW = [0xe0ecf4, 0xd0dfe8, 0xc4d6e2];
 const RED = [0x8a281e, 0x962e22, 0x7a2219];
@@ -85,21 +86,8 @@ export function headPart(seed = 1) {
   const y = 0.2, s = 1.4;
   const c = 0xe6dac4;
   k.with({ pos: [0, y, 0], scale: s }, () => {
-    k.sph('face', 0.1, { scale: [0.9, 1.16, 0.96], ws: 12, hs: 9, flat: true, tint: c, jitter: 0.002, grime: 0, var: 0.06, tile: 0.45 });
-    k.sph('face', 0.055, { pos: [0, -0.095, 0.03], scale: [1.0, 0.8, 0.9], ws: 8, hs: 6, tint: c, grime: 0, tile: 0.45 });
-    for (const sx of [-1, 1]) k.sph('face', 0.022, { pos: [sx * 0.092, -0.01, 0.0], scale: [0.5, 1.2, 0.9], ws: 6, hs: 5, tint: c, grime: 0, tile: 0.45 });
-    k.box('face', 0.04, 0.07, 0.05, { pos: [0, -0.012, 0.094], rot: [0.35, 0, 0], taper: [0.45, 0.5], tint: c, grime: 0, var: 0.04, tile: 0.45 });
-    k.box('face', 0.15, 0.018, 0.034, { pos: [0, 0.047, 0.082], rot: [0.1, 0, 0], tint: 0xd8c8ae, grime: 0, tile: 0.45 });
-    for (const sx of [-1, 1]) k.sph('face', 0.03, { pos: [sx * 0.062, -0.025, 0.065], scale: [1, 0.8, 0.8], ws: 6, hs: 5, tint: c, grime: 0, tile: 0.45 });
-    for (const sx of [-1, 1]) {
-      k.box('matte', 0.05, 0.009, 0.01, { pos: [sx * 0.042, 0.037, 0.098], rot: [0, 0, sx * -0.18], tint: 0x2a1a12, grime: 0, var: 0 });
-      k.sph('matte', 0.02, { pos: [sx * 0.042, 0.02, 0.087], scale: [1.55, 0.7, 0.5], ws: 6, hs: 5, tint: 0x3a2e28, grime: 0, var: 0 });
-      k.sph('matte', 0.0155, { pos: [sx * 0.042, 0.02, 0.0925], scale: [1.6, 0.62, 0.35], ws: 6, hs: 5, tint: 0xece6d8, grime: 0, var: 0 });
-      k.sph('matte', 0.0075, { pos: [sx * 0.04, 0.02, 0.0975], scale: [1, 1.2, 0.5], ws: 5, hs: 4, tint: 0x14100c, grime: 0, var: 0 });
-      k.cyl('paint', 0.02, 0.02, 0.004, { pos: [sx * 0.063, -0.045, 0.074], rot: [Math.PI / 2 - 0.35, sx * 0.3, 0], radial: 8, tint: RED[0], grime: 0, var: 0, cap: 'paint' });
-    }
-    k.box('paint', 0.05, 0.008, 0.012, { pos: [0, -0.066, 0.092], tint: 0x8a2a20, grime: 0, var: 0, rot: [0.15, 0, 0] });
-    k.box('paint', 0.04, 0.007, 0.012, { pos: [0, -0.078, 0.09], tint: 0x7a1f18, grime: 0, var: 0, rot: [0.1, 0, 0] });
+    // The same linen face as the effigies on poles (world/props/p_ritual.js).
+    linenFace(k, { tint: c });
     // Ice crust over the brow and one cheek.
     k.sph('ice', 0.108, { scale: [0.9, 1.16, 0.96], ws: 12, hs: 8, p0: Math.PI / 2 - 0.85, p1: 1.7, t0: 0.5, t1: 2.5, tint: 0xd6e8f4, grime: 0, jitter: 0.004, var: 0.03 });
   });
@@ -116,14 +104,7 @@ export function headPart(seed = 1) {
       taper: 0.35, tint: k.pick(FROZEN_STRAW), var: 0.12, grime: 0.05, tile: 0.4,
     });
   }
-  // Wreath of twisted straw with red bits.
-  k.with({ pos: [0, y + 0.098 * s, 0.0], rot: [0.12, 0, 0] }, () => {
-    k.torus('straw', 0.092 * s, 0.02 * s, { rot: [Math.PI / 2, 0, 0], seg: 16, rseg: 5, tint: 0xdbe8f0, var: 0.18, grime: 0, jitter: 0.004 });
-    for (let i = 0; i < 6; i++) {
-      const a = (i / 6) * TAU + 0.3;
-      k.box('ribbon', 0.014, 0.022, 0.014, { pos: [Math.sin(a) * 0.1 * s, 0, Math.cos(a) * 0.1 * s], rot: [0, a, 0], tint: RED[i % 3], grime: 0, var: 0 });
-    }
-  });
+  strawWreath(k, y, s, { frozen: true });
   return k.build();
 }
 
