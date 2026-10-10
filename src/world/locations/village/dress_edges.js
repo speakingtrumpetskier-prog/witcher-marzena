@@ -201,7 +201,99 @@ function dressSled(D) {
   for (let i = 0; i < 4; i++) { const a = i * 1.57 + 0.5; D.tryPut('stump', [[fx + Math.cos(a) * 2.1, fz + Math.sin(a) * 2.1, 0]], {}, 0.5); }
   // jump ramp of packed snow
   D.tryPut('snowDrift', [[bx - 3, bz - 2, 0.4]], { collide: false, opts: { width: 3, depth: 2, height: 0.7 } }, 0.4);
-  void rng;
+  dressSledUse(D, rng, { tx, tz, bx, bz, dir, len, nx, nz });
+}
+
+// The hill as the children have it after a whole winter: more runs, worn deeper where everyone goes, a
+// trampled way up the side, hay bales where the runs end, a snow fort half way up with its snowballs
+// stacked, a bench and a woodpile by the fire for whoever is watching, things left lying.
+// Few colliders, all at the edges: the snow fight picks its spots on this slope (story/controller/snowfight.js).
+function dressSledUse(D, rng, { tx, tz, bx, bz, dir, len, nx, nz }) {
+  const { V } = D;
+  const along = (t, off) => [tx + dir[0] * t + nx * off, tz + dir[1] * t + nz * off];
+  const yawDown = Math.atan2(dir[0], dir[1]);
+  // Two more runs, wider apart, and the busiest middle run worn in as a broad packed lane under its tracks.
+  for (const [off, ph] of [[-5.6, 1.3], [5.2, 4.1]]) {
+    const pts = [];
+    for (let k = 0; k <= 12; k++) { const t = k / 12, w = Math.sin(t * 4.2 + ph) * 1.3 * t; pts.push(along(t, off + w)); }
+    V.paths.push({ pts: pts.map(([x, z]) => [x + nx * 0.28, z + nz * 0.28]), width: 0.26, kind: 'sled', alpha: 0.5 });
+    V.paths.push({ pts: pts.map(([x, z]) => [x - nx * 0.28, z - nz * 0.28]), width: 0.26, kind: 'sled', alpha: 0.5 });
+  }
+  {
+    const lane = [];
+    for (let k = 0; k <= 12; k++) { const t = k / 12; lane.push(along(t, Math.sin(t * 5 + 2) * 1.6 * t)); }
+    V.paths.push({ pts: lane, width: 1.6, kind: 'yard', alpha: 0.22 });
+  }
+  // The way up: a trampled path along the north side, bending round the steep part.
+  {
+    const up = [];
+    for (let k = 0; k <= 10; k++) { const t = 1 - k / 10; up.push(along(t, -9.5 - Math.sin(t * Math.PI) * 2.4)); }
+    V.paths.push({ pts: up, width: 1.1, kind: 'path', alpha: 0.42 });
+  }
+  // Stakes with red rags down both sides of the main run, the way someone marked it out at the first snow;
+  // a few have been knocked crooked or are missing.
+  for (let k = 1; k <= 8; k++) {
+    const t = k / 8.6, w = Math.sin(t * 5 + 2) * 1.6 * t;
+    for (const side of [-1, 1]) {
+      if ((k * 3 + side) % 7 === 0) continue;
+      const [x, z] = along(t, w + side * 2.3);
+      D.tryPut('stake', [[x, z, 0]], { collide: false, seed: k * 2 + (side > 0 ? 1 : 0), opts: { height: 1.15 + rng() * 0.35 } }, 0.2);
+    }
+  }
+  // The top, where they set off: a windbreak against the pass wind, a bench, a barrel, a lantern post,
+  // sleds stood on end against the bench.
+  {
+    const [x, z] = along(-0.08, 0);
+    D.tryPut('windbreak', [[x - dir[0] * 0.06 - nx * 1.0, z - dir[1] * 0.06 - nz * 1.0, yawDown + Math.PI]], { collide: false }, 0.8);
+    D.tryPut('bench', [[x + nx * 3.4, z + nz * 3.4, yawDown + Math.PI / 2]], { collide: false }, 0.6);
+    D.tryPut('barrel', [[x + nx * 4.9, z + nz * 4.9, 0]], { collide: false, seed: 2 }, 0.4);
+    D.tryPut('lantern', [[x - nx * 3.6, z - nz * 3.6, 0]], { collide: false, opts: { mount: 'post' } }, 0.4);
+  }
+  // Hay bales across the bottom where the runs end, a few knocked askew.
+  for (let i = 0; i < 6; i++) {
+    const off = (i - 2.5) * 1.6;
+    const [x, z] = along(1.06, off);
+    D.tryPut('hayBale', [[x + (rng() - 0.5) * 0.3, z + (rng() - 0.5) * 0.3, yawDown + Math.PI / 2 + (rng() - 0.5) * (i === 4 ? 0.9 : 0.25)]], { collide: false }, 0.5);
+  }
+  // The snow fort half way up on the south side: a horseshoe of packed drifts, a pile of snowballs behind
+  // it, a stick with a red rag for a flag.
+  {
+    const [cx, cz] = along(0.42, 7.5);
+    for (let i = 0; i < 5; i++) {
+      const a = yawDown + Math.PI + (i - 2) * 0.62;
+      D.tryPut('snowDrift', [[cx + Math.sin(a) * 1.8, cz + Math.cos(a) * 1.8, a]], { collide: false, opts: { width: 1.5, depth: 0.7, height: 0.75 + rng() * 0.2 } }, 0.2);
+    }
+    D.tryPut('toys', [[cx + 0.4, cz - 0.3, rng() * 3]], { collide: false }, 0.3);
+    D.tryPut('logs', [[cx + Math.sin(yawDown) * 1.6, cz + Math.cos(yawDown) * 1.6, yawDown + Math.PI / 2]], { collide: false }, 0.3);
+    D.tryPut('stake', [[cx - Math.sin(yawDown) * 1.9, cz - Math.cos(yawDown) * 1.9, 0]], { collide: false, seed: 7, opts: { height: 1.7 } }, 0.2);
+    V.sledFort = { x: cx, z: cz };
+  }
+  // By the warming fire: a bench, a woodpile, a lantern on a post, a bucket.
+  {
+    const fx = bx + 7, fz = bz - 3;
+    D.tryPut('bench', [[fx + 3.2, fz + 1.4, -0.6], [fx + 3.4, fz - 1.5, 0.4]], {}, 0.6);
+    D.tryPut('woodpile', [[fx - 2.9, fz + 2.2, 0.8], [fx - 3.2, fz - 2.0, 0.3]], {}, 0.8);
+    D.tryPut('lantern', [[fx + 2.2, fz + 3.0, 0]], { collide: false, opts: { mount: 'post' } }, 0.4);
+    D.tryPut('bucket', [[fx - 1.2, fz + 3.1, 0.5]], { collide: false }, 0.3);
+  }
+  // Things left on the slope: a sled half under the snow, a ski, a mitten-sized bundle of toys.
+  {
+    const [x1, z1] = along(0.66, -3.4);
+    D.tryPut('sled', [[x1, z1, yawDown + 1.1]], { collide: false, y: -0.12, opts: { variant: 'kid' } }, 0.6);
+    D.tryPut('snowDrift', [[x1 + 0.3, z1 + 0.2, yawDown]], { collide: false, opts: { width: 1.2, depth: 0.8, height: 0.3 } }, 0.2);
+    const [x2, z2] = along(0.25, 2.2);
+    D.tryPut('skis', [[x2, z2, yawDown + 0.3]], { collide: false }, 0.3);
+    const [x3, z3] = along(0.85, 3.6);
+    D.tryPut('toys', [[x3, z3, rng() * 3]], { collide: false }, 0.3);
+  }
+  // Rocks pushing through and wind drifts along both edges of the hill, so it is not one white sheet.
+  for (let i = 0; i < 9; i++) {
+    const t = 0.08 + i * 0.105, side = i % 2 ? 1 : -1;
+    const [x, z] = along(t, side * (12 + rng() * 5));
+    if (i % 3 === 0) D.tryPut('rockSmall', [[x, z, rng() * 6]], { collide: false }, 0.6);
+    D.tryPut('snowDrift', [[x + nx * side * 1.5, z + nz * side * 1.5, yawDown + (rng() - 0.5)]], { collide: false, opts: { width: 2.4 + rng() * 2, depth: 1.1, height: 0.45 + rng() * 0.3 } }, 0.3);
+  }
+  void len;
 }
 
 // ---------------------------------------------------------------------------------------------

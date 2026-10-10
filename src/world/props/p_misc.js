@@ -22,6 +22,24 @@ export function rockSmall(o = {}) {
   return k.build();
 }
 
+// A split-wood stake driven into the snow, leaning a little, a red rag knotted at the top (unless rag: false).
+// Marks sled runs, ice paths and boundaries. height (default about 1.3 m).
+export function stake(o = {}) {
+  const k = new Kit('stake', o);
+  const H = (o.height || 1.3) + k.rs(0.15);
+  k.push({ yaw: k.r(0, TAU), rot: [k.rs(0.07), 0, k.rs(0.07)] });
+  k.box('wood', 0.07, H, 0.05, { pos: [0, H / 2 - 0.15, 0], tint: k.pick(WOOD), jitter: 0.006, seg: [1, 4, 1], grain: 'y' });
+  k.cone('wood', 0.05, 0.08, { pos: [0, H - 0.15 + 0.03, 0], radial: 4, tint: 0xa08a74 });
+  if (o.rag !== false) {
+    k.blob('cloth', 0.035, { pos: [0, H - 0.27, 0.03], scale: [1.4, 0.8, 1.0], detail: 0, tint: 0x9a2e22, grime: 0.1 });
+    k.hang('ribbon', 0.045, k.r(0.18, 0.32), { pos: [0.01, H - 0.28, 0.04], yaw: k.r(0, TAU), tint: 0xa8352a, sway: 1.0, wave: 0.02, sy: 3, grime: 0.05 });
+  }
+  if (!o.indoor) k.mound(0.22, 0.06, 0.22, { pos: [0, 0, 0], jseed: 5 });
+  k.pop();
+  k.ud.align = 0;
+  return k.build();
+}
+
 export function barrelStack(o = {}) {
   const k = new Kit('barrelStack', o);
   const variant = o.variant || k.pick(['pyramid', 'standing']);
