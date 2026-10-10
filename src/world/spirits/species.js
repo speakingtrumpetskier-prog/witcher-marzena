@@ -17,7 +17,7 @@ export const COLORS = {
   deepViolet: '#9a7cf2',
   whiteGold: '#ffe9ad',
   pearl: '#fff4e0',
-  ivory: '#f7e09a', // old ivory: the cathedral's body
+  ivory: '#f7e4a6', // old ivory: the cathedral's body
   paleGold: '#ffe38f',
 };
 const C = COLORS;
@@ -242,7 +242,7 @@ export const SPECIES = [
       f0: [18, 0.03, 1, 0.2], f1: [0, 1, 2.2, 2.5], f2: [0.2, 0.5, 1.0, 0.5], f3: [1.6, 0.3, 2.0, 1.0],
       s: [0.12, 0.9, 0.1, 0.9], // slow clock, pulse glow, iridescence, ivory tint
       m: [0, 0, 0.06, 0], // long body: contraction across only, the pulse travels along it
-      bright: 0.3,
+      bright: 0.24,
     },
   },
 ];

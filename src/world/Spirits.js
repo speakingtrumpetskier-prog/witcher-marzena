@@ -355,6 +355,7 @@ export function createSpirits(G, opts = {}) {
   const drawn = [];
   let seenTimer = 0;
   let seenSeconds = 0;
+  let bigSeconds = 0;
   const camPos = new THREE.Vector3();
 
   function weatherFactors() {
@@ -568,7 +569,7 @@ export function createSpirits(G, opts = {}) {
       if (glow) {
         const indoors = G.world?.indoors?.(camPos.x, camPos.z) ? 1 : 0;
         glow.position.set(cathItem.x, cathItem.y - cathItem.scale * 1.6, cathItem.z);
-        glow.intensity = (G.params.has('cathlight') ? parseFloat(G.params.get('cathlight')) : 0.5) * k * (0.7 + 0.3 * pr) * (1 - indoors);
+        glow.intensity = (G.params.has('cathlight') ? parseFloat(G.params.get('cathlight')) : 0.2) * k * (0.7 + 0.3 * pr) * (1 - indoors);
       }
       const su = G.sky?.uniforms?.uSpiritGlow;
       if (su) {
@@ -593,6 +594,11 @@ export function createSpirits(G, opts = {}) {
           if (near > 0) {
             seenSeconds += 2;
             if (seenSeconds >= 6) G.state.set('planetnicy_seen', true);
+          }
+          // or simply looking at the big one for half a minute of play
+          if (cathItem && cathItem.vis && cathItem.fade > 0.8 && !G.state.flag('planetnicy_seen')) {
+            bigSeconds += 2;
+            if (bigSeconds >= 30) G.state.set('planetnicy_seen', true);
           }
         }
       }

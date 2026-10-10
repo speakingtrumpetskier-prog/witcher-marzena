@@ -2,7 +2,8 @@
 //
 //   Close-up of one species (frozen at a pulse phase so stills compare):
 //     ?scene=spirits&sp=bell&hour=15.5
-//       sp=bell|saucer|lantern|comb|swarm|cathedral
+//       sp=bell|saucer|lantern|comb|swarm|cathedral   (the cathedral is a long vault: try yaw=0.5, or
+//          yaw=1.57&d=420 to see its head end-on, up=-75 to look along the nave from below)
 //       phase=0..1   pulse phase (0 relaxed, 0.26 fully contracted), time=S freezes the clock
 //       scale=m      bell radius in meters (default: the species' middle size)
 //       yaw=rad, d=meters (camera distance), up=deg (camera elevation), y=meters (altitude)
@@ -10,6 +11,8 @@
 //   Wide sky (the real population over a flat snow field, camera on the ground):
 //     ?scene=spirits&cam=40,6,40&look=40,40,-200&hour=22.5
 //       density=N    multiplier on how many are out
+// In the full game (no scene): cath=0..1 puts the cathedral on its circuit (0.75 is due north of the lake),
+//   cathlight=N sets the strength of the light it throws on the snow (default 0.2), spirits=0 hides them all.
 // Other params: weather=clear|snow|blizzard, hour. Motion sheets: add &fps=30&speed=4 and --seq 12.
 import * as THREE from 'three';
 import { createSpirits } from '../../world/Spirits.js';
