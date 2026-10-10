@@ -2,7 +2,8 @@
 // (plus the far billboard impostors), for close inspection.
 //
 //   ?scene=trees&cam=0,6,40&look=0,6,0&hour=13
-//   &sp=spruce,pine     only these species or kind ids (spruce sapling pine birch snag juniper snowbush log stump grass reed)
+//   &sp=spruce,pine     only these species or kind ids (spruce sapling pine birch snag juniper snowbush log stump grass reed
+//                       larch oldspruce rowan krummholz corkscrew oak weeping bottle knot arch ice; kind ids like cork_a, oak_a, weep_a)
 //   &rows=0,1,2,3       LOD rows to show (3 = billboard impostors, two views per kind)
 //   &spring=1           uSpring 1, &snow=0 for the thawed look, &wind=0.8 for a strong wind (use --seq)
 import * as THREE from 'three';

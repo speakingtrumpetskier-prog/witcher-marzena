@@ -8,6 +8,11 @@
 // the hot spring and streams, pines on rocky ridges and steep ground, glades with negative space,
 // a treeline that thins and stunts trees from about 200 m up to 380 m, and never on the lake, on
 // roads (with a margin), inside LOC footprints or EXCLUSIONS.
+//
+// Extra species (larch, rowan, old spruce, krummholz) are substitutions and a separate pass that use
+// their own rng streams, so the ordinary trees keep their places and variants (a substituted tree takes the
+// spot of the spruce, pine or birch it replaces). The rare odd trees are placed afterwards by rare.js, which
+// opens a glade around each one.
 import { createNoise } from '../../core/Noise.js';
 import { rng, smoothstep, clamp, lerp, nearestOnPolyline } from '../../core/util.js';
 import { LOC, ROADS, LAKE, RIVER, nearestRoad } from '../layout.js';
@@ -26,9 +31,9 @@ const VILLAGE = LOC.village;
 // The flat marsh at ice level that merges into the lake's west end (design: reeds and cattails stand
 // through the ice where the terrain is below 0 inside this ellipse; nothing else grows in it).
 const MARSH_E = { x: -268, z: -82, rx: 105, rz: 78 };
-const marshE = (x, z) => Math.sqrt(((x - MARSH_E.x) / MARSH_E.rx) ** 2 + ((z - MARSH_E.z) / MARSH_E.rz) ** 2);
+export const marshE = (x, z) => Math.sqrt(((x - MARSH_E.x) / MARSH_E.rx) ** 2 + ((z - MARSH_E.z) / MARSH_E.rz) ** 2);
 
-function locDistance(x, z) {
+export function locDistance(x, z) {
   let best = 1e9;
   for (let i = 0; i < LOCS.length; i++) {
     const l = LOCS[i];
@@ -47,7 +52,7 @@ const VISTAS = [
   [LOC.passStart.x, LOC.passStart.z, 26, 70],
   [LOC.crossroads.x, LOC.crossroads.z, 14, 40],
 ];
-function vistaFactor(x, z) {
+export function vistaFactor(x, z) {
   let f = 1;
   for (let i = 0; i < VISTAS.length; i++) {
     const v = VISTAS[i];
@@ -64,7 +69,7 @@ function riverDistance(x, z) {
   return nearestOnPolyline(x, z, RIVER.pts).d;
 }
 
-function macroForest(x, z) {
+export function macroForest(x, z) {
   let f = 0.3 + 1.15 * N.fbm2(x / 310 + 11, z / 310 - 5, 3);
   f -= 0.55 * smoothstep(0.12, 0.4, N.fbm2(x / 470 + 100, z / 470 + 40, 2)); // big open meadows
   f += 0.75 * smoothstep(-170, -360, z); // north: dense dark forest
@@ -77,7 +82,7 @@ function macroForest(x, z) {
   return f;
 }
 
-function macroBirch(x, z, h) {
+export function macroBirch(x, z, h) {
   let b = 0.12 + 0.95 * N.fbm2(x / 105 + 30, z / 105 + 70, 2);
   const dv = Math.hypot(x - VILLAGE.x, z - VILLAGE.z);
   b += 0.6 * smoothstep(270, 120, dv);
@@ -96,6 +101,14 @@ function macroDead(x, z) {
   d += 0.1 * smoothstep(80, 18, Math.hypot(x - LOC.charcoal.x, z - LOC.charcoal.z));
   d += 0.08 * smoothstep(50, 12, Math.hypot(x - LOC.crossroads.x, z - LOC.crossroads.z));
   return d;
+}
+
+// Larch: golden groves in patches (noise), on slopes and cold mid heights, not in the bottom of the valley
+// and not at the stunted treeline.
+export function larchWeight(x, z, h) {
+  const lf = N.fbm2(x / 70 + 220, z / 70 - 310, 2);
+  const alt = smoothstep(35, 130, h) * (1 - smoothstep(270, 350, h));
+  return smoothstep(0.08, 0.3, lf) * (0.3 + 0.5 * alt) * 0.62;
 }
 
 // Macro fields sampled on a 12 m raster (they vary slowly), bilinear lookups per candidate.
@@ -185,7 +198,7 @@ let _roadRaster = null;
 export function roadRaster() { return _roadRaster || (_roadRaster = new RoadRaster(INNER + 40, 4)); }
 
 // Shared per point evaluation of the rules (used by trees and ground cover)
-function lakeInfo(x, z) {
+export function lakeInfo(x, z) {
   const dx = (x - LAKE.x) / LAKE.rx, dz = (z - LAKE.z) / LAKE.rz;
   if (dx * dx + dz * dz > 1.9) return 200;
   return lakeSDF(x, z);
@@ -219,7 +232,7 @@ export async function placeVegetation(G, kinds) {
   const maybeYield = async () => {
     if (performance.now() - yieldT > 30) { await new Promise((r) => setTimeout(r, 0)); yieldT = performance.now(); }
   };
-  const stats = { tree: 0, snag: 0, bush: 0, deadwood: 0, reed: 0, ms: {} };
+  const stats = { tree: 0, snag: 0, bush: 0, deadwood: 0, reed: 0, larch: 0, oldspruce: 0, rowan: 0, krummholz: 0, ms: {} };
   const tStart = performance.now();
 
   const pickVar = (list, weights) => {
@@ -240,13 +253,14 @@ export async function placeVegetation(G, kinds) {
   };
 
   const rocks = G.rocks && G.rocks.rockAt ? G.rocks : null;
-  const emit = (list, ki, x, y, z, s, sxMul, yaw, tiltMax, tintBase, view) => {
+  // rr: the rng to draw from (the default is the main stream; extra passes bring their own)
+  const emit = (list, ki, x, y, z, s, sxMul, yaw, tiltMax, tintBase, view, rr = rn) => {
     const kind = kinds[ki];
     if (rocks && rocks.rockAt(x, z, Math.max(0.8, kind.trunkR * s * sxMul + 0.7))) return false; // boulders and outcrops from G.rocks
-    tint(rn, tintBase, 0.3, col);
-    const tx = (rn() - 0.5) * 2 * tiltMax, tz = (rn() - 0.5) * 2 * tiltMax;
+    tint(rr, tintBase, 0.3, col);
+    const tx = (rr() - 0.5) * 2 * tiltMax, tz = (rr() - 0.5) * 2 * tiltMax;
     list.push({
-      k: ki, x, y, z, yaw, sx: s * sxMul, sy: s, r: col[0], g: col[1], b: col[2], tx, tz, view: view ?? (rn() < 0.5 ? 0 : 1),
+      k: ki, x, y, z, yaw, sx: s * sxMul, sy: s, r: col[0], g: col[1], b: col[2], tx, tz, view: view ?? (rr() < 0.5 ? 0 : 1),
       trunk: kind.trunkR * s * sxMul,
     });
     return true;
@@ -256,6 +270,8 @@ export async function placeVegetation(G, kinds) {
   const CS = 3.8;
   const R = INNER;
   const spruceIdx = by.spruce, pineIdx = by.pine, birchIdx = by.birch, snagIdx = by.snag;
+  const larchIdx = by.larch, oldIdx = by.oldspruce, rowanIdx = by.rowan;
+  const SUB = rng(60221);
   for (let gz = -R; gz < R; gz += CS) {
     await maybeYield();
     for (let gx = -R; gx < R; gx += CS) {
@@ -344,6 +360,27 @@ export async function placeVegetation(G, kinds) {
           tiltMax = 0.02; tb = 1;
           stats.tree++;
         }
+        // extra common species: substitutions drawn from their own rng stream (see the header), so every other
+        // tree stays where it was. Larch groves on slopes and cold mid heights (golden patches), veteran
+        // broken-top spruce in the dense forest, rowan along forest edges.
+        {
+          const sp = kinds[ki].species;
+          if (sp === 'spruce' || sp === 'pine') {
+            const pL = larchWeight(x, z, h) * (sp === 'pine' ? 1.5 : 1);
+            const u2 = SUB();
+            if (larchIdx && u2 < pL) {
+              const exposed = ny < 0.88 || h > 150 || hcurv > 2.5;
+              ki = larchIdx[exposed ? (SUB() < 0.75 ? 1 : 0) : (SUB() < 0.7 ? 0 : 1)];
+              stats.larch++;
+            } else if (oldIdx && sp === 'spruce' && kinds[ki].height > 18 && u2 < pL + 0.035 * smoothstep(0.55, 0.9, F)) {
+              ki = oldIdx[Math.floor(SUB() * oldIdx.length)];
+              stats.oldspruce++;
+            }
+          } else if (sp === 'birch' && rowanIdx) {
+            const edgeR = clamp(1 - Math.abs(F - 0.4) / 0.24, 0, 1);
+            if (SUB() < 0.08 + 0.4 * edgeR * (1 - B * 0.35)) { ki = rowanIdx[Math.floor(SUB() * rowanIdx.length)]; stats.rowan++; }
+          }
+        }
         const stunt = lerp(1, 0.38, smoothstep(160, 335, h));
         s *= stunt;
         const kind = kinds[ki];
@@ -368,8 +405,9 @@ export async function placeVegetation(G, kinds) {
             const ki = pickVar(by.snowbush);
             emit(inner, ki, x, h - 0.12, z, 0.7 + rn() * 0.7, 1 + (rn() - 0.5) * 0.3, rn() * 6.28, 0.03, 1);
           } else {
-            const ki = pickVar(by.sapling);
-            const s = (forestInterior ? 0.6 : 1) * (0.7 + rn() * 0.7);
+            let ki = pickVar(by.sapling);
+            let s = (forestInterior ? 0.6 : 1) * (0.7 + rn() * 0.7);
+            if (rowanIdx && !forestInterior && SUB() < 0.16) { ki = rowanIdx[Math.floor(SUB() * rowanIdx.length)]; s = 0.45 + 0.35 * s; stats.rowan++; }
             emit(inner, ki, x, h - 0.1, z, s, 1, rn() * 6.28, 0.04, 1);
           }
           stats.bush++;
@@ -388,6 +426,37 @@ export async function placeVegetation(G, kinds) {
           emit(inner, ki, x, h - 0.05, z, 0.8 + rn() * 0.6, 1, rn() * 6.28, 0.02, 1, 0);
           stats.deadwood++;
         }
+      }
+    }
+  }
+
+  // ------------------------------------------------------------------ krummholz (own rng, own emit stream)
+  // Dwarf mountain pine creeping over the treeline (above about 130 m, thickest 200 to 360 m) and over
+  // wind-scoured rocky ridges lower down.
+  if (by.krummholz) {
+    const rk = rng(77113);
+    const KS = 6.5;
+    for (let gz = -R; gz < R; gz += KS) {
+      await maybeYield();
+      for (let gx = -R; gx < R; gx += KS) {
+        const x = gx + rk() * KS, z = gz + rk() * KS;
+        const h = W.heightAt(x, z);
+        if (h < 70 || h > 398) continue;
+        const ny = normalAt(x, z);
+        if (ny < 0.5) continue;
+        let D = smoothstep(125, 230, h) * (1 - smoothstep(350, 400, h)) * 0.55 + smoothstep(0.92, 0.72, ny) * 0.4 * smoothstep(70, 150, h);
+        D *= 0.35 + 0.9 * smoothstep(-0.35, 0.35, N.fbm2(x / 38 + 310, z / 38 - 120, 2));
+        D *= dens * 0.75;
+        const roll = rk();
+        if (roll >= D) continue;
+        if (locDistance(x, z) < 3) continue;
+        if (roads.edge(x, z) < 3) continue;
+        const exF = EXCLUSIONS.length ? exclusionFactor(x, z, 'bush') : 1;
+        if (exF < 0.5) continue;
+        if (lakeInfo(x, z) < 3) continue;
+        const s = (0.8 + rk() * 0.8) * lerp(1, 0.75, smoothstep(300, 395, h));
+        const ki = by.krummholz[Math.floor(rk() * by.krummholz.length)];
+        if (emit(inner, ki, x, h - 0.12, z, s, 0.9 + rk() * 0.3, rk() * 6.28, 0.03, 1, 0, rk)) stats.krummholz++;
       }
     }
   }
@@ -468,6 +537,8 @@ export async function placeFarRing(G, kinds, opts = {}) {
   const rn = rng(8128);
   const by = indexByPrefix(kinds);
   const spruceIdx = by.spruce, pineIdx = by.pine, birchIdx = by.birch;
+  const larchIdx = by.larch;
+  const SUBF = rng(8801);
   const far = [];
   const col = [1, 1, 1];
   let yieldT = performance.now();
@@ -527,6 +598,8 @@ export async function placeFarRing(G, kinds, opts = {}) {
       if (u < 0.1 + 0.2 * smoothstep(90, 250, h)) ki = pickVar(pineIdx, pineIdx.map(() => 1));
       else if (u < 0.1 + B * 0.3 && B > 0.45 && h < 130) ki = pickVar(birchIdx, birchIdx.map(() => 1));
       else ki = pickVar(spruceIdx, [1, 0.9, 0.5, 0.2, 0.7, 0.8]);
+      // golden larch patches on the far slopes (their own rng stream)
+      if (larchIdx && SUBF() < larchWeight(x, z, h) * 1.35) ki = larchIdx[SUBF() < 0.5 ? 0 : 1];
       const stunt = lerp(1, 0.4, smoothstep(160, 335, h));
       // one billboard stands for a clump of trees: wider and slightly taller than a single tree
       const s = lerp(0.8, 1.15, rn()) * stunt * 1.1;

@@ -14,6 +14,16 @@ const SHAPES = {
   pine: [0.6, 0.4, 0.8],
   birch: [0.35, 0.65, 0.55],
   snag: [0.2, 0.8, 0.12],
+  // extra species (see kinds.js)
+  larch: [0.18, 0.82, 0.6],
+  oldspruce: [0.08, 0.7, 0.85],
+  rowan: [0.3, 0.7, 0.5],
+  oak: [0.3, 0.7, 0.75],
+  corkscrew: [0.5, 0.5, 0.6],
+  weeping: [0.1, 0.9, 0.85],
+  bottle: [0.4, 0.6, 0.6],
+  knot: [0.4, 0.6, 0.4],
+  arch: [0.35, 0.65, 0.5],
 };
 
 export class ShadowProxyLayer {

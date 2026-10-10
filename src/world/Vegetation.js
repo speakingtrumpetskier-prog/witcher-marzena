@@ -23,6 +23,7 @@ import { createKinds } from './trees/kinds.js';
 import { VegLayer } from './trees/layer.js';
 import { bakeImpostors, ImpostorLayer } from './trees/impostor.js';
 import { placeVegetation, placeFarRing, GroundGenerator } from './trees/placement.js';
+import { placeRare } from './trees/rare.js';
 import { lodUniform, setLod } from './trees/materials.js';
 import { ShadowProxyLayer } from './trees/shadowProxy.js';
 
@@ -40,15 +41,29 @@ export async function init(G) {
   const tBake = performance.now();
 
   const placed = await placeVegetation(G, treeKinds);
+  // the rare odd trees (corkscrew grove, hollow oak, weeping birch, bottle, knot, ice and gate trees)
+  const rare = placeRare(G, treeKinds, placed);
   const tPlace = performance.now();
 
   // trunk colliders for every tree inside the playable area
   const P = WORLD.playable;
   const physics = G.physics;
   let colliders = 0;
+  const extraColliders = new Map(); // first collider id -> the other circles of a many trunked tree
   if (physics) {
     for (const it of placed.inner) {
-      if (it.trunk > 0.05 && Math.abs(it.x) < P && Math.abs(it.z) < P) {
+      if (Math.abs(it.x) >= P || Math.abs(it.z) >= P) continue;
+      const kind = treeKinds[it.k];
+      if (kind.colliders) {
+        // several trunk circles (the hollow oak's pillars, the gate tree's two trunks) so doorways stay open
+        const c = Math.cos(it.yaw || 0), sn = Math.sin(it.yaw || 0);
+        const ids = kind.colliders.map((cc) => physics.addCircle(it.x + (cc.x * c + cc.z * sn) * it.sx, it.z + (-cc.x * sn + cc.z * c) * it.sx, cc.r * it.sx, { tag: 'tree' }));
+        if (ids.length) {
+          it.collider = ids[0];
+          if (ids.length > 1) extraColliders.set(ids[0], ids.slice(1));
+          colliders += ids.length;
+        }
+      } else if (it.trunk > 0.05) {
         it.collider = physics.addCircle(it.x, it.z, Math.max(0.2, it.trunk), { tag: 'tree' });
         colliders++;
       }
@@ -59,33 +74,49 @@ export async function init(G) {
   const trees = new VegLayer(G, treeKinds, { name: 'main', chunkSize: 64, quality: q });
   trees.addInstances(placed.inner);
   trees.finalize();
-  trees.onClear = (id) => physics?.remove(id);
+  trees.onClear = (id) => {
+    physics?.remove(id);
+    for (const e of extraColliders.get(id) || []) physics?.remove(e);
+  };
   const ground = new VegLayer(G, groundKinds, { name: 'ground', chunkSize: GROUND_CELL, quality: q, hasImpostor: () => false });
   // streamed cells come and go, so the ground buffers are sized for a worst case instead of a count
   ground.finalize(groundKinds.map(() => 9000));
 
-  // impostor layer: one draw call for every far tree
-  const treeCfg = trees.cfg[treeKinds.findIndex((k) => k.impostor)];
-  const impIn = treeCfg.lods[treeCfg.lods.length - 1].hi;
-  const impU = lodUniform();
-  setLod(impU, impIn[0], impIn[1], null, null);
+  // Impostor layers, one draw call each. Kinds with three LODs hand over to billboards at about 290 m (the
+  // spruce and pine rhythm); the extra species have two LODs and hand over at about 100 m, so they get a second
+  // layer with its own fade range. Both share the atlas.
+  const farIdx = treeKinds.findIndex((k) => k.impostor && k.lodCount === 3);
+  const nearIdx = treeKinds.findIndex((k) => k.impostor && k.lodCount === 2);
+  const makeImpLayer = (idx, extra) => {
+    const cfg = trees.cfg[idx];
+    const hi = cfg.lods[cfg.lods.length - 1].hi;
+    const u = lodUniform();
+    setLod(u, hi[0], hi[1], null, null);
+    let count = 0;
+    const want = treeKinds[idx].lodCount;
+    trees.forEachAlive((k) => { if (k.impostor && k.lodCount === want) count++; });
+    return new ImpostorLayer(atlas, u, [hi[0] - 6, 6000], count + extra);
+  };
   placed.far = [];
-  let impCount = 0;
-  trees.forEachAlive((k) => { if (k.impostor) impCount++; });
-  const imp = new ImpostorLayer(atlas, impU, [impIn[0] - 6, 6000], impCount + 80000);
+  const imp = makeImpLayer(farIdx, 80000);
+  const imp2 = nearIdx >= 0 ? makeImpLayer(nearIdx, 20000) : null;
+  const layerOf = (k) => (k.lodCount === 2 && imp2 ? imp2 : imp);
   let impDirty = true;
   const rebuildImpostors = () => {
     imp.begin();
-    for (const f of placed.far) if (!f.dead) imp.push(treeKinds[f.k], f.x, f.y, f.z, f.sx, f.sy, f.r, f.g, f.b, f.view);
+    if (imp2) imp2.begin();
+    for (const f of placed.far) if (!f.dead) { const k = treeKinds[f.k]; layerOf(k).push(k, f.x, f.y, f.z, f.sx, f.sy, f.r, f.g, f.b, f.view); }
     trees.forEachAlive((k, x, y, z, sx, sy, r, g, b, view) => {
-      if (k.impostor) imp.push(k, x, y, z, sx, sy, r, g, b, view);
+      if (k.impostor) layerOf(k).push(k, x, y, z, sx, sy, r, g, b, view);
     });
     imp.end();
+    if (imp2) imp2.end();
     impDirty = false;
   };
   rebuildImpostors();
 
   G.scene.add(trees.group, ground.group, imp.mesh);
+  if (imp2) G.scene.add(imp2.mesh);
   // far shadow cascade casters (cones standing in for the forests that have no real mesh at range)
   const proxies = q === 'low' ? null : new ShadowProxyLayer(G, trees);
   if (proxies) G.scene.add(proxies.mesh);
@@ -93,6 +124,8 @@ export async function init(G) {
 
   // ---- ground cover streaming -------------------------------------------------------------
   const gen = new GroundGenerator(G, groundKinds, { low: 0.6, medium: 0.85, high: 1 }[q] ?? 1);
+  // no grass tufts poking through the ice, the hollow oak's floor or the gate tree's roots
+  for (const it of rare.list) gen.cleared.push({ x: it.x, z: it.z, r: Math.max(1.6, Math.min(3.2, treeKinds[it.k].trunkR * it.sx * 1.4 + 0.8)) });
   const cells = new Map();
   const cellRadius = Math.ceil((ground.cfg[0].maxD + 8) / GROUND_CELL);
   let firstUpdate = true;
@@ -159,9 +192,11 @@ export async function init(G) {
     clearArea,
     treeAt: (x, z, r = 0) => trees.treeAt(x, z, r),
     snagsNear: (x, z, r = 40) => trees.findNear(['snag'], x, z, r),
-    layers: { trees, ground, impostors: imp },
+    layers: { trees, ground, impostors: imp, impostorsNear: imp2 },
     kinds: all,
     placement: placed.stats,
+    // the odd trees: { heroes [{ id, species, x, z, y, yaw, note }], counts, removed, list }
+    rare,
     // Vegetation only: draw calls and triangles submitted by the last layer update (shadow pass excluded)
     drawStats() {
       let calls = 0, tris = 0;
@@ -181,8 +216,11 @@ export async function init(G) {
           }
         }
       }
-      if (imp.mesh.visible) { calls++; tris += imp.mesh.count * 2; perSpecies.impostors = imp.mesh.count * 2; }
-      return { calls, tris: Math.round(tris), perSpecies, impostors: imp.mesh.count };
+      let nImp = 0;
+      for (const l of [imp, imp2]) {
+        if (l && l.mesh.visible) { calls++; tris += l.mesh.count * 2; perSpecies.impostors = (perSpecies.impostors || 0) + l.mesh.count * 2; nImp += l.mesh.count; }
+      }
+      return { calls, tris: Math.round(tris), perSpecies, impostors: nImp };
     },
     report() {
       const info = G.renderer.info.render;
