@@ -7,7 +7,7 @@
 // import.meta.glob only includes files that exist, so a subsystem that is not built yet is simply
 // skipped (a plain dynamic import of a missing file fails the whole module in Vite).
 const FOUND = import.meta.glob(['./Interact.js', './Senses.js', './Player.js', './CameraRig.js', './Horse.js',
-  './combat/index.js', './creatures/index.js', './npcs/index.js']);
+  './combat/index.js', './creatures/index.js', './npcs/index.js', './SnowTracks.js', './fauna/index.js']);
 const SUBSYSTEMS = [
   ['interact', './Interact.js'],
   ['senses', './Senses.js'],
@@ -17,6 +17,8 @@ const SUBSYSTEMS = [
   ['combat', './combat/index.js'],
   ['creatures', './creatures/index.js'],
   ['npcs', './npcs/index.js'],
+  ['snowTracks', './SnowTracks.js'],
+  ['fauna', './fauna/index.js'],
 ];
 
 export async function init(G) {

@@ -37,6 +37,8 @@ vec3 mzTerrainPos() {
 
 // The lighting wrap: glints and a soft snow terminator, per direct light (shadowed color).
 const FRAG_PARS = /* glsl */ `
+uniform sampler2D uTrackMap;
+uniform vec4 uTrackRect; // x0, z0, size, on
 uniform float uSnowCover;
 uniform float uSpring;
 varying vec3 vMzWP;
@@ -166,6 +168,23 @@ const FRAG_SHADE = /* glsl */ `
   float bank = 1.0 - smoothstep(6.0, 11.0, mk.w);
   snowCol = mix(snowCol, vec3(0.78, 0.84, 0.9), bank * 0.4);
 
+  // ---- tracks: prints pressed into the snow (gameplay/SnowTracks.js); packed snow is greyer and bluer
+  float trk = 0.0;
+  vec2 trkG = vec2(0.0);
+  if (uTrackRect.w > 0.5) {
+    vec2 tuv = (xz - uTrackRect.xy) / uTrackRect.z;
+    if (all(greaterThan(tuv, vec2(0.002))) && all(lessThan(tuv, vec2(0.998)))) {
+      float e = 1.0 / 1024.0;
+      trk = texture2D(uTrackMap, tuv).r;
+      float tx = texture2D(uTrackMap, tuv + vec2(e, 0.0)).r - texture2D(uTrackMap, tuv - vec2(e, 0.0)).r;
+      float tz = texture2D(uTrackMap, tuv + vec2(0.0, e)).r - texture2D(uTrackMap, tuv - vec2(0.0, e)).r;
+      trkG = vec2(tx, tz);
+      trk *= 1.0 - onRoad * 0.85;
+      snowCol = mix(snowCol, snowCol * vec3(0.7, 0.76, 0.86), trk * 0.85);
+      snowRough = mix(snowRough, 0.55, trk);
+    }
+  }
+
   // ---- combine
   float aoL = clamp(1.0 - max(0.0, large) * 0.035, 0.72, 1.0);
   diffuseColor.rgb = mix(ground * aoL, snowCol, snow);
@@ -202,10 +221,12 @@ const FRAG_SHADE = /* glsl */ `
       Np = normalize(Np + (upT / lu) * ledge * 0.18 * steepR * joint * (1.0 - snow) * detail);
     }
   }
+  // Print walls: the map's slope bends the normal (the rim catches the low sun, the floor shades).
+  Np = normalize(Np + vec3(trkG.x, 0.0, trkG.y) * 2.2 * snow);
   normal = normalize((viewMatrix * vec4(Np, 0.0)).xyz);
   mzGlintN = Np;
   mzSnowAmt = snow;
-  mzGlintAmt = snow * (1.0 - onRoad * 0.85) * (1.0 - trample * 0.7) * (1.0 + shore);
+  mzGlintAmt = snow * (1.0 - onRoad * 0.85) * (1.0 - trample * 0.7) * (1.0 + shore) * (1.0 - trk * 0.85);
 }
 `;
 
@@ -223,6 +244,10 @@ export function createTerrainMaterials(G, uniforms) {
     Object.assign(shader.uniforms, uniforms);
     shader.uniforms.uSnowCover = U.uSnowCover;
     shader.uniforms.uSpring = U.uSpring;
+    U.uTrackMap ||= { value: null };
+    U.uTrackRect ||= { value: new THREE.Vector4(0, 0, 128, 0) };
+    shader.uniforms.uTrackMap = U.uTrackMap;
+    shader.uniforms.uTrackRect = U.uTrackRect;
     let vs = shader.vertexShader;
     vs = VERTEX_PARS + 'varying vec3 vMzWP;\n' + vs;
     vs = vs.replace('#include <beginnormal_vertex>', `

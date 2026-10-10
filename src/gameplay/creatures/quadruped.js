@@ -79,6 +79,123 @@ export const SPECS = {
     furBase: [0.42, 0.3, 0.2], bellyBase: [0.36, 0.26, 0.18], legBase: [0.32, 0.23, 0.16],
     texKey: 'bear', texSeed: 23,
   },
+  // Wildlife (gameplay/fauna): the valley's animals, not enemies.
+  deer: {
+    name: 'deer', hoof: true,
+    pelvisY: 0.8, bodyLen: 0.6, shoulderDY: 0.05, hipX: 0.085, shX: 0.09,
+    stride: 1.15, lift: 1.25,
+    front: { L1: 0.3, L2: 0.31, L3: 0.2, r0: 0.075, r1: 0.034, r2: 0.022, phi: -0.06, bend: -1, ankle: 0.05, depth: 1.0, belly: 1.05 },
+    hind: { L1: 0.32, L2: 0.34, L3: 0.25, r0: 0.11, r1: 0.04, r2: 0.022, phi: 0.5, bend: 1, ankle: 0.05, depth: 1.2, belly: 1.1 },
+    pawR: [0.03, 0.035, 0.05],
+    pelvis: [
+      { z: -0.3, w: 0.07, h: 0.09, y: 0.02 }, { z: -0.2, w: 0.12, h: 0.15, y: 0.02 }, { z: -0.04, w: 0.13, h: 0.16, y: 0.0 },
+      { z: 0.14, w: 0.12, h: 0.155, y: -0.01 }, { z: 0.3, w: 0.11, h: 0.14, y: -0.015 },
+    ],
+    chest: [
+      { z: -0.32, w: 0.11, h: 0.14, y: -0.02 }, { z: -0.16, w: 0.135, h: 0.18, y: -0.025 }, { z: 0.0, w: 0.145, h: 0.205, y: -0.01 },
+      { z: 0.15, w: 0.13, h: 0.19, y: 0.0 }, { z: 0.27, w: 0.1, h: 0.15, y: 0.01 }, { z: 0.34, w: 0.06, h: 0.09, y: 0.02 },
+    ],
+    neckPivot: [0, 0.12, 0.27], neckLen: 0.36,
+    neck: [{ z: -0.12, w: 0.08, h: 0.12, y: 0 }, { z: 0.06, w: 0.062, h: 0.085, y: 0 }, { z: 0.2, w: 0.052, h: 0.07, y: 0 }, { z: 0.34, w: 0.05, h: 0.065, y: 0 }],
+    head: [
+      { z: -0.05, w: 0.05, h: 0.06, y: 0.0 }, { z: 0.02, w: 0.06, h: 0.068, y: 0.0 }, { z: 0.09, w: 0.048, h: 0.056, y: -0.008 },
+      { z: 0.15, w: 0.036, h: 0.044, y: -0.02 }, { z: 0.2, w: 0.03, h: 0.036, y: -0.028 }, { z: 0.235, w: 0.024, h: 0.028, y: -0.032 }, { z: 0.25, w: 0.012, h: 0.014, y: -0.032 },
+    ],
+    jaw: [{ z: 0.0, w: 0.028, h: 0.016, y: -0.012 }, { z: 0.08, w: 0.026, h: 0.016, y: -0.016 }, { z: 0.15, w: 0.02, h: 0.012, y: -0.02 }, { z: 0.19, w: 0.01, h: 0.008, y: -0.022 }],
+    jawPivot: [0, -0.03, 0.03], eye: [0.045, 0.028, 0.06], eyeR: 0.016,
+    ear: { x: 0.04, y: 0.06, z: -0.04, h: 0.13, w: 0.06 },
+    tail: { len: [0.05, 0.04, 0.03], r: [0.03, 0.035, 0.025, 0.01], base: [0, 0.06, -0.3] },
+    ruff: 0,
+    furBase: [0.26, 0.21, 0.16], bellyBase: [0.5, 0.46, 0.4], legBase: [0.24, 0.2, 0.16],
+    texKey: 'deer', texSeed: 31,
+  },
+  fox: {
+    name: 'fox',
+    pelvisY: 0.36, bodyLen: 0.4, shoulderDY: 0.03, hipX: 0.06, shX: 0.065,
+    stride: 0.62, lift: 0.8,
+    front: { L1: 0.14, L2: 0.13, L3: 0.08, r0: 0.05, r1: 0.025, r2: 0.017, phi: -0.06, bend: -1, ankle: 0.035, depth: 1.0, belly: 1.1 },
+    hind: { L1: 0.15, L2: 0.14, L3: 0.11, r0: 0.07, r1: 0.03, r2: 0.017, phi: 0.5, bend: 1, ankle: 0.035, depth: 1.2, belly: 1.15 },
+    pawR: [0.025, 0.02, 0.045],
+    pelvis: [
+      { z: -0.22, w: 0.04, h: 0.05, y: 0.0 }, { z: -0.15, w: 0.07, h: 0.08, y: 0.01 }, { z: -0.03, w: 0.08, h: 0.09, y: 0.0 },
+      { z: 0.1, w: 0.075, h: 0.085, y: -0.005 }, { z: 0.2, w: 0.07, h: 0.08, y: -0.01 },
+    ],
+    chest: [
+      { z: -0.22, w: 0.07, h: 0.08, y: -0.01 }, { z: -0.12, w: 0.085, h: 0.1, y: -0.012 }, { z: 0.0, w: 0.09, h: 0.115, y: -0.005 },
+      { z: 0.1, w: 0.085, h: 0.11, y: 0.0 }, { z: 0.18, w: 0.065, h: 0.085, y: 0.005 }, { z: 0.23, w: 0.04, h: 0.05, y: 0.01 },
+    ],
+    neckPivot: [0, 0.05, 0.18], neckLen: 0.14,
+    neck: [{ z: -0.07, w: 0.065, h: 0.08, y: 0 }, { z: 0.03, w: 0.055, h: 0.065, y: 0 }, { z: 0.1, w: 0.048, h: 0.056, y: 0 }, { z: 0.15, w: 0.044, h: 0.05, y: 0 }],
+    head: [
+      { z: -0.04, w: 0.04, h: 0.045, y: 0.0 }, { z: 0.0, w: 0.052, h: 0.05, y: 0.0 }, { z: 0.05, w: 0.044, h: 0.042, y: -0.004 },
+      { z: 0.09, w: 0.028, h: 0.028, y: -0.012 }, { z: 0.13, w: 0.02, h: 0.02, y: -0.016 }, { z: 0.16, w: 0.013, h: 0.013, y: -0.018 }, { z: 0.172, w: 0.007, h: 0.007, y: -0.018 },
+    ],
+    jaw: [{ z: 0.0, w: 0.02, h: 0.01, y: -0.008 }, { z: 0.05, w: 0.02, h: 0.01, y: -0.01 }, { z: 0.1, w: 0.014, h: 0.008, y: -0.01 }, { z: 0.13, w: 0.007, h: 0.005, y: -0.01 }],
+    jawPivot: [0, -0.022, 0.02], eye: [0.032, 0.018, 0.045], eyeR: 0.009,
+    ear: { x: 0.032, y: 0.045, z: -0.02, h: 0.08, w: 0.035 },
+    tail: { len: [0.14, 0.15, 0.14], r: [0.035, 0.07, 0.075, 0.03], base: [0, 0.02, -0.22] },
+    ruff: 0.2,
+    furBase: [0.42, 0.15, 0.04], bellyBase: [0.58, 0.55, 0.5], legBase: [0.09, 0.06, 0.045],
+    texKey: 'fox', texSeed: 41,
+  },
+  hare: {
+    name: 'hare', bound: true,
+    pelvisY: 0.24, bodyLen: 0.2, shoulderDY: -0.03, hipX: 0.05, shX: 0.04,
+    stride: 0.5, lift: 0.9,
+    front: { L1: 0.09, L2: 0.085, L3: 0.05, r0: 0.03, r1: 0.016, r2: 0.012, phi: -0.06, bend: -1, ankle: 0.025, depth: 1.0, belly: 1.05 },
+    hind: { L1: 0.12, L2: 0.13, L3: 0.13, r0: 0.06, r1: 0.025, r2: 0.016, phi: 0.6, bend: 1, ankle: 0.025, depth: 1.25, belly: 1.2 },
+    pawR: [0.02, 0.016, 0.05],
+    pelvis: [
+      { z: -0.16, w: 0.04, h: 0.045, y: 0.02 }, { z: -0.11, w: 0.075, h: 0.085, y: 0.02 }, { z: -0.02, w: 0.085, h: 0.095, y: 0.01 },
+      { z: 0.06, w: 0.075, h: 0.085, y: 0.0 }, { z: 0.13, w: 0.065, h: 0.075, y: -0.005 },
+    ],
+    chest: [
+      { z: -0.14, w: 0.065, h: 0.075, y: -0.005 }, { z: -0.07, w: 0.07, h: 0.08, y: -0.01 }, { z: 0.0, w: 0.068, h: 0.08, y: -0.01 },
+      { z: 0.07, w: 0.06, h: 0.07, y: -0.005 }, { z: 0.12, w: 0.045, h: 0.055, y: 0.0 }, { z: 0.15, w: 0.025, h: 0.03, y: 0.0 },
+    ],
+    neckPivot: [0, 0.03, 0.12], neckLen: 0.07,
+    neck: [{ z: -0.04, w: 0.05, h: 0.055, y: 0 }, { z: 0.01, w: 0.045, h: 0.05, y: 0 }, { z: 0.05, w: 0.042, h: 0.046, y: 0 }, { z: 0.08, w: 0.04, h: 0.044, y: 0 }],
+    head: [
+      { z: -0.03, w: 0.035, h: 0.04, y: 0.0 }, { z: 0.01, w: 0.042, h: 0.046, y: 0.0 }, { z: 0.05, w: 0.036, h: 0.038, y: -0.004 },
+      { z: 0.08, w: 0.026, h: 0.028, y: -0.01 }, { z: 0.1, w: 0.018, h: 0.02, y: -0.014 }, { z: 0.115, w: 0.012, h: 0.013, y: -0.016 }, { z: 0.12, w: 0.006, h: 0.006, y: -0.016 },
+    ],
+    jaw: [{ z: 0.0, w: 0.016, h: 0.008, y: -0.008 }, { z: 0.04, w: 0.015, h: 0.008, y: -0.01 }, { z: 0.07, w: 0.01, h: 0.006, y: -0.012 }, { z: 0.09, w: 0.005, h: 0.004, y: -0.012 }],
+    jawPivot: [0, -0.02, 0.02], eye: [0.03, 0.018, 0.035], eyeR: 0.01,
+    ear: { x: 0.016, y: 0.04, z: -0.025, h: 0.13, w: 0.032 },
+    tail: { len: [0.025, 0.02, 0.015], r: [0.02, 0.025, 0.02, 0.008], base: [0, 0.05, -0.16] },
+    ruff: 0,
+    furBase: [0.56, 0.55, 0.53], bellyBase: [0.66, 0.66, 0.65], legBase: [0.5, 0.49, 0.47],
+    texKey: 'hare', texSeed: 53,
+  },
+  lynx: {
+    name: 'lynx',
+    pelvisY: 0.58, bodyLen: 0.52, shoulderDY: 0.0, hipX: 0.1, shX: 0.1,
+    stride: 0.95, lift: 1.0,
+    front: { L1: 0.24, L2: 0.23, L3: 0.12, r0: 0.09, r1: 0.055, r2: 0.04, phi: -0.06, bend: -1, ankle: 0.05, depth: 1.05, belly: 1.1 },
+    hind: { L1: 0.26, L2: 0.25, L3: 0.2, r0: 0.12, r1: 0.06, r2: 0.04, phi: 0.5, bend: 1, ankle: 0.05, depth: 1.25, belly: 1.15 },
+    pawR: [0.065, 0.04, 0.08],
+    pelvis: [
+      { z: -0.3, w: 0.06, h: 0.07, y: 0.02 }, { z: -0.2, w: 0.12, h: 0.14, y: 0.02 }, { z: -0.04, w: 0.13, h: 0.15, y: 0.0 },
+      { z: 0.13, w: 0.12, h: 0.145, y: -0.01 }, { z: 0.27, w: 0.11, h: 0.13, y: -0.015 },
+    ],
+    chest: [
+      { z: -0.3, w: 0.11, h: 0.13, y: -0.015 }, { z: -0.16, w: 0.13, h: 0.165, y: -0.02 }, { z: 0.0, w: 0.14, h: 0.19, y: -0.01 },
+      { z: 0.14, w: 0.13, h: 0.18, y: 0.0 }, { z: 0.25, w: 0.1, h: 0.14, y: 0.0 }, { z: 0.32, w: 0.06, h: 0.085, y: 0.0 },
+    ],
+    neckPivot: [0, 0.07, 0.25], neckLen: 0.16,
+    neck: [{ z: -0.1, w: 0.11, h: 0.13, y: 0 }, { z: 0.02, w: 0.1, h: 0.115, y: 0 }, { z: 0.1, w: 0.09, h: 0.1, y: 0 }, { z: 0.17, w: 0.085, h: 0.095, y: 0 }],
+    head: [
+      { z: -0.06, w: 0.07, h: 0.07, y: 0.0 }, { z: 0.0, w: 0.09, h: 0.08, y: 0.0 }, { z: 0.06, w: 0.08, h: 0.07, y: -0.005 },
+      { z: 0.1, w: 0.055, h: 0.05, y: -0.015 }, { z: 0.13, w: 0.04, h: 0.036, y: -0.02 }, { z: 0.15, w: 0.025, h: 0.022, y: -0.022 }, { z: 0.158, w: 0.012, h: 0.012, y: -0.022 },
+    ],
+    jaw: [{ z: 0.0, w: 0.035, h: 0.016, y: -0.014 }, { z: 0.05, w: 0.032, h: 0.016, y: -0.016 }, { z: 0.09, w: 0.022, h: 0.012, y: -0.016 }, { z: 0.11, w: 0.011, h: 0.006, y: -0.016 }],
+    jawPivot: [0, -0.03, 0.02], eye: [0.045, 0.025, 0.07], eyeR: 0.014,
+    ear: { x: 0.05, y: 0.06, z: -0.03, h: 0.1, w: 0.045 },
+    tail: { len: [0.05, 0.04, 0.03], r: [0.035, 0.04, 0.035, 0.02], base: [0, 0.05, -0.29] },
+    ruff: 0.45,
+    furBase: [0.33, 0.27, 0.21], bellyBase: [0.55, 0.52, 0.47], legBase: [0.3, 0.25, 0.2],
+    texKey: 'lynx', texSeed: 61,
+  },
 };
 
 // ---- gaits -----------------------------------------------------------------------------------------------
@@ -89,6 +206,8 @@ const GAITS = {
   walk: { duty: 0.66, ls: 0.46, lift: 0.075, off: [0.25, 0.75, 0.0, 0.5], bob: 0.014, pitch: 0.012, flex: 0.02, bobHz: 2, sway: 0.035, reach: 0.0 },
   trot: { duty: 0.5, ls: 0.62, lift: 0.105, off: [0.0, 0.5, 0.5, 0.0], bob: 0.03, pitch: 0.02, flex: 0.03, bobHz: 2, sway: 0.025, reach: 0.04 },
   run: { duty: 0.34, ls: 0.82, lift: 0.17, off: [0.5, 0.6, 0.0, 0.1], bob: 0.075, pitch: 0.17, flex: 0.24, bobHz: 1, sway: 0.01, reach: 0.18 },
+  // hares: the hind feet land together ahead of the front pair
+  bound: { duty: 0.3, ls: 0.9, lift: 0.22, off: [0.55, 0.6, 0.0, 0.03], bob: 0.09, pitch: 0.22, flex: 0.3, bobHz: 1, sway: 0.0, reach: 0.2 },
 };
 
 export function pickGait(v, cur) {
@@ -102,6 +221,8 @@ export function pickGait(v, cur) {
 
 const _o = {};
 const ease = (u) => u * u * (3 - 2 * u);
+
+const _pw = new THREE.Vector3();
 
 export class Quadruped {
   constructor(spec, o = {}) {
@@ -339,7 +460,8 @@ export class Quadruped {
 
     // Gait.
     const effSpeed = Math.max(speed, Math.abs(turn) * 0.28 * (this.dead_ > 0 ? 0 : 1));
-    const g = pickGait(effSpeed, this.gait);
+    let g = pickGait(effSpeed, this.gait === 'bound' ? 'run' : this.gait);
+    if (g === 'run' && S.bound) g = 'bound';
     if (g !== this.gait) {
       this.gait = g;
       this.blend = 0.24;
@@ -400,7 +522,7 @@ export class Quadruped {
       if (G_) {
         const p = (this.phase + G_.off[i]) % 1;
         const planted = p < G_.duty;
-        if (planted && L.swinging) this._paw();
+        if (planted && L.swinging) this._paw(L);
         L.swinging = !planted;
         const stride = G_.ls * sk;
         const reach = G_.reach * (L.front ? 1 : -0.4);
@@ -521,7 +643,12 @@ export class Quadruped {
   }
 
   // A paw lands: soft snow under wolves, heavier and lower under the bear. Only near the camera.
-  _paw() {
+  _paw(L) {
+    if (L?.bones?.paw && G.snowTracks) {
+      L.bones.paw.getWorldPosition(_pw);
+      const sz = { bear: 2.2, lynx: 1.5, fox: 0.75, hare: 0.7, deer: 0.5 }[this.spec.name] ?? 1;
+      G.snowTracks.stamp(this.spec.hoof ? 'hoof' : 'paw', _pw.x, _pw.z, this.root.rotation.y, sz);
+    }
     const cam = G.camera, p = this.root.position;
     if (!cam || !G.audio?.sfx) return;
     const dx = cam.position.x - p.x, dz = cam.position.z - p.z;
