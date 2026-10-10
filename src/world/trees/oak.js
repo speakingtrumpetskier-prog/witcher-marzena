@@ -22,6 +22,7 @@ const PAL = {
   limb: rgb('#5a4c40'),
   red: rgb('#a3211b'),
   floor: rgb('#1f1812'),
+  cream: rgb('#d8cdb4'),
 };
 
 export function buildOak(v, lod = 0) {
@@ -236,10 +237,10 @@ export function buildOak(v, lod = 0) {
       const q = base - 1.9 + (3.8 * i) / nA;
       arc.push([jc[0] + Math.sin(q) * jr, yb + 0.04 * Math.sin(i * 1.3), jc[2] + Math.cos(q) * jr]);
     }
-    sweep(b, arc, 4, { radius: () => 0.04, color: () => PAL.red, flex: 0 });
+    sweep(b, arc, 4, { radius: () => 0.065, color: () => PAL.red, flex: 0 });
     const knot = [jc[0] + toDoor[0] * jr, yb - 0.02, jc[2] + toDoor[2] * jr];
     const side = norm3([toDoor[2], 0, -toDoor[0]]);
-    const mkTail = (o, len, sway, phase, w) => {
+    const mkTail = (o, len, sway, phase, w, col = PAL.red) => {
       const pts = [];
       const m = lod === 0 ? 8 : 4;
       for (let i = 0; i <= m; i++) {
@@ -247,13 +248,28 @@ export function buildOak(v, lod = 0) {
         const sw = sway * Math.sin(t * 3 + phase) * t;
         pts.push([o[0] + toDoor[0] * 0.06 * t + side[0] * sw, o[1] - len * t, o[2] + toDoor[2] * 0.06 * t + side[2] * sw]);
       }
-      ribbon(b, pts, w, PAL.red, side, phase, 0.05);
+      ribbon(b, pts, w, col, side, phase, 0.05);
     };
-    mkTail(knot, 1.5, 0.08, 0.4, 0.07);
-    mkTail([knot[0] + side[0] * 0.06, knot[1], knot[2] + side[2] * 0.06], 0.95, 0.06, 2.1, 0.055);
-    berry(b, knot, 0.09, PAL.red);
-    mkTail([0, doorTop + 0.34, rho + 0.15], 1.1, 0.05, 1.3, 0.055);
-    berry(b, [0, doorTop + 0.36, rho + 0.15], 0.075, PAL.red);
+    // the long red ribbon and its short twin hang from the knot at the jamb
+    mkTail(knot, 2.0, 0.1, 0.4, 0.11);
+    mkTail([knot[0] + side[0] * 0.09, knot[1], knot[2] + side[2] * 0.09], 1.3, 0.08, 2.1, 0.085);
+    berry(b, knot, 0.12, PAL.red);
+    // votive strips tied along the lintel: red, red and a faded cream one, as on a wishing tree
+    if (lod < 2) {
+      const strips = [[-0.9, 0.9, PAL.red, 0.09], [-0.3, 1.5, PAL.red, 0.1], [0.35, 1.1, PAL.cream, 0.08], [0.95, 0.8, PAL.red, 0.08]];
+      strips.forEach(([f, len, col, w], i) => {
+        const a = f * D * 1.2;
+        const arch = Math.cos((f / 1.5) * Math.PI * 0.5 * 0.9);
+        const o = [Math.sin(a) * (rho + 0.18), doorTop - 0.1 + 0.6 * arch - 0.34, Math.cos(a) * (rho + 0.18)];
+        const m = lod === 0 ? 7 : 4;
+        const pts = [];
+        for (let q = 0; q <= m; q++) {
+          const t = q / m;
+          pts.push([o[0] + Math.sin(a) * 0.04 * t + Math.cos(a) * 0.05 * Math.sin(t * 3 + i) * t, o[1] - len * t, o[2] + Math.cos(a) * 0.04 * t - Math.sin(a) * 0.05 * Math.sin(t * 3 + i) * t]);
+        }
+        ribbon(b, pts, w, col, [Math.cos(a), 0, -Math.sin(a)], i * 1.7, 0.05);
+      });
+    }
   }
   return {
     geometry: b.toGeometry(),

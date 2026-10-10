@@ -107,7 +107,7 @@ export function createKinds() {
   }
   // rare and odd trees (placed by rare.js): one or a few of each, see the species files
   for (const v of CORK_VARIANTS) {
-    kinds.push(makeKind({ id: v.id, species: 'corkscrew', impostor: true, impLod: 1, variant: v, windStrength: 0.8 }, needleTree(buildCork, v, undefined, 2), 2));
+    kinds.push(makeKind({ id: v.id, species: 'corkscrew', impostor: true, impLod: 1, variant: v, windStrength: 0.8 }, (l) => buildCork(v, l), 2));
   }
   for (const v of OAK_VARIANTS) {
     kinds.push(makeKind({ id: v.id, species: 'oak', impostor: true, impLod: 1, variant: v, windStrength: 0.45 }, barkTree(buildOak, v, { lichen: 0.4 }), 2));
