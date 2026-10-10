@@ -189,7 +189,8 @@ export async function buildLife(V) {
     const racks = V.dress.handles.filter((h) => h.name === 'dryingRack' && h.built && h.z < 80).slice(0, 3);
     racks.forEach((h, i) => station(`fishrack_${i + 1}`, h.x + 1.1, h.z + 1.0, Math.atan2(-1.1, -1.0), 'stir', 'work'));
     const nets = V.dress.handles.filter((h) => h.name === 'net' && h.o.opts?.variant === 'heap' && h.built).slice(0, 3);
-    nets.forEach((h, i) => station(`net_mend_${i + 1}`, h.x + 0.6, h.z - 0.9, 0.6, 'mend_net', 'work'));
+    // the third heap is Jarek's (cast.js), the other two go to the ambient net menders
+    nets.forEach((h, i) => station(i === 2 ? 'jarek_net' : `net_mend_${i + 1}`, h.x + 0.6, h.z - 0.9, 0.6, 'mend_net', 'work'));
     const stools = V.dress.handles.filter((h) => h.name === 'fishingStool' && h.built && h.o.snap !== false).slice(0, 4);
     stools.forEach((h, i) => station(`hut_stool_${i + 1}`, h.x, h.z, PI, 'fish_ice', 'work'));
   }
@@ -232,6 +233,64 @@ export async function buildLife(V) {
     const fort = V.shore.fort;
     station('kids_fort', fort.x, fort.z + 0.2, PI, 'sit_ground', 'sit');
   }
+  // the named people's own places (cast.js). Without these NPC.js made a spot up near the person's anchor, and
+  // Dobra ate her lunch sitting on thin air beside her workshop.
+  {
+    const alias = (id, from, extra = {}) => { if (st[from]) st[id] = { ...st[from], id, ...extra }; };
+    // The nearest point to (x, z) with no prop within r and no collider: barrels, sacks and buckets have no
+    // collision, so a person stood on the raw spot would stand in them.
+    const clearOf = (x, z, r = 1.0) => {
+      const props = V.dress.handles.filter((h) => h.built && Math.abs(h.x - x) < 6 && Math.abs(h.z - z) < 6);
+      const v = new THREE.Vector3();
+      const ok = (px, pz) => {
+        if (!props.every((h) => Math.hypot(h.x - px, h.z - pz) >= r)) return false;
+        v.set(px, G.world.heightAt(px, pz), pz);
+        G.physics?.resolve(v, 0.35);
+        return Math.hypot(v.x - px, v.z - pz) < 0.02;
+      };
+      if (ok(x, z)) return [x, z];
+      for (let d = 0.5; d <= 3; d += 0.5) {
+        for (let k = 0; k < 12; k++) {
+          const a = (k / 12) * PI * 2, px = x + Math.cos(a) * d, pz = z + Math.sin(a) * d;
+          if (ok(px, pz)) return [px, pz];
+        }
+      }
+      return [x, z];
+    };
+    const front = (id) => {
+      const r = rec(id);
+      const d = r && (r.p.doors.find((q) => q.id === 'front') || r.p.doors[0]);
+      return d ? frame(d.x, d.z, d.yaw) : null;
+    };
+    // Hanka on her step first thing; Ola plays in front of the house
+    const hf = front('hanka');
+    if (hf) {
+      station('hanka_porch', ...clearOf(...hf.at(-0.9, 1.2), 0.8), hf.yaw, 'warm_hands', 'work');
+      station('ola_porch', ...clearOf(...hf.at(1.7, 2.8)), hf.yaw + PI, 'child_play', 'work');
+    }
+    // Bogdan: his table and bed in the longhouse, a look over the square, the notice board after his dinner
+    alias('bogdan_table', 'reeve_table');
+    alias('bogdan_bed', 'reeve_bed', { kind: 'bed', hidden: true });
+    const w = rec('well');
+    const [sx, sz] = clearOf(w.x + 3.2, w.z + 2.6);
+    station('bogdan_square', sx, sz, Math.atan2(w.x - sx, w.z - sz), 'hands_hips', 'work');
+    const nb = rec('noticeBoard');
+    if (nb) {
+      const [bx, bz] = clearOf(...frame(nb.x, nb.z, nb.yaw).at(2.0, 2.1));
+      station('notice_board', bx, bz, Math.atan2(nb.x - bx, nb.z - bz), 'cross_arms', 'work');
+    }
+    // Dobra sleeps in her hut and takes her midday break on its step
+    alias('dobra_bed', 'bed_dobra_hut', { kind: 'bed', hidden: true });
+    const df = front('dobra_hut');
+    if (df) station('dobra_porch', ...clearOf(...df.at(0, 2.0), 0.8), df.yaw, 'warm_hands', 'work');
+    // Jarek: the third net heap (above), a stool on the boardwalk in the afternoon, the tavern corner at night,
+    // and the tavern's spare bed when he has had enough
+    const stool = V.dress.handles.filter((h) => h.name === 'fishingStool' && h.built && h.o.snap === false).sort((a, b) => b.x - a.x)[0];
+    if (stool) station('jarek_dock', stool.x, stool.z, PI, 'sit_bench', 'sit');
+    alias('tavern_corner', 'tavern_corner_jarek');
+    alias('jarek_bed', 'tavern_bed', { kind: 'bed', hidden: true });
+  }
+
   // wander nodes along the roads so ambient villagers can walk between stations
   {
     const rng = seeded('wander');

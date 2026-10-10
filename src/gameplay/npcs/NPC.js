@@ -24,6 +24,9 @@ const FREEZE2 = 170 * 170, WAKE2 = 150 * 150, PRECREATE2 = 280 * 280, NEAR2 = 45
 const _slot = { x: 0, z: 0, yaw: 0 };
 const _v = new THREE.Vector3(), _from = new THREE.Vector3(), _to = new THREE.Vector3();
 
+// Poses that need furniture or a wall under or behind them.
+const PROPPED = new Set(['sit_bench', 'lean_wall', 'drink', 'lie_dead']);
+
 const inRange = (h, a, b) => (a <= b ? h >= a && h < b : h >= a || h < b);
 const wrap24 = (h) => ((h % 24) + 24) % 24;
 
@@ -77,7 +80,10 @@ export class NPC {
     this.carrying = null;
     this.exitDoor = null;
     this.breath = null;
+    // floorY is the fixed floor of the indoor station the NPC stands at; anywhere else the feet follow the
+    // building floor or terrain under them (a stale floorY left people walking the road at a workshop's floor height).
     this.floorY = null;
+    this._walkGround = (x, z) => this._groundAt(x, z);
     this.convo = null;
     this.interactId = null;
     this.laughT = 3 + this.rand() * 10;
@@ -111,6 +117,7 @@ export class NPC {
       if (this.convo) this.sys.leaveConvo(this);
       if (this._c) {
         this._c.targetSpeed = 0;
+        this._clearFloor(); // the story places staged people on whatever ground it puts them
         if (this.tool) this.tool.visible = false;
         // A staged NPC must be visible even if it was indoors or out of range.
         if (this.hidden || this.frozen) { this._c.setVisible(true); this.hidden = false; this.frozen = false; }
@@ -197,6 +204,7 @@ export class NPC {
     if (this._c) return this._c;
     const c = createCharacter(this.def.spec || this.preset, { lowDetail: this.def.lowDetail ?? !this.def.named });
     c.autoGround = false;
+    c.ground = this._walkGround;
     c.npc = this;
     this.G.scene.add(c.root);
     c.setVisible(false);
@@ -230,17 +238,21 @@ export class NPC {
       } else st = getStation(this.G, at);
     } else if (at && at.x != null) st = normalize(`inline_${this.id}_${e.from}`, at);
     if (!st) {
-      // Missing station: synthesize one near the NPC's anchor so the schedule still works.
+      // Missing station: synthesize one near the NPC's anchor so the schedule still works. Nothing to sit on or
+      // lean against is there, so the made-up spot gets a standing pose.
       const a = this.def.anchor || { x: 0, z: 100 };
       const key = `fb_${this.id}_${e.from}`;
       st = this.sys.synth.get(key);
       if (!st) {
         const r = this.rand;
+        const anim = PROPPED.has(e.anim) ? 'idle' : e.anim || 'idle';
         st = normalize(key, {
-          x: a.x + (r() - 0.5) * 6, z: a.z + (r() - 0.5) * 6, yaw: r() * 6.28, anim: e.anim || 'idle',
+          x: a.x + (r() - 0.5) * 6, z: a.z + (r() - 0.5) * 6, yaw: r() * 6.28, anim,
           kind: e.hidden ? 'bed' : 'work', indoor: !!e.hidden,
         });
+        st.fallback = true;
         this.sys.synth.set(key, st);
+        if (import.meta.env?.DEV) console.warn(`[npcs] ${this.id}: no station '${at}', standing near the anchor instead`);
       }
     }
     e._st = st; e._v = this.sys.stationVersion; e._o = this;
@@ -337,6 +349,7 @@ export class NPC {
 
   _placeAtStation(st, S) {
     const c = this._c;
+    this._setFloor(st);
     slotPos(st, this.slot, _slot);
     c.setPosition(_slot.x, _slot.z, this._floorOf(_slot, st));
     c.yaw = _slot.yaw;
@@ -350,6 +363,7 @@ export class NPC {
 
   _placeAlong(path, dist, S) {
     const c = this._c;
+    this._clearFloor();
     let acc = 0;
     for (let i = 0; i < path.length - 1; i++) {
       const a = path[i], b = path[i + 1];
@@ -378,7 +392,19 @@ export class NPC {
   _floorOf(p, st) { return st && st.y != null && st.indoor ? st.y : undefined; }
   _setFloor(st) {
     const c = this._c;
-    if (st.y != null && st.indoor) { this.floorY = st.y; c.ground = (_x, _z) => st.y; } else { this.floorY = null; c.ground = null; }
+    if (st.y != null && st.indoor) { this.floorY = st.y; c.ground = (_x, _z) => st.y; } else this._clearFloor();
+  }
+  _clearFloor() {
+    this.floorY = null;
+    if (this._c) this._c.ground = this._walkGround;
+  }
+  // Ground under a moving NPC: a building floor when one is there (doorways, ghost legs inside), else the terrain.
+  _groundAt(x, z) {
+    const gc = this.G.characters, w = this.G.world;
+    if (gc?.heightAt) return gc.heightAt(x, z);
+    if (!w) return 0;
+    const f = w.floorAt ? w.floorAt(x, z) : null;
+    return f ?? w.heightAt(x, z);
   }
 
   // A full path from station a to station b as an array of {x, z, ghost?} starting at a's spot.
@@ -506,6 +532,7 @@ export class NPC {
     this.stuckT = 0; this.stuckChk = 0.5;
     this.lastX = c.root.position.x; this.lastZ = c.root.position.z;
     this._leaveStation(true);
+    this._clearFloor();
     this.state = 'walk';
     this._beginLoco(S);
   }
@@ -588,7 +615,7 @@ export class NPC {
     const step = this.v * dt;
     p.x += Math.sin(c.yaw) * step;
     p.z += Math.cos(c.yaw) * step;
-    p.y = this.floorY ?? this.G.world.heightAt(p.x, p.z);
+    p.y = this.floorY ?? this._groundAt(p.x, p.z);
     if (!this.ghost) {
       const f = this.sys.nav.flag(p.x, p.z);
       if (f) this.G.physics.resolve(p, 0.3);
@@ -670,7 +697,7 @@ export class NPC {
   _startStation(S) {
     const c = this._c, st = this.station;
     if (!st) return;
-    const anim = this.override && this.override.st.anim && this.override.st === st ? st.anim : (this.curEntry && this.curEntry.anim) || st.anim;
+    const anim = (this.override && this.override.st.anim && this.override.st === st) || st.fallback ? st.anim : (this.curEntry && this.curEntry.anim) || st.anim;
     this.anim = anim;
     if (st.kind === 'talk') {
       c.setLocomotion(0);
@@ -751,7 +778,7 @@ export class NPC {
     } else return;
     p.x = bx + this.sideX; p.z = bz + this.sideZ;
     if (this.sys.nav.flag(p.x, p.z) === 1) { p.x = bx; p.z = bz; this.sideX = this.sideZ = 0; }
-    p.y = this.floorY ?? this.G.world.heightAt(p.x, p.z);
+    p.y = this.floorY ?? this._groundAt(p.x, p.z);
     void ox; void oz;
   }
 
@@ -814,12 +841,12 @@ export class NPC {
     const c = this._c;
     const st = this.station || this._lastStation;
     const door = st && st.door ? st.door : st;
-    if (door) c.setPosition(door.x, door.z, this._floorOf(door, st));
+    this._clearFloor();
+    if (door) c.setPosition(door.x, door.z);
     if (st) c.yaw = (st.yaw || 0) + Math.PI;
     c.setVisible(!this.frozen);
     this.hidden = false;
     this.state = 'idle';
-    this.floorY = null; c.ground = null;
     if (this.d2 < 30 * 30) this.sys.sfx('door', c.root.position, 0.4);
     void S;
   }

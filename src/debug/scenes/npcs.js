@@ -130,10 +130,11 @@ export async function init(G) {
     // The miller's family lives at the mill, far from the village: only exists near the camera.
     const m = put('mill', B.mill({ seed: 311 }), LOC.mill.x, LOC.mill.z, Math.PI);
     const a = m && (m.doors[0] || (m.anchors.door && m.anchors.door.x != null)) ? approach(m, 3) : { x: LOC.mill.x, z: LOC.mill.z + 7, yaw: 0 };
-    reg('mill_bed', { kind: 'bed', x: a.x, z: a.z, door: { x: a.x, z: a.z } });
-    reg('mill_work', { kind: 'work', anim: 'carry_bucket', x: a.x + 3, z: a.z + 1, yaw: 1 });
-    reg('mill_house', { kind: 'work', anim: 'stir', x: a.x - 2.5, z: a.z + 1.5, yaw: -1 });
-    reg('mill_yard', { kind: 'work', anim: 'child_play', x: a.x + 1, z: a.z + 5, yaw: 0, capacity: 2 });
+    for (const id of ['mill_night_miller', 'mill_night_wife', 'mill_night_kids']) reg(id, { kind: 'bed', x: a.x, z: a.z, door: { x: a.x, z: a.z } });
+    reg('mill_miller_work', { kind: 'work', anim: 'chop_wood', x: a.x + 3, z: a.z + 1, yaw: 1 });
+    reg('mill_wife_work', { kind: 'work', anim: 'stir', x: a.x - 2.5, z: a.z + 1.5, yaw: -1 });
+    reg('mill_kid_a_play', { kind: 'work', anim: 'child_play', x: a.x + 1, z: a.z + 5, yaw: 0 });
+    reg('mill_kid_b_play', { kind: 'work', anim: 'child_play', x: a.x + 2.2, z: a.z + 5.6, yaw: -2 });
   }
 
   // ---- stand-in Vesna ----
@@ -260,6 +261,7 @@ function registerStations(c) {
     reg('hanka_bed', { kind: 'bed', x: a.x, z: a.z, door: { x: a.x, z: a.z } });
     reg('hanka_loom', { kind: 'work', tag: 'loom', anim: 'mend_net', x: table.x + 0.8, z: table.z + 0.6, yaw: Math.atan2(-0.8, -0.6), indoor: true, door: { x: a.x, z: a.z }, y: fy });
     reg('hanka_porch', { kind: 'work', anim: 'warm_hands', x: a.x + 0.4, z: a.z + 0.4, yaw: a.yaw + Math.PI });
+    reg('ola_porch', { kind: 'work', anim: 'child_play', x: a.x + 1.8, z: a.z + 1.6, yaw: a.yaw });
     if (milk) reg('hanka_milk', { kind: 'sit', anim: 'kneel_idle', x: milk.x, z: milk.z + 0.6, yaw: 0 });
     void doorIn;
   }
@@ -276,7 +278,7 @@ function registerStations(c) {
     const p = placed.workshop, a = approach(p, 3);
     reg('dobra_bed', { kind: 'bed', x: a.x, z: a.z, door: { x: a.x, z: a.z } });
     reg('dobra_work', { kind: 'work', anim: 'mend_net', tag: 'workshop', x: a.x + 0.5, z: a.z + 0.8, yaw: a.yaw + Math.PI * 0.5 });
-    reg('dobra_porch', { kind: 'sit', anim: 'sit_bench', x: a.x - 1.2, z: a.z + 0.4, yaw: a.yaw + Math.PI });
+    reg('dobra_porch', { kind: 'work', anim: 'warm_hands', x: a.x - 1.2, z: a.z + 0.4, yaw: a.yaw + Math.PI });
   }
   hay.forEach((h, i) => reg(`dobra_bale_${i + 1}`, { kind: 'work', tag: 'bale', anim: 'child_play', x: h.x - 0.9, z: h.z + 0.1, yaw: Math.PI / 2, capacity: 2 }));
   // The tavern: Zbyszek behind the bar, drinkers at the tables, a porch to lean on
@@ -316,7 +318,7 @@ function registerStations(c) {
   reg('net_1', { kind: 'work', tag: 'net', anim: 'mend_net', x: -45, z: 59, yaw: Math.PI });
   reg('net_2', { kind: 'work', tag: 'net', anim: 'mend_net', x: -8, z: 56.5, yaw: Math.PI });
   reg('jarek_net', { kind: 'work', tag: 'net', anim: 'mend_net', x: -20, z: 57.5, yaw: Math.PI });
-  reg('jarek_dock', { kind: 'sit', tag: 'dock', anim: 'sit_ground', x: 40, z: 62.5, yaw: Math.PI });
+  reg('jarek_dock', { kind: 'sit', tag: 'dock', anim: 'sit_bench', x: 40, z: 62.5, yaw: Math.PI });
   if (placed['fish-70']) {
     const a = approach(placed['fish-70'], 1.6);
     reg('jarek_bed', { kind: 'bed', x: a.x, z: a.z, door: { x: a.x, z: a.z } });

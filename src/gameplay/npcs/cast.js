@@ -41,7 +41,7 @@ export const NAMED = [
     schedule: [
       at(21.5, 5.5, 'dobra_bed', { hidden: true }),
       at(5.5, 12, 'dobra_work', { anim: 'mend_net' }),
-      at(12, 13, 'dobra_porch', { anim: 'sit_bench' }),
+      at(12, 13, 'dobra_porch', { anim: 'warm_hands' }),
       at(13, 21.5, 'dobra_work', { anim: 'mend_net' }),
     ],
   },
@@ -59,8 +59,8 @@ export const NAMED = [
     schedule: [
       at(2, 8, 'jarek_bed', { hidden: true }),
       at(8, 15, 'jarek_net', { anim: 'mend_net' }),
-      at(15, 18, 'jarek_dock', { anim: 'sit_ground' }),
-      at(18, 2, 'tavern_corner', { anim: 'sit_bench' }),
+      at(15, 18, 'jarek_dock', { anim: 'sit_bench' }),
+      at(18, 2, 'tavern_corner', { anim: 'drink' }),
     ],
   },
   // The tavern regulars (src/minigames/dice): at the middle table of the Drowned Bell from noon, home to bed late.
@@ -84,33 +84,34 @@ export const NAMED = [
     id: 'ola', preset: 'ola', name: 'Ola', anchor: LOC.hanka, hardy: 0.5, child: true,
     schedule: [
       at(20, 7, 'hanka_bed', { hidden: true }),
-      at(7, 8.5, 'hanka_porch', { anim: 'child_play' }),
+      at(7, 8.5, 'ola_porch', { anim: 'child_play' }),
       at(8.5, 12.2, 'tag:bale', { anim: 'child_play' }),
-      at(12.2, 13.2, 'hanka_porch', { anim: 'child_play' }),
+      at(12.2, 13.2, 'ola_porch', { anim: 'child_play' }),
       at(13.2, 16.6, 'tag:sled', { anim: 'child_play' }),
       at(16.6, 19.2, 'tag:fort', { anim: 'sit_ground' }),
-      at(19.2, 20, 'hanka_porch', { anim: 'child_play' }),
+      at(19.2, 20, 'ola_porch', { anim: 'child_play' }),
     ],
   },
 ];
 
 // The mill family lives far from the village (LOC.mill); they only exist when the player is near.
+// Station ids are the ones world/locations/wilderness/mill.js registers.
 export const MILL = [
   {
     id: 'miller', preset: 'miller', name: 'Gniewko', anchor: LOC.mill, hardy: 0.85,
-    schedule: [at(20, 6, 'mill_bed', { hidden: true }), at(6, 20, 'mill_work', { anim: 'carry_bucket' })],
+    schedule: [at(20, 6, 'mill_night_miller', { hidden: true }), at(6, 20, 'mill_miller_work', { anim: 'chop_wood' })],
   },
   {
     id: 'miller_wife', preset: 'miller_wife', name: 'Bozena', anchor: LOC.mill, hardy: 0.8,
-    schedule: [at(20.5, 6.5, 'mill_bed', { hidden: true }), at(6.5, 20.5, 'mill_house', { anim: 'stir' })],
+    schedule: [at(20.5, 6.5, 'mill_night_wife', { hidden: true }), at(6.5, 20.5, 'mill_wife_work', { anim: 'stir' })],
   },
   {
     id: 'child_e', preset: 'child_e', name: 'Child', anchor: LOC.mill, hardy: 0.4, child: true,
-    schedule: [at(19, 7, 'mill_bed', { hidden: true }), at(7, 19, 'mill_yard', { anim: 'child_play' })],
+    schedule: [at(19, 7, 'mill_night_kids', { hidden: true }), at(7, 19, 'mill_kid_a_play', { anim: 'child_play' })],
   },
   {
     id: 'child_f', preset: 'child_f', name: 'Child', anchor: LOC.mill, hardy: 0.4, child: true,
-    schedule: [at(19, 7.5, 'mill_bed', { hidden: true }), at(7.5, 19, 'mill_yard', { anim: 'child_play' })],
+    schedule: [at(19, 7.5, 'mill_night_kids', { hidden: true }), at(7.5, 19, 'mill_kid_b_play', { anim: 'child_play' })],
   },
 ];
 
