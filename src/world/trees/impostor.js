@@ -186,7 +186,7 @@ export async function bakeImpostors(G, kinds, opts = {}) {
   const t0 = performance.now();
   imp.forEach((k, i) => {
     let maxXZ = 0, maxY = 0;
-    for (const part of k.lods[0].parts) {
+    for (const part of k.lods[k.impLod || 0].parts) {
       const bb = part.geometry.boundingBox;
       maxXZ = Math.max(maxXZ, Math.abs(bb.min.x), bb.max.x, Math.abs(bb.min.z), bb.max.z);
       maxY = Math.max(maxY, bb.max.y);
@@ -195,7 +195,7 @@ export async function bakeImpostors(G, kinds, opts = {}) {
     k.imp = { tile: [i * 2, i * 2 + 1], fw: fh / 2, fh };
   });
   for (const k of imp) {
-    const parts = k.lods[0].parts;
+    const parts = k.lods[k.impLod || 0].parts; // impLod: a kind whose lod 0 is too fine to minify (thin whips) bakes from a lower lod
     for (let v = 0; v < 2; v++) {
       const tile = k.imp.tile[v];
       const tx = (tile % COLS) * TW, ty = Math.floor(tile / COLS) * TH;
