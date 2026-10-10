@@ -8,7 +8,7 @@
 //   setThaw(t)                      0 frozen .. 1 open water; sets G.world.thawed when t > 0.5
 //   thaw                            current thaw value
 //   ice, river                      the lake and river meshes; material.uniforms in .uniforms
-//   ridges                          InstancedMesh of pressure-ridge slabs
+//   ridges                          Group: pressure-ridge slabs, rubble and snow banks (instanced)
 //   waterfall                       { group, info: { lip, base, caveMouth: { x, y, z, w, h, depth, yaw } } }
 // Ice surface is y = 0 (WORLD.iceLevel); the shader discards where the terrain is above it.
 import * as THREE from 'three';
@@ -74,14 +74,17 @@ function riverRibbon() {
   return g;
 }
 
-// Pressure ridges: chains of tilted, snow-dusted ice slabs on contours inside the shore.
+// Pressure ridges: chains of broken ice plates on contours inside the shore. Each step of a ridge
+// gets an upturned slab (about a third of them steep), rubble lying at its foot and a snow bank
+// drifted along the base, so a ridge reads as one jumbled line of broken plates, not a row of
+// pointed teeth. A Group of three instanced meshes (slabs, rubble, snow banks).
 function buildRidges(G) {
   const r = rng(9187);
   const avoid = [LOC.ritual, LOC.iceCamp, LOC.bellTower, LOC.island, LOC.fishingHuts, LOC.hanka, LOC.marsh];
   const blocked = (x, z) => avoid.some((l) => Math.hypot(x - l.x, z - l.z) < l.r + (l === LOC.bellTower ? 30 : 14));
   // Arcs as [angle0, angle1, inset meters] around the lake center (angle 0 = east, +pi/2 = south).
   const arcs = [[-2.7, -1.6, 34], [-1.45, -0.55, 28], [-0.4, 0.5, 40], [2.4, 3.0, 22], [-2.2, -1.2, 70], [0.8, 1.2, 30]];
-  const mats = [];
+  const mats = [], rubble = [], banks = [];
   for (const [a0, a1, inset] of arcs) {
     const steps = Math.ceil(Math.abs(a1 - a0) * 300);
     for (let k = 0; k <= steps; k++) {
@@ -101,11 +104,22 @@ function buildRidges(G) {
       const tx = -s * LAKE.rx, tz = c * LAKE.rz, tl = Math.hypot(tx, tz);
       const yaw = Math.atan2(tx / tl, tz / tl);
       const hgt = (0.5 + cont * 1.1) * (0.6 + r() * 0.6);
+      // The upturned slab: steep ones stand up out of the jumble, the rest lean over low.
+      const steep = r() < 0.35;
+      const roll = (r() < 0.5 ? -1 : 1) * (steep ? 0.5 + r() * 0.55 : 0.15 + r() * 0.35);
       const m = new THREE.Matrix4();
-      const q = new THREE.Quaternion().setFromEuler(new THREE.Euler((r() - 0.5) * 1.6, yaw + (r() - 0.5) * 0.7, (r() < 0.5 ? -1 : 1) * (0.5 + r() * 0.6), 'YXZ'));
-      const sc = new THREE.Vector3(0.8 + r() * 1.4, hgt, 0.18 + r() * 0.2);
-      m.compose(new THREE.Vector3(x + (r() - 0.5) * 1.2, hgt * 0.25, z + (r() - 0.5) * 1.2), q, sc);
+      const q = new THREE.Quaternion().setFromEuler(new THREE.Euler((r() - 0.5) * 0.9, yaw + (r() - 0.5) * 0.7, roll, 'YXZ'));
+      const sc = new THREE.Vector3(0.9 + r() * 1.5, steep ? hgt : hgt * 0.75, 0.18 + r() * 0.2);
+      m.compose(new THREE.Vector3(x + (r() - 0.5) * 1.2, hgt * (steep ? 0.25 : 0.12), z + (r() - 0.5) * 1.2), q, sc);
       mats.push(m);
+      // Rubble: a broken plate lying on the ice beside it.
+      const side = (r() < 0.5 ? -1 : 1) * (0.5 + r() * 1.3);
+      const rq = new THREE.Quaternion().setFromEuler(new THREE.Euler((r() - 0.5) * 0.35, r() * Math.PI * 2, (r() - 0.5) * 0.35, 'YXZ'));
+      const rs = new THREE.Vector3(0.6 + r() * 1.2, 0.14 + r() * 0.24, 0.5 + r() * 0.7);
+      rubble.push(new THREE.Matrix4().compose(new THREE.Vector3(x + c * side, rs.y * 0.3, z + s * side), rq, rs));
+      // Snow drifted along the foot of the ridge.
+      const bq = new THREE.Quaternion().setFromEuler(new THREE.Euler(0, yaw + (r() - 0.5) * 0.3, 0, 'YXZ'));
+      banks.push(new THREE.Matrix4().compose(new THREE.Vector3(x + (r() - 0.5) * 0.8, 0.02, z + (r() - 0.5) * 0.8), bq, new THREE.Vector3(1.5 + cont * 1.3, 0.22 + cont * 0.28, 1.0 + r() * 0.7)));
     }
   }
   const g = new THREE.BoxGeometry(1, 1, 1, 3, 2, 1);
@@ -118,14 +132,32 @@ function buildRidges(G) {
   const mat = new THREE.MeshStandardMaterial({ color: 0x8fb2c4, roughness: 0.16, metalness: 0, emissive: 0x0c2230, emissiveIntensity: 0.6 });
   mat.name = 'pressureRidge';
   mat.userData.snow = { amount: 0.9, threshold: 0.45 };
-  const mesh = new THREE.InstancedMesh(g, mat, mats.length);
-  mats.forEach((m, i) => mesh.setMatrixAt(i, m));
-  mesh.instanceMatrix.needsUpdate = true;
-  mesh.computeBoundingSphere();
-  mesh.castShadow = G.quality !== 'low';
-  mesh.receiveShadow = true;
-  mesh.name = 'pressureRidges';
-  return mesh;
+  const inst = (geo, material, list, name, cast) => {
+    const mesh = new THREE.InstancedMesh(geo, material, list.length);
+    list.forEach((m, i) => mesh.setMatrixAt(i, m));
+    mesh.instanceMatrix.needsUpdate = true;
+    mesh.computeBoundingSphere();
+    mesh.castShadow = cast && G.quality !== 'low';
+    mesh.receiveShadow = true;
+    mesh.name = name;
+    return mesh;
+  };
+  const group = new THREE.Group();
+  group.name = 'pressureRidges';
+  group.add(inst(g, mat, mats, 'pressureRidgeSlabs', true));
+  group.add(inst(g, mat, rubble, 'pressureRidgeRubble', false));
+  // Snow banks: a low lumpy drift, flat-bottomed on the ice.
+  const bg = new THREE.IcosahedronGeometry(1, 1);
+  const bp = bg.attributes.position;
+  for (let i = 0; i < bp.count; i++) {
+    const x = bp.getX(i), y = bp.getY(i), z = bp.getZ(i);
+    bp.setXYZ(i, x * (1 + noise.noise2(y * 2 + 4, z * 2) * 0.18), Math.max(0, y) * (1 + noise.noise2(x * 3, z * 3 + 2) * 0.25), z);
+  }
+  bg.computeVertexNormals();
+  const snowMat = new THREE.MeshStandardMaterial({ color: 0xdfe6ee, roughness: 0.92, metalness: 0 });
+  snowMat.name = 'pressureRidgeSnow';
+  group.add(inst(bg, snowMat, banks, 'pressureRidgeSnow', false));
+  return group;
 }
 
 // Small gradient-sky environment for the ice when the sky module has not provided one.
