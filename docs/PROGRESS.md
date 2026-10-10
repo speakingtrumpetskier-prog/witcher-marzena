@@ -46,15 +46,21 @@ Measured with the headless GPU harness (MZ_CHROME=1, scripts/perf.mjs); details 
 - Environment map refreshes every in-game minute (steps under 1/255 at sunset). Night windows and lanterns bloom.
 - Art: effigy faces are linen with painted features (title and Marzanny); idol faces carved in relief; bell tower stain, tide line, rime and drips, crust seated on the stone; ice cave lit by its crystals (cave interiors dim the sky light); lake streaks curve into fields; pressure ridges are jumbled plates with snow banks; lynx proportions; deer barks and fox screams.
 - Fixed: the place banner showed "null" without a subtitle.
+- Photo mode (src/ui/photo/): P or the pause menu. The engine holds the world (only lighting, streaming, UI, audio and the photo camera run; clock and shader time stop) and draws only when something changes. Free camera tethered 16 m to Vesna, depth of field with click-to-focus (reads the frame's depth), exposure, eight filters, vignette, grain, crops (wide, 4:5, square), a mat or a paper-cut border cut with the wycinanki path code, thirds guide, time of day, hide Vesna or the falling snow; Space saves a PNG of the crop at the quality level's full resolution. scripts/phototest.mjs (24 checks). A one-time hint after 12 minutes.
+- Side quest Three Loaves (side_hanged): the hanged man's note asks for him to be cut down, now you can; he is laid beside the tree with his coat over his face, villagers mention it. Playthrough +11 checks (203 per ending).
+- Snowballs: misses fall on to the snow and leave a fading splat; hits leave snow stuck to whoever was hit.
+- Hints: the cart's Hunter senses card waits for free play and for the Move card (it used to show over the opening cutscene); nearby-thing cards wait for Move on a new profile.
+- UI type: the journal, map, notes, credits, menu list, chapter card, place banner and speaker names are sentence case with weight and size for emphasis (no tracked-out capitals); subtitles under cards and banners are roman. The logo keeps its spacing.
+- Favicon (clears the 404 in every harness log). The NaN-geometry and duplicate-three.js items in the polish list no longer reproduce (checked: scene scan at boot, playground scene).
 - Still open: the boss's own first draw costs about 0.4 s on the laptop; the title's first 5 s after the loading screen run slower (first draws of textures and programs) under its fade-up; talus left as is (rock placement shares its random stream with vegetation, so changing it moves trees everywhere).
 
 ## Polish list (lead, integration pass)
-- Controls: needs a human with a real pad (feel of the dead zones, the look ramp, rumble strength, glyph sets for Xbox and PlayStation; the mock-pad test covers the logic). Pads without the standard mapping are not special-cased. The journal, map, note, title and credits screens still use the older uppercase letter-spaced labels; the pause list, settings, controls, prompts and hint cards are sentence case. Nothing handles touch.
+- Controls: needs a human with a real pad (feel of the dead zones, the look ramp, rumble strength, glyph sets for Xbox and PlayStation; the mock-pad test covers the logic). Pads without the standard mapping are not special-cased. Nothing handles touch. Photo mode on a pad (sticks fly, D-pad works the panel) is untested with real hardware.
 - Spirits: comb jelly rainbow bands are faint at distance; seq sheets of the cathedral pulse not reviewed in motion.
 - Trees: odd trees never checked as far billboards (beyond 100 m); weeping birch bark bands look too regular close up; larch stays gold in the thaw ending; knot tree thread thickened by lead but not re-rendered.
-- Fauna: the lynx shares the wolf skeleton and reads a little canine in profile (longer legs, shorter body and a rounder skull would help); no deer bark or fox scream sounds yet.
+- Fauna: the lynx shares the wolf skeleton (proportions adjusted: longer legs, shorter body, rounder skull, bigger paws; still worth a look in profile).
 - Cinematics: C7 crops a villager's legs at the frame edge in its first shots and a head in shot 5. C5 opens on a flat look at floorboards, and one close-up has the table edge looming dark across the bottom; C3, C6 and dawn have unverified camera edits; several d.cut({look: fn}) are static where a tracking hold would be better.
-- Story: the silver sword prop stays in the den after it is taken; the hanged man cannot be cut down; snowballs only visible in flight; ice chips in the choice close-up; Hanka not retired after the blamed ending.
+- Story: ice chips in the choice close-up. (Done: the silver sword leaves the den when taken, the hanged man can be cut down, snowballs land and splat, Hanka is retired after the blamed ending.)
 - Voice: mix levels set by numbers, not ears; repeated identical short lines share one clip; the unnamed boy in C3 is unvoiced.
 - Creatures: Marzanny still glow pale at night (white dresses, partly intended); wolves fixed (darker coat, night glow cut to a third).
 - Combat: Player has no grabbed or stunned state (grab overrides position, now with a break-free prompt); Weather has no gust() hook (the boss gust has its own sound and push).
@@ -67,7 +73,6 @@ Measured with the headless GPU harness (MZ_CHROME=1, scripts/perf.mjs); details 
 - Terrain: noon snow blown out and no distance haze (sent to atmosphere builder); ice wind streaks too regular; talus boulders read as scattered teeth; marsh pool edges look cut; bear den needs a cave opening in the escarpment (locations builder; terrain left a pattern at the falls).
 - Done: Senses routes echo clues through G.postfx.markClue in turquoise.
 - Fixed (lead): striped shadow acne on low-sun snow (near shadow normalBias); snow micro-normals now fade with pixel footprint.
-- Integration: 'Multiple instances of Three.js being imported' warning in the playground scene; find the stray import.
 - Gameplay: no strafe or turn-in-place clips for lock-on; mount clip has an 8 cm seat pop; no mounted combat.
 - Fixed (lead): village LOD proxies read orange at golden hour; walls darkened to match log albedo.
 - Village: busiest views sit at the budget (~450 calls, 2.5M tris; the full street vista from the west is 2.9M); square foreground bare until NPCs; Hanka's milk shelf is a flat disc; south road and sled hill lightly dressed.
@@ -75,6 +80,5 @@ Measured with the headless GPU harness (MZ_CHROME=1, scripts/perf.mjs); details 
 - Characters: Ola's bangs read as a sawtooth up close; Bogdan's cheek beard edge slab-like at extreme close-up; braid stretches on extreme head turns. Main cast now 11k to 14k tris and 0.3 to 0.6 s to build: NPCs must spread creation over frames.
 - Vegetation: LOD1/LOD2 spruce (30 to 100 m) still read as stylized tiered cones; consider needle fringe at LOD1.
 - Integration: windows and fires need emissive about 3 to 6 x uWindowLight to bloom at night (architecture, props).
-- Integration: some unnamed mesh has NaN positions (atmosphere report); find and fix.
 - Integration: move the six extra fog uniforms from fogChunk.js into Uniforms.js.
 - Architecture: large buildings 21k to 42k tris; drop log segments 10 to 8 if the village view is over budget.
