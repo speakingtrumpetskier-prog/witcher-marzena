@@ -48,7 +48,7 @@ export async function init(G) {
   if (sp && SPECIES_BY_ID[sp]) {
     const def = SPECIES_BY_ID[sp];
     const scale = num('scale', (def.size[0] + def.size[1]) / 2);
-    const y = num('y', def.id === 'cathedral' ? 560 : Math.max(40, scale * 3));
+    const y = num('y', def.id === 'cathedral' ? 470 : Math.max(40, scale * 3));
     const n = Math.max(1, Math.round(num('n', 1)));
     const gap = scale * 3.4;
     const S = createSpirits(G, {
@@ -69,9 +69,9 @@ export async function init(G) {
       if (i > 0 && !p.has('phase')) it.phase = (i * 0.37) % 1;
     });
     if (G.cameraOwner === 'shot' || !p.has('cam')) {
-      const D = num('d', scale * (def.id === 'cathedral' ? 10.5 : def.id === 'swarm' ? 14 : 4.4) * (1 + 0.5 * (n - 1)));
+      const D = num('d', scale * (def.id === 'cathedral' ? 8.5 : def.id === 'swarm' ? 14 : 4.4) * (1 + 0.5 * (n - 1)));
       const up = THREE.MathUtils.degToRad(num('up', -16));
-      const cy = y - scale * num('drop', def.id === 'swarm' ? 0 : def.id === 'cathedral' ? 2.3 : 0.9);
+      const cy = y - scale * num('drop', def.id === 'swarm' ? 0 : def.id === 'cathedral' ? 1.4 : 0.9);
       G.camera.position.set(0, cy + Math.sin(up) * D, Math.cos(up) * D);
       G.camera.lookAt(0, cy, 0);
       G.cameraOwner = 'shot';

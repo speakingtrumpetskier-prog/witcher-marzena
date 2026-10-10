@@ -53,7 +53,7 @@ export async function init(G) {
     uPixelAngle: { value: 0.001 },
     uSkyFog: { value: 0.8 },
     uSpiritGlow: { value: new THREE.Vector4(0, 1, 0, 0) }, // xyz toward the big sky spirit, w strength (Spirits.js)
-    uSpiritCol: { value: new THREE.Color(0.72, 0.82, 1) },
+    uSpiritCol: { value: new THREE.Color(1, 0.9, 0.62) },
     uTime: U.uTime,
   };
   for (const n of FOG_UNIFORM_NAMES) uniforms[n] = U[n];

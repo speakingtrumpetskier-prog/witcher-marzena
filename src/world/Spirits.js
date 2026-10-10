@@ -77,7 +77,8 @@ export function createSpirits(G, opts = {}) {
       uF0: { value: new THREE.Vector4(...sh.f0) },
       uF1: { value: new THREE.Vector4(...sh.f1) },
       uF2: { value: new THREE.Vector4(...(sh.f2 || [0.14, 0.4, 0, 0])) },
-      uS: { value: new THREE.Vector4(sh.s?.[0] ?? 1, sh.s?.[1] ?? 0, 0, 0) },
+      uS: { value: new THREE.Vector4(sh.s?.[0] ?? 1, sh.s?.[1] ?? 0, sh.s?.[2] ?? 0.55, sh.s?.[3] ?? 0) },
+      uM: { value: new THREE.Vector4(0, sh.m?.[1] ?? 1, sh.m?.[2] ?? 0, 0) },
       uF3: { value: new THREE.Vector4(...(sh.f3 || [1, 1, 1, 1])) },
       uPane0: { value: new THREE.Color(def.panes?.[0] || '#ffffff') },
       uPane1: { value: new THREE.Color(def.panes?.[1] || '#ffffff') },
@@ -269,11 +270,11 @@ export function createSpirits(G, opts = {}) {
   }
   function footprintGround(it) {
     if (!hasGrid()) return 0;
-    const r = it.scale * 1.05;
+    // the body is long (about 5 radii) and its threads hang all round: sample two rings
     let g = groundAt(it.x, it.z);
-    for (let k = 0; k < 8; k++) {
-      const a = (k / 8) * TAU;
-      g = Math.max(g, groundAt(it.x + Math.cos(a) * r, it.z + Math.sin(a) * r), groundAt(it.x + Math.cos(a) * r * 2, it.z + Math.sin(a) * r * 2) - it.scale * 0.5);
+    for (let k = 0; k < 12; k++) {
+      const a = (k / 12) * TAU;
+      g = Math.max(g, groundAt(it.x + Math.cos(a) * it.scale * 1.3, it.z + Math.sin(a) * it.scale * 1.3), groundAt(it.x + Math.cos(a) * it.scale * 2.7, it.z + Math.sin(a) * it.scale * 2.7) - it.scale * 0.3);
     }
     return g;
   }
@@ -435,7 +436,8 @@ export function createSpirits(G, opts = {}) {
         if (it.circ && !opts.solo) {
           circuitAt(it.circ, t, cathPos);
           it.x = cathPos.x; it.z = cathPos.z;
-          it.yaw = 0.35 + t * 0.0035;
+          // the long body flies lengthwise, the fat head (at -x) first, wandering a little off its heading
+          it.yaw = Math.atan2(cathPos.vz, -cathPos.vx) + 0.28 * Math.sin(t * 0.0031 + 1.3) + 0.12 * Math.sin(t * 0.0083);
           it.gTimer -= dt;
           if (it.gTimer <= 0) { it.gTimer = 1; it.gSm = footprintGround(it); }
           const goal = Math.max(it.circ.minAlt, it.gSm + it.circ.clearance);
@@ -502,8 +504,8 @@ export function createSpirits(G, opts = {}) {
         it.pitch = it.circ ? 0 : it.pitchBase + 0.1 * Math.sin(t * 0.13 + it.wph) + thrustCurve(p) * 0.05;
 
         // ---- cull and write instances
-        const reach = it.scale * (1 + def.extent * 0.5) + (it.mem ? 14 : 0);
-        const cx = it.x, cy = it.y - it.scale * def.extent * (it.circ ? 0.32 : 0.35), cz = it.z;
+        const reach = it.circ ? it.scale * 4.4 : it.scale * (1 + def.extent * 0.5) + (it.mem ? 14 : 0);
+        const cx = it.x, cy = it.y - it.scale * (it.circ ? 1.6 : def.extent * 0.35), cz = it.z;
         const dx = cx - camPos.x, dy2 = cy - camPos.y, dz = cz - camPos.z;
         const d = Math.sqrt(dx * dx + dy2 * dy2 + dz * dz);
         it.camD = d;
@@ -569,7 +571,7 @@ export function createSpirits(G, opts = {}) {
       }
       const su = G.sky?.uniforms?.uSpiritGlow;
       if (su) {
-        glowDir.set(cathItem.x - camPos.x, cathItem.y - cathItem.scale * 2.2 - camPos.y, cathItem.z - camPos.z).normalize();
+        glowDir.set(cathItem.x - camPos.x, cathItem.y + cathItem.scale * 0.3 - camPos.y, cathItem.z - camPos.z).normalize();
         su.value.set(glowDir.x, glowDir.y, glowDir.z, k * (0.75 + 0.25 * pr));
       }
     }

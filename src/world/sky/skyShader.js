@@ -263,9 +263,9 @@ void main() {
     // The big sky spirit lights the clouds around it from within, a pale wash on the air.
     if (uSpiritGlow.w > 0.0005) {
       float sg = max(dot(rd, uSpiritGlow.xyz), 0.0);
-      float sgl = uSpiritGlow.w * (pow(sg, 160.0) * 0.9 + pow(sg, 26.0) * 0.28 + pow(sg, 5.0) * 0.05);
-      sky += uSpiritCol * sgl * 0.3;
-      cl.rgb += uSpiritCol * sgl * 2.2;
+      float sgl = uSpiritGlow.w * (pow(sg, 120.0) * 0.5 + pow(sg, 22.0) * 0.22 + pow(sg, 4.0) * 0.035);
+      sky += uSpiritCol * sgl * 0.25;
+      cl.rgb += uSpiritCol * sgl * 1.4;
     }
     sky = mix(sky, cl.rgb, cl.a);
     sunMask = (1.0 - cl.a) * (1.0 - ci.a * 0.5);

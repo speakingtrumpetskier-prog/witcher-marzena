@@ -17,6 +17,8 @@ export const COLORS = {
   deepViolet: '#9a7cf2',
   whiteGold: '#ffe9ad',
   pearl: '#fff4e0',
+  ivory: '#f3e3ae', // old ivory: the cathedral's body
+  paleGold: '#ffd978',
 };
 const C = COLORS;
 
@@ -193,47 +195,54 @@ export const SPECIES = [
   },
   {
     // The one. Not a species: a single behemoth on a long circuit of the valley (see Spirits.js).
-    // Size is the bell radius in meters: a bell about 190 m across and 215 m tall, threads 260 to 500 m long.
+    // A vast oblong vault, lopsided and bent as if grown: about 410 m long, 160 m across at the
+    // fat end, 105 m tall at the head, a low tail; threads and veils fall from its whole rim.
+    // `size` is the meters per unit of the recipe (bell radius).
     id: 'cathedral',
     name: 'Cathedral',
     kind: 0,
     count: 1,
-    size: [95, 95],
+    size: [82, 82],
     rate: [0.034, 0.034], // one pulse in about 29 s
-    alt: [520, 520],
+    alt: [470, 470],
     speed: 0,
     extent: 5.0,
-    lodRatio: 1e9,
+    lods: [{ detail: 1, ratio: 18 }, { detail: 0.55, ratio: Infinity }],
+    lodRatio: 18,
     maxDist: 9000,
     order: 1,
     single: true,
-    circuit: { cx: 20, cz: -250, rx: 560, rz: 255, period: 2400, start: 0.58, minAlt: 500, clearance: 440 },
-    palette: [[C.pearl, C.whiteGold]],
-    panes: [C.rose, C.amber, C.turquoise, C.violet],
+    circuit: { cx: 20, cz: -250, rx: 560, rz: 255, period: 2400, start: 0.58, minAlt: 440, clearance: 390 },
+    palette: [[C.ivory, C.paleGold]],
+    panes: ['#f3c9a0', '#f6d98a', '#d9e2b8', '#cdb8de'],
     tentFrac: [1, 1],
     tentLen: [1, 1],
     recipe: {
-      profile: 'cathedral', shell: [96, 36], cluster: 1.5, skirt: [160, 3],
-      core: { y: 1.0, size: 1.0, halo: 3.0, haloI: 0.14 },
-      gonads: [0.46, 0.62, 0.78].map((v) => ({ cx: 0, cz: 0, rel: 0.82, halfW: 0.016, v, segs: 72, dy: 0.97 })),
-      arms: [
-        // inner frilled pillars hanging from the nave
-        { n: 10, rootR: 0.22, rootV: 0.3, rootY: 0.97, segs: 26, across: 4, len: 2.8, width: 0.15, off: 0.1 },
-        // the veils: wide curtains hanging from the rim, following it
-        { n: 30, rootR: 0.98, rootV: 0.97, rootY: 1, segs: 30, across: 4, len: 3.4, width: 0.2, off: 0.05, tangent: Math.PI / 2 },
-      ],
-      tent: { n: 72, segs: 26, width: 0.005, len: 3.9, rootR: 0.98 },
-      // slow thick ropes among the threads
-      fringe: { n: 14, segs: 26, width: 0.013, len: 4.2, rootR: 0.9 },
-      lamps: { n: 20, rings: [0.2, 0.42, 0.66], drop: [0.14, 0.34], size: 0.075, chain: 0.0025 },
-      gut: { y: 1.15, segs: 14, width: 0.018, len: 3.8 },
+      vault: {
+        halfLength: 2.5, halfWidth: 0.85, height: 1.0, endPow: 2.4, bend: 0.5, tilt: 0.12,
+        spires: [{ s: 0.2, h: 0.4, w: 0.025 }, { s: 0.33, h: 0.3, w: 0.025 }, { s: 0.62, h: 0.2, w: 0.022 }, { s: 0.76, h: 0.26, w: 0.025 }],
+        shell: [16, 100], skirt: [260, 2],
+        // heart lamps and their halos along the nave
+        cores: [{ q: -0.62, size: 0.7, halo: 1.7 }, { q: -0.15, size: 0.9, halo: 2.2 }, { q: 0.35, size: 0.75, halo: 1.9 }, { q: 0.8, size: 0.55, halo: 1.3 }],
+        // hoops of light hanging in the nave
+        gonads: [-0.6, -0.2, 0.2, 0.6].map((q) => ({ q, rel: 0.62, halfW: 0.014, y: 0.55, segs: 64, m: 0.4 })),
+        arms: [
+          { kind: 'pillars', n: 10, m: 0.2, segs: 24, across: 4, len: 2.6, width: 0.09 },
+          { kind: 'veils', n: 36, segs: 24, across: 3, len: 3.3, width: 0.2, tangent: Math.PI / 2 },
+        ],
+        tent: [
+          { kind: 'rim', n: 100, segs: 20, width: 0.0045, len: 3.8 },
+          { kind: 'keel', n: 18, segs: 22, width: 0.011, len: 4.1 },
+        ],
+        lamps: { n: 24, ms: [0.12, 0.3, 0.5], drop: [0.12, 0.3], size: 0.07, chain: 0.0025 },
+      },
     },
     shader: {
-      p0: [0.12, 0.05, 16, 0.04], p1: [0.01, 24, 0.9, 0.05], p2: [0.55, 0.9, 0.8, 0.03], p3: [0, 0.18, 0.04, 0.02], p4: [0.1, 16, 0, 0],
-      f0: [16, 0.03, 1, 0.2], f1: [0, 1, 2.4, 0.9], f2: [0.25, 0.55, 1.0, 0.5],
-      f3: [2.4, 0.45, 0.55, 1.0],
-      s: [0.12, 0.9],
-      bright: 0.42,
+      p0: [0.1, 0.05, 28, 0.035], p1: [0.008, 60, 0.9, 0.04], p2: [0.5, 0.9, 0.7, 0.03], p3: [0, 0.16, 0.04, 0.02], p4: [0, 0, 0, 0],
+      f0: [18, 0.03, 1, 0.2], f1: [0, 1, 2.2, 1.4], f2: [0.25, 0.55, 1.0, 0.5], f3: [2.0, 0.3, 2.0, 1.0],
+      s: [0.12, 0.9, 0.1, 0.9], // slow clock, pulse glow, iridescence, ivory tint
+      m: [0, 0, 0.06, 0], // long body: contraction across only, the pulse travels along it
+      bright: 0.45,
     },
   },
 ];

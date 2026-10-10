@@ -190,20 +190,22 @@ function addGonad(acc, cx, cy, cz, radius, halfW, segs, vShell, hash, tilt = 0) 
 
 // Filament ribbons. `roots` are rest-pose root positions (the shader re-deforms them with the
 // bell). rank spreads evenly so dropping the highest ranks thins the fringe evenly. The normal
-// slot is free on ribbons and carries (own length, 0, rank) for the pinnules to read.
+// slot is free on ribbons and carries (own length, root contraction v, rank). A root may carry
+// two extra numbers: [x, y, z, outward angle, v].
 // Returns the per-tentacle data pinnules need.
 function addTentacles(acc, roots, segs, width, len, rnd) {
   return roots.map((root, k) => {
     const rank = (k * 0.6180339887 + 0.37) % 1;
-    const th = Math.atan2(root[2], root[0]);
-    const u = ((th / TAU) + 1) % 1;
+    const th = root[3] ?? Math.atan2(root[2], root[0]); // direction it drifts outward
+    const rootV = root[4] ?? 1; // how much of the bell's contraction its root follows
+    const u = ((th / TAU) % 1 + 1) % 1;
     const rr = rnd();
     const lm = len * (0.75 + 0.5 * rnd());
     const base = acc.pos.length / 3;
     for (let j = 0; j <= segs; j++) {
       const s = j / segs;
       for (let side = -1; side <= 1; side += 2) {
-        acc.v(root, [lm, 0, rank], [PART.TENT, u, s, rr], [side, width, rank, lm]);
+        acc.v(root, [lm, rootV, rank], [PART.TENT, u, s, rr], [side, width, rank, lm]);
       }
     }
     for (let j = 0; j < segs; j++) {
@@ -242,8 +244,8 @@ function addPinnules(acc, tents, per, segs, plen, width, rnd) {
 // Oral arms: wide ribbons with several vertices across so the edges can ruffle.
 function addArms(acc, roots, segs, across, len, width, rnd, rootV = 0.3, tang = 0) {
   roots.forEach((root) => {
-    const th = Math.atan2(root[2], root[0]);
-    const u = ((th / TAU) + 1) % 1;
+    const th = root[3] ?? Math.atan2(root[2], root[0]);
+    const u = ((th / TAU) % 1 + 1) % 1;
     const lm = len * (0.8 + 0.4 * rnd());
     const rr = rnd();
     const base = acc.pos.length / 3;
@@ -251,7 +253,7 @@ function addArms(acc, roots, segs, across, len, width, rnd, rootV = 0.3, tang = 
       const s = j / segs;
       for (let i = 0; i <= across; i++) {
         const x = -1 + (2 * i) / across;
-        acc.v(root, [tang, 0, 1], [PART.ARM, u, s, rr], [x, width, rootV, lm]);
+        acc.v(root, [tang, 0, 1], [PART.ARM, u, s, rr], [x, width, root[4] ?? rootV, lm]);
       }
     }
     acc.strip(base, segs, across);
@@ -299,6 +301,209 @@ function addLamps(acc, prof, L, rnd, detail) {
   }
 }
 
+
+// ---- the vault: an oblong, lopsided body (the cathedral) ----------------------------------------
+// Not a dome of revolution: a long nave. Local axes: x along the length, z across, y up, the
+// open underside at y near 0 (the margin). The cross-section is a pointed arch through the
+// springing points (+-W, 0) and the ridge (0, H); W and H vary along the length (a fat tall
+// head, a low tail, a hump near the far end), the whole body bends like a banana and its rim
+// wanders up and down, so it reads as grown, not designed. s runs along the length (end to end),
+// m across: 0 at the ridge, 1 at the rim. Units are bell radii like everything else here.
+const clampN = (x, a, b) => Math.min(Math.max(x, a), b);
+function makeVault(spec) {
+  const A = spec.halfLength, Wz = spec.halfWidth, Hy = spec.height, P = spec.endPow || 2.4;
+  const gauss = (x, c, w) => Math.exp(-(((x - c) / w) ** 2));
+  const env = (q) => Math.pow(Math.max(0, 1 - Math.pow(Math.abs(q), P)), 1 / P);
+  // a fat tall head toward -x, a low waist, a second hump, a narrowing tail
+  const widthMul = (q) => 0.5 + 0.55 * gauss(q, -0.35, 0.45) + 0.12 * Math.sin(2.2 * q + 0.8) - 0.1 * sm(0.3, 1, q);
+  const heightMul = (q) => 0.62 + 0.95 * gauss(q, -0.42, 0.34) + 0.32 * gauss(q, 0.38, 0.22) - 0.12 * sm(0.5, 1, q);
+  const lean = (q) => 0.3 * Math.sin(q * 2.5 + 0.5); // the ridge sits off the middle, one flank gentler than the other
+  const cz = (q) => spec.bend * (q * q - 0.25) + 0.16 * Math.sin(q * 2.1 + 0.5);
+  const cy = (q) => spec.tilt * q + 0.14 * Math.sin(q * 1.7 + 0.4);
+  const spires = spec.spires || [];
+  const W = (q) => Math.max(1e-3, Wz * widthMul(q) * Math.pow(env(q), 0.9));
+  const H = (q) => Math.max(1e-3, Hy * heightMul(q) * Math.pow(env(q), 0.7));
+  // q in -1..1 along the length, m 0 ridge..1 rim, side -1 or +1. Returns [x, y, z].
+  function at(q, m, side) {
+    const w = W(q), h = H(q);
+    const rho = (w * w + h * h) / (2 * w);
+    const phia = Math.acos(clampN((rho - w) / rho, -1, 1));
+    const phi = phia * (1 - m);
+    const zz = w - rho + rho * Math.cos(phi);
+    let yy = rho * Math.sin(phi);
+    for (const sp of spires) {
+      const k = Math.abs((q + 1) / 2 - sp.s) / sp.w;
+      if (k < 1) yy += sp.h * (1 - k) * (1 - k) * Math.pow(Math.max(0, 1 - m / 0.12), 1.5);
+    }
+    return [A * q, yy + cy(q), side * zz + cz(q) + lean(q) * w * Math.pow(1 - m, 1.5)];
+  }
+  // Outward-facing unit normal of the surface at (q, m, side) by finite differences.
+  function normal(q, m, side) {
+    const e = 0.004;
+    const q0 = clampN(q - e, -1, 1), q1 = clampN(q + e, -1, 1);
+    const m0 = clampN(m - e, 0, 1), m1 = clampN(m + e, 0, 1);
+    const a = at(q1, m, side), b = at(q0, m, side), c = at(q, m1, side), d = at(q, m0, side);
+    const du = [a[0] - b[0], a[1] - b[1], a[2] - b[2]], dm = [c[0] - d[0], c[1] - d[1], c[2] - d[2]];
+    let n = [du[1] * dm[2] - du[2] * dm[1], du[2] * dm[0] - du[0] * dm[2], du[0] * dm[1] - du[1] * dm[0]];
+    const l = Math.hypot(n[0], n[1], n[2]);
+    if (l < 1e-9) return [0, 1, 0];
+    n = [n[0] / l, n[1] / l, n[2] / l];
+    const p = at(q, m, side);
+    const inside = [A * q, cy(q) + 0.35 * H(q), cz(q) + lean(q) * W(q) * 0.5];
+    if (n[0] * (p[0] - inside[0]) + n[1] * (p[1] - inside[1]) + n[2] * (p[2] - inside[2]) < 0) n = [-n[0], -n[1], -n[2]];
+    return n;
+  }
+  // The rim as a closed loop sampled by arc length (plan view): t in 0..1 -> point, outward angle.
+  const loop = [];
+  {
+    const N = 480;
+    const qs = [];
+    for (let j = 0; j <= N; j++) {
+      const t = (2 * j) / N - 1;
+      qs.push(Math.sign(t) * (1 - Math.pow(1 - Math.abs(t), 1.7)));
+    }
+    const pts = [];
+    for (let j = 0; j < qs.length; j++) pts.push({ q: qs[j], side: -1, p: at(qs[j], 1, -1) });
+    for (let j = qs.length - 2; j >= 1; j--) pts.push({ q: qs[j], side: 1, p: at(qs[j], 1, 1) });
+    let acc2 = 0;
+    pts[0].c = 0;
+    for (let j = 1; j < pts.length; j++) {
+      acc2 += Math.hypot(pts[j].p[0] - pts[j - 1].p[0], pts[j].p[2] - pts[j - 1].p[2]);
+      pts[j].c = acc2;
+    }
+    const closing = Math.hypot(pts[0].p[0] - pts[pts.length - 1].p[0], pts[0].p[2] - pts[pts.length - 1].p[2]);
+    loop.total = acc2 + closing;
+    loop.pts = pts;
+  }
+  function rimAt(t) {
+    const L = loop.pts, target = (((t % 1) + 1) % 1) * loop.total;
+    let lo = 0, hi = L.length - 1;
+    while (hi - lo > 1) { const mid = (lo + hi) >> 1; if (L[mid].c <= target) lo = mid; else hi = mid; }
+    const a = L[lo], b = L[Math.min(lo + 1, L.length - 1)];
+    const f = b.c > a.c ? (target - a.c) / (b.c - a.c) : 0;
+    const p = [a.p[0] + (b.p[0] - a.p[0]) * f, a.p[1] + (b.p[1] - a.p[1]) * f, a.p[2] + (b.p[2] - a.p[2]) * f];
+    // outward in plan: perpendicular to the loop tangent, away from the center line
+    let tx = b.p[0] - a.p[0], tz = b.p[2] - a.p[2];
+    const tl = Math.hypot(tx, tz) || 1;
+    tx /= tl; tz /= tl;
+    let ox = tz, oz = -tx;
+    const cl = [A * a.q, cz(a.q) + lean(a.q) * W(a.q) * 0.3];
+    if (ox * (p[0] - cl[0]) + oz * (p[2] - cl[1]) < 0) { ox = -ox; oz = -oz; }
+    // at the very ends the center line is degenerate: point along +-x
+    if (Math.abs(a.q) > 0.985) { ox = Math.sign(a.q); oz = 0; }
+    return { p, ang: Math.atan2(oz, ox), q: a.q, side: a.side, ox, oz };
+  }
+  return { at, normal, rimAt, W, H, cz, cy, A };
+}
+
+// Two halves (one per side) of the shell, rows crowding toward the ends where the section closes.
+function addVaultShell(acc, V, nm, nv) {
+  for (let side = -1; side <= 1; side += 2) {
+    const base = acc.pos.length / 3;
+    for (let j = 0; j <= nv; j++) {
+      const t = (2 * j) / nv - 1;
+      const q = Math.sign(t) * (1 - Math.pow(1 - Math.abs(t), 1.7));
+      for (let i = 0; i <= nm; i++) {
+        const m = 1 - Math.pow(1 - i / nm, 1.35);
+        const p = V.at(q, m, side), n = V.normal(q, m, side);
+        acc.v(p, n, [PART.SHELL, (q + 1) / 2, m, side > 0 ? 1 : 0], [0, 0, 0, 0]);
+      }
+    }
+    acc.strip(base, nv, nm);
+  }
+}
+
+// Frilled hem all round the rim loop.
+function addVaultSkirt(acc, V, nu, rows) {
+  const base = acc.pos.length / 3;
+  for (let j = 0; j <= rows; j++) {
+    const q = j / rows;
+    for (let i = 0; i <= nu; i++) {
+      const r = V.rimAt(i / nu);
+      acc.v(r.p, [r.ox, 0, r.oz], [PART.SKIRT, i / nu, q, 0], [0, 0, 0, 0]);
+    }
+  }
+  acc.strip(base, rows, nu);
+}
+
+function buildVaultGeometry(recipe, detail, seed) {
+  const rnd = rng(seed);
+  const acc = new Acc();
+  const d = (n, min = 2) => Math.max(min, Math.round(n * detail));
+  const v = recipe.vault;
+  const V = makeVault(v);
+  const rr = (a, b) => a + (b - a) * rnd();
+
+  addVaultShell(acc, V, d(v.shell[0], 6), d(v.shell[1], 24));
+  if (v.skirt) addVaultSkirt(acc, V, d(v.skirt[0], 48), Math.max(1, Math.round(v.skirt[1] * Math.min(1, detail * 1.5))));
+
+  // heart lamps and halos along the nave
+  for (const c of v.cores || []) {
+    const p = V.at(c.q, 0, 1);
+    addCore(acc, V.cy(c.q) + V.H(c.q) * (c.y ?? 0.55), c.size, c.halo || 0, c.haloI ?? 0.14, p[0], V.cz(c.q), 1);
+  }
+
+  // glowing hoops hanging in the nave (the rose-window rings seen from below)
+  for (const g of v.gonads || []) {
+    addGonad(acc, V.A * g.q, V.cy(g.q) + V.H(g.q) * (g.y ?? 0.6), V.cz(g.q), V.W(g.q) * g.rel, g.halfW, d(g.segs || 64, 16), g.m ?? 0.45, rnd(), 0);
+  }
+
+  // oral arms: frilly pillars from the vault, veils from the rim
+  for (const a of v.arms || []) {
+    const roots = [];
+    const n = Math.max(4, Math.round(a.n * (detail < 0.6 ? 0.6 : 1)));
+    for (let k = 0; k < n; k++) {
+      if (a.kind === 'veils') {
+        const r = V.rimAt((k + 0.5 + 0.2 * (rnd() - 0.5)) / n);
+        roots.push([r.p[0], r.p[1], r.p[2], r.ang, 1]);
+      } else {
+        const q = -0.86 + 1.72 * ((k + 0.5 + 0.3 * (rnd() - 0.5)) / n);
+        const side = k % 2 ? 1 : -1;
+        const m = a.m ?? 0.2;
+        const p = V.at(q, m, side);
+        roots.push([p[0], p[1] * 0.98, p[2], rnd() * TAU, m]);
+      }
+    }
+    addArms(acc, roots, d(a.segs, 8), a.across >= 4 && detail < 0.6 ? 2 : a.across, a.len, a.width, rnd, 0.3, a.tangent || 0);
+  }
+
+  // threads: along the whole rim, and slow ropes hanging from the ridge
+  for (const t of v.tent || []) {
+    const roots = [];
+    const n = Math.max(6, Math.round(t.n * (detail < 0.6 ? 0.6 : 1)));
+    for (let k = 0; k < n; k++) {
+      if (t.kind === 'keel') {
+        const q = -0.88 + 1.76 * ((k + rnd()) / n);
+        const p = V.at(q, t.m ?? 0.04, rnd() < 0.5 ? -1 : 1);
+        roots.push([p[0], p[1] * 0.985, p[2] * 0.6 + V.cz(q) * 0.4, rnd() * TAU, 0.05]);
+      } else {
+        const r = V.rimAt((k + 0.5 + 0.8 * (rnd() - 0.5)) / n);
+        roots.push([r.p[0], r.p[1], r.p[2], r.ang, 1]);
+      }
+    }
+    addTentacles(acc, roots, d(t.segs, 6), t.width, t.len, rnd);
+  }
+
+  // hanging lanterns
+  if (v.lamps && detail >= 0.5) {
+    const L = v.lamps;
+    const n = Math.max(4, Math.round(L.n * Math.min(1, detail * 1.2)));
+    for (let k = 0; k < n; k++) {
+      const q = -0.82 + 1.64 * ((k + rnd()) / n);
+      const m = L.ms[k % L.ms.length];
+      const p = V.at(q, m, rnd() < 0.5 ? -1 : 1);
+      const top = [p[0], p[1] * 0.97, p[2]];
+      const drop = rr(L.drop[0], L.drop[1]);
+      addGut(acc, top, 4, L.chain, drop, 0.3);
+      addCore(acc, top[1] - drop, L.size * rr(0.75, 1.25), 0, 0, top[0], top[2], 0.05 + 0.9 * rnd());
+    }
+  }
+
+  const g = acc.build();
+  g.userData.recipe = recipe;
+  return g;
+}
+
 // ---- recipe -> geometry -------------------------------------------------------------------
 // recipe: {
 //   profile, shell: [nu, nv], cluster, skirt: [nu, rows] | null,
@@ -314,6 +519,7 @@ function addLamps(acc, prof, L, rnd, detail) {
 // }
 // detail scales segment counts: 1 = full, <1 = far LOD.
 export function buildGeometry(recipe, detail = 1, seed = 1) {
+  if (recipe.vault) return buildVaultGeometry(recipe, detail, seed);
   const rnd = rng(seed);
   const acc = new Acc();
   const d = (n, min = 2) => Math.max(min, Math.round(n * detail));
