@@ -86,27 +86,36 @@ export function idol(opts = {}) {
       mb.box(0, 5.74, zb + 0.02, zb * 2 + 0.06, 0.24, 0.06, raised, { uv: [3, 3] });
       mb.box(0, 5.74, zb + 0.08, 0.28, 0.28, 0.06, scaleC(PAL.bronze, GAIN * 0.8), { uv: [1, 1], rz: Math.PI / 4 });
       for (const sx of [-0.2, 0.2]) mb.box(sx, 5.28, zb + 0.04, 0.1, 0.9, 0.05, raised, { uv: [3, 3] });
-      // Head: face plate, heavy brow, deep eyes, nose, cheeks, moustache, beard, headband.
+      // Head, carved in relief like the Zbruch idol: a domed face, arched brow ridges over deep almond
+      // eye hollows, a long nose swept down from the brow, a drooping moustache, a small mouth, beard
+      // and headband. Smooth forms (no blocks) so it reads as worn stone, not a tiki mask.
       const zh = 1.15;
       const yc = 8.2;
       const f = SC;
-      mb.box(0, yc, zh + 0.025, 1.5, 1.7, 0.07, raised, { uv: [3, 3] });
-      mb.box(0, yc + 0.6 * f * 0.8, zh + 0.1, 1.8, 0.24, 0.16, raised, { uv: [3, 3] });
+      const worn = scaleC(PAL.stone, GAIN * 0.5);
+      mb.ellipsoid(0, yc + 0.02, zh + 0.0, 0.74, 0.92, 0.14, raised, { seg: 14, rings: 8 });
       mb.box(0, yc + 0.84 * f * 0.8, zh + 0.05, 2.1, 0.18, 0.11, scaleC(PAL.stone, GAIN * 0.85), { uv: [3, 3] });
       for (const sx of [-1, 1]) {
-        mb.box(sx * 0.4, yc + 0.34, zh + 0.1, 0.4, 0.14, 0.07, dark, { uv: [3, 3], rz: sx * -0.12 });
-        mb.box(sx * 0.4, yc + 0.34, zh + 0.14, 0.14, 0.09, 0.04, scaleC(PAL.stone, GAIN * 0.5), { uv: [3, 3] });
-        mb.box(sx * 0.62, yc - 0.04, zh + 0.09, 0.3, 0.38, 0.1, raised, { uv: [3, 3], rz: sx * 0.14 });
+        // Brow ridge: an arch from the nose bridge out over the eye.
+        mb.sweep([[sx * 0.03, yc + 0.44, zh + 0.15], [sx * 0.24, yc + 0.52, zh + 0.15], [sx * 0.46, yc + 0.5, zh + 0.12], [sx * 0.62, yc + 0.4, zh + 0.07]], (t) => 0.075 - t * 0.03, raised, { seg: 7, ao: 0.25, uv: [3, 3] });
+        // Eye: a dark hollow under a heavy lid, an almond tilted down at the outer corner.
+        mb.ellipsoid(sx * 0.33, yc + 0.3, zh + 0.1, 0.2, 0.08, 0.05, dark, { seg: 10, rings: 4 });
+        mb.sweep([[sx * 0.15, yc + 0.34, zh + 0.14], [sx * 0.33, yc + 0.39, zh + 0.15], [sx * 0.51, yc + 0.32, zh + 0.12]], 0.035, raised, { seg: 6, ao: 0.2, uv: [3, 3] });
+        // Cheek, and the ear block at the side of the head.
+        mb.ellipsoid(sx * 0.46, yc - 0.08, zh + 0.07, 0.27, 0.24, 0.05, raised, { seg: 12, rings: 6 });
         mb.box(sx * 1.1, yc + 0.0, zh - 0.2, 0.12, 0.45, 0.2, raised, { uv: [3, 3] });
+        // Moustache: from under the nose, out and down past the mouth.
+        if (k !== 3) mb.sweep([[sx * 0.06, yc - 0.38, zh + 0.27], [sx * 0.24, yc - 0.42, zh + 0.24], [sx * 0.42, yc - 0.52, zh + 0.18], [sx * 0.52, yc - 0.7, zh + 0.12]], (t) => 0.07 - t * 0.035, raised, { seg: 7, ao: 0.25, uv: [3, 3] });
+        // Lichen: small dark crusts scattered on the weather side of the face.
+        for (let q = 0; q < 4; q++) {
+          mb.ellipsoid(sx * (0.15 + kit.rand() * 0.5), yc + kit.rs() * 0.6, zh + 0.1, kit.r(0.02, 0.05), kit.r(0.015, 0.035), 0.012, scaleC(mixC(0x4a5032, 0x3a3a2c, kit.rand()), GAIN * 0.55), { seg: 8, rings: 3 });
+        }
       }
-      mb.box(0, yc - 0.02, zh + 0.19, 0.24, 0.68, 0.28, raised, { uv: [3, 3] });
-      mb.box(0, yc - 0.38, zh + 0.25, 0.38, 0.14, 0.18, raised, { uv: [3, 3] });
-      for (const sx of [-1, 1]) mb.box(sx * 0.09, yc - 0.38, zh + 0.25, 0.08, 0.1, 0.14, dark, { uv: [3, 3] });
-      if (k !== 3) {
-        mb.box(0, yc - 0.56, zh + 0.15, 0.84, 0.14, 0.14, raised, { uv: [3, 3] });
-        for (const sx of [-1, 1]) mb.box(sx * 0.5, yc - 0.62, zh + 0.13, 0.4, 0.1, 0.1, raised, { uv: [3, 3], rz: sx * -0.35 });
-      }
-      mb.box(0, yc - 0.74, zh + 0.1, 0.46, 0.05, 0.05, dark, { uv: [3, 3] });
+      // Nose: a long wedge from the brow to a broad tip, with nostrils cut in.
+      mb.sweep([[0, yc + 0.44, zh + 0.15], [0, yc + 0.1, zh + 0.24], [0, yc - 0.24, zh + 0.3], [0, yc - 0.32, zh + 0.27]], (t) => 0.06 + t * 0.07, raised, { seg: 8, ao: 0.25, uv: [3, 3] });
+      for (const sx of [-1, 1]) mb.ellipsoid(sx * 0.07, yc - 0.34, zh + 0.27, 0.035, 0.025, 0.03, worn, { seg: 6, rings: 3 });
+      // Mouth: a short carved line under the moustache.
+      mb.ellipsoid(0, yc - 0.56, zh + 0.14, 0.17, 0.03, 0.035, dark, { seg: 8, rings: 3 });
       if (k === 0 || k === 2) {
         mb.at(0, yc - 0.82, zh + 0.1, 0, (m) => {
           m.extrude([[-0.5, 0], [0.5, 0], [0.34, -0.5], [0.12, -0.84], [-0.12, -0.84], [-0.34, -0.5]], 0.16, raised, { uv: [3, 3] });
