@@ -34,6 +34,7 @@ export const SFX_GROUPS = {
     'axe_chop', 'snowball_hit', 'heartbeat', 'ignite', 'gust', 'hand_bell',
   ],
   creatures: ['dog_bark', 'deer_bark', 'fox_scream', 'crow', 'raven', 'chicken', 'goat', 'child_laugh', 'owl', 'bird'],
+  fishing: ['reel_click', 'jig_plink', 'nibble', 'strike_whip', 'splash_small', 'line_snap', 'ice_scrape', 'fish_land', 'fish_flop', 'hole_chip'],
   ui: ['ui_select', 'ui_hover', 'ui_open', 'ui_close'],
   dice: ['dice_land', 'dice_rattle', 'dice_tumble', 'dice_tick', 'coin_pile', 'coin_slide'],
 };
@@ -50,4 +51,6 @@ export const LOOP_NAMES = [
   'heartbeat', // low health or a cutscene beat (no pos)
   'water_flow', // open water after the thaw, the river
   'crowd_murmur', // a gathered crowd or the tavern interior
+  'sizzle', // a fish roasting on a stick
+  'line_hiss', // a fish taking line
 ];

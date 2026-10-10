@@ -29,7 +29,7 @@ export const ROWS = [
     name: 'fishing',
     items: [
       ['dryingRack', { seed: 1 }], ['fishBasket', { seed: 1 }], ['fishString', { seed: 1 }], ['net', { seed: 1 }], ['net', { seed: 2, variant: 'heap' }], ['boat', { seed: 1 }], ['boat', { seed: 2, variant: 'overturned' }],
-      ['iceFishingHole', { seed: 1, rod: true }], ['iceFishingHole', { seed: 2 }], ['fishingStool', { seed: 1 }], ['fishingStool', { seed: 2, variant: 'bucket' }], ['windbreak', { seed: 1 }],
+      ['iceFishingHole', { seed: 1, rod: true }], ['iceFishingHole', { seed: 2 }], ['iceFishingHole', { seed: 3, open: true }], ['rodRest', { seed: 1 }], ['fishingStool', { seed: 1 }], ['fishingStool', { seed: 2, variant: 'bucket' }], ['windbreak', { seed: 1 }],
       ['tent', { seed: 1, variant: 'aframe' }], ['tent', { seed: 2, variant: 'cone' }],
     ],
   },

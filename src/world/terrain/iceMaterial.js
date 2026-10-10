@@ -11,7 +11,7 @@ import { addCompileHook } from '../../render/Materials.js';
 import { TERRAIN_SAMPLE_GLSL } from './terrainGLSL.js';
 import { NOISE_GLSL } from './noiseTextures.js';
 
-export const MAX_HOLES = 16;
+export const MAX_HOLES = 24;
 
 const PARS = /* glsl */ `
 varying vec3 vMzIceWP;

@@ -35,7 +35,7 @@ atmosphere 90, late 100. The engine calls `G.postfx.render(dt)` (or a plain rend
 | Field | Owner (file) | What |
 |---|---|---|
 | `G.renderer`, `G.scene`, `G.camera` | core/Engine.js | single renderer, scene, perspective camera |
-| `G.cameraOwner` | whoever drives the camera | `'rig'` gameplay, `'cutscene'`, `'debug'`, `'shot'`, `'title'`, `'dice'` (the dice table). Only the owner writes the camera |
+| `G.cameraOwner` | whoever drives the camera | `'rig'` gameplay, `'cutscene'`, `'debug'`, `'shot'`, `'title'`, `'dice'` (the dice table), `'fishing'` (a fishing session, hands the camera back to the rig with a blend), `'photo'` (photo mode). Only the owner writes the camera |
 | `G.uniforms` | render/Uniforms.js | shared shader uniforms (see below) |
 | `G.events` | core/Events.js | `on(name, fn)`, `once`, `off`, `emit(name, payload)`, `wait(name, pred) -> Promise` |
 | `G.state` | core/State.js | flags, inventory, notes, discoveries, save/load |
@@ -57,6 +57,7 @@ atmosphere 90, late 100. The engine calls `G.postfx.render(dt)` (or a plain rend
 | `G.ui` | ui/UI.js | HUD, subtitles, menus, journal, map |
 | `G.player`, `G.cameraRig`, `G.horse`, `G.combat`, `G.senses`, `G.interact` | gameplay/* | phase 2 |
 | `G.creatures`, `G.npcs` | gameplay/creatures, gameplay/npcs | phase 2 |
+| `G.fishing` | gameplay/fishing/index.js | ice fishing, selling and roasting (see "Fishing") |
 | `G.dialogue`, `G.quests`, `G.cutscenes`, `G.story` | story/* | phase 2 and 3 |
 
 ### Shared uniforms (`src/render/Uniforms.js`)
@@ -95,7 +96,8 @@ uniforms from `G.uniforms`).
 - `G.terrain.setRoadMask` is internal; roads come from layout.
 
 ### Water and ice (`G.water`, terrain builder)
-- `G.water.addHole(x, z, r)` returns id: a dark open-water hole in the ice (ice-fishing holes, ritual hole).
+- `G.water.addHole(x, z, r)` returns id: a dark open-water hole in the ice (ice-fishing holes, ritual hole). 24 slots
+  (`MAX_HOLES` in world/terrain/iceMaterial.js); `removeHole(id)` frees one, `setHoleRadius(id, r)` grows or shrinks it (the sword-cut hole).
 - `G.water.setUnderGlow(x, z, radius, intensity, color?)` pale light under the ice (Wiesia).
 - `G.water.setCracks(x, z, radius, amount)` crack network on the ice (boss arena), animatable.
 - `G.water.setThaw(t)` 0 = frozen, 1 = open water with reflections (ending). Also sets `G.world.thawed` when t > 0.5.
@@ -193,6 +195,10 @@ c.bones  // named joints: hips, spine, chest, neck, head, shoulderL/R, armL/R, f
 c.height // standing height in meters
 ```
 Registered characters update automatically (a single system at ORDER.characters).
+`c.anim.post = (out, idx, dt, addEuler) => {}` (or null) runs after the procedural pose is built and before it is written, for code that
+has to bend one pose to the world (the fishing session aims the rod arm at the hole and leans her over it).
+Fishing clips (characters/clips/fishing.js, lazy like the rest): `fish_sit, fish_strike, fish_fight, fish_reel, fish_lift, fish_roast, chip_ice`
+(the last one emits `hit` events for the six sword strikes at the ice).
 Presets (DESIGN 3.2): `vesna`, `ola`, `hanka`, `bogdan`, `dobra`, `zbyszek`, `jarek`,
 `wiesia_ghost`, `miller`, `miller_wife`, `child_a..f`, `villager_m_1..12`, `villager_f_1..12`,
 `elder_m`, `elder_f`, `fisherman_1..4`.
@@ -381,6 +387,58 @@ key and draws the player's binding). HUD reads `G.player` and `G.quests.objectiv
 the top center with objective markers and discovered location icons. Map: parchment rendered
 from `G.world` heights with LOC labels and markers.
 
+## Fishing (`G.fishing`; src/gameplay/fishing/*, src/world/locations/fishing.js)
+
+Ice fishing, selling to the reeve and roasting at a fire. The maths is pure and runs in Node (`node scripts/fishtest.mjs`, 72 checks); the rest
+is the sitting, the picture and the sound.
+
+| File | What |
+|---|---|
+| `species.js` | `SPECIES`: perch, roach, bream, pike, burbot (night), whitefish (deep) and the special `oldone`: weights `w [min, mean, max]`, depth preference, hours, weather, sky factor, fight numbers, price, palette, journal text |
+| `model.js` | `makeEnv`, `speciesTerm(s)`, `totalRate` (a Poisson bite hazard from depth fit, hour, weather, herders low, jig, spot richness), `pickSpecies`, `rollWeight`, `Line`, `Bite` (nibbles, then the strike window), `Fight` (tension against the pull and the runs), `OldOne` (night patience), `priceOf`, `cookValue`, `LINES` (`normal`, `strong`) |
+| `store.js`, `words.js` | the save data `G.state.data.fish { basket, log, caught, sold, line, oldone }` (log per species: n, best, depth range, hour buckets), `recordCatch`, `sellFish`, `cookable`; how a catch is said aloud |
+| `mesh.js`, `view.js` | procedural fish with vertex colours (bend, cook), the rod (blank, reel, tip), roasting stick, ripples; the rod in her hand and the line to the water |
+| `hud.js`, `fishing.css` | depth gauge, tension bar with the fish's pull and the line out, key bar (real bindings), strike prompt, message line, the notebook-page catch card |
+| `session.js` | one sitting: phases `walk sit fish fight land stand`, the pose hook, camera, sound, rumble, the old pike's rules |
+| `cook.js`, `cut.js` | roasting at `G.world.fires`; chipping the thin spot open with the sword |
+| `index.js` | `G.fishing`, the interactions, the abort hooks, the test hooks |
+
+```js
+G.fishing.begin(spot | id, opts) -> Promise<{ reason, catches }>   // sit down at an open hole and fish until she stands
+G.fishing.abort(reason)            // stand up at once; also on player:hit, death, combat:start, cutscene:start, dialogue:start, loaded, reset
+G.fishing.active / .phase / .catches / .spots / .spot(id)           // spot { id, name, zone, depth, rich, sizeBias, hole {x,z,r,id}, seat {x,z,yaw}, rest, open, thin, cutAt, ... }
+G.fishing.hasRod() / giveRod()     // the rod is the item 'rod' (lent by Bogdan, or taken from the rest by the eastern shelf hole: flag rod_taken)
+G.fishing.sellAll() -> { n, coins, items, line }   // the reeve's scales; the old pike is left in the basket. Bogdan's dialogue calls it
+G.fishing.payOldOne() / pikeWeightText()           // Bogdan weighs the old pike alone and pays by the kilo
+G.fishing.cook() / canCook() / nearestFire()       // roast the cheapest fish at the nearest open fire (interaction `fish:cook`)
+G.fishing.cutHole(spot) -> Promise                 // walk, draw the sword, chip, sheathe; opens a thin spot (story: side_oldone)
+G.fishing.env(spot)                                // { hours, weather, herdersLow, night } as the bite model sees it
+```
+- Spots (`G.world.locations.fishing`): nine real holes in `G.water` (`addHole`): `shelf_west shelf_mid shelf_east` in front of the huts (about a metre of
+  water), `deep_west deep_east` past the shelf, `camp_a camp_b` at the ice camp, `far` (a lonely lantern hole) and `tower` (thin ice under the bell tower,
+  closed until it is cut). Each has a rim, a stool or upturned bucket and a rod rest; the interaction `fish:<id>` ("Fish") sits her down, or says
+  "I would need a rod." and sets `fish_wants_rod`. Depth is the real water under the ice. Props at distance are culled by the `fishing-lod` system.
+- The session takes the player (`setControl(false)`, `G.cameraOwner = 'fishing'`; `Senses.canUse` is off meanwhile) and hands both back with a camera blend. The
+  world carries on around her (NPCs, weather, time); warmth drains slowly (the session does it, since a player without control does not) and combat or a hit stands her up.
+- Controls (rebindable, pad and keyboard): hold `fishSlack` to let the line down, `fishReel` to raise it (and to reel in a fight), tap `fishJig` to jig
+  and to strike at a bite, `fishLeave` to stand. In a fight reel while the fish rests and ease off when it runs; the line snaps if the tension stays
+  over the limit, a big fish runs under the ice edge and is lost if the line runs out.
+- Bites follow depth, hour, weather and the sky: clear cold nights when the herders hang low are best, and nothing says so on screen. Burbot come only
+  after dark and lie on the bottom; pike at first light and dusk; whitefish deep. `rich` and `sizeBias` per spot scale rate and weight.
+- The old pike (`oldone`): comes only to `tower` while `oldone_asked` is set and `oldone_landed` is not; needs a hole, night (full strength 20:30 to 04:30, a third at
+  dusk and dawn, none by day), the jig within a metre or two of the floor and patience (70 to 120 s of good conditions, quicker under many low herders, draining
+  while the conditions are wrong; snow halves it, a blizzard stops it). The strong line
+  (item `strong_line`) is the only one that holds it; weight 19 to 25 kg. Landing it sets `oldone_landed`; it is kept apart from the species log
+  (`data.oldone { w, day }`) and sold only through Bogdan.
+- Journal: the Fish tab (`Journal.fishRows()`, key 4) draws one notebook page per species (sketch in `ui/sketch.js`, notes from `species.js`, her best weight and
+  count, and from the second fish the depth and the hour they took the jig). Hints: `fish_line`, `fish_fight`, `fish_stand`.
+- Sounds (`audio/sfx/recipes/fishing.js`): reel_click, jig_plink, nibble, strike_whip, splash_small, line_snap, ice_scrape, fish_land, fish_flop, hole_chip, and
+  the loops sizzle and line_hiss.
+- Test hooks: `G.fishing.test` (`land(id, kg, spotId)` puts a fish in the basket exactly as landing it would; `play({ spotId, force, minutes, step, depthFrac, until, bot })`
+  runs one whole session headless with a bot at the line; `price`, `cookValue`, `cookable`, `take`) and `G.fishing.testInput` (`{ reel, slack, jig, leave }` replaces the
+  input while set); `G.fishing.seed(n)` makes the bites and the weights repeatable. The playthrough drives all of it (steps `fishing: ...`). Debug scene `?scene=fishing`
+  (header of src/debug/scenes/fishing.js lists the parameters and `window.__fishing`).
+
 ## Input, controls and hints
 
 ### Input (`G.input`; src/core/Input.js, src/core/bindings.js)
@@ -388,7 +446,9 @@ from `G.world` heights with LOC labels and markers.
   `Mouse1` (middle) `Mouse2` (right), pad `PadA` `PadB` `PadX` `PadY` `PadLB` `PadRB` `PadLT` `PadRT` `PadBack` `PadStart`
   `PadL3` `PadR3` `PadUp` `PadDown` `PadLeft` `PadRight` (Gamepad API standard mapping). Pad buttons live in the same sets as keys.
   Actions: forward back left right sprint walk dodge attack heavy senses draw sign sign1 sign2 sign3 lock shoulder parry
-  interact horse potion journal map pause skip advance, and dice_pick dice_roll dice_raise dice_hands (the dice game, context `'dice'`; defaults and the table the Controls screen is built from: bindings.js).
+  interact horse potion journal map photo pause skip advance; dice_pick dice_roll dice_raise dice_hands (the dice game, context `'dice'`);
+  and the fishing group fishReel (hold, Mouse0 / PadRT) fishSlack (hold, Mouse2 / PadLT) fishJig (Space / PadA) fishLeave (Q / PadB),
+  all in the context `fish` so they share keys with the game actions (defaults and the table the Controls screen is built from: bindings.js).
 - `G.input.move` is digital from the keys and analog from the left stick (radial dead zone, curve), so its length picks walk or
   run. `G.input.lookPad` is the right stick in [-1, 1] (the camera integrates it with dt). The sprint button latches while the stick is held.
 - `G.input.device` is `'kbm'` or `'pad'`, switched by the last meaningful input; `input:device` announces it. `padConnected`, `padName`, `padStyle` ('xbox' or 'playstation').
@@ -413,6 +473,9 @@ One card at a time the first time a mechanic becomes relevant (move and look, sp
 dismount, draw, attack, dodge, parry, lock-on and switching, each sign, potion, skipping a scene, pause). Rows tick when the player does the thing;
 never during cutscenes, dialogue, menus, the title; shown once per profile (`marzena.hints.seen`); `G.settings.hints = false` silences them.
 `G.hints.show(id, { force })`, `prompt(items, seconds)` (story cards), `reset()`. Add one by appending to `HINTS` in hintDefs.js. In shot mode they are off unless the URL has `&hints`.
+A def with `fishing: true` belongs to the seat at a hole: it is shown only while a session is running (not while she walks to the stool or stands up),
+never in free play, and a def may carry `until(ctx)` to close its card when the moment has passed. The fishing hints are `fish_line` (let the line
+down, jig), `fish_fight` (reel, let line out) and `fish_stand`. The context getter `fishing` is `G.fishing`.
 
 ## Kosci, the tavern dice game (`src/minigames/dice/`)
 Dice poker for two, played in the Drowned Bell against Zbyszek (across the bar) and the two regulars Wojtek and Halina
@@ -475,7 +538,8 @@ G.dice.canPlay(id) -> { ok, reason }     G.dice.purse(id)     G.dice.record()   
 `time:jump`, `weather:change`, `resize`, `game:ready`, `player:hit`, `player:death`,
 `enemy:death`, `combat:start`, `combat:end`, `quest:update`, `dialogue:start`, `dialogue:end`,
 `cutscene:start`, `cutscene:end`, `senses:on`, `senses:off`, `location:enter`, `location:leave`,
-`input:device`, `input:pad`, `input:bindings`, `settings`, `camera:retarget`, `camera:shoulder`, `dice:start`, `dice:phase`, `dice:round`, `dice:match`.
+`input:device`, `input:pad`, `input:bindings`, `settings`, `camera:retarget`, `camera:shoulder`, `photo:enter`, `photo:exit`, `photo:capture`, `dice:start`, `dice:phase`, `dice:round`, `dice:match`,
+and from fishing `fishing:start`, `fishing:end`, `fishing:hooked`, `fishing:lost`, `fish:caught`, `fish:sold`, `fish:cooked`, `fish:cut`.
 
 ## Test hooks and the screenshot harness
 `window.__G` is the context. `window.__MZ_READY` turns true when loaded. `window.__MZ_STATS`
@@ -497,7 +561,7 @@ triangles are real. On a machine with a GPU, `MZ_GPU=1 node scripts/shot.mjs ...
 Each builder should add a gallery scene in `src/debug/scenes/` for its area.
 
 Input, camera, menus and hints have a functional test with a mocked gamepad: `MZ_CHROME=1 node scripts/inputtest.mjs [input|lock|menus|hints|defs]`
-(114 checks, about 4 minutes). UI screens for screenshots: `?scene=ui&show=controls&tab=camera&device=pad`, `show=hint&hint=senses` (see the header of `src/debug/scenes/ui.js`).
+(114 checks, about 4 minutes). The fishing model has a pure Node test: `node scripts/fishtest.mjs` (72 checks, a second). UI screens for screenshots: `?scene=ui&show=controls&tab=camera&device=pad`, `show=hint&hint=senses` (see the header of `src/debug/scenes/ui.js`).
 
 ## Collaboration rules (several builders work in this tree at once)
 - **Only edit files you own** (listed in your brief). Read anything.

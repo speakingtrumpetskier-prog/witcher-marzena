@@ -18,6 +18,7 @@
     "PAIRS": ["villager_m1", "villager_m2", "villager_f1", "villager_f2"],
     "PAIRS_DAY2": ["villager_m1", "villager_m2", "villager_f1", "villager_f2"],
     "FISHER": ["villager_m3"],
+    "FISHER_TIPS": ["villager_m3"],
     "SMITH": ["villager_m3"],
     "SELLER": ["villager_f1", "villager_f2"],
     "CHILD": ["child_f1", "child_m1", "ola"],

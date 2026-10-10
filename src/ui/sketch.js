@@ -271,7 +271,116 @@ function childHerders(ctx, r) {
   chunky([[20, 207], [150, 205], [300, 208]], 2.2);
 }
 
-const SKETCHES = { wolf, marzanny, marzanna, ice_lady: iceLady, planetnik, matka, child_herders: childHerders };
+// ---- the fish of the lake, for the journal's Fish tab and the page that shows a catch ---------------------------------
+// One drawing for all six: the body outline from a few numbers, the fins, then the marks that tell them apart.
+const FISH = {
+  perch: { len: 238, h: 0.27, tp: 0.4, back: 1.05, belly: 0.9, tail: 0.24, dorsal: [0.24, 0.5, 0.12], dorsal2: [0.54, 0.72, 0.1], anal: [0.62, 0.8, 0.07], marks: 'bars', wash: 'rgba(140,150,80,0.30)', finWash: 'rgba(200,80,50,0.35)', spiny: true },
+  roach: { len: 232, h: 0.29, tp: 0.4, back: 0.95, belly: 0.95, tail: 0.25, dorsal: [0.38, 0.62, 0.13], anal: [0.58, 0.82, 0.1], marks: 'scales', wash: 'rgba(170,190,196,0.30)', finWash: 'rgba(200,90,60,0.35)', redEye: true },
+  bream: { len: 224, h: 0.44, tp: 0.4, back: 1.25, belly: 0.9, tail: 0.22, dorsal: [0.32, 0.54, 0.2], anal: [0.5, 0.86, 0.13], marks: 'scales', wash: 'rgba(160,130,70,0.34)', finWash: 'rgba(90,86,80,0.35)', deep: true },
+  pike: { len: 262, h: 0.17, tp: 0.5, back: 0.85, belly: 0.75, tail: 0.17, dorsal: [0.74, 0.9, 0.12], anal: [0.72, 0.88, 0.1], marks: 'spots', wash: 'rgba(100,120,60,0.30)', finWash: 'rgba(140,110,50,0.3)', flat: true },
+  burbot: { len: 262, h: 0.18, tp: 0.34, back: 0.95, belly: 0.9, tail: 0.18, dorsal: [0.28, 0.68, 0.09], anal: [0.42, 0.88, 0.09], marks: 'mottle', wash: 'rgba(110,92,60,0.34)', finWash: 'rgba(80,68,50,0.3)', barbel: true, eel: true },
+  whitefish: { len: 244, h: 0.22, tp: 0.4, back: 0.95, belly: 0.8, tail: 0.24, dorsal: [0.34, 0.5, 0.13], anal: [0.62, 0.8, 0.09], marks: 'plain', wash: 'rgba(170,190,200,0.28)', finWash: 'rgba(120,130,140,0.3)', adipose: true },
+};
+
+function fishEnv(f, t) {
+  const tp = f.tp;
+  if (t <= tp) return Math.pow(Math.sin((t / tp) * Math.PI / 2), f.flat ? 0.55 : 0.75);
+  const u = (t - tp) / (1 - tp);
+  return f.tail + (1 - f.tail) * Math.pow(Math.cos(u * Math.PI / 2), f.eel ? 1.5 : 1.15);
+}
+
+function fishSketch(ctx, r, f) {
+  const cx = 160, cy = 104, L = f.len, hh = (f.h * L) / 2;
+  const x0 = cx + L / 2 - 6; // the nose, on the right
+  const N = 26;
+  const X = (t) => x0 - L * 0.9 * t;
+  const top = [], bot = [];
+  for (let i = 0; i <= N; i++) {
+    const t = i / N, e = fishEnv(f, t), droop = t < 0.12 ? (0.12 - t) * L * 0.1 : 0;
+    top.push([X(t), cy - hh * f.back * e + droop * 0.4]);
+    bot.push([X(t), cy + hh * f.belly * e + droop]);
+  }
+  const topAt = (t) => cy - hh * f.back * fishEnv(f, t), botAt = (t) => cy + hh * f.belly * fishEnv(f, t);
+  // water line and a few ripples under it
+  pen(ctx, [[30, 196], [110, 198], [200, 195], [290, 197]], r, { w: 1, j: 2, alpha: 0.4 });
+  // washes first
+  wash(ctx, [...top, ...bot.slice().reverse()], f.wash);
+  // the tail
+  const tx = X(1), tl = L * (f.eel ? 0.1 : 0.17), th = Math.max(hh * 0.95, 0.08 * L) * (f.eel ? 0.5 : 1);
+  const tailPts = [[tx, cy - hh * f.tail * 0.8], [tx - tl, cy - th], [tx - tl + (f.eel ? 0 : tl * 0.32), cy], [tx - tl, cy + th], [tx, cy + hh * f.tail * 0.8]];
+  wash(ctx, tailPts, f.finWash);
+  outline(ctx, tailPts, r, { w: 1.3, j: 0.8 });
+  for (let k = -2; k <= 2; k++) pen(ctx, [[tx - 2, cy + k * 2], [tx - tl * 0.9, cy + k * th * 0.38]], r, { w: 0.6, alpha: 0.5, j: 0.8 });
+  // fins
+  const fin = (range, h, upper, color) => {
+    const [a, b] = range;
+    const pts = [];
+    for (let i = 0; i <= 6; i++) { const t = a + (b - a) * (i / 6); pts.push([X(t), (upper ? topAt(t) : botAt(t)) + (upper ? 1 : -1) * 0]); }
+    const peak = [X(a + (b - a) * 0.18), (upper ? topAt(a) : botAt(a)) + (upper ? -1 : 1) * h * L * 1.0];
+    const tip = [X(b), (upper ? topAt(b) : botAt(b)) + (upper ? -1 : 1) * h * L * 0.45];
+    const poly = [pts[0], peak, tip, pts[6]];
+    wash(ctx, poly, color);
+    outline(ctx, poly, r, { w: 1.1, j: 0.7 });
+    for (let k = 1; k < 5; k++) pen(ctx, [[X(a + (b - a) * (k / 6)), upper ? topAt(a + (b - a) * (k / 6)) : botAt(a + (b - a) * (k / 6))], [X(a + (b - a) * (0.18 + 0.6 * (k / 5))), peak[1] + (tip[1] - peak[1]) * (k / 5)]], r, { w: 0.5, alpha: 0.5, j: 0.6 });
+  };
+  fin(f.dorsal, f.dorsal[2], true, f.finWash);
+  if (f.dorsal2) fin(f.dorsal2, f.dorsal2[2], true, f.finWash);
+  fin(f.anal, f.anal[2], false, f.finWash);
+  if (f.adipose) outline(ctx, [[X(0.78), topAt(0.78)], [X(0.8), topAt(0.8) - 0.035 * L], [X(0.83), topAt(0.83)]], r, { w: 1, j: 0.5 });
+  if (f.eel) fin([0.62, 0.97], 0.045, true, f.finWash);
+  // the body line, doubled
+  outline(ctx, top, r, { w: 1.6, j: 1 });
+  outline(ctx, bot, r, { w: 1.6, j: 1 });
+  outline(ctx, [top[0], [X(-0.01) + 3, cy + hh * 0.05], bot[0]], r, { w: 1.3, j: 0.6 });
+  // the head: gill cover, mouth, eye
+  pen(ctx, [[X(0.2), topAt(0.2) + 4], [X(0.215), cy], [X(0.2), botAt(0.2) - 3]], r, { w: 1.2, j: 0.7 });
+  pen(ctx, [[X(0.0) - 1, cy + hh * 0.12], [X(0.08), cy + hh * 0.2], [X(0.12), cy + hh * 0.12]], r, { w: 1.1, j: 0.5 });
+  ctx.fillStyle = INK;
+  ctx.beginPath(); ctx.arc(X(0.085), cy - hh * 0.28, Math.max(2.4, hh * 0.1), 0, 7); ctx.fill();
+  if (f.redEye) { ctx.strokeStyle = '#9a2e22'; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.arc(X(0.085), cy - hh * 0.28, Math.max(4, hh * 0.15), 0, 7); ctx.stroke(); }
+  if (f.barbel) pen(ctx, [[X(0.0), cy + hh * 0.3], [X(0.0) + 4, cy + hh * 0.7], [X(0.01) - 2, cy + hh * 0.9]], r, { w: 1, j: 0.6 });
+  // pectoral and pelvic fins
+  outline(ctx, [[X(0.26), cy + hh * 0.35], [X(0.33), cy + hh * 0.85], [X(0.39), cy + hh * 0.45]], r, { w: 1, j: 0.6 });
+  outline(ctx, [[X(0.38), botAt(0.38) - 2], [X(0.43), botAt(0.43) + hh * 0.5], [X(0.47), botAt(0.47) - 1]], r, { w: 1, j: 0.6 });
+  // marks
+  if (f.marks === 'bars') {
+    for (let i = 0; i < 6; i++) {
+      const t = 0.3 + i * 0.075;
+      pen(ctx, [[X(t), topAt(t) + 3], [X(t) + 1, cy + hh * 0.25], [X(t) - 1, cy + hh * 0.5]], r, { w: 3.4, j: 1, alpha: 0.7 });
+    }
+  } else if (f.marks === 'spots') {
+    for (let i = 0; i < 46; i++) {
+      const t = 0.16 + r() * 0.78, y = cy - hh * 0.55 + r() * hh * 1.1;
+      if (y < topAt(t) + 3 || y > botAt(t) - 5) continue;
+      ctx.save(); ctx.strokeStyle = 'rgba(43,32,22,0.7)'; ctx.lineWidth = 0.9; ctx.beginPath(); ctx.ellipse(X(t), y, 3.6 + r() * 2.4, 1.6, 0, 0, 7); ctx.stroke(); ctx.restore();
+    }
+    hatch(ctx, r, X(0.3), cy - hh * 0.9, X(0.9), cy - hh * 0.3, 40, 9, 1.4, INK_SOFT, 0.7);
+  } else if (f.marks === 'mottle') {
+    for (let i = 0; i < 34; i++) {
+      const t = 0.12 + r() * 0.8, y = cy - hh * 0.7 + r() * hh * 1.2;
+      if (y < topAt(t) + 3 || y > botAt(t) - 3) continue;
+      wash(ctx, [[X(t) - 5, y], [X(t) - 1, y - 4], [X(t) + 5, y - 1], [X(t) + 2, y + 4]], 'rgba(43,32,22,0.28)');
+    }
+  } else if (f.marks === 'scales') {
+    ctx.save(); ctx.strokeStyle = 'rgba(43,32,22,0.34)'; ctx.lineWidth = 0.7;
+    for (let row = 0; row < 7; row++) {
+      for (let col = 0; col < 16; col++) {
+        const t = 0.24 + col * 0.045 + (row % 2) * 0.022, y = topAt(t) + 7 + row * (hh * 0.26);
+        if (y > botAt(t) - 5) continue;
+        ctx.beginPath(); ctx.arc(X(t), y, 4.2, -1.1, 1.1); ctx.stroke();
+      }
+    }
+    ctx.restore();
+  }
+  // a belly shadow
+  hatch(ctx, r, X(0.8), cy + hh * 0.45, X(0.18), cy + hh * 0.8, 26, 7, 0.9, INK_SOFT, 0.6);
+}
+
+const SKETCHES = {
+  wolf, marzanny, marzanna, ice_lady: iceLady, planetnik, matka, child_herders: childHerders,
+  perch: (c, r) => fishSketch(c, r, FISH.perch), roach: (c, r) => fishSketch(c, r, FISH.roach), bream: (c, r) => fishSketch(c, r, FISH.bream),
+  pike: (c, r) => fishSketch(c, r, FISH.pike), burbot: (c, r) => fishSketch(c, r, FISH.burbot), whitefish: (c, r) => fishSketch(c, r, FISH.whitefish),
+};
 
 // Draws sketch `kind` onto `canvas` (320x220 logical pixels).
 export function drawSketch(canvas, kind, seed = 3) {

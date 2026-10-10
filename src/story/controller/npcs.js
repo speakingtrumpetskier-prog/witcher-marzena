@@ -8,6 +8,14 @@
 export function install(C) {
   const { G } = C;
 
+  // Has Bogdan something to say about fish right now (bogdan_fish.js)? She has fish to sell, she has landed the old pike, she
+  // was turned away from a hole for want of a rod, or she has fished and not yet heard about the pike by the tower.
+  const fishTalk = () => {
+    const F = G.fishing;
+    if (!F || !G.dialogue?.has?.('bogdan_fish')) return false;
+    return (C.has('oldone_landed') && !C.has('oldone_paid')) || !!F.canSell?.() || (C.has('fish_wants_rod') && !C.count('rod')) || (C.has('fished') && !C.has('oldone_heard'));
+  };
+
   const handlers = {
     // The Drowned Bell: one hub. Shop and gossip live in the scene; G.storyCtl.buy is there for its `do`.
     async zbyszek() {
@@ -37,10 +45,15 @@ export function install(C) {
         C.set('met_bogdan');
         if (!C.has('took_reeve_money') && !C.has('refused_reeve_money')) C.set('refused_reeve_money');
         if (C.has('took_reeve_money')) C.ensureGain('coins', coins, 100);
-      } else if (C.has('echo_seen') && !C.has('reeve_told')) {
-        await C.talk('bogdan_later');
       } else {
-        await C.talk(G.dialogue?.has?.('bogdan_day2') ? 'bogdan_day2' : 'bogdan_later');
+        // Fish first, when there is something to say about fish (bogdan_fish.js); "Something else" ends at 'regular'.
+        if (fishTalk()) {
+          const r = await C.talk('bogdan_fish');
+          if (C.has('oldone_asked') && !G.quests.rec('side_oldone')) G.quests.start('side_oldone');
+          if (r?.end !== 'regular') return;
+        }
+        if (C.has('echo_seen') && !C.has('reeve_told')) await C.talk('bogdan_later');
+        else await C.talk(G.dialogue?.has?.('bogdan_day2') ? 'bogdan_day2' : 'bogdan_later');
       }
     },
 

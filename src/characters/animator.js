@@ -84,6 +84,7 @@ export class Animator {
     this.lean = 0;
     this.yawRate = 0;
     this.shiver = 0;
+    this.post = null; // optional hook, see _procedural
     this.faceBind = {};
     for (const b of FACE_BONES) if (by[b]) this.faceBind[b] = by[b].position.clone();
     this.headK = ch.M.headK;
@@ -386,6 +387,8 @@ export class Animator {
       }
       this.faceTmp.jawOpen += (0.04 + 0.04 * Math.sin(T * 45)) * s;
     }
+    // A caller's last word on the pose (fishing: the jig's lift and the tremble of a bite). post(out, idx, dt, addEuler)
+    if (this.post) this.post(this.out, this.idx, dt, addEuler);
     this._write(dt, ctx);
   }
 

@@ -30,6 +30,12 @@ const FISHER = [
   "You're standing on my line.",
   'Ice is thick here. Thick as my head.',
 ];
+// What the fishermen say to someone who has a rod in her hand (once she has fished or been lent one).
+const FISHER_TIPS = [
+  'Nobody sits under the tower.',
+  'Keep the jig high on the shelf. Perch like the top.',
+  'Burbot want the bottom, and they want the dark.',
+];
 const CHILD = [
   "You're Marzanna!",
   'Witch! Do your eyes glow?',
@@ -161,7 +167,7 @@ export function chooseBark(G, npc, rand = Math.random) {
   else if (id === 'hanka') pool = HANKA;
   else if (id === 'jarek') pool = JAREK;
   else if (/^(ola|child_)/.test(preset)) pool = CHILD;
-  else if (/^fisherman/.test(preset) || tag === 'net' || tag === 'ice_hole') pool = FISHER;
+  else if (/^fisherman/.test(preset) || tag === 'net' || tag === 'ice_hole') pool = G.state && (G.state.count('rod') || G.state.flag('fished')) ? [...FISHER, ...FISHER_TIPS] : FISHER;
   else if (tag === 'market') pool = SELLER;
   else if (tag === 'forge') pool = SMITH;
   else if (isNight(G)) pool = NIGHT;

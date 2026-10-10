@@ -100,6 +100,7 @@ export class Hints {
       get mounted() { return !!G.player?.mounted; },
       get inCombat() { return !!(G.combat?.inCombat || G.player?.state === 'combat'); },
       get skippable() { return self._sceneLive(); },
+      get fishing() { return G.fishing || null; },
       enemies(r) {
         const P = G.player;
         const list = G.combat?.liveEnemies?.() || [];
@@ -127,6 +128,13 @@ export class Hints {
     return !!P && P.control && !P.dead && !P._respawning && G.input?.context === 'game' && !G.story?.busy
       && !G.cutscenes?.active && !ui.menuOpen && !ui.titleActive && !ui.overlays.lbOn && !ui.overlays.faded
       && G.cameraOwner === 'rig' && !ui.choicesUI.active;
+  }
+
+  // Sitting at a fishing hole with the line in the water: Vesna has no control of her feet but has hands on the rod.
+  _fishing() {
+    const G = this.G, ui = this.ui;
+    return !!G.fishing?.active && G.fishing.phase !== 'walk' && G.fishing.phase !== 'stand' && !ui.menuOpen && !ui.titleActive
+      && !ui.overlays.faded && !G.story?.busy && !ui.choicesUI.active;
   }
 
   // A skippable cutscene is running and nobody has started skipping it.
@@ -264,10 +272,13 @@ export class Hints {
       if (P.mounted && (G.horse?.speed ?? 0) > 7) this.flags.galloped = true;
     } else this._lastPos = null;
     const scene = this._sceneLive();
+    const fishing = this._fishing();
+    // which kind of moment a hint belongs to: a cutscene, a seat at a fishing hole, or free play
+    const fits = (d) => (d.scene ? scene : d.fishing ? fishing : live);
 
     for (const card of this._cards()) {
       if (card.story) this._tickStory(card, dt);
-      else if (!card.force && (card.def.scene ? !scene : !live)) this._end(card, false);
+      else if (!card.force && (!fits(card.def) || (card.def.until && card.def.until(this.c)))) this._end(card, false);
       else this._tick(card, dt);
     }
     if (!this.enabled) return;
@@ -276,7 +287,7 @@ export class Hints {
     if (this._scanT <= 0) {
       this._scanT = SCAN;
       for (const d of this.defs.values()) {
-        if (this.seenSet.has(d.id) || (d.scene ? !scene : !live)) { d._t = 0; continue; }
+        if (this.seenSet.has(d.id) || !fits(d)) { d._t = 0; continue; }
         let ok = false;
         try { ok = !!d.watch(this.c); } catch { ok = false; }
         d._t = ok ? d._t + SCAN : 0;
@@ -286,7 +297,7 @@ export class Hints {
     // Fill each free slot with the most urgent hint that is ready for it.
     for (const slot of SLOTS) {
       this.gap[slot] -= dt;
-      if (this.slot[slot] || this.gap[slot] > 0 || !(slot === 'right' ? scene : live)) continue;
+      if (this.slot[slot] || this.gap[slot] > 0 || !(slot === 'right' ? scene : live || fishing)) continue;
       let best = null;
       for (const d of this.defs.values()) {
         if ((d.side === 'right') !== (slot === 'right')) continue;

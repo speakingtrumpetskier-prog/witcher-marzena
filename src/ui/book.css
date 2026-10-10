@@ -128,8 +128,10 @@
 .jr-stamp { position: absolute; top: 58px; right: 60px; padding: 3px 14px 4px; border: 2px solid rgba(140, 42, 30, 0.7); border-radius: 3px; transform: rotate(-7deg); font-family: var(--mz-serif); font-weight: 600; font-size: 17px; letter-spacing: 0.26em; text-transform: uppercase; color: rgba(140, 42, 30, 0.78); }
 .jr-sketchbox { flex: none; margin-top: auto; padding-top: 8px; display: flex; justify-content: center; }
 .jr-sketch { display: block; width: min(100%, 330px); height: auto; opacity: 0.95; }
+.jr-sketch.wide { height: 150px; object-fit: cover; object-position: 50% 46%; }
 .jr-facts { margin-top: 20px; padding-top: 14px; border-top: 1px solid rgba(42, 30, 20, 0.2); font-family: var(--mz-serif); font-size: 20px; line-height: 1.35; color: #3d2d1d; }
 .jr-facts > div + div { margin-top: 8px; }
+.jr-facts.top { margin: 0 0 12px; padding: 0 0 12px; border-top: 0; border-bottom: 1px solid rgba(42, 30, 20, 0.2); }
 .jr-facts .lab { display: inline-block; min-width: 5.6em; font-weight: 600; font-size: 17px; letter-spacing: 0.01em; color: var(--ink-red); }
 
 /* ---------------------------------------------------------------- Map */

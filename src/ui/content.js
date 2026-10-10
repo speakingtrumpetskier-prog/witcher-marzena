@@ -38,6 +38,7 @@ export const QUEST_FALLBACK = {
   side_handbell: { title: 'The Hand-Bell', kind: 'side', order: 15 },
   side_hanged: { title: 'Three Loaves', kind: 'side', order: 16 },
   side_dice: { title: 'Dice at the Drowned Bell', kind: 'side', order: 17 },
+  side_oldone: { title: 'The Old One', kind: 'side', order: 18 },
 };
 
 // kind: letter | diary | ledger | scrawl | carving | drawing | inscription | object

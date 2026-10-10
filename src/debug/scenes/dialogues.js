@@ -131,6 +131,12 @@ export async function init(G) {
         ['dice: wojtek after a loss to her', 'dice_wojtek', { picker: text(/^Deal me in/), flags: { dice_met_wojtek: true, dice_beat_wojtek: true }, day: 1, hour: 15 }, (r) => r.end === 'dice_go' && r.text.some((l) => /angry about last time/.test(l))],
         ['dice: halina deals her in', 'dice_halina', { picker: text(/^Deal me in/), flags: {}, day: 1, hour: 15 }, (r, S) => r.end === 'dice_go' && S.flag('dice_met_halina') && S.flag('dice_known')],
         ['dice: halina will not play on the evening of the rite', 'dice_halina', { picker: 'first', flags: { dice_met_halina: true }, day: 2, hour: 19.2 }, (r) => r.end !== 'dice_go' && r.text.some((l) => /walking down with the rest/.test(l))],
+        // fishing: the reeve, the rod and the old pike (selling needs G.fishing and a basket: the playthrough covers it)
+        ['fishing: the reeve lends the rod', 'bogdan_fish', { picker: inOrder(/need a rod/), flags: { met_bogdan: true, fish_wants_rod: true } }, (r, S) => S.count('rod') === 1 && S.flag('rod_lent') && r.text.some((l) => /beam over the hearth/.test(l))],
+        ['fishing: what bites, and the pike under the tower', 'bogdan_fish', { picker: inOrder(/What bites/), flags: { met_bogdan: true, fished: true } }, (r, S) => S.flag('oldone_heard') && r.text.some((l) => /pike under it/.test(l))],
+        ['fishing: she takes the old pike on', 'bogdan_fish', { picker: inOrder(/About the pike/, /All right/), flags: { met_bogdan: true, fished: true, oldone_heard: true } }, (r, S) => S.flag('oldone_asked') && S.count('strong_line') === 1],
+        ['fishing: she puts the old pike off', 'bogdan_fish', { picker: inOrder(/About the pike/, /Not now/), flags: { met_bogdan: true, fished: true, oldone_heard: true } }, (r, S) => !S.flag('oldone_asked') && S.count('strong_line') === 0],
+        ['fishing: the reeve pays for the old pike', 'bogdan_fish', { picker: 'first', flags: { met_bogdan: true, oldone_asked: true, oldone_landed: true } }, (r, S) => S.flag('oldone_paid') && r.text.some((l) => /That's Stach's/.test(l))],
       ];
       const results = [];
       window.__MZ_ERRORS = window.__MZ_ERRORS || [];

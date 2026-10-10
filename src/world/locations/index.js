@@ -5,10 +5,11 @@
 // Each location module exports `async function build(G, ctx)`; ctx carries shared helpers.
 
 // import.meta.glob only includes files that exist, so an unbuilt location is skipped cleanly.
-const FOUND = import.meta.glob(['./village.js', './wilderness/index.js']);
+const FOUND = import.meta.glob(['./village.js', './wilderness/index.js', './fishing.js']);
 const LOCATIONS = [
   ['village', './village.js'],
   ['wilderness', './wilderness/index.js'],
+  ['fishing', './fishing.js'], // after the wilderness: the holes sit on the ice by the camp and the bell tower
 ];
 
 export async function init(G) {

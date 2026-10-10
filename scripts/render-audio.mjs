@@ -44,6 +44,7 @@ const SFX_GROUPS = {
   props: ['door', 'door_close', 'page_turn', 'coin', 'item_pickup', 'potion_drink', 'forge_hammer', 'axe_chop', 'snowball_hit'],
   ui: ['ui_hover', 'ui_select', 'ui_open', 'ui_close'],
   beasts: ['bear_roar', 'bear_huff', 'paw_snow', 'gust'],
+  fishing: ['reel_click', 'jig_plink', 'nibble', 'strike_whip', 'splash_small', 'line_snap', 'ice_scrape', 'fish_land', 'fish_flop', 'hole_chip'],
 };
 const LONG = { bear_roar: 3, gust: 4, bell_under_ice: 8, boss_scream: 3.2, wolf_howl: 4, ice_groan: 4.5, effigy_burn: 4, ice_ping: 2.4, owl: 2.8, potion_drink: 2.3, effigy_collapse: 2.2, horse_whinny: 2, ice_crack: 2 };
 
