@@ -86,6 +86,12 @@ async function testMatch() {
   await shot(page, '02_bet');
   const hint = await page.evaluate(() => window.__G.hints.cur?.id);
   check('first raise: the hint card shows', hint === 'dice_raise', `${hint}`);
+  const ref = await page.evaluate(() => ({ on: !!document.querySelector('.dc-ref.on'), mine: document.querySelector('.dc-ref .row.you .nm')?.textContent, his: document.querySelector('.dc-ref .row.opp .nm')?.textContent, hand: document.querySelector('.dc-hand.you')?.textContent }));
+  check('the list of hands is up and marks her hand and his', ref.on && !!ref.mine && !!ref.his && !!ref.hand, JSON.stringify(ref));
+  await press(page, 'KeyH');
+  check('H hides the list', await page.evaluate(() => !document.querySelector('.dc-ref.on')));
+  await press(page, 'KeyH');
+  check('and shows it again', await page.evaluate(() => !!document.querySelector('.dc-ref.on')));
   await press(page, 'KeyR');
   await page.waitForFunction(() => ['reroll', 'respond', 'showdown'].includes(window.__dice.phase()?.phase), null, { timeout: 30000 });
   const afterRaise = await page.evaluate(() => window.__dice.phase().phase);
@@ -147,8 +153,16 @@ async function testLeave() {
   await page.evaluate(() => window.__dice.start({ seed: 11 }));
   await until(page, 'stake');
   await press(page, 'Enter');
+  // Esc while the dice are still rolling: the question comes up when they have landed
+  await until(page, 'roll1');
+  await press(page, 'Escape');
+  await page.waitForFunction(() => document.querySelector('.dc-panel .ttl')?.textContent === 'Leave the table?', null, { timeout: 30000 });
+  check('Esc while the dice roll asks once they have landed', true);
+  await press(page, 'Enter'); // Stay
   await until(page, 'bet');
   await settle(page, 800);
+  const back = await page.evaluate(() => document.querySelector('.dc-panel .ttl')?.textContent);
+  check('Stay there goes on to the question the round was coming to', /Raise/.test(back || ''), back);
   await press(page, 'Escape');
   let t = await page.evaluate(() => document.querySelector('.dc-panel .ttl')?.textContent);
   check('Esc asks first', t === 'Leave the table?', t);

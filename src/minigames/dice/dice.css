@@ -54,8 +54,25 @@
 .dc-num.cur::after, .dc-num.pick::after { transform: scaleX(1); }
 .dc-num.pick { color: var(--mz-red-text); }
 
+/* The list of hands, best first: on the left under the opponent's words, the rows held lit. H hides it. */
+.dc-ref { position: absolute; left: 34px; top: clamp(200px, 29vh, 250px); width: clamp(220px, 21vw, 290px); padding: 8px 10px 8px 16px; opacity: 0; transition: opacity 0.35s ease; pointer-events: none; isolation: isolate; }
+.dc-ref.on { opacity: 1; }
+.dc-ref::before { content: ''; position: absolute; inset: -14px -30px -14px -24px; z-index: -1; background: radial-gradient(ellipse 70% 65% at 40% 50%, rgba(6, 9, 14, 0.5), rgba(6, 9, 14, 0.24) 62%, rgba(6, 9, 14, 0) 92%); }
+.dc-ref .thread { position: absolute; left: 0; top: 6px; bottom: 6px; width: 2px; background: #b9402f; box-shadow: 0 0 6px rgba(185, 64, 47, 0.45); }
+.dc-ref .ttl { margin-bottom: 4px; font-weight: 600; font-size: clamp(16px, 2.6vh, 21px); color: rgba(240, 234, 222, 0.92); text-shadow: var(--mz-halo); }
+.dc-ref .row { display: grid; grid-template-columns: 14px 14px 1fr auto; align-items: center; gap: 4px; padding: 1px 0; font-weight: 500; font-size: clamp(14px, 2.35vh, 18px); line-height: 1.25; color: rgba(236, 230, 218, 0.62); text-shadow: var(--mz-halo); }
+.dc-ref .row .ex { font-size: 0.9em; color: rgba(236, 230, 218, 0.45); }
+.dc-ref .row .mk { width: 12px; height: 12px; opacity: 0; color: var(--mz-red-text); }
+.dc-ref .row .mk svg { width: 100%; height: 100%; stroke-width: 2; }
+.dc-ref .row .mk.opp { color: rgba(236, 230, 218, 0.85); }
+.dc-ref .row.you .mk.you { opacity: 1; }
+.dc-ref .row.you .mk.you path { fill: currentColor; }
+.dc-ref .row.opp .mk.opp { opacity: 1; }
+.dc-ref .row.you, .dc-ref .row.opp { color: var(--mz-bone-hi); font-weight: 600; }
+.dc-ref .row.you .ex, .dc-ref .row.opp .ex { color: rgba(240, 234, 222, 0.8); }
+
 /* In the reaction shot the table is out of frame: its labels and the result wait. */
-.mz-dice.rival .dc-banner, .mz-dice.rival .dc-hand, .mz-dice.rival .dc-pot, .mz-dice.rival .dc-num { opacity: 0 !important; }
+.mz-dice.rival .dc-banner, .mz-dice.rival .dc-hand, .mz-dice.rival .dc-pot, .mz-dice.rival .dc-num, .mz-dice.rival .dc-ref { opacity: 0 !important; }
 
 /* ---------------------------------------------------------------- the question */
 .dc-panel { position: absolute; left: 50%; bottom: 2.6vh; width: min(900px, 94vw); box-sizing: border-box; padding: clamp(12px, 2.2vh, 20px) 30px clamp(10px, 1.8vh, 16px) 30px; background: linear-gradient(180deg, rgba(14, 17, 23, 0.9), rgba(9, 11, 16, 0.93)); border: 1px solid rgba(236, 230, 218, 0.14); box-shadow: 0 26px 54px rgba(0, 0, 0, 0.55);

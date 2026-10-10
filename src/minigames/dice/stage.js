@@ -233,7 +233,7 @@ class DieView {
 // ---- the pot ---------------------------------------------------------------------------------------------------------
 const COIN_R = 0.0148, COIN_T = 0.0024;
 const STACK = 6;
-const POT_X = -0.3; // the pot sits at the left of the cloth, clear of the rows and the hand names
+const POT_X = 0.3; // the pot sits at the right of the cloth, clear of the rows and the hand names; the list of hands is on the left
 // the first stack is the middle one, the next ones grow round it
 const POT_COLS = [[0, 0], [0.034, 0.022], [-0.034, 0.022], [0.034, -0.026], [-0.034, -0.026], [0.068, 0], [-0.068, 0], [0, 0.05], [0, -0.05], [0.068, 0.05], [-0.068, 0.05], [0.068, -0.05], [-0.068, -0.05], [0.102, 0.022], [-0.102, 0.022], [0.102, -0.026]];
 

@@ -3,7 +3,8 @@
 // so G.input.context is 'ui', the clock is held and pad buttons arrive as key events.
 //
 //   const ui = new DiceUI(G, { opp, stage })        ui.open() -> the screen; ui.close()
-//   ui.header({ round, wins, need, coins, purse, pot })     ui.hands({ player: 'Pair of fives', opp: null }, { winner })
+//   ui.header({ round, wins, need, coins, purse, pot })     ui.hands({ player: evaluate(dice), opp: null }, { winner })
+//                                                           (the names go over the rows, the ranks light the list of hands)
 //   ui.say(name, text)  ui.note(text)  ui.banner(title, sub, tone)  ui.clearBanner()
 //   await ui.askStake({ min, max, coins, purse })  -> number | null | LEAVE
 //   await ui.askBet({ amount, pot, canRaise })      -> 'raise' | 'hold' | LEAVE
@@ -20,14 +21,15 @@
 // The three actions dice_pick, dice_roll and dice_raise are rebindable (Controls screen, group Dice); the number
 // keys are fixed. Pad buttons reach this screen as key events: padKey() turns them into the keyboard code of the same
 // action (or a spare F-key code if that action has no key), so the same handler serves both.
-import { h, svg, clear } from '../../ui/dom.js';
+import { h, svg, clear, store } from '../../ui/dom.js';
+import { RANK_NAMES } from './rules.js';
 import { ICON } from '../../ui/icons.js';
 import { actionGlyph, codeGlyph, navGlyph } from '../../ui/glyphs.js';
 import { PAD_BINDINGS } from '../../core/Input.js';
 import './dice.css';
 
 export const LEAVE = Symbol('leave the table');
-const PAD_CODE = { dice_pick: 'F15', dice_roll: 'F13', dice_raise: 'F14' };
+const PAD_CODE = { dice_pick: 'F15', dice_roll: 'F13', dice_raise: 'F14', dice_hands: 'F16' };
 const DIGITS = { Digit1: 0, Digit2: 1, Digit3: 2, Digit4: 3, Digit5: 4, Numpad1: 0, Numpad2: 1, Numpad3: 2, Numpad4: 3, Numpad5: 4 };
 const word = (n) => ['no', 'one', 'two', 'three', 'four', 'five'][n] ?? String(n);
 const grosze = (n) => `${n} grosze`;
@@ -80,6 +82,7 @@ export class DiceUI {
     this.elBannerS = h('div', { class: 'bs' });
     this.elBanner = h('div', { class: 'dc-banner' }, this.elBannerT, this.elBannerS);
     this.elHandOpp = h('div', { class: 'dc-hand opp' });
+    this.elRef = this._buildRef();
     this.elHandYou = h('div', { class: 'dc-hand you' });
     this.elNums = Array.from({ length: 5 }, (_, i) => h('div', { class: 'dc-num' }, String(i + 1)));
     this.elTtl = h('div', { class: 'ttl' });
@@ -88,7 +91,7 @@ export class DiceUI {
     this.elBar = h('div', { class: 'bar mz-hintbar' });
     this.elPanel = h('div', { class: 'dc-panel' }, h('i', { class: 'thread' }), this.elTtl, this.elSub, h('div', { class: 'foot' }, this.elOpts, this.elBar));
     this.el = h('div', { class: 'mz-dice' },
-      h('div', { class: 'dc-vig' }), this.elHead, this.elBark, this.elNote, this.elBanner, this.elPot, this.elHandOpp, this.elHandYou, ...this.elNums, this.elPanel);
+      h('div', { class: 'dc-vig' }), this.elHead, this.elBark, this.elNote, this.elBanner, this.elRef, this.elPot, this.elHandOpp, this.elHandYou, ...this.elNums, this.elPanel);
     this.scr = ui.openScreen({
       name: 'dice', el: this.el, swallow: true, onKey: (e) => this._key(e), onClose: () => this._closed(),
     });
@@ -131,13 +134,39 @@ export class DiceUI {
   // The names of the two hands, over their rows. winner: 'player' | 'opp' | 'draw' | null styles the pair at the showdown.
   hands({ player, opp }, { winner = null } = {}) {
     this._hand = { player, opp };
-    this.elHandYou.textContent = player || '';
-    this.elHandOpp.textContent = opp || '';
+    this.elHandYou.textContent = player?.name || '';
+    this.elHandOpp.textContent = opp?.name || '';
+    this._markRanks(player?.rank ?? null, opp?.rank ?? null);
     for (const [el, who] of [[this.elHandYou, 'player'], [this.elHandOpp, 'opp']]) {
       el.classList.toggle('on', !!(who === 'player' ? player : opp));
       el.classList.toggle('won', winner === who);
       el.classList.toggle('lost', !!winner && winner !== 'draw' && winner !== who);
     }
+  }
+
+  // The list of hands, best first, with an example of each; the rows she and the opponent hold are marked.
+  _buildRef() {
+    const EX = ['6 5 4 2 1', '4 4 1 3 6', '5 5 2 2 6', '6 6 6 3 1', '1 2 3 4 5', '2 3 4 5 6', '4 4 4 2 2', '5 5 5 5 2', '3 3 3 3 3'];
+    this.refRows = [];
+    const rows = [];
+    for (let r = 8; r >= 0; r--) {
+      const el = h('div', { class: 'row' }, h('span', { class: 'mk you' }, svg(ICON.diamond)), h('span', { class: 'mk opp' }, svg(ICON.diamond)), h('span', { class: 'nm' }, RANK_NAMES[r]), h('span', { class: 'ex' }, EX[r]));
+      this.refRows[r] = el;
+      rows.push(el);
+    }
+    this.refOn = store.get('marzena.dice.hands') !== '0';
+    return h('div', { class: `dc-ref${this.refOn ? ' on' : ''}` }, h('i', { class: 'thread' }), h('div', { class: 'ttl' }, 'Hands, best first'), ...rows);
+  }
+
+  _markRanks(you, opp) {
+    this.refRows?.forEach((el, r) => { el.classList.toggle('you', r === you); el.classList.toggle('opp', r === opp); });
+  }
+
+  _toggleRef() {
+    this.refOn = !this.refOn;
+    store.set('marzena.dice.hands', this.refOn ? '1' : '0');
+    this.elRef.classList.toggle('on', this.refOn);
+    this._sfx('ui_hover', 0.3);
   }
 
   say(name, text, seconds = 3.2) {
@@ -173,7 +202,7 @@ export class DiceUI {
     // in the reaction shot (the camera on the opponent's face) the labels that belong to the table step aside
     this.el.classList.toggle('rival', st.camTarget === 'rival');
     const place = (el, p) => { el.style.transform = `translate(${p.x.toFixed(1)}px, ${p.y.toFixed(1)}px) translate(-50%, -50%)`; };
-    place(this.elPot, st.screenOfPoint(-0.3, 0, 0.085));
+    place(this.elPot, st.screenOfPoint(0.3, 0, 0.085));
     if (this._hand.player) place(this.elHandYou, st.screenOfPoint(0, 0, 0.075));
     if (this._hand.opp) place(this.elHandOpp, st.screenOfPoint(0, 0, -0.275));
     const show = this.mode === 'reroll';
@@ -227,10 +256,10 @@ export class DiceUI {
         this.elBar.append(
           pad ? it(nav('leftright'), 'Move') : it(nums, 'Pick a die'),
           it(actionGlyph(G, 'dice_pick'), pad ? 'Pick' : 'Pick this one'),
-          it(actionGlyph(G, 'dice_roll', { all: !pad }), 'Roll'), leave);
+          it(actionGlyph(G, 'dice_roll', { all: !pad }), 'Roll'), it(actionGlyph(G, 'dice_hands'), 'Hands'), leave);
         break;
       case 'bet':
-        this.elBar.append(it(nav('updown'), 'Choose'), it(actionGlyph(G, 'dice_raise'), 'Raise'), it(nav('confirm'), 'Select'), leave);
+        this.elBar.append(it(nav('updown'), 'Choose'), it(actionGlyph(G, 'dice_raise'), 'Raise'), it(nav('confirm'), 'Select'), it(actionGlyph(G, 'dice_hands'), 'Hands'), leave);
         break;
       case 'stake':
         this.elBar.append(it(nav('leftright'), 'Change the stake'), it(nav('updown'), 'Choose'), it(nav('confirm'), 'Select'), leave);
@@ -247,7 +276,10 @@ export class DiceUI {
   _ask(mode) {
     this.mode = mode;
     this._bar();
-    return new Promise((resolve) => { this.pending = { resolve }; });
+    const p = new Promise((resolve) => { this.pending = { resolve }; });
+    // Esc was pressed while the dice were rolling: the question to leave comes up as soon as there is a place for it.
+    if (this.leaveWanted) { this.leaveWanted = false; this._askLeave(); }
+    return p;
   }
 
   _done(value) {
@@ -443,6 +475,14 @@ export class DiceUI {
     }
     if (!b) { this.mode = 'none'; return; }
     this.mode = b.mode;
+    if (b.mode === 'none') {
+      // the session asked between two questions: staying answers it
+      this.setPanel(null);
+      const p = this.pending;
+      this.pending = null;
+      p?.resolve('stay');
+      return;
+    }
     if (b.stake) { this.sel = b.sel; this._renderStake(); return; }
     this.setPanel(b.ttl, b.sub, b.items, b.sel);
     if (b.mode === 'reroll') this._renderReroll();
@@ -476,6 +516,7 @@ export class DiceUI {
       this._askLeave();
       return true;
     }
+    if (this._is('dice_hands', e)) { this._toggleRef(); return true; }
     if (this.mode === 'none') return true;
     const left = code === 'ArrowLeft' || code === 'KeyA', right = code === 'ArrowRight' || code === 'KeyD';
     const up = code === 'ArrowUp' || code === 'KeyW', down = code === 'ArrowDown' || code === 'KeyS';
@@ -504,7 +545,7 @@ export class DiceUI {
 
   // Which key stands for a pad button on this screen (the Input class turns the button into a key event of that code).
   _padKey(btn) {
-    for (const action of ['dice_roll', 'dice_raise', 'dice_pick']) {
+    for (const action of ['dice_roll', 'dice_raise', 'dice_pick', 'dice_hands']) {
       if (!(PAD_BINDINGS[action] || []).includes(btn)) continue;
       if (action === 'dice_pick' && this.mode !== 'reroll') return 'Enter';
       return PAD_CODE[action];

@@ -172,10 +172,11 @@ export class DiceSession {
     this.site = this.opts.site || resolveSite(G, opp.site);
     const dice = G.dice;
     if (dice) dice.active = true;
-    const saved = this.take();
+    let saved = null;
     let result = { played: false, reason: 'declined' };
     try {
       await this.fade(1, 0.35);
+      saved = this.take();
       this.build();
       await this.fade(0, 0.5);
       result = await this.sitting();
@@ -185,7 +186,7 @@ export class DiceSession {
       result = { played: false, reason: 'error', error: e };
     } finally {
       try { await this.fade(1, 0.3); } catch { /* ignore */ }
-      this.teardown(saved);
+      if (saved) this.teardown(saved);
       if (dice) dice.active = false;
       try { await this.fade(0, 0.5); } catch { /* ignore */ }
     }
@@ -320,7 +321,7 @@ export class DiceSession {
         stage.roll('player', [0, 1, 2, 3, 4], first.player, { onEvent: (k, s, d) => this.onDiceEvent(k, s, d) }),
         stage.roll('opp', [0, 1, 2, 3, 4], first.opp, { onEvent: (k, s, d) => this.onDiceEvent(k, s, d), shakeTime: 0.85, stagger: 0.05 }),
       ]);
-      ui.hands({ player: evaluate(first.player).name, opp: evaluate(first.opp).name });
+      ui.hands({ player: evaluate(first.player), opp: evaluate(first.opp) });
       // the opponent has a feeling about it
       const mood = match.mood();
       if (mood === 'good') this.bark('good', { chance: 0.85 }); else if (mood === 'bad') { this.bark('bad', { chance: 0.85 }); this.react('shrug'); }
@@ -389,8 +390,6 @@ export class DiceSession {
           pi.length ? stage.roll('player', pi, second.player, { onEvent: (k, s, d) => this.onDiceEvent(k, s, d), shakeTime: 0.6 }) : null,
           oi.length ? stage.roll('opp', oi, second.opp, { onEvent: (k, s, d) => this.onDiceEvent(k, s, d), shakeTime: 0.7 }) : null,
         ]);
-        stage.setRow('player', second.player);
-        stage.setRow('opp', second.opp);
         await this.sleep(0.3);
         round = match.settle();
       }
@@ -416,7 +415,7 @@ export class DiceSession {
     const ui = this.ui, stage = this.stage, opp = this.opp;
     const hp = r.hands.player, ho = r.hands.opp;
     this.phase('showdown', { result: r });
-    ui.hands({ player: hp.name, opp: ho.name }, { winner: r.winner });
+    ui.hands({ player: hp, opp: ho }, { winner: r.winner });
     if (r.how === 'showdown') {
       const mine = madeDice(match.dice.player), theirs = madeDice(match.dice.opp);
       if (r.winner === 'player') { stage.light('player', mine, 'made'); stage.light('opp', [], 'made'); }
@@ -439,7 +438,7 @@ export class DiceSession {
     if (r.how === 'fold') { /* said already */ } else if (r.winner === 'opp') { this.bark('win', { force: true }); this.react('nod'); } else if (r.winner === 'player') { this.bark('lose', { force: true }); this.react('shake_head'); }
     if (this.barkBusy > 0 && !this.drive) { stage.view('rival'); await this.sleep(1.4); stage.view('table'); }
     await this.sleep(Math.max(0.4, t - 1.0));
-    ui.hands({ player: hp.name, opp: ho.name }, { winner: r.winner });
+    ui.hands({ player: hp, opp: ho }, { winner: r.winner });
   }
 
   // The match is over: tell the story, keep the record.

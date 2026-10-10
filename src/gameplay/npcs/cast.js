@@ -66,6 +66,7 @@ export const NAMED = [
   // The tavern regulars (src/minigames/dice): at the middle table of the Drowned Bell from noon, home to bed late.
   {
     id: 'wojtek', preset: 'villager_m_8', name: 'Wojtek', anchor: LOC.tavern, hardy: 0.9,
+    barks: ['Your throw.', "That's my mug.", 'Is it snowing yet?', 'Same again, Zbyszek.'],
     schedule: [
       at(23, 11.5, 'bed_n11', { hidden: true }),
       at(11.5, 23, 'wojtek_seat', { anim: 'sit_bench' }),
@@ -73,6 +74,7 @@ export const NAMED = [
   },
   {
     id: 'halina', preset: 'villager_f_7', name: 'Halina', anchor: LOC.tavern, hardy: 0.9,
+    barks: ['Mm. Your throw.', 'My feet are cold.', "Sit if you're sitting.", 'Is that the wind?'],
     schedule: [
       at(22.5, 12.5, 'bed_n14', { hidden: true }),
       at(12.5, 22.5, 'halina_seat', { anim: 'sit_bench' }),

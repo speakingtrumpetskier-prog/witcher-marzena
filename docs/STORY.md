@@ -479,7 +479,7 @@ Where the lines are:
   for a return visit and for after she has beaten them, a refusal when she cannot cover the stake and when they cannot, and the evening of the rite.
 - `src/minigames/dice/opponents.js`: the barks, nine situations each, three or four lines: as they roll, a good first roll, a bad one, raising, calling, folding,
   winning a round, losing one, and being out of money. A bluffer raising on a weak hand says a line from "good". They show over the table and are read by
-  G.voice.bark under the speaker's own id.
+  G.voice.bark under the speaker's own id. Wojtek and Halina also have four idle lines each for the rest of the time they sit there (`barks` in cast.js).
 - Notes: `note_dice_rules` (chalked on the beam over the bar), `item_bone_dice`. Journal: quest `side_dice` (section 2).
 
 What was added (nothing existing changed outcome): the topic and the nodes `dice1` to `bz7` in `zbyszek_hub.js` (and an `entry` check for `dice_all_beaten`), two new dialogue

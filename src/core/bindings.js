@@ -46,6 +46,7 @@ export const DEFAULT_KBM = {
   dice_pick: ['KeyE'],
   dice_roll: ['Space', 'Enter'],
   dice_raise: ['KeyR'],
+  dice_hands: ['KeyH'],
   debugCam: ['F1'],
 };
 
@@ -76,6 +77,7 @@ export const DEFAULT_PAD = {
   dice_pick: ['PadA'],
   dice_roll: ['PadX', 'PadStart'],
   dice_raise: ['PadY'],
+  dice_hands: ['PadBack'],
   debugCam: [],
 };
 
@@ -114,6 +116,7 @@ export const ACTIONS = [
   { id: 'dice_pick', label: 'Pick a die, or put it back (also 1 to 5 and a click)', group: 'Dice', ctx: D_ },
   { id: 'dice_roll', label: 'Roll the dice you picked', group: 'Dice', ctx: D_ },
   { id: 'dice_raise', label: 'Raise the stake', group: 'Dice', ctx: D_ },
+  { id: 'dice_hands', label: 'Show or hide the list of hands', group: 'Dice', ctx: D_ },
 ];
 export const ACTION = Object.fromEntries(ACTIONS.map((a) => [a.id, a]));
 

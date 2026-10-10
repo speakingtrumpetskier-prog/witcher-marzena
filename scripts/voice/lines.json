@@ -1,6 +1,6 @@
 {
  "version": 1,
- "count": 911,
+ "count": 919,
  "lines": [
   {
    "hash": "48b25a91dc",
@@ -7578,6 +7578,51 @@
    "pace": 1.04
   },
   {
+   "hash": "0365d3c30e",
+   "speaker": "wojtek",
+   "text": "Your throw.",
+   "kind": "bark",
+   "source": "src/gameplay/npcs/cast.js",
+   "node": "barks of wojtek",
+   "direction": "to the dice, loud and quick, then flat when it goes wrong; short, quiet",
+   "exaggeration": 0.4,
+   "pace": 0.998,
+   "level": -1.5
+  },
+  {
+   "hash": "b8c26d4948",
+   "speaker": "wojtek",
+   "text": "That's my mug.",
+   "kind": "bark",
+   "source": "src/gameplay/npcs/cast.js",
+   "node": "barks of wojtek",
+   "direction": "to the dice, loud and quick, then flat when it goes wrong",
+   "exaggeration": 0.4,
+   "pace": 1.04
+  },
+  {
+   "hash": "27c79a7ee9",
+   "speaker": "wojtek",
+   "text": "Is it snowing yet?",
+   "kind": "bark",
+   "source": "src/gameplay/npcs/cast.js",
+   "node": "barks of wojtek",
+   "direction": "to the dice, loud and quick, then flat when it goes wrong; flat question, not rising",
+   "exaggeration": 0.4,
+   "pace": 1.04
+  },
+  {
+   "hash": "8595b3c771",
+   "speaker": "wojtek",
+   "text": "Same again, Zbyszek.",
+   "kind": "bark",
+   "source": "src/gameplay/npcs/cast.js",
+   "node": "barks of wojtek",
+   "direction": "to the dice, loud and quick, then flat when it goes wrong",
+   "exaggeration": 0.4,
+   "pace": 1.04
+  },
+  {
    "hash": "4f8c32dfe9",
    "speaker": "wojtek",
    "text": "Come on, come on.",
@@ -8075,6 +8120,50 @@
    "node": "back_won",
    "direction": "dry, level, in no hurry",
    "exaggeration": 0.3,
+   "pace": 0.96
+  },
+  {
+   "hash": "4a9a3ff43c",
+   "speaker": "halina",
+   "text": "Mm. Your throw.",
+   "kind": "bark",
+   "source": "src/gameplay/npcs/cast.js",
+   "node": "barks of halina",
+   "direction": "low and level, a half beat slow, nothing given away",
+   "exaggeration": 0.28,
+   "pace": 0.96
+  },
+  {
+   "hash": "dec51b3378",
+   "speaker": "halina",
+   "text": "My feet are cold.",
+   "kind": "bark",
+   "source": "src/gameplay/npcs/cast.js",
+   "node": "barks of halina",
+   "direction": "low and level, a half beat slow, nothing given away",
+   "exaggeration": 0.28,
+   "pace": 0.96
+  },
+  {
+   "hash": "2457167205",
+   "speaker": "halina",
+   "text": "Sit if you're sitting.",
+   "kind": "bark",
+   "source": "src/gameplay/npcs/cast.js",
+   "node": "barks of halina",
+   "direction": "low and level, a half beat slow, nothing given away",
+   "exaggeration": 0.28,
+   "pace": 0.96
+  },
+  {
+   "hash": "46c710d0cd",
+   "speaker": "halina",
+   "text": "Is that the wind?",
+   "kind": "bark",
+   "source": "src/gameplay/npcs/cast.js",
+   "node": "barks of halina",
+   "direction": "low and level, a half beat slow, nothing given away; flat question, not rising",
+   "exaggeration": 0.28,
    "pace": 0.96
   },
   {
