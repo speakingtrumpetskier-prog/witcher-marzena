@@ -13,7 +13,7 @@ import { SPECIES } from './species.js';
 import { cookValue, kg } from './model.js';
 import { fishData, cookable, takeFish } from './store.js';
 
-const REACH = 3.1;
+const REACH = 2.8;
 const _w = new THREE.Vector3();
 
 export function installCook(F) {
@@ -51,7 +51,7 @@ export function installCook(F) {
     id: 'fish:cook',
     pos: () => { const f = F.nearestFire().f; return f ? firePos.set(f.x, (G.world.heightAt(f.x, f.z) || 0) + 1, f.z) : firePos.set(1e5, 0, 1e5); },
     radius: REACH,
-    facing: false,
+    facing: true, // looking at the fire, so a talk prompt close by (the reeve's hearth) is not shadowed
     verb: 'Cook',
     label,
     enabled: () => F.canCook(),
