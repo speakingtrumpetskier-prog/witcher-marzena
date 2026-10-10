@@ -56,8 +56,8 @@ export function buildBottle(v, lod = 0) {
       const y = pts[i][1];
       let a = radAt(y);
       // lumps, wrinkles and horizontal creases like a gathered sack
-      a *= 1 + 0.07 * Math.sin(ang * 3 + y * 1.1 + ph) + 0.05 * Math.sin(ang * 5 - y * 1.9 + ph * 2);
-      a *= 1 + 0.025 * Math.sin(y * 9 + 2 * Math.sin(ang * 2 + ph));
+      a *= 1 + 0.1 * Math.sin(ang * 3 + y * 1.1 + ph) + 0.075 * Math.sin(ang * 5 - y * 1.9 + ph * 2) + (lod === 0 ? 0.04 * Math.sin(ang * 8 + y * 2.7) : 0);
+      a *= 1 + (lod === 2 ? 0.02 : 0.05) * Math.sin(y * 8 + 2 * Math.sin(ang * 2 + ph));
       for (const k of knots) {
         const d = Math.hypot(adiff(ang, k.a) * 0.9, (y - k.y) * 0.9) / k.s;
         if (d < 1) a *= 1 - 0.07 * (1 - d * d);
