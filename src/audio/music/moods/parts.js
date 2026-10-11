@@ -17,4 +17,5 @@ export const P = {
   bell: (o) => ({ inst: 'bell', level: 0.35, pan: -0.1, verb: 0.5, ...o }),
   pulse: (o) => ({ inst: 'pulse', level: 0.5, pan: 0, verb: 0.12, ...o }),
   wind: (o) => ({ inst: 'wind', level: 0.5, pan: 0, verb: 0.3, ...o }),
+  drone: (o) => ({ inst: 'drone', level: 0.3, pan: 0, verb: 0.35, lp: 900, ...o }),
 };

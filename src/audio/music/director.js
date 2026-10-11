@@ -2,7 +2,7 @@
 // bars just ahead of the audio clock (lookahead) and turns notes into instrument automation.
 // Mood changes crossfade on the outgoing mood's next bar line (or beat line when a bar line is
 // too far away). Stingers are short finite scores on their own bus that dip the moods a little.
-import { Singer, Choir, Fiddle, Flute, Gurdy, WindTone } from '../instruments/live.js';
+import { Singer, Choir, Fiddle, Flute, Gurdy, WindTone, Drone } from '../instruments/live.js';
 import { Sampler, sampleKeys } from '../instruments/baked.js';
 import { MOOD_DEFS } from './moods/index.js';
 import { STINGER_DEFS } from './stingers.js';
@@ -17,15 +17,21 @@ export function createInstrument(eng, spec) {
     case 'flute': return new Flute(eng, spec);
     case 'gurdy': return new Gurdy(eng, spec);
     case 'wind': return new WindTone(eng, spec);
+    case 'drone': return new Drone(eng, spec);
     default: return new Sampler(eng, spec.inst, spec);
   }
 }
 
+// A part whose spec has `retire: seconds` is a live voice that plays now and then (a far voice, a flute call): once
+// it has been silent that long it is taken down, and built again for its next note, so a voice that sings once in
+// five minutes costs the audio thread nothing in between.
 class Part {
   constructor(player, name, spec) {
     const ctx = player.eng.ctx;
     this.ctx = ctx;
+    this.eng = player.eng;
     this.spec = spec;
+    this.lastEnd = 0;
     this.inst = createInstrument(player.eng, { seed: `${player.name}:${name}`, ...spec });
     this.gain = ctx.createGain();
     this.gain.gain.value = spec.gain ?? 1;
@@ -45,8 +51,13 @@ class Part {
     if (ev.type === 'pan') { this.pan.pan.setTargetAtTime(ev.v, Math.max(t, now), ev.ramp ?? 0.5); return; }
     if (ev.type === 'verb') { this.send.gain.setTargetAtTime(ev.v, Math.max(t, now), ev.ramp ?? 0.5); return; }
     this.inst.play(ev, t, d, sec);
+    if (!ev.type) this.lastEnd = Math.max(this.lastEnd, t + d);
   }
   dispose(t) { this.inst.dispose(t); }
+  retire(t) {
+    this.inst.dispose(t);
+    this.eng.at(t + 1, () => { this.gain.disconnect(); this.pan.disconnect(); this.send.disconnect(); });
+  }
 }
 
 class Player {
@@ -113,6 +124,10 @@ class Player {
     if (bar.section) this.section = bar.section;
     this.nextBar = start + bar.beats * sec;
     this.bar++;
+    const now = this.eng.ctx.currentTime;
+    for (const [name, p] of Object.entries(this.parts)) {
+      if (p.spec.retire && now > p.lastEnd + p.spec.retire) { p.retire(now); delete this.parts[name]; }
+    }
   }
 
   // The first bar line at or after t (within maxWait), else the first beat line, else t.
@@ -222,7 +237,7 @@ export class Director {
         if (it.done) break;
         for (const ev of it.value.notes) {
           const spec = def.parts[ev.part];
-          if (!spec || ev.type || ['singer', 'choir', 'fiddle', 'flute', 'gurdy', 'wind'].includes(spec.inst)) continue;
+          if (!spec || ev.type || ['singer', 'choir', 'fiddle', 'flute', 'gurdy', 'wind', 'drone'].includes(spec.inst)) continue;
           for (const [key, fn] of sampleKeys(spec.inst, ev)) if (!items.has(key)) items.set(key, fn);
         }
       }

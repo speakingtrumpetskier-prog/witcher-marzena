@@ -23,11 +23,15 @@ const WAVES = {
   gurdy: (k) => Math.pow(k, -0.85) * (k >= 3 && k <= 8 ? 1.45 : 1),
   buzz: (k) => Math.pow(k, -0.45),
   flute: (k) => [0, 1, 0.2, 0.08, 0.035, 0.015, 0.008][k] || 0,
+  // A bowed or bellows drone: falling harmonics with a soft bump near the fourth (warmth, no edge).
+  drone: (k) => Math.pow(k, -1.6) * (1 + 0.7 * Math.exp(-((k - 4) ** 2) / 5)),
+  // The same, hollower (odd harmonics lead): the cold night drone.
+  droneHollow: (k) => Math.pow(k, -1.5) * (k % 2 ? 1 : 0.35),
 };
 export function wave(eng, name) {
   eng._waves = eng._waves || {};
   if (eng._waves[name]) return eng._waves[name];
-  const n = name === 'flute' ? 8 : 64;
+  const n = name === 'flute' ? 8 : name.startsWith('drone') ? 24 : 64;
   const real = new Float32Array(n), imag = new Float32Array(n);
   for (let k = 1; k < n; k++) imag[k] = WAVES[name](k);
   return (eng._waves[name] = eng.ctx.createPeriodicWave(real, imag));
@@ -479,6 +483,8 @@ export class Flute extends Live {
   constructor(eng, o = {}) {
     super(eng);
     this.level = o.level ?? 0.3;
+    this.hissAmt = o.hiss ?? 0.06;
+    this.chiff = o.chiff ?? 1.1;
     this.src = this.osc(wave(eng, 'flute'), 587);
     this.voicing = this.g(1);
     this.src.connect(this.voicing);
@@ -495,7 +501,7 @@ export class Flute extends Live {
     this.chain(this.noise, this.brBp, this.br);
     this.hiss = this.g(0);
     this.chain(this.noise, this.bq('highpass', 2200, 0.7), this.bq('lowpass', 5200, 0.7), this.hiss);
-    this.post = this.bq('lowpass', 5200, 0.6);
+    this.post = this.bq('lowpass', o.lp ?? 5200, 0.6);
     this.amp = this.g(0);
     this.voicing.connect(this.post);
     this.br.connect(this.post);
@@ -519,9 +525,9 @@ export class Flute extends Live {
     if (ev.g != null) fp.setTargetAtTime(f, t + (ev.gt ?? 0.05), 0.008);
     this.brBp.frequency.setTargetAtTime(f * 2, t, 0.01);
     // Chiff: a breath burst on tongued attacks.
-    this.br.gain.setTargetAtTime(pk * (legato ? 0.4 : 1.1), t, 0.005);
+    this.br.gain.setTargetAtTime(pk * (legato ? 0.4 : this.chiff), t, 0.005);
     this.br.gain.setTargetAtTime(pk * 0.22, t + 0.05, 0.05);
-    this.hiss.gain.setTargetAtTime(pk * 0.06, t, 0.02);
+    this.hiss.gain.setTargetAtTime(pk * this.hissAmt, t, 0.02);
     if (!legato) {
       amp.setTargetAtTime(pk, t, ev.soft ? 0.08 : 0.025);
     } else amp.setTargetAtTime(pk, t, 0.03);
@@ -680,5 +686,72 @@ export class WindTone extends Live {
     });
     this.body.gain.setTargetAtTime(this.level * (ev.body ?? 0.15), t, tc);
     this.bodyBp.frequency.setTargetAtTime(ev.bodyF ?? 420, t, tc);
+  }
+}
+
+// Drone: a soft held chord of up to three pitches under the exploration moods, the cheapest sustained voice here (no
+// noise, no formants, one filter). Each pitch is a pair of oscillators a few cents apart, beating slowly like two
+// strings; a slow bellows swell moves the level. Only control events play it:
+//   { type: 'drone', p: [38, 45], v, fade, glide, lp }   sound these pitches (or glide to them)
+//   { type: 'drone', on: false, fade }                    fade out
+export class Drone extends Live {
+  constructor(eng, o = {}) {
+    super(eng);
+    this.level = o.level ?? 0.3;
+    const w = wave(eng, o.wave || 'drone');
+    const beat = o.beat ?? 1.2;
+    const jd = this.g(o.drift ?? 2.5);
+    this.chain(this.loop(eng.jitterBuf), jd);
+    this.mix = this.g(0.75);
+    this.slots = [];
+    for (let i = 0; i < 3; i++) {
+      const a = this.osc(w, 73.42), b = this.osc(w, 73.42);
+      a.detune.value = -beat * (1 + 0.25 * i);
+      b.detune.value = beat * (1 + 0.4 * i);
+      jd.connect(a.detune);
+      // The second string much softer than the first, so the beating is a shimmer, not a tremolo.
+      const gb = this.g(0.3);
+      const gn = this.g(0);
+      a.connect(gn); b.connect(gb); gb.connect(gn); gn.connect(this.mix);
+      this.slots.push({ a, b, gn, on: false });
+    }
+    this.lp = this.bq('lowpass', o.lp ?? 1000, 0.5);
+    this.amp = this.g(0);
+    this.chain(this.mix, this.lp, this.amp, this.out);
+    this.lfo = this.osc('sine', o.breathRate ?? 0.085);
+    this.lfoDepth = this.g(0);
+    this.chain(this.lfo, this.lfoDepth, this.amp.gain);
+    this.start();
+  }
+
+  play(ev, t) {
+    if (ev.type !== 'drone') return;
+    t = this.at(t);
+    const fade = ev.fade ?? 1.5;
+    if (ev.on === false) {
+      this.amp.gain.setTargetAtTime(0, t, fade);
+      this.lfoDepth.gain.setTargetAtTime(0, t, fade);
+      for (const s of this.slots) s.on = false;
+      return;
+    }
+    const ps = Array.isArray(ev.p) ? ev.p : [ev.p ?? 38];
+    const sounding = this.slots.some((s) => s.on);
+    this.slots.forEach((s, i) => {
+      const p = ps[i];
+      if (p == null) { s.gn.gain.setTargetAtTime(0, t, fade); s.on = false; return; }
+      const f = mtof(p);
+      // A pitch that was silent starts where it is going; a sounding one glides there.
+      for (const o of [s.a, s.b]) {
+        if (s.on) o.frequency.setTargetAtTime(f, t, ev.glide ?? 0.5);
+        else o.frequency.setValueAtTime(f, t);
+      }
+      // The root carries; upper pitches sit under it.
+      s.gn.gain.setTargetAtTime(i === 0 ? 1 : i === 1 ? 0.6 : 0.42, t, sounding ? fade : 0.02);
+      s.on = true;
+    });
+    const lvl = this.level * (ev.v ?? 0.6);
+    this.amp.gain.setTargetAtTime(lvl, t, fade);
+    this.lfoDepth.gain.setTargetAtTime(lvl * (ev.breath ?? 0.16), t, fade);
+    if (ev.lp) this.lp.frequency.setTargetAtTime(ev.lp, t, Math.max(0.5, fade));
   }
 }
