@@ -8,6 +8,7 @@
 // Zone weights come from the camera position against LOC and the lake shoreline.
 import { LOC } from '../world/layout.js';
 import { lakeSDF as lakeSDFImport } from '../world/heightfield.js';
+import { kRate } from './instruments/live.js';
 
 const ss = (a, b, x) => { const t = Math.max(0, Math.min(1, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
 const damp = (a, b, k, dt) => a + (b - a) * (1 - Math.exp(-k * dt));
@@ -57,7 +58,7 @@ export class Ambience {
     this.started = true;
     const ctx = this.ctx, eng = this.eng, mx = eng.mixer;
     const g = (v = 0) => { const n = ctx.createGain(); n.gain.value = v; return n; };
-    const bq = (type, f, q = 0.7) => { const b = ctx.createBiquadFilter(); b.type = type; b.frequency.value = f; b.Q.value = q; return b; };
+    const bq = (type, f, q = 0.7) => { const b = ctx.createBiquadFilter(); b.type = type; b.frequency.value = f; b.Q.value = q; return kRate(b); };
     // Wind: two decorrelated sides.
     this.windOut = g(1);
     this.windHp = bq('highpass', 35, 0.6);

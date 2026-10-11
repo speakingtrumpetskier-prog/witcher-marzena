@@ -139,6 +139,12 @@ function locks(C) {
     { id: 'hanka:front', from: 22, to: 6, who: 'Hanka', line: 'Not now.' },
   ];
   const inWindow = (h, a, b) => (a <= b ? h >= a && h < b : h >= a || h < b);
+  // She is inside this house (an interior within a few metres of its door): the door never bolts on her, and a bolt
+  // set while she was in there comes off so she can walk out. The lock only ever keeps her out.
+  const insideNear = (st) => {
+    const p = C.ppos();
+    return !!G.world?.indoors?.(p.x, p.z) && Math.hypot(p.x - st.rec.x, p.z - st.rec.z) < 16;
+  };
   const state = new Map();
   for (const lk of DOORS) {
     const rec = C.V.doors?.find((d) => d.id === lk.id)?.rec;
@@ -147,7 +153,7 @@ function locks(C) {
     state.set(lk.id, st);
     C.interact({
       id: `knock_${lk.id}`, pos: C.v3(rec.x, (rec.y ?? 0) + 1.2, rec.z), radius: 1.9, verb: 'Knock', label: 'Door',
-      enabled: () => st.box != null,
+      enabled: () => st.box != null && !insideNear(st),
       onUse: async () => {
         C.sfx('door_close', { volume: 0.7 });
         await C.sleep(0.9);
@@ -163,7 +169,7 @@ function locks(C) {
     const h = C.hour();
     const p = C.ppos();
     for (const st of state.values()) {
-      const want = inWindow(h, st.lk.from, st.lk.to) && !C.has('rite_started');
+      const want = inWindow(h, st.lk.from, st.lk.to) && !C.has('rite_started') && !insideNear(st);
       if (want && !st.box && Math.hypot(p.x - st.rec.x, p.z - st.rec.z) > 2.2 && G.physics) {
         st.box = G.physics.addBox(st.rec.x, st.rec.z, (st.rec.w || 1.2) / 2 + 0.25, 0.35, st.rec.yaw || 0, { y0: (st.rec.y ?? 0) - 0.5, y1: (st.rec.y ?? 0) + 3, tag: 'ctl-lock' });
       } else if (!want && st.box) {

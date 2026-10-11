@@ -890,6 +890,14 @@ async function run(G, O, report) {
     const locked = [...G.physics.items.values()].filter((i) => i.tag === 'ctl-lock').length;
     ok('doors are barred at night (longhouse, Hanka)', locked >= 2, `locks=${locked}`);
     ok('knock prompt exists', !!G.interact.get('ctl:knock_hanka:front')?.enabled?.());
+    // Inside Hanka's house when her door bars for the night: it must not shut her in (the bolt comes off, no Knock).
+    const hr = G.world.rooms?.find((r) => r.id === 'hanka');
+    if (hr?.box) {
+      placeAt(hr.box.x, hr.box.z, 0);
+      await wait(2.5);
+      const n = [...G.physics.items.values()].filter((i) => i.tag === 'ctl-lock').length;
+      ok("inside Hanka's at night, her door is not barred on her", n === locked - 1 && !G.interact.get('ctl:knock_hanka:front')?.enabled?.(), `locks=${n} of ${locked}`);
+    } else ok("Hanka's interior is registered", false);
     G.time.setHours(21);
     await wait(2.5);
     ok('doors open again by day', [...G.physics.items.values()].filter((i) => i.tag === 'ctl-lock').length === 0);

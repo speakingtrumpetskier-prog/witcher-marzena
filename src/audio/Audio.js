@@ -81,9 +81,11 @@ class AudioFacade {
     const AC = window.AudioContext || window.webkitAudioContext;
     if (!AC) return Promise.resolve(false);
     try {
-      // ?audiolatency=interactive|balanced|playback|<seconds> to try a bigger output buffer on a machine that glitches.
+      // A 40 ms output buffer: with the 10 ms 'interactive' one, any moment the audio thread waits longer than that for
+      // the CPU (a loaded laptop, the GPU driver busy) is a gap in the music. 40 ms of latency is not felt in play.
+      // ?audiolatency=interactive|balanced|playback|<seconds> overrides it.
       const lat = new URLSearchParams(location.search).get('audiolatency');
-      this.ctx = new AC({ latencyHint: lat ? (Number.isFinite(+lat) ? +lat : lat) : 'interactive' });
+      this.ctx = new AC({ latencyHint: lat ? (Number.isFinite(+lat) ? +lat : lat) : 0.04 });
       this.ctx.resume?.().catch(() => {});
       this.eng = createEngine(this.ctx, {
         volumes: this._vol,

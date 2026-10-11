@@ -33,6 +33,13 @@ export function wave(eng, name) {
   return (eng._waves[name] = eng.ctx.createPeriodicWave(real, imag));
 }
 
+// Filter sweeps here are slow (time constants of 10 ms and up), so their coefficients can follow once per 128-sample
+// block: with the default a-rate, a filter under automation recomputes them every sample (about 3x the cost).
+export function kRate(b) {
+  for (const k of ['frequency', 'Q', 'gain', 'detune']) { try { b[k].automationRate = 'k-rate'; } catch { /* fixed rate */ } }
+  return b;
+}
+
 class Live {
   constructor(eng) {
     this.eng = eng;
@@ -46,7 +53,7 @@ class Live {
   bq(type, f, q = 0.707, gain = 0) {
     const b = this.ctx.createBiquadFilter();
     b.type = type; b.frequency.value = f; b.Q.value = q; b.gain.value = gain;
-    return b;
+    return kRate(b);
   }
   osc(w, f) {
     const o = this.ctx.createOscillator();
