@@ -225,7 +225,7 @@ export function makeCutsceneStubs(C) {
 
   return {
     async c2_valley(d) {
-      d.setup({ time: 15.67, weather: 'clear', music: 'reveal' });
+      d.setup({ time: 7.9, day: 1, weather: 'clear', music: 'reveal' });
       d.player();
       frame(d, 5, 2.4);
       d.fade(0, 1.0);
@@ -238,7 +238,8 @@ export function makeCutsceneStubs(C) {
     },
 
     async c3_song(d) {
-      d.setup({ time: 16.5, weather: 'clear', music: 'village' });
+      const h0 = d.G.time?.hours ?? 9;
+      d.setup({ time: h0 < 7.6 ? 8.6 : h0 > 17.4 ? 17 : h0, weather: 'clear', music: 'village' });
       const v = d.player();
       const ola = d.actor('ola', { preset: 'ola' });
       const yard = C.V.workshopYard;

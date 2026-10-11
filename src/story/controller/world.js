@@ -5,7 +5,8 @@
 //
 //   C.rest(label)       rest at a bed, the banya or a fire; the plan depends on where the story is
 //   C.restPlan()        { opts: [{ label, to }] } or { msg }
-// Resting rules (docs/STORY.md section 2): day 1 before the contract she can sit out to evening; once
+// Resting rules (docs/STORY.md section 2): in the prologue (day 0) the watchtower hearth is the shelter for the
+// night (act1.js) and nowhere else rests; day 1 before the contract she can sit out to evening; once
 // Hanka has hired her, rest runs to nightfall (21:00); during the night on the ice nobody sleeps;
 // the morning after, rest runs to the evening of the rite.
 
@@ -98,9 +99,9 @@ function resting(C) {
     return G.story.rest(plan.opts[i].to);
   };
 
-  const spot = (id, pos, label, verb = 'Rest', radius = 2.2) => {
+  const spot = (id, pos, label, verb = 'Rest', radius = 2.2, enabled) => {
     if (!pos) return;
-    C.interact({ id, pos, radius, verb, label, onUse: () => C.rest() });
+    C.interact({ id, pos, radius, verb, label, enabled, onUse: () => C.rest() });
   };
   spot('bed_tavern', C.V.tavernBed, 'Bed');
   spot('banya', C.V.buildings?.banya?.p?.anchors?.hearth, 'Banya', 'Rest', 3.2);
@@ -110,7 +111,9 @@ function resting(C) {
     ['fire_charcoal', C.L.charcoal?.fire, 'Fire'],
     ['fire_mill', C.L.mill?.brazier, 'Brazier'],
   ];
-  for (const [id, pos, label] of fires) spot(id, pos, label, 'Rest', 2.8);
+  // In the prologue the watchtower hearth is where she shelters for the night (act1.js), not a rest spot.
+  const prologue = () => !C.has('prologue_done') && C.active('main_pass');
+  for (const [id, pos, label] of fires) spot(id, pos, label, 'Rest', 2.8, id === 'fire_watchtower' ? () => !prologue() : undefined);
 }
 
 // ---- gear her finds change ----------------------------------------------------------------------

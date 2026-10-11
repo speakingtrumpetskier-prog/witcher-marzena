@@ -8,13 +8,15 @@
 //   placed (the kit placement), tally (note_tally clue), stash (loose stone), vista (viewpoint standing spot),
 //   vistaEdge (the open rail gap), door, inside, crest (road point where she first sees the valley, C2), yawToValley,
 //   dice, hearth (the cold fire pit in the lee; campfire is the same point, the rest spot), seat { x, z, yaw } (her
-//   place under the lean-to, facing the fire), horse { x, z, yaw } (Kasza's place in the lee), banner
+//   place under the lean-to, facing the fire), horse { x, z, yaw } (Kasza's place in the lee), banner,
+//   fire(mode) the hearth: 'lit' (her fire on the night of the blizzard), 'smoke' (the ashes the morning after), 'out'
 import * as THREE from 'three';
 import { LOC, ROADS } from '../../layout.js';
 import { buildings, placeBuilding } from '../../architecture/index.js';
 import { Composer, rot2 } from './compose.js';
 import { coldFire, spearRack, diceTable, leanTo } from './objects2.js';
 import { scrawlDecal } from './decals.js';
+import { fx } from '../../props/fx.js';
 import { nearestOnPolyline } from '../../../core/util.js';
 
 export async function build(W) {
@@ -112,9 +114,24 @@ export async function build(W) {
     dice: v(dt.x, c.ground(dt.x, dt.z) + 0.45, dt.z),
     hearth: v(fp.x, c.ground(fp.x, fp.z), fp.z),
     campfire: v(fp.x, c.ground(fp.x, fp.z), fp.z),
+    fire: hearthFire(G, v(fp.x, c.ground(fp.x, fp.z) + 0.1, fp.z)),
     seat: { ...spot(4.25, -0.4), yaw: yaw + Math.PI / 2 },
     horse: { ...spot(6.9, -2.5), yaw: yaw + 1.27 },
   });
 }
 
 const LAKE_X = 40, LAKE_Z = -120;
+
+// The fire she lights in the hearth (the story drives it: act1.js and the shelter cutscene). fire(mode) -> mode.
+function hearthFire(G, pos) {
+  let mode = 'out', em = null;
+  return (want) => {
+    if (want == null || want === mode) return mode;
+    em?.dispose();
+    em = null;
+    if (want === 'lit') em = fx.fire({ position: pos.toArray(), parent: G.scene, scale: 1.0, radius: 0.27, height: 0.85, light: true, smoke: true });
+    else if (want === 'smoke') em = fx.smoke({ position: pos.toArray(), parent: G.scene, height: 9, rate: 0.55, size: 0.5, opacity: 0.3 });
+    mode = em || want === 'out' ? want : 'out';
+    return mode;
+  };
+}

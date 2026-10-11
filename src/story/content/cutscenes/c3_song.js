@@ -1,4 +1,5 @@
-// C3 The Song (docs/STORY.md): short in-engine scene, about 28 s, in Dobra's yard at 16:30. Four children
+// C3 The Song (docs/STORY.md): short in-engine scene, about 28 s, in Dobra's yard, by daylight (she comes down
+// from the watchtower in the morning, so usually mid-morning; the clock is kept, only night is moved). Four children
 // stuff a straw doll on the bales and sing the Marzanno song; Vesna slows, knows the tune, and Ola
 // notices her. Dobra watches from the doorway without being introduced.
 // Trigger: the player enters the village by the west gate (zone at LOC.westGate, once, flag song_heard unset).
@@ -19,7 +20,8 @@ export default async function c3(d) {
     const Vv = anchors(G, 'village');
     const yard = Vv?.workshopYard ? { x: Vv.workshopYard.x, z: Vv.workshopYard.z } : { x: -76, z: 153 };
     const door = station(G, 'dobra_doorway', [yard.x - 4.2, yard.z, Math.PI / 2]);
-    d.setup({ time: 16.5, weather: 'clear', music: 'lullaby' });
+    const h0 = G.time?.hours ?? 9;
+    d.setup({ time: h0 < 7.6 ? 8.6 : h0 > 17.4 ? 17 : h0, weather: 'clear', music: 'lullaby' });
     d.fade(1, 0);
     clearArea(d, K, yard.x, yard.z, 14, ['ola', 'dobra']);
 
