@@ -33,24 +33,28 @@ const QUESTS = {
         log: 'Hollow Pass. Snowing hard. Lost the road twice.',
         enter: (S) => { if (!S.data.notes.includes('note_contract')) S.data.notes.push('note_contract'); },
         done: (S) => !!S.flag('pass_arrived'), sets: ['pass_arrived'],
-        debug: { day: 1, time: 14.5, weather: 'blizzard', at: [SPAWN.prologue.x, SPAWN.prologue.z, SPAWN.prologue.yaw] },
+        debug: { day: 0, time: 14.5, weather: 'blizzard', at: [SPAWN.prologue.x, SPAWN.prologue.z, SPAWN.prologue.yaw] },
       },
       {
         id: 'wreck', objective: 'Examine the wreck', marker: [-556, 514],
         log: 'Cart on the pass road. A man, a woman, a small girl, all frozen. Letter on the man, to his brother.',
         done: (S) => !!S.flag('letter_read'), sets: ['cart_examined', 'letter_read'],
-        debug: { day: 1, time: 14.7, weather: 'blizzard', at: [-551, 511, 2.4] },
+        debug: { day: 0, time: 14.7, weather: 'blizzard', at: [-551, 511, 2.4] },
       },
       {
         id: 'wolves', objective: 'Survive the wolves',
         log: 'Three wolves on the road. Starving, all ribs.',
         done: (S) => !!S.flag('wolves_prologue_done'), sets: ['wolves_prologue_done'],
-        debug: { day: 1, time: 14.9, weather: 'blizzard', at: [-548, 506, 2.4] },
+        debug: { day: 0, time: 14.9, weather: 'blizzard', at: [-548, 506, 2.4] },
       },
       {
-        id: 'watchtower', objective: 'Ride on to the watchtower', marker: 'watchtower',
+        // The blizzard does not let up. She shelters for the night at the hearth in the lee of the ruin
+        // (act1.js), and in the morning C2 shows her the valley (day 1).
+        id: 'watchtower', objective: 'Shelter at the watchtower',
+        marker: (S, G) => { const h = G?.world?.locations?.watchtower?.hearth; return h ? [h.x, h.z] : 'watchtower'; },
+        log: 'Too much snow to go on. Sat the night out at the old watchtower, by a fire in the lee of the wall. It had blown itself out by morning. The valley below: a lake, the village on the shore, a bell tower standing in the ice.',
         done: (S) => !!S.flag('prologue_done'), sets: ['prologue_done'],
-        debug: { day: 1, time: 15.4, weather: 'snow', at: [-400, 372, 2.3] },
+        debug: { day: 0, time: 16.2, weather: 'blizzard', at: [-400, 372, 2.3] },
       },
     ],
   },
@@ -62,13 +66,13 @@ const QUESTS = {
       {
         id: 'ride', objective: 'Ride into Marzena', marker: 'westGate',
         done: (S) => !!S.flag('song_heard'), sets: ['song_heard', 'met_ola'],
-        debug: { day: 1, time: 16.2, weather: 'clear', at: [-120, 146, 2.1] },
+        debug: { day: 1, time: 8.6, weather: 'clear', at: [-120, 146, 2.1] },
       },
       {
         id: 'board', objective: 'Check the notice board', marker: [9, 113],
         log: 'The same contract is up on the board in the square, in the same hand.',
         done: (S) => !!S.flag('contract_taken'), sets: ['contract_taken'],
-        debug: { day: 1, time: 16.6, weather: 'clear', at: [SPAWN.square.x, SPAWN.square.z, SPAWN.square.yaw] },
+        debug: { day: 1, time: 9.0, weather: 'clear', at: [SPAWN.square.x, SPAWN.square.z, SPAWN.square.yaw] },
       },
       {
         id: 'ask', objective: 'Ask around the village',

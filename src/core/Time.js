@@ -1,7 +1,9 @@
 // The game clock. 1 in-game hour = 60 real seconds by default (scale = 60).
 //
 //   G.time.hours       float 0..24
-//   G.time.day         integer, starts at 1 (day of arrival); equinox night is day 2
+//   G.time.day         integer: 0 is the prologue (the pass, the night at the watchtower), 1 the day she
+//                      comes down into the valley, 2 the equinox night. A new game starts at 0; the morning
+//                      after the shelter sets 1. The default here (1) is for debug scenes and shots.
 //   G.time.scale       game seconds per real second (60 = 1 hour per minute; 0 freezes)
 //   G.time.setHours(h, { advanceDay })  jump the clock (emits 'time:jump')
 //   G.time.isNight     true between ~18:30 and ~6:00

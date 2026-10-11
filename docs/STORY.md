@@ -43,7 +43,8 @@ reads like writing, cut it or make it plainer.
 
 | Flag | Set when |
 |---|---|
-| `prologue_done` | Reveal cutscene ends |
+| `sheltered` | The night at the watchtower hearth (`c2_shelter`) |
+| `prologue_done` | C2 ends (the morning after the night at the watchtower) |
 | `song_heard` | C3 plays at the workshop |
 | `met_ola` | First Ola exchange |
 | `contract_taken` | Notice board read (the same contract she has carried from the toll house; `note_contract` is in her notes from the first frame) |
@@ -121,7 +122,9 @@ Journal voice: Vesna's working notes. Who, what, where, what it pays, what she s
 1. **Cross the pass to Marzena.** Journal, at the start: *Contract nailed up at the toll house below the Hollow Pass. From Marzena, the village on the lake on the other side: something walks the ice at night, three fishermen gone. Kill it before the equinox. Signed only "H." Pays "all I have".* On completion: *Hollow Pass. Snowing hard. Lost the road twice.* (Hanka sent a copy of her contract out over the pass when it opened; Vesna has carried it from the toll house, so `note_contract` is in her notes from the first frame.)
 2. **Examine the wreck** (cart, senses). *Cart on the pass road. A man, a woman, a small girl, all frozen. Letter on the man, to his brother.*
 3. **Wolves.** *Three wolves on the road. Starving, all ribs.*
-4. **Ride on to the watchtower** (marker watchtower). Completes with C2.
+4. **Shelter at the watchtower** (marker on the hearth in the lee of the ruin). The blizzard does not let up: nothing happens on the crest. At the hearth, E "Shelter for the night" plays the night at the watchtower and then C2 in the morning (the hearth is not the ordinary rest spot until then). On completion: *Too much snow to go on. Sat the night out at the old watchtower, by a fire in the lee of the wall. It had blown itself out by morning. The valley below: a lake, the village on the shore, a bell tower standing in the ice.*
+
+Days: the prologue on the pass is day 0 (a new game sets it); the night at the watchtower ends on the morning of day 1, the day she comes down into the valley; the equinox night is day 2. Every day check after the reveal is as it was.
 
 ### Q2 `main_ice` "Something Walks the Ice"
 1. **Ride into Marzena** (marker west gate). C3 at the workshop on the way in.
@@ -188,18 +191,25 @@ Shot list:
 9. Kasza snorts and sidesteps. VESNA (low, to the horse): "Easy. I know."
 10. Distant wolf howl. Then another, closer. Vesna's head turns. Cut to gameplay.
 
-### C2 The Valley (cutscene, the reveal) about 35 s
-Place: watchtower ridge. Time 15:40 (golden). Weather blizzard to clear in 8 s. Music: `reveal`, title stinger.
-1. Gameplay ends as Vesna reaches the ridge crest; cut to MEDIUM from behind: she and Kasza in white-out.
-2. The wind drops. The snow thins (weather to clear, fast). Light breaks gold across her shoulders.
-3. CRANE UP and over her: the valley opens below. Hold on the frozen lake glowing, the bell tower in the ice, chimney smoke rising straight from the village, the idol on its hill against the sun, the frozen falls in the east.
+### The night at the watchtower (`c2_shelter`, cutscene) about 22 s
+Place: the hearth in the lee of the watchtower's east wall, under the watch's old lean-to (a hide on four posts), the fallen roof on its south side. Time: whatever the clock says, held to dusk (16:54) if earlier. Weather blizzard. Music: none, the wind.
+1. WIDE from the south-east through the snow: the east wall going up into the white, the lean-to, Kasza standing in close, Vesna kneeling at the hearth. The fire catches.
+2. MEDIUM from across the fire: she sits under the lean-to with her back to the wall, the hide's edge over her, flames in the near corner. Kasza snorts; she looks over. VESNA (low, to the horse): "We're not going down in this."
+3. CLOSE and low on the fire, the wind flattening the flames. Fade to black: the night.
+Ends at 7:45 on day 1, the storm blown out (clear, a last few flakes), the ashes smoking, the screen still black. Sets `sheltered`. C2 follows straight on.
+
+### C2 The Valley (cutscene, the reveal) about 42 s
+Place: the watchtower, then the ridge crest (13 m out on the road from the ruin). Time about 7:45 on day 1 (the sun 5 to 9 degrees up in the east-south-east, side-on to the view down the valley). Weather clear, the last flakes clearing. Music: none, then `reveal`, title stinger.
+1. WIDE from the south-east, the sun behind the camera: the ruin's east face lit low, fresh snow smooth to the walls, a thread of smoke from the ashes. Vesna at the hearth gets up and goes to the horse.
+2. From the north-east, on the crest side: she rides Kasza out of the lee toward the camera and past it to the crest.
+3. MEDIUM from behind at the crest, then CRANE UP and over her: the valley opens below. The frozen lake, the bell tower in the ice, chimney smoke over the village, the idol on its hill, the frozen falls in the east.
 4. SLOW PUSH toward the bell tower. The theme swells (white voice).
-5. CUT to CLOSE on Vesna, squinting into the light. She lowers her scarf and breathes out. No line.
+5. CLOSE on Vesna, the low sun on the side of her face, eyes narrowed against the snow glare. She breathes out. No line.
 6. WIDE, the camera drifting down toward the village. Title card: **MARZENA**, then fade to gameplay at the watchtower.
-Sets `prologue_done`. Weather auto stays clear, time continues.
+Sets `prologue_done`. Weather clear, auto off; the clock runs from the morning. Every camera stays at least 6 m from the ruin's walls, the lean-to and the fallen roof.
 
 ### C3 The Song (short in-engine) about 20 s, triggers entering the village by the west gate
-Place: Dobra's workshop yard (LOC.dobra). Time ~16:30. Cast: 4 children incl. Ola, Dobra in the doorway (not introduced).
+Place: Dobra's workshop yard (LOC.dobra). Time: by daylight, usually mid-morning (she comes down from the watchtower after C2; the clock is kept, only an arrival after 17:24 is held at 17:00). Cast: 4 children incl. Ola, Dobra in the doorway (not introduced).
 Beats: Children sit on straw bales stuffing a small straw doll, singing the Marzanno song in thin voices. Vesna slows. CLOSE on Vesna. Music box motif once, soft. She mouths the last bar without knowing it. Ola notices her.
 - OLA: "Are you a witch?"
 - VESNA: "No."
@@ -242,7 +252,7 @@ Beats: Bogdan at the long table with his ledger, a cold hearth to save wood.
 - Choice: **Take the money** ("All right.") / **Leave it** ("Keep it.")
 - As she goes: "And stay off the lake. People go through it."
 Sets `met_bogdan`, `took_reeve_money` or `refused_reeve_money`.
-Later (after `echo_seen`): option "About the rite three years ago." VESNA: "Wiesia didn't just fall in. Her mother saw her in the water, and everyone kept walking." (without `knows_wiesia`: "Hanka's girl didn't just fall in. Hanka saw her in the water, and everyone kept walking.") BOGDAN: "Who told you that?" If `ledger_found`: VESNA: "I was in your cellar. You've been giving your own ration to the Nowak children." (He looks at her a long time.) "Ola's eleven." He sits down, and doesn't say anything else; `reeve_told`. Without the ledger: "I was at the poles last night. I saw it." "You got here yesterday." "Get out of my house." (On the same night as the echo: "tonight", "this afternoon".)
+Later (after `echo_seen`): option "About the rite three years ago." VESNA: "Wiesia didn't just fall in. Her mother saw her in the water, and everyone kept walking." (without `knows_wiesia`: "Hanka's girl didn't just fall in. Hanka saw her in the water, and everyone kept walking.") BOGDAN: "Who told you that?" If `ledger_found`: VESNA: "I was in your cellar. You've been giving your own ration to the Nowak children." (He looks at her a long time.) "Ola's eleven." He sits down, and doesn't say anything else; `reeve_told`. Without the ledger: "I was at the poles last night. I saw it." "You got here yesterday." "Get out of my house." (On the same night as the echo: "tonight", "this morning".)
 Fish (`bogdan_fish`, run before the usual talk when it has something to say: she has fish to sell, was turned away from a hole for want of a rod, has fished and not heard about the pike yet, or has landed it; "Something else." goes on to the usual talk): "I need a rod." (`rod_lent`, item `rod`); "I have fish for you." (he weighs them, says what there is, and pays by the kilo: "Put them on the scale."); "What bites out there, and where?" (once; sets `oldone_heard`: "Nobody sits by the tower." "There's a pike under it."); "About the pike by the tower." (once heard, until she takes it on: `oldone_asked`, item `strong_line`: "Don't lose the line."); after she has landed it: "Put it on the scale." ... "That's Stach's." ... `oldone_paid`. Side quest `side_oldone`.
 
 ### Hanka's house (dialogue)
@@ -447,7 +457,7 @@ Fishermen, to someone who has a rod (she has fished or been lent one; src/gamepl
 Children: "You're Marzanna!" "No, you are!" / "Witch! Do your eyes glow?" / (to each other) "If you look back she gets you!"
 Zbyszek: "Shut the door, you're letting the heat out." / "Wipe your boots."
 Dobra: "Straw, straw, straw." / "Hands, girl. Use your hands."
-Vesna (exploration, rare and short): "Kasza. Don't." / (finding a corpse) "Not long ago." / (low warmth) "Need a fire." / (on the horse, uphill) "Come on, girl." / (the first time she has really looked at Matka Chmur) "That's a long way up." / (the hand-bell, too early) "Dusk, she said." / (too late) "Past dusk." / (the bell on its pole, before she is asked) "A hand-bell tied to the pole, a rag round the clapper." / (the notice board, the contract she already carries) "Same as the one at the toll house."
+Vesna (exploration, rare and short): "Kasza. Don't." / (riding on past the watchtower in the blizzard, before the night there) "Kasza. Back to the tower." / (finding a corpse) "Not long ago." / (low warmth) "Need a fire." / (on the horse, uphill) "Come on, girl." / (the first time she has really looked at Matka Chmur) "That's a long way up." / (the hand-bell, too early) "Dusk, she said." / (too late) "Past dusk." / (the bell on its pole, before she is asked) "A hand-bell tied to the pole, a rag round the clapper." / (the notice board, the contract she already carries) "Same as the one at the toll house."
 Herders (only once `planetnicy_seen`, now and then, never from the named cast; src/gameplay/npcs/barks.js `SKY_` pools): fishermen on a clear evening: "Low tonight. No snow by morning." / "They're thick over the poles. Hard frost." / "Low and many. Bring your water in." Fishermen otherwise: "Not one up since dawn. Snow by noon." / "They've gone high. Cover your nets." / "Can't see a single herder. I'm going home." Villagers after dark and clear: "Clear tonight. Bank the fire." / "They're down low. The well will freeze." / "Put your hand down. Not at them." By day: "Didn't see one this morning. I'm taking the washing in." / "They're sitting over the roofs again. It'll snow on somebody's yard." / "Put your hand down, you will lose a day." Children: "Nine! Ten!" / "There's a pink one! There's a pink one!" / "Stop at twenty, Kuba!" / "Don't talk to me, I'm at seventeen." Pairs: "Where are they today?" "Up. Snow by evening." / "Matka's early." "She's no earlier than yesterday." / "They're over the mill again." "They're always over the mill." Children: "Eleven. Twelve." "Stop at twenty." / "Is that Matka?" "That's a cloud." While Matka Chmur swells, nobody outdoors says anything.
 
 ---
@@ -456,7 +466,7 @@ Herders (only once `planetnicy_seen`, now and then, never from the named cast; s
 - Cutscene actors are spawned by the script if not present, and despawned or returned to schedule after.
 - All cutscenes are skippable (hold Space). Skipping must land the world in the scene's end state (flags, time, weather, positions).
 - Decisive choices pause nothing in the world except the choice timer; the camera holds on faces.
-- Time and weather beats: C1 blizzard 14:30, C2 clear 15:40, C3 ~16:30, night 1 aurora (rest to 21:00), dawn fog 7:30 day 2, the rite at 20:00 day 2 rising blizzard, endings at dawn.
+- Time and weather beats: C1 blizzard 14:30 (day 0), the blizzard holds to the night at the watchtower (dusk), C2 clear about 7:45 day 1, C3 by daylight (mid-morning), night 1 aurora (rest to 21:00), dawn fog 7:30 day 2, the rite at 20:00 day 2 rising blizzard, endings at dawn.
 
 ---
 

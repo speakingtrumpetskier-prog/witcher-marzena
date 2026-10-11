@@ -86,7 +86,7 @@ export class Menus {
       foot.append(
         h('span', null, `${coins} grosze`), h('i'),
         h('span', null, `${thaw} Thaw`), h('i'),
-        h('span', null, t ? `Day ${t.day}, ${dayPart(t.hours)}` : ''));
+        h('span', null, t ? (t.day >= 1 ? `Day ${t.day}, ${dayPart(t.hours)}` : `The pass, ${dayPart(t.hours)}`) : ''));
     };
     const showList = () => {
       confirming = false;

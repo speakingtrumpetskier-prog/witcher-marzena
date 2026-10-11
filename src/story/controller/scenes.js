@@ -20,15 +20,27 @@ export function install(C) {
 
   // What must be true after each scene, whether it played, was skipped or is a stub.
   const END = {
+    c2_shelter() {
+      // The night at the watchtower: day 1 (the prologue is day 0), a quarter to eight, the blizzard blown out,
+      // Vesna at the hearth in the lee and the ashes smoking.
+      C.set('sheltered');
+      if (G.time && (C.day() !== 1 || C.hour() < 7 || C.hour() > 9)) { G.time.day = 1; G.time.setHours(7.75); }
+      if (G.weather?.state !== 'clear') G.weather?.set?.('clear', 0);
+      const wt = C.L.watchtower;
+      if (wt?.seat && C.dist(wt.seat.x, wt.seat.z) > 6) C.place(wt.seat.x, wt.seat.z, wt.seat.yaw);
+      if (wt?.fire && wt.fire() !== 'smoke') wt.fire('smoke');
+    },
     c2_valley() {
       C.set('prologue_done');
       if (G.weather?.state !== 'clear') G.weather?.set?.('clear', 0);
-      if (C.hour() < 15.4 || C.hour() > 16.5) G.time?.setHours?.(15.67);
+      if (G.time && C.day() < 1) G.time.day = 1;
+      if (C.hour() < 7.4 || C.hour() > 10) G.time?.setHours?.(8.3);
     },
     c3_song() {
       C.set('song_heard');
       C.set('met_ola');
-      if (C.hour() < 16 || C.hour() > 17.4) G.time?.setHours?.(16.5);
+      // She comes down in the morning; the song is wherever the day has got to, by daylight.
+      if (C.hour() < 7.6 || C.hour() > 17.4) G.time?.setHours?.(C.hour() > 17.4 ? 17 : 8.6);
     },
     c4_echo() { C.set('echo_seen'); if (G.postfx && G.postfx.echo > 0) G.postfx.echo = 0; },
     c5_lair() { C.set('lair_seen'); C.set('wiesia_spoke'); },

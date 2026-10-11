@@ -2,7 +2,8 @@
 //
 //   pass       C1 ends (or a new game without it) -> the wreck: cart (senses clue), the father's letter
 //   wolves     three wolves come off the road when the letter is read
-//   watchtower C2 at the crest of the pass road, title card, Q1 done
+//   watchtower the blizzard holds; at the hearth in the lee of the ruin, E "Shelter for the night": the shelter
+//              scene (the fire, the wind, the night), then C2 in the morning, title card, Q1 done
 //   ride       C3 at the west gate (or anywhere inside the village core), Q2 -> board
 //   board      the notice board: the same contract she carries from the toll house, and the second paper (the mill wolves)
 // The talks in Act I (Zbyszek, Bogdan, Hanka) live in npcs.js. Resting lives in world.js.
@@ -78,20 +79,41 @@ export function install(C) {
     if (far && C.stage('main_pass') === 'wolves') { C.set('wolves_prologue_done'); dropPack(); }
   }, 12);
 
-  // ---- C2: the valley ------------------------------------------------------------------------
+  // ---- the night at the watchtower, then C2: the valley in the morning -----------------------------
+  // The blizzard keeps on (nothing clears the weather before prologue_done). She shelters at the hearth in the
+  // ruin's lee: c2_shelter (she lights the fire, sits it out, the night) leaves her there at 7:45 on day 1 with
+  // the storm blown out, and c2_valley plays straight after.
   const wt = L.watchtower;
-  if (wt) {
-    C.zone({
-      id: 'valley_crest', x: wt.crest.x, z: wt.crest.z, r: 13,
-      enabled: () => !C.has('prologue_done') && C.active('main_pass'),
-      onEnter: async () => {
-        // Anyone who rode past the wreck and the wolves gets the valley anyway.
+  if (wt?.hearth) {
+    const H = wt.hearth;
+    const sheltering = () => !C.has('prologue_done') && C.active('main_pass');
+    C.interact({
+      id: 'shelter', pos: () => C.v3(H.x, H.y + 0.5, H.z), radius: 2.9, verb: 'Shelter for the night', label: '', priority: 1,
+      enabled: sheltering,
+      onUse: async () => {
+        // Anyone who rode past the wreck and the wolves gets the night and the valley anyway.
         for (const f of ['pass_arrived', 'cart_examined', 'letter_read', 'wolves_prologue_done']) if (!C.has(f)) C.set(f);
         dropPack();
-        await C.sleep(0.7);
+        await C.scene('c2_shelter');
         await C.scene('c2_valley');
       },
     });
+
+    // Past the tower and on down in the white-out: one word to the horse now and then.
+    const FW = { x: Math.sin(wt.yawToValley), z: Math.cos(wt.yawToValley) };
+    let lastAside = -1e9, at = 0;
+    G.addSystem('ctl-shelter', (dt) => {
+      at += dt;
+      if (at < 1) return;
+      at = 0;
+      const p = C.ppos();
+      // The ashes smoke through the morning; out once she has gone on or by late morning.
+      if (C.has('prologue_done') && wt.fire?.() === 'smoke' && !C.busy() && (C.dist(H.x, H.z) > 140 || C.hour() > 11 || C.hour() < 7)) wt.fire('out');
+      if (!sheltering() || C.busy() || C.stage('main_pass') !== 'watchtower') return;
+      const ahead = (p.x - wt.crest.x) * FW.x + (p.z - wt.crest.z) * FW.z;
+      if (ahead > 40 && G.clock.elapsed - lastAside > 75) { lastAside = G.clock.elapsed; C.say('Kasza. Back to the tower.', 2.4); }
+    }, 12);
+    C.restore(() => { if (!C.running.has('scene:c2_shelter') && !C.running.has('scene:c2_valley')) wt.fire?.('out'); });
   }
 
   // ---- Q2: C3 at the west gate ---------------------------------------------------------------

@@ -155,7 +155,8 @@ export class Flow {
     const G = this.G, ui = this.story.ui;
     this._stopTitleCam();
     G.state.reset();
-    if (G.time) { G.time.day = 1; G.time.setHours(14.5); if (!G.shot) G.time.scale = 60; }
+    // Day 0 is the prologue on the pass; the night at the watchtower ends it and the valley is day 1.
+    if (G.time) { G.time.day = 0; G.time.setHours(14.5); if (!G.shot) G.time.scale = 60; }
     G.weather?.set?.('blizzard', 0);
     if (G.weather && 'auto' in G.weather) G.weather.auto = false;
     this.place(SPAWN.prologue.x, SPAWN.prologue.z, SPAWN.prologue.yaw);

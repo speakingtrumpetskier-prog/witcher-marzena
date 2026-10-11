@@ -253,7 +253,7 @@ export class Journal {
     q.log.forEach((e, i) => {
       const last = i === q.log.length - 1;
       entries.append(h('div', { class: 'jr-entry' + (last ? ' latest' : '') },
-        e.day != null ? h('span', { class: 'day' }, `Day ${e.day}`) : null, h('p', null, markup(e.text))));
+        e.day >= 1 ? h('span', { class: 'day' }, `Day ${e.day}`) : null, h('p', null, markup(e.text))));
     });
     if (!q.log.length) entries.append(this._empty('Not yet written.'));
     scroll.append(entries);

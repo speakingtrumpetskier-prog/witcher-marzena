@@ -1,18 +1,22 @@
 // Watchtower ruin (LOC.watchtower): the reveal. The kit ruin on the ridge with its tally wall, the stash under
 // a loose stone and the exterior stairs up to the viewpoint over the whole valley. Dressed as the soldiers'
-// last post: a cold fire pit with log seats, a rack of spears (one head snapped), Kazimierz's dice on a
-// flat stone, a crate, a rag banner, a stack of split wood gone grey, scrawled lines under the tallies.
+// last post: a hearth in the lee of the east wall under the watch's old lean-to (where Vesna sits out the
+// blizzard on the first night), log seats, a rack of spears (one head snapped), Kazimierz's dice on a flat stone,
+// a crate, a rag banner, a stack of split wood gone grey, scrawled lines under the tallies.
 //
 // G.world.locations.watchtower:
 //   placed (the kit placement), tally (note_tally clue), stash (loose stone), vista (viewpoint standing spot),
-//   vistaEdge (the open rail gap), door, inside, crest (road point where the storm breaks, C2 start), yawToValley,
-//   dice, campfire (cold), banner
+//   vistaEdge (the open rail gap), door, inside, crest (road point where she first sees the valley, C2), yawToValley,
+//   dice, hearth (the cold fire pit in the lee; campfire is the same point, the rest spot), seat { x, z, yaw } (her
+//   place under the lean-to, facing the fire), horse { x, z, yaw } (Kasza's place in the lee), banner,
+//   fire(mode) the hearth: 'lit' (her fire on the night of the blizzard), 'smoke' (the ashes the morning after), 'out'
 import * as THREE from 'three';
 import { LOC, ROADS } from '../../layout.js';
 import { buildings, placeBuilding } from '../../architecture/index.js';
 import { Composer, rot2 } from './compose.js';
-import { coldFire, spearRack, diceTable } from './objects2.js';
+import { coldFire, spearRack, diceTable, leanTo } from './objects2.js';
 import { scrawlDecal } from './decals.js';
+import { fx } from '../../props/fx.js';
 import { nearestOnPolyline } from '../../../core/util.js';
 
 export async function build(W) {
@@ -39,12 +43,20 @@ export async function build(W) {
     G.scene.add(note);
   }
 
-  // ---- the watch's camp, south side outside the door ----------------------------------------------------
+  // ---- the watch's camp -------------------------------------------------------------------------------
+  // The hearth is in the lee of the east wall (the wind comes over the ridge from the west), between the
+  // wall, the fallen roof on its south side and the rubble to the north, under the lean-to the watch put up
+  // against the wall. The rest of the camp (dice, crate, spears) is round the south side by the door.
   const c = new Composer(G, W.ctx, 'watchtower', L.x, L.z, { seed: 29 });
   const spot = (lx, lz) => { const [dx, dz] = rot2(lx, lz, yaw); return { x: L.x + dx, z: L.z + dz }; };
-  const fp = spot(-2.8, 6.6);
-  c.at(fp.x, fp.z, { yaw: 0.3 }, (k) => coldFire(k, { r: 0.62 }));
-  for (const [lx, lz, s] of [[-4.5, 6.5, 0.6], [-1.2, 7.7, 1.2], [-2.6, 4.9, -0.3]]) {
+  const fp = spot(6.3, -0.4);
+  c.at(fp.x, fp.z, { yaw: 0.3 }, (k) => coldFire(k, { r: 0.6 }));
+  c.circle(fp.x, fp.z, 0.55, y0 - 1, y0 + 1, 'hearth');
+  const lt = spot(3.4, -0.4);
+  c.at(lt.x, lt.z, { yaw: yaw + Math.PI / 2 }, (k) => leanTo(k, { len: 2.2, depth: 1.9 }));
+  const lc = spot(4.35, -0.4);
+  c.box(lc.x, lc.z, 1.0, 1.15, yaw, y0 - 1, y0 + 2.2, 'lean-to');
+  for (const [lx, lz, s] of [[6.8, 1.45, 1.35]]) {
     const q = spot(lx, lz);
     c.prop('logs', q.x, q.z, { seed: s * 3 | 0, yaw: s, opts: { count: 1, length: 1.6 } });
   }
@@ -100,8 +112,26 @@ export async function build(W) {
     crest: v(cx, G.world.heightAt(cx, cz), cz), // where the blizzard breaks (C2)
     yawToValley,
     dice: v(dt.x, c.ground(dt.x, dt.z) + 0.45, dt.z),
+    hearth: v(fp.x, c.ground(fp.x, fp.z), fp.z),
     campfire: v(fp.x, c.ground(fp.x, fp.z), fp.z),
+    fire: hearthFire(G, v(fp.x, c.ground(fp.x, fp.z) + 0.1, fp.z)),
+    seat: { ...spot(4.25, -0.4), yaw: yaw + Math.PI / 2 },
+    horse: { ...spot(7.5, -3.3), yaw: yaw + 1.27 },
   });
 }
 
 const LAKE_X = 40, LAKE_Z = -120;
+
+// The fire she lights in the hearth (the story drives it: act1.js and the shelter cutscene). fire(mode) -> mode.
+function hearthFire(G, pos) {
+  let mode = 'out', em = null;
+  return (want) => {
+    if (want == null || want === mode) return mode;
+    em?.dispose();
+    em = null;
+    if (want === 'lit') em = fx.fire({ position: pos.toArray(), parent: G.scene, scale: 1.0, radius: 0.27, height: 0.85, light: true, smoke: true });
+    else if (want === 'smoke') em = fx.smoke({ position: pos.toArray(), parent: G.scene, height: 9, rate: 0.55, size: 0.5, opacity: 0.3 });
+    mode = em || want === 'out' ? want : 'out';
+    return mode;
+  };
+}
