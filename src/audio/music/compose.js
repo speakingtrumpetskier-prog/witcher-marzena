@@ -311,4 +311,86 @@ export function motif(S, part, t0, r, { octave = 1, v = 0.6, broken = 0, slow = 
   return t;
 }
 
+// --- Slow writing (the exploration moods) ---------------------------------------------------
+
+// Theme bars [from, to) as a [midi, beats] line, stretched k times (augmentation: k = 2 makes each bar two).
+export function themeLine(from, to, { mode = 'dorian', octave = 0, k = 1 } = {}) {
+  return themeNotes({ mode, from, to, octave }).map((n) => [n.p, n.d * k]);
+}
+
+// A line [[midi|name|null, beats], ...] varied the way a player changes a tune the next time round: a held note
+// broken by a neighbour, two short notes merged into one held, an inner note moved a step. The first and last notes
+// (what the phrase is and where it lands) and the length stay.
+export function vary(seq, r, { mode = 'dorian', amount = 0.3 } = {}) {
+  const src = seq.map(([p, d, x]) => [N(p), d, x]);
+  const out = [];
+  for (let i = 0; i < src.length; i++) {
+    const [p, d, x] = src[i];
+    const next = src[i + 1];
+    const inner = p != null && i > 0 && i < src.length - 1;
+    if (inner && d >= 2 && r() < amount) out.push([p, d - 1, x], [step(p, r.pick([1, -1, 1]), mode), 1]);
+    else if (inner && d <= 1 && next && next[0] != null && next[1] <= 1 && i + 1 < src.length - 1 && r() < amount * 0.7) {
+      out.push([p, d + next[1], x]);
+      i++;
+    } else if (inner && r() < amount * 0.3) out.push([step(p, r.pick([1, -1]), mode), d, x]);
+    else out.push([p, d, x]);
+  }
+  return out;
+}
+
+// A plucked line on a sampled part (zither, music box): a velocity arc over the phrase, now and then a grace pluck a
+// step above, a third or sixth under a held note, and a little give in the timing. Returns the end beat.
+export function pluck(S, part, t0, seq, r, { v = 0.5, mode = 'dorian', octave = 0, grace = 0.12, dyad = 0.2, arc = 0.25, give = 0.04, extra = {} } = {}) {
+  const total = seq.reduce((a, [, d]) => a + d, 0);
+  let t = t0;
+  for (const [name, d, x] of seq) {
+    if (name == null) { t += d; continue; }
+    const p = N(name) + octave * 12;
+    const pos = (t - t0) / Math.max(1, total);
+    const vv = v * (1 - arc + arc * Math.sin(Math.PI * Math.min(1, pos * 1.1))) * (0.92 + r() * 0.12);
+    const tt = t > t0 ? t + r.bi() * give : t;
+    if (t > t0 && d >= 1.5 && r() < grace) S.add(part, tt - 0.16, 0.3, step(p, 1, mode), { v: vv * 0.45, ...extra });
+    if (d >= 2 && r() < dyad) S.add(part, tt, d, [step(p, r.pick([-2, -2, -4]), mode), p], { v: vv * 0.9, strum: 0.07, ...extra, ...(x || {}) });
+    else S.add(part, tt, d, p, { v: vv, ...extra, ...(x || {}) });
+    t += d;
+  }
+  return t;
+}
+
+// Slow broken chords on the zither, one chord per `per` beats. 'bass' the root alone (now and then its fifth),
+// 'open' the root then fifth and tenth rolled, 'harp' a slow climb through the chord, 'high' a chord tone or two
+// up high with no bass. Returns the end beat.
+export function broken(S, part, t0, prog, r, { per = 6, style = 'open', v = 0.42, low = 38 } = {}) {
+  prog.forEach((sym, i) => {
+    const t = t0 + i * per;
+    const root = chord(sym, low, 1)[0];
+    const up = chord(sym, root + 12, 3);
+    const hv = () => v * (0.86 + r() * 0.2);
+    if (style === 'bass') {
+      S.add(part, t, per, root, { v: hv() });
+      if (per >= 6 && r() < 0.45) S.add(part, t + per / 2, per / 2, root + 7, { v: hv() * 0.7 });
+    } else if (style === 'open') {
+      S.add(part, t, per, root, { v: hv() });
+      S.add(part, t + r.pick([1, 1.5, 2]), per - 2, [root + 7, up[1]], { v: hv() * 0.75, strum: 0.11 });
+    } else if (style === 'harp') {
+      const notes = [root, root + 7, up[0], up[1], r() < 0.5 ? up[2] : up[0] + 12];
+      const at = per >= 6 ? [0, 1, 2, 3, 4.5] : [0, 0.75, 1.5, 2.25, 2.75];
+      notes.forEach((p, k) => S.add(part, t + at[k], per - at[k], p, { v: hv() * (k ? 0.62 : 1) }));
+    } else if (style === 'high') {
+      const top = chord(sym, 62, 3);
+      S.add(part, t + r.pick([0, 1, 1.5]), per, r.pick(top), { v: hv() * 0.6 });
+      if (r() < 0.5) S.add(part, t + r.pick([3, 3.5, 4]), per / 2, r.pick(top), { v: hv() * 0.5 });
+    }
+  });
+  return t0 + prog.length * per;
+}
+
+// Shuffle a list (a copy) so that it does not start with `avoid` (the section that just played).
+export function deal(r, list, avoid = null) {
+  const a = [...list];
+  for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+  if (a.length > 1 && a[0] === avoid) [a[0], a[1]] = [a[1], a[0]];
+  return a;
+}
+
 export { N, step, chord, toMode, TONIC, MODES, themeNotes, HARMONY, TO_SEVEN, LYRICS };

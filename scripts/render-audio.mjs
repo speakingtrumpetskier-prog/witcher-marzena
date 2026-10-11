@@ -29,7 +29,7 @@ const SR = +(args.sr || 44100);
 
 // Loudness targets (integrated LUFS at default volumes). Quiet moods are quiet by design.
 const MOODS = {
-  reveal: { s: 100, target: -17 }, village: { s: 120, target: -19 }, combat: { s: 75, target: -16 },
+  reveal: { s: 100, target: -17 }, village: { s: 120, target: -21 }, combat: { s: 75, target: -16 },
   procession: { s: 120, target: -18 }, thaw: { s: 120, target: -17 }, boss: { s: 80, target: -15 },
   pass: { s: 75, target: -24 }, wild: { s: 90, target: -23 }, night: { s: 90, target: -25 },
   tense: { s: 70, target: -22 }, sorrow: { s: 90, target: -21 }, lullaby: { s: 90, target: -23 },
