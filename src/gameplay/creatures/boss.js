@@ -24,7 +24,7 @@ import { SpikeField, LineTelegraph, Band, Ribbons, ArmorSet, glowSprite } from '
 import { props } from '../../world/props/index.js';
 
 export const TUNE = {
-  hp: 1000, phase2: 0.66, phase3: 0.33, yieldAt: 0.25,
+  hp: 280, phase2: 0.66, phase3: 0.33, yieldAt: 0.25, // was 1000: the fight ran far too long (user playtest)
   scale: [2.5, 2.72, 2.5], hover: 0.62,
   speed: 2.3, speed2: 3.0, keep: 5.6, arenaR: 27,
   armorDeflect: 0.1, armorRegrow: 12, armorStagger: 2.4,

@@ -14,7 +14,7 @@ export const MOODS = [
   'procession', 'thaw', 'sorrow', 'lullaby', 'silence',
 ];
 
-export const STINGERS = ['discover', 'quest', 'echo', 'danger', 'choice', 'death', 'reveal'];
+export const STINGERS = ['discover', 'quest', 'echo', 'danger', 'choice', 'death', 'reveal', 'music_box'];
 
 // Grouped for the audition page and for docs. SFX_NAMES is the flat list.
 export const SFX_GROUPS = {

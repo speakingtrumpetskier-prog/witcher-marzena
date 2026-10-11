@@ -1,6 +1,6 @@
 // Stingers: short finite scores played over the music on their own bus (the playing mood dips
 // a little under them). All in D so they sit on any mood.
-import { Score, motif, N } from './compose.js';
+import { Score, motif, themeLine, N } from './compose.js';
 import { P } from './moods/parts.js';
 
 function def(tempo, parts, write, extra = {}) {
@@ -37,6 +37,18 @@ export const STINGER_DEFS = {
     motif(S, 'box', 1, r, { octave: 1, v: 0.6, slow: 0.9 });
     S.bars(4);
   }, { duck: 6, duckAmount: 0.5 }),
+  // The tin music box on the belfry table, cranked: the first phrase of the song on its comb, then the motif as the
+  // spring runs down (slower, flatter, the notes coming apart). The moods dip well under it.
+  music_box: def(76, { box: P.box({ level: 0.62, pan: 0, verb: 0.45 }) }, (S, r) => {
+    let t = 0;
+    for (const [p, d] of themeLine(0, 4, { octave: 1 })) {
+      const dd = d * (1 + r.bi() * 0.05);
+      S.add('box', t, dd, p, { v: 0.62 * (0.88 + r() * 0.2), loose: 2 });
+      t += dd;
+    }
+    t = motif(S, 'box', t + 0.6, r, { octave: 1, v: 0.55, broken: 0.7, slow: 1.5 });
+    S.bars(Math.ceil(t / 3) + 1);
+  }, { duck: 19, duckAmount: 0.7 }),
   // Danger: a war drum blow, a buzzing semitone cluster on the gurdy, a fiddle scrape.
   danger: def(90, { war: P.war({ level: 0.6 }), gurdy: P.gurdy({ level: 0.32 }), fiddle: P.fiddle({ level: 0.26 }) }, (S) => {
     S.add('war', 0, 2, null, { v: 1 });

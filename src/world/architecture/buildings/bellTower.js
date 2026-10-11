@@ -18,6 +18,7 @@ import { stairs, snowPillow, icePatch } from '../details.js';
 import { table, bench } from '../furnish.js';
 
 const V3 = (x, y, z) => new THREE.Vector3(x, y, z);
+const wrapPi = (a) => Math.atan2(Math.sin(a), Math.cos(a));
 
 export function bellTower(opts = {}) {
   const kit = new Kit(opts.seed ?? 77, 'bellTower');
@@ -134,10 +135,10 @@ export function bellTower(opts = {}) {
     const sc = mixC(PAL.stoneDark, PAL.stone, kit.rand()).multiplyScalar(GAIN);
     kit.rock.box(sx, 1.85 + kit.rs() * 0.08, HO - 0.5, kit.r(0.3, 0.5), kit.r(0.2, 0.3), kit.r(0.4, 0.8), sc, { ry: kit.rs() * 0.3, rz: kit.rs() * 0.2, uv: [3, 3] });
   }
-  // Window frame remnants.
+  // Window frame remnants: the sill, and the stumps of the mullions at its ends (in the middle they barred the way in).
   kit.wood.box(0, 0.35, HO - 0.2, 1.4, 0.1, 0.3, wc(), { grain: 'x', rz: 0.04 });
-  kit.wood.tube([-0.5, 0.35, HO - 0.25], [-0.46, 1.4, HO - 0.25], 0.045, 0.04, wc(), { seg: 5, lenSeg: 1, ao: 0.2 });
-  kit.wood.tube([0.35, 0.35, HO - 0.25], [0.3, 0.95, HO - 0.25], 0.045, 0.035, wc(), { seg: 5, lenSeg: 1, ao: 0.2 });
+  kit.wood.tube([-0.82, 0.35, HO - 0.25], [-0.8, 0.95, HO - 0.25], 0.045, 0.04, wc(), { seg: 5, lenSeg: 1, ao: 0.2 });
+  kit.wood.tube([0.82, 0.35, HO - 0.25], [0.8, 0.62, HO - 0.25], 0.045, 0.035, wc(), { seg: 5, lenSeg: 1, ao: 0.2 });
   // Timber lintels over the high windows.
   for (const ry of [Math.PI / 2, -Math.PI / 2, Math.PI]) {
     kit.wood.at(0, 0, 0, ry, () => { kit.wood.box(0, 4.4, HO - 0.5, 1.2, 0.22, 0.9, wc(), { grain: 'x' }); });
@@ -167,7 +168,9 @@ export function bellTower(opts = {}) {
         ox += (diag ? nx * 0.7071 : nx) * d; oz += (diag ? nzz * 0.7071 : nzz) * d;
         const t = rings[k] / rings[rings.length - 1];
         const lump = 0.7 + 0.6 * kit.n2(ox * 0.5 + 9, oz * 0.5);
-        row.push([ox, 0.9 * Math.pow(1 - t, 1.7) * lump + 0.03, oz]);
+        // dug out in front of the broken window, so the way in reads as open (the ramp shows through)
+        const dug = oz > HO - 0.3 ? 1 - smooth(1.1, 2.0, Math.abs(ox)) : 0;
+        row.push([ox, 0.9 * Math.pow(1 - t, 1.7) * lump * (1 - dug) + 0.03, oz]);
         br.push([ox, 0.02, oz]);
       }
       rows.push(row); bases.push(br);
@@ -183,9 +186,12 @@ export function bellTower(opts = {}) {
     const a = (i / 14) * Math.PI * 2 + kit.rs() * 0.2;
     const r = kit.r(3.5, 5.0);
     const h = kit.r(0.35, 1.2), w = kit.r(0.3, 0.75);
+    // same draws as before in the same order, so everything after keeps its look; none on the way in
+    const tilt = -kit.r(0.15, 0.5), roll = kit.rs() * 0.25, th = kit.r(0.1, 0.2), tone = kit.rand();
+    if (Math.abs(wrapPi(a - Math.PI / 2)) < 0.55) continue;
     ice.at(Math.cos(a) * r, 0.0, Math.sin(a) * r, -a + Math.PI / 2, (m) => {
-      m.extrude([[-w / 2, 0], [w / 2, 0], [w * 0.15, h], [-w * 0.3, h * 0.82]], kit.r(0.1, 0.2), mixC(PAL.ice, PAL.iceDeep, 0.25 + kit.rand() * 0.55).multiplyScalar(0.95), { uv: [1, 1] });
-    }, -kit.r(0.15, 0.5), kit.rs() * 0.25);
+      m.extrude([[-w / 2, 0], [w / 2, 0], [w * 0.15, h], [-w * 0.3, h * 0.82]], th, mixC(PAL.ice, PAL.iceDeep, 0.25 + tone * 0.55).multiplyScalar(0.95), { uv: [1, 1] });
+    }, tilt, roll);
   }
   // A ramp of snow-ice up to the entrance, so you can walk in.
   {
@@ -369,29 +375,36 @@ export function bellTower(opts = {}) {
   kit.shear(mk, FLOOR, 0.055, 0.02, 0.01);
 
   // ---------------- the frost room: table, benches, frozen bread ----------------
+  // The table ends short of the hatch: the last stair flight comes up through the floor at x 1.1 to 2.2, and with a
+  // full-length table she climbed up through its end and could not get back down past it. Table-local x (the old
+  // layout, -2.4 to 2.4) maps to tx(x): 3.4 m long, its west end where it was. Seats close up to fit.
+  const TX = -0.75, TS = 0.71;
+  const tx = (x) => TX + x * TS;
+  kit.objects.tableX = TX;
+  kit.objects.tableScale = TS;
   const ty = FLOOR;
-  table(kit, 0, ty, 0, 0, 4.8, 1.0, 0.8);
-  kit.ice.box(0, ty + 0.805, 0, 4.7, 0.015, 0.95, mixC(PAL.ice, 0xffffff, 0.6), { uv: [1, 1] });
-  for (const sz of [-1, 1]) bench(kit, 0, ty, sz * 0.98, 0, 5.0);
+  table(kit, TX, ty, 0, 0, 4.8 * TS, 1.0, 0.8);
+  kit.ice.box(TX, ty + 0.805, 0, 4.7 * TS, 0.015, 0.95, mixC(PAL.ice, 0xffffff, 0.6), { uv: [1, 1] });
+  for (const sz of [-1, 1]) bench(kit, TX, ty, sz * 0.98, 0, 3.6);
   kit.wood.box(-2.62, ty + 0.25, 0, 0.42, 0.5, 0.5, scaleC(PAL.plank, GAIN), { grain: 'y' });
   for (let i = 0; i < 9; i++) {
-    const x = -2.0 + i * 0.5 + kit.rs() * 0.1, z = kit.rs() * 0.28;
+    const x = tx(-2.0 + i * 0.5 + kit.rs() * 0.1), z = kit.rs() * 0.28;
     ice.ellipsoid(x, ty + 0.83, z, kit.r(0.1, 0.16), kit.r(0.05, 0.08), kit.r(0.07, 0.1), mixC(0xd8c090, 0xeef4f8, 0.35), { seg: 8, rings: 4 });
   }
   for (const x of [-1.3, 0.2, 1.5]) ice.lathe([[0.001 + x * 0, ty + 0.805], [0.12, ty + 0.81], [0.17, ty + 0.9], [0.15, ty + 0.92]], mixC(PAL.ice, 0xffffff, 0.4), { seg: 9 });
   // 17 seats: 8 along each bench and one at the head.
   const seats = [];
   for (let i = 0; i < 8; i++) {
-    const x = -2.17 + i * 0.62;
+    const x = tx(-2.17 + i * 0.62);
     seats.push({ x, y: ty + 0.45, z: -0.98, yaw: 0, side: 'north' });
     seats.push({ x, y: ty + 0.45, z: 0.98, yaw: Math.PI, side: 'south' });
   }
   seats.push({ x: -2.65, y: ty + 0.5, z: 0, yaw: Math.PI / 2, side: 'head' });
   kit.objects.seats = seats;
   seats.forEach((s, i) => kit.anchor(`seat${i + 1}`, s.x, s.y, s.z));
-  kit.anchor('table', 0, ty + 0.8, 0);
-  kit.anchor('musicbox', 2.05, ty + 0.83, 0);
-  kit.anchor('ribbon', -2.4, ty + 0.83, 0.3);
+  kit.anchor('table', TX, ty + 0.8, 0);
+  kit.anchor('musicbox', tx(2.05), ty + 0.83, 0);
+  kit.anchor('ribbon', tx(-2.3), ty + 0.83, 0.3);
   kit.anchor('hatch', (hatch.x0 + hatch.x1) / 2, ty, (hatch.z0 + hatch.z1) / 2);
   kit.anchor('bell', 0.12, FLOOR + 2.8, 0);
   kit.anchor('vista', 0, ty, 2.5);
@@ -411,7 +424,7 @@ export function bellTower(opts = {}) {
   wall(-(HO + 0.95) / 2, HO - wt / 2, (HO - 0.95) / 2, wt / 2);
   wall((HO + 0.95) / 2, HO - wt / 2, (HO - 0.95) / 2, wt / 2);
   for (const [x, z, hx, hz] of [[0, BH + 0.05, BH + 0.1, 0.15], [0, -BH - 0.05, BH + 0.1, 0.15], [BH + 0.05, 0, 0.15, BH + 0.1], [-BH - 0.05, 0, 0.15, BH + 0.1]]) kit.box(x, z, hx, hz, 0, { y0: FLOOR - 0.1, y1: FLOOR + 1.4 });
-  kit.box(0, 0, 2.45, 0.55, 0, { y0: FLOOR - 0.1, y1: FLOOR + 0.9 });
+  kit.box(TX, 0, 4.9 * TS / 2, 0.55, 0, { y0: FLOOR - 0.1, y1: FLOOR + 0.9 });
   const sq = (h, y, tag) => ({ y, polygon: [[-h, -h], [h, -h], [h, h], [-h, h]], tag });
   kit.walk.floors.push(sq(HI - 0.1, ICEY, 'ice'));
   const bf = sq(BH - 0.2, FLOOR, 'belfry');

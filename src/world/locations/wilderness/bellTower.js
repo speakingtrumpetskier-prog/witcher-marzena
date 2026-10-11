@@ -67,8 +67,10 @@ export async function build(W) {
   });
 
   // table: jugs, candle stubs gone to ice, the music box, a ribbon, a place laid for the bird
-  const tb = S(0, 5.4 + 0.82, 0);
-  const tbl = (lx, lz) => S(lx, 5.4 + 0.82, lz);
+  // table-local x as the kit lays the (shortened, off-centre) table out: clear of the stair hatch
+  const TX = p.objects.tableX ?? 0, TS = p.objects.tableScale ?? 1;
+  const tb = S(TX, 5.4 + 0.82, 0);
+  const tbl = (lx, lz) => S(TX + lx * TS, 5.4 + 0.82, lz);
   const dressTable = [['jug', -1.4, 0.18, 0.6], ['jug', 0.9, -0.2, 2.4], ['jug', 1.45, 0.25, 4.1]];
   for (const [name, lx, lz, yw] of dressTable) {
     const q = tbl(lx, lz);
@@ -80,7 +82,7 @@ export async function build(W) {
   }
   const mb = tbl(2.05, 0);
   c.prop('musicBox', mb.x, mb.z, { y: mb.y, yaw: yaw - Math.PI / 2, collide: false });
-  const rb = tbl(-2.4, 0.3);
+  const rb = tbl(-2.3, 0.3);
   c.at(rb.x, rb.z, { y: rb.y + 0.003, yaw: yaw + 0.7 }, (k) => {
     k.plane('ribbon', 0.05, 0.5, { pos: [0, 0.004, 0], rot: [-Math.PI / 2, 0, 0.0], tint: 0x7a241a, grime: 0, var: 0.02 });
     k.torus('ribbon', 0.03, 0.01, { pos: [-0.1, 0.012, 0.0], rot: [Math.PI / 2, 0, 0], tint: 0x7a241a, seg: 8, rseg: 3, grime: 0 });
@@ -114,6 +116,8 @@ export async function build(W) {
           const px = side === 0 ? t : side === 1 ? off : side === 2 ? -t : -off;
           const pz = side === 0 ? off : side === 1 ? -t : side === 2 ? -off : t;
           const along = side % 2 === 0;
+          // not across the broken window (the front face, side 0): the crust there made the way in look sealed
+          if (side === 0 && Math.abs(t) < 0.95 + w * 0.5) continue;
           k.blob('ice', 0.5, { pos: [px, h, pz], scale: along ? [w, hh, 0.24] : [0.24, hh, w], rot: [0, 0, rnd.signed(0.05)], detail: 1, tint: rnd.pick([0xdbeaf3, 0xe6f1f8, 0xc9dfec]), grime: 0, var: 0.07 });
           if (row === 0 && rnd.chance(0.7)) for (let j = 0; j < 3; j++) k.cone('ice', rnd.range(0.025, 0.05), rnd.range(0.2, 0.65), { pos: [px + (along ? rnd.signed(w * 0.4) : 0.05), h - hh * 0.5 - 0.15, pz + (along ? 0.05 : rnd.signed(w * 0.4))], rot: [Math.PI, 0, 0], radial: 5, tint: 0xe2f0f8, grime: 0 });
         }
@@ -135,8 +139,9 @@ export async function build(W) {
       g.traverse((m) => { if (m.isMesh) m.castShadow = true; });
       return { group: g, pos: q };
     };
-    stairs.seated = eff('seated', -1.62, yL1 + 0.02, -1.55, Math.PI, 31);
-    stairs.standing = eff('frozen', 1.66, yL2 + 0.02, -1.66, -Math.PI / 2, 32);
+    // in the landings' outer corners: she turns past them, not through them
+    stairs.seated = eff('seated', -1.9, yL1 + 0.02, -1.9, Math.PI / 4, 31);
+    stairs.standing = eff('frozen', 1.9, yL2 + 0.02, -1.9, -Math.PI / 4, 32);
     stairs.landing1 = S(-1.65, yL1, -1.5);
     stairs.landing2 = S(1.65, yL2, -1.65);
   }

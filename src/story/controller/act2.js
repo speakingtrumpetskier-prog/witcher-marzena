@@ -149,6 +149,7 @@ export function install(C) {
       onUse: async () => {
         G.player?.character?.play?.('crouch_examine', { loop: false, fade: 0.25 });
         C.sfx('item_pickup', { volume: 0.5 });
+        G.audio?.stinger?.('music_box'); // she turns the crank and it plays its one tune
         await C.read('item_music_box');
       },
     });
