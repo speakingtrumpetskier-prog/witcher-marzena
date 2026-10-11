@@ -387,18 +387,35 @@ async function run(G, O, report) {
     ok('combat has ended after the wolves', !G.combat.inCombat, `inCombat=${G.combat.inCombat}`, 'warn');
   }
   if (wants('main_pass:watchtower') && stage('main_pass') === 'watchtower') {
-    step('valley');
+    step('watchtower');
     const wt = G.world.locations.watchtower;
+    ok('the prologue is day 0', G.time.day === 0, `day=${G.time.day}`);
+    const obj = G.quests.objectives().find((o) => o.questId === 'main_pass');
+    ok('objective: shelter at the watchtower, marker on the hearth', /shelter/i.test(obj?.text || '') && !!obj?.marker && Math.hypot(obj.marker[0] - wt.hearth.x, obj.marker[1] - wt.hearth.z) < 0.5, `${obj?.text} ${obj?.marker}`);
+    // Riding up to the ruin and on to the crest plays nothing now: the storm keeps on.
     placeAt(wt.crest.x - 20, wt.crest.z + 14, 0.8);
     await wait(0.5);
     placeAt(wt.crest.x, wt.crest.z, 0.8);
-    await waitFor(() => G.cutscenes.active || S.flag('prologue_done'), 8, 'c2 start');
+    await wait(3);
+    ok('the crest plays nothing, the blizzard holds', !G.cutscenes.active && !S.flag('prologue_done') && G.weather.state === 'blizzard', `cut=${G.cutscenes.active} weather=${G.weather.state}`);
+    ok('the hearth is not a plain rest spot in the prologue', G.interact.get('ctl:fire_watchtower')?.enabled?.() === false);
+    step('shelter');
+    let atReveal = null;
+    const offReveal = G.events.on('cutscene:start', ({ id }) => { if (id === 'c2_valley') atReveal = { day: G.time.day, h: G.time.hours, w: G.weather.state, fire: wt.fire?.() }; });
+    await useIt('ctl:shelter');
     await waitFor(() => !G.cutscenes.active && !G.story.busy, 90, 'c2 end');
+    offReveal?.();
     await wait(0.4);
-    flagOK(['prologue_done'], 'C2 played, prologue done');
+    flagOK(['sheltered', 'prologue_done'], 'the night at the hearth, then C2: prologue done');
     repair('prologue_done');
-    ok('C2 ran once', report.scenes.filter((s) => s === 'c2_valley').length === 1);
-    ok('weather clear after the valley', G.weather.state === 'clear', G.weather.state);
+    const order = report.scenes.filter((s) => s === 'c2_shelter' || s === 'c2_valley').join(',');
+    ok('the shelter, then the valley, once each', order === 'c2_shelter,c2_valley', order);
+    ok('C2 opens on the morning of day 1, the storm blown out, the ashes smoking', !!atReveal && atReveal.day === 1 && atReveal.h >= 7.4 && atReveal.h <= 9.2 && atReveal.w === 'clear' && atReveal.fire === 'smoke', JSON.stringify(atReveal));
+    ok('after the reveal: day 1, morning, clear', G.time.day === 1 && G.time.hours >= 7.4 && G.time.hours <= 10 && G.weather.state === 'clear', `day=${G.time.day} h=${G.time.hours.toFixed(2)} ${G.weather.state}`);
+    ok('she is at the crest on foot', C.dist(wt.crest.x, wt.crest.z) < 4 && !P().mounted, `d=${C.dist(wt.crest.x, wt.crest.z).toFixed(1)}`);
+    const q1log = S.data.quests.main_pass?.log || [];
+    ok('journal: the night at the watchtower', q1log.some((e) => /watchtower/.test(e.text) && /morning/.test(e.text)), q1log.map((e) => e.text.slice(0, 30)).join(' | '));
+    ok('the rest spot is back after the prologue', G.interact.get('ctl:fire_watchtower')?.enabled?.() !== false);
     stageIs('main_pass', 'done', 'Q1 done');
     stageIs('main_ice', 'ride', 'Q2 at the ride');
   }

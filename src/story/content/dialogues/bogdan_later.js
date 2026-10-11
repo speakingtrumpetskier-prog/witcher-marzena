@@ -61,7 +61,7 @@ export default {
 
     // without the ledger
     s1: { s: 'vesna', t: (S, D) => ((D.G.time?.day ?? 1) >= 2 ? 'I was at the poles last night. I saw it.' : 'I was at the poles tonight. I saw it.'), next: 's2' },
-    s2: { s: 'bogdan', t: (S, D) => ((D.G.time?.day ?? 1) >= 2 ? 'You got here yesterday.' : 'You got here this afternoon.'), next: 's3' },
+    s2: { s: 'bogdan', t: (S, D) => ((D.G.time?.day ?? 1) >= 2 ? 'You got here yesterday.' : 'You got here this morning.'), next: 's3' },
     s3: { s: 'bogdan', t: 'Get out of my house.', do: (S) => S.set('bogdan_threw_out'), end: true },
 
     n1: { s: 'bogdan', t: 'Then sit down or go.', end: true },

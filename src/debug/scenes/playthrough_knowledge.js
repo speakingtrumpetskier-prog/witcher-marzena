@@ -88,7 +88,7 @@ export function knowledgeSteps({ ok, step }) {
   const l0 = walk(bogdanLater, late, { day: 2, hours: 9, want: [/^About the rite/, /^I was there/] });
   ok('Bogdan later without the name: "Hanka\'s girl didn\'t just fall in."', l0.has(/^vesna: Hanka's girl didn't just fall in/) && l0.said('vesna: I was at the poles last night. I saw it.'));
   const l1 = walk(bogdanLater, [...late, 'knows_wiesia'], { day: 1, hours: 22.4, want: [/^About the rite/, /^I was there/] });
-  ok('Bogdan later the same night: "tonight", "this afternoon"', l1.has(/^vesna: Wiesia didn't just fall in/) && l1.said('vesna: I was at the poles tonight. I saw it.') && l1.said('bogdan: You got here this afternoon.'));
+  ok('Bogdan later the same night: "tonight", "this morning"', l1.has(/^vesna: Wiesia didn't just fall in/) && l1.said('vesna: I was at the poles tonight. I saw it.') && l1.said('bogdan: You got here this morning.'));
 
   // Before the village: the tinker on the pass road, the miller before the board.
   const t0 = walk(rsTinker, [], { hours: 15.8, want: [/^Where are you headed/] });
