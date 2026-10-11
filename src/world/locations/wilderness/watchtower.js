@@ -56,7 +56,7 @@ export async function build(W) {
   c.at(lt.x, lt.z, { yaw: yaw + Math.PI / 2 }, (k) => leanTo(k, { len: 2.2, depth: 1.9 }));
   const lc = spot(4.35, -0.4);
   c.box(lc.x, lc.z, 1.0, 1.15, yaw, y0 - 1, y0 + 2.2, 'lean-to');
-  for (const [lx, lz, s] of [[7.6, -0.3, 0.15], [6.8, 1.45, 1.35]]) {
+  for (const [lx, lz, s] of [[6.8, 1.45, 1.35]]) {
     const q = spot(lx, lz);
     c.prop('logs', q.x, q.z, { seed: s * 3 | 0, yaw: s, opts: { count: 1, length: 1.6 } });
   }
@@ -116,7 +116,7 @@ export async function build(W) {
     campfire: v(fp.x, c.ground(fp.x, fp.z), fp.z),
     fire: hearthFire(G, v(fp.x, c.ground(fp.x, fp.z) + 0.1, fp.z)),
     seat: { ...spot(4.25, -0.4), yaw: yaw + Math.PI / 2 },
-    horse: { ...spot(6.9, -2.5), yaw: yaw + 1.27 },
+    horse: { ...spot(7.5, -3.3), yaw: yaw + 1.27 },
   });
 }
 
