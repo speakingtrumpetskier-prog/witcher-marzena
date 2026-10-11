@@ -19,6 +19,35 @@ export function coldFire(k, o = {}) {
   k.pop();
 }
 
+// The watch's lean-to against a wall: an old hide stretched from two posts at the wall (2.1 m) out to two
+// posts at the front (1.5 m), snow on it, a crossbar each end, a hide on the ground under it. Local frame:
+// the wall foot along x, +z out from the wall (the open side, where the fire goes). o.len, o.depth.
+export function leanTo(k, o = {}) {
+  const len = o.len || 2.2, dep = o.depth || 1.9;
+  const hb = 2.1, hf = 1.5;
+  const xs = len / 2 - 0.08;
+  k.push({ yaw: o.yaw || 0 });
+  const post = (x, z, h, lean = 0) => k.cyl('wood', 0.045, 0.055, h + 0.15, { pos: [x, (h + 0.15) / 2 - 0.15, z], rot: [lean, 0, k.rs(0.04)], radial: 6, tint: 0x8a7a68, cap: 'logEnd', jitter: 0.004 });
+  for (const sx of [-1, 1]) { post(sx * xs, 0.12, hb, 0.04); post(sx * xs, dep, hf, -0.05); }
+  k.cyl('wood', 0.04, 0.04, len + 0.3, { pos: [0, hb - 0.02, 0.12], rot: [0, 0, Math.PI / 2], radial: 6, tint: 0x8a7a68, cap: 'logEnd' });
+  k.cyl('wood', 0.04, 0.04, len + 0.3, { pos: [0, hf - 0.02, dep], rot: [0, 0, Math.PI / 2], radial: 6, tint: 0x8a7a68, cap: 'logEnd' });
+  // The hide: one sagging sheet from the back bar down to the front bar.
+  const run = dep - 0.12, drop = hb - hf, L = Math.hypot(run, drop), th = Math.atan2(drop, run);
+  k.box('fur', len + 0.2, 0.025, L + 0.25, {
+    pos: [0, (hb + hf) / 2 + 0.03, 0.12 + run / 2], rot: [th, 0, 0], tint: 0x8a7258, seg: [4, 1, 4], jitter: 0.02, grime: 0.3,
+  });
+  // Lashings at the corners and a rag of the hide hanging off the front edge.
+  for (const sx of [-1, 1]) for (const [z, y] of [[0.12, hb], [dep, hf]]) k.cyl('rope', 0.06, 0.06, 0.07, { pos: [sx * xs, y, z], radial: 6, tint: 0xb8a888 });
+  k.hang('fur', 0.5, 0.32, { pos: [len * 0.22, hf - 0.03, dep + 0.11], tint: 0x7a6450, sway: 0.4, wave: 0.03 });
+  if (!o.indoor) k.mound(len * 0.95, 0.09, L * 0.9, { pos: [0, (hb + hf) / 2 + 0.06, 0.12 + run / 2], rot: [th, 0, 0], jseed: 4 });
+  // Under it, out of the wind: a hide on the ground and a few spruce boughs.
+  k.box('fur', 1.3, 0.03, 0.9, { pos: [0.1, 0.03, dep * 0.45], rot: [0, 0.12, 0], tint: 0x6a5644, grime: 0.2 });
+  for (let i = 0; i < 4; i++) {
+    k.box('matte', 0.5 + k.r(0, 0.25), 0.04, 0.22, { pos: [-0.75 + i * 0.5 + k.rs(0.08), 0.02, 0.2 + k.r(0, 0.5)], rot: [0, k.rs(0.6), 0], tint: 0x2c3826, grime: 0, jitter: 0.02 });
+  }
+  k.pop();
+}
+
 // A rack of spears leaning on a crossbar (the soldiers' watch), one head snapped, a rag banner.
 export function spearRack(k, o = {}) {
   k.push({ yaw: o.yaw || 0 });
