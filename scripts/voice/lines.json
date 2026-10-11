@@ -1,6 +1,6 @@
 {
  "version": 1,
- "count": 1218,
+ "count": 1220,
  "lines": [
   {
    "hash": "48b25a91dc",
@@ -650,7 +650,7 @@
     "src/story/content/dialogues/jarek_bird.js:no1",
     "src/story/content/dialogues/rs_goat_owner.js:a2",
     "src/story/content/dialogues/zbyszek_hub.js:cart7",
-    "src/story/content/cutscenes/c3_song.js:line 102"
+    "src/story/content/cutscenes/c3_song.js:line 104"
    ]
   },
   {
@@ -3011,12 +3011,23 @@
    "pace": 1
   },
   {
+   "hash": "9e4efdf208",
+   "speaker": "vesna",
+   "text": "We're not going down in this.",
+   "kind": "cutscene",
+   "source": "src/story/content/cutscenes/c2_shelter.js",
+   "node": "line 62",
+   "direction": "plain, restrained",
+   "exaggeration": 0.33,
+   "pace": 1
+  },
+  {
    "hash": "923c4526d0",
    "speaker": "vesna",
    "text": "Does she.",
    "kind": "cutscene",
    "source": "src/story/content/cutscenes/c3_song.js",
-   "node": "line 106",
+   "node": "line 108",
    "direction": "plain, restrained; short, quiet",
    "exaggeration": 0.33,
    "pace": 0.96,
@@ -3028,7 +3039,7 @@
    "text": "Who's the ice lady?",
    "kind": "cutscene",
    "source": "src/story/content/cutscenes/c3_song.js",
-   "node": "line 126",
+   "node": "line 128",
    "direction": "plain, restrained; flat question, not rising",
    "exaggeration": 0.33,
    "pace": 1
@@ -3072,6 +3083,18 @@
    "hash": "4a936eced0",
    "speaker": "vesna",
    "text": "Kasza. Don't.",
+   "kind": "bark",
+   "source": "docs/STORY.md",
+   "node": "section 5 (Vesna barks)",
+   "direction": "muttered in passing, flat",
+   "exaggeration": 0.28,
+   "pace": 1,
+   "level": -3
+  },
+  {
+   "hash": "d6b1ec673a",
+   "speaker": "vesna",
+   "text": "Kasza. Back to the tower.",
    "kind": "bark",
    "source": "docs/STORY.md",
    "node": "section 5 (Vesna barks)",
@@ -4593,9 +4616,9 @@
    "pace": 0.95
   },
   {
-   "hash": "50a694576d",
+   "hash": "735f4ec489",
    "speaker": "bogdan",
-   "text": "You got here this afternoon.",
+   "text": "You got here this morning.",
    "kind": "dialogue",
    "source": "src/story/content/dialogues/bogdan_later.js",
    "node": "s2",
@@ -6689,7 +6712,7 @@
    "text": "Ola. Straw.",
    "kind": "cutscene",
    "source": "src/story/content/cutscenes/c3_song.js",
-   "node": "line 133",
+   "node": "line 135",
    "direction": "plain, restrained; short, quiet",
    "exaggeration": 0.33,
    "pace": 0.96,
@@ -7641,7 +7664,7 @@
    "text": "Are you a witch?",
    "kind": "cutscene",
    "source": "src/story/content/cutscenes/c3_song.js",
-   "node": "line 100",
+   "node": "line 102",
    "direction": "child, matter of fact; flat question, not rising",
    "exaggeration": 0.38,
    "pace": 1.04
@@ -7652,7 +7675,7 @@
    "text": "Mama says mutants eat snow.",
    "kind": "cutscene",
    "source": "src/story/content/cutscenes/c3_song.js",
-   "node": "line 104",
+   "node": "line 106",
    "direction": "child, matter of fact",
    "exaggeration": 0.38,
    "pace": 1.04
@@ -7663,7 +7686,7 @@
    "text": "And that you've got cat's eyes.",
    "kind": "cutscene",
    "source": "src/story/content/cutscenes/c3_song.js",
-   "node": "line 108",
+   "node": "line 110",
    "direction": "child, matter of fact",
    "exaggeration": 0.38,
    "pace": 1.04
@@ -7674,7 +7697,7 @@
    "text": "They're just yellow.",
    "kind": "cutscene",
    "source": "src/story/content/cutscenes/c3_song.js",
-   "node": "line 115",
+   "node": "line 117",
    "direction": "child, matter of fact",
    "exaggeration": 0.38,
    "pace": 1.04
@@ -7685,7 +7708,7 @@
    "text": "Are you here for the ice lady?",
    "kind": "cutscene",
    "source": "src/story/content/cutscenes/c3_song.js",
-   "node": "line 124",
+   "node": "line 126",
    "direction": "child, matter of fact; flat question, not rising",
    "exaggeration": 0.38,
    "pace": 1.04
