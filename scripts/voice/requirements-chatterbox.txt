@@ -1,0 +1,11 @@
+# Stage 2 (optional): Chatterbox (MIT, Resemble AI). Use a SEPARATE venv from Kokoro: chatterbox-tts pins its own
+# torch / numpy versions and its README targets Python 3.11.
+#   python3.11 -m venv ~/.venvs/marzena-voice-cb && source ~/.venvs/marzena-voice-cb/bin/activate
+#   pip install -r scripts/voice/requirements-chatterbox.txt
+#
+# Chatterbox clones from a reference clip. generate.py makes those clips with Kokoro (never a real person's recording),
+# so run this ONCE in the Kokoro venv first:   python scripts/voice/generate.py --make-refs
+# The clips land in scripts/voice/refs/ and the Chatterbox venv only reads them.
+chatterbox-tts
+numpy
+soundfile

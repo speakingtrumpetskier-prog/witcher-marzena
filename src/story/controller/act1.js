@@ -1,0 +1,157 @@
+// Prologue and Act I: the Hollow Pass (Q1 main_pass) and Something Walks the Ice (Q2 main_ice).
+//
+//   pass       C1 ends (or a new game without it) -> the wreck: cart (senses clue), the father's letter
+//   wolves     three wolves come off the road when the letter is read
+//   watchtower the blizzard holds; at the hearth in the lee of the ruin, E "Shelter for the night": the shelter
+//              scene (the fire, the wind, the night), then C2 in the morning, title card, Q1 done
+//   ride       C3 at the west gate (or anywhere inside the village core), Q2 -> board
+//   board      the notice board: the same contract she carries from the toll house, and the second paper (the mill wolves)
+// The talks in Act I (Zbyszek, Bogdan, Hanka) live in npcs.js. Resting lives in world.js.
+import { LOC } from '../../world/layout.js';
+
+export function install(C) {
+  const { G, L } = C;
+
+  // ---- Q1: the pass ------------------------------------------------------------------------
+  const arrived = () => { if (!C.has('pass_arrived')) C.set('pass_arrived'); };
+  C.on('cutscene:end', ({ id }) => { if (id === 'c1_blizzard') arrived(); });
+  C.on('story:newgame', () => { if (!G.cutscenes.has('c1_blizzard')) arrived(); });
+
+  const pass = L.passStart;
+  if (pass) {
+    C.zone({
+      id: 'wreck_near', x: pass.center.x, z: pass.center.z, r: 24,
+      enabled: () => C.stage('main_pass') === 'pass',
+      onEnter: arrived,
+    });
+
+    // The cart is the senses tutorial: hold RMB, the cart glows, E to examine. The letter is on the father.
+    C.clue({
+      id: 'cart', pos: pass.examine, radius: 2.4, label: 'Overturned cart',
+      enabled: () => !C.has('cart_examined') && !C.has('letter_read'),
+      onExamine: async () => { C.set('cart_examined'); },
+    });
+    C.clue({
+      id: 'letter', pos: pass.letter, radius: 2.2, label: 'Letter on the man',
+      object: C.obj(pass.father?.character),
+      enabled: () => !C.has('letter_read') && C.has('cart_examined'),
+      onExamine: async () => {
+        await C.sleep(0.5);
+        await C.read('note_cart_family');
+        C.set('letter_read');
+      },
+    });
+    C.on('quest:update', (e) => {
+      if (e.id === 'main_pass' && e.stage === 'wreck' && !C.has('cart_examined')) {
+        const still = () => C.stage('main_pass') === 'wreck' && !C.has('cart_examined');
+        C.later(2.5, () => { if (still()) C.hintFree([['Hold RMB', 'Hunter senses']], 14, still); });
+      }
+    });
+  }
+
+  // ---- the wolves on the road ----------------------------------------------------------------
+  let pack = null;
+  const packGone = () => !pack || pack.every((w) => !w.alive || w.disposed || w.state === 'dead');
+  function dropPack() {
+    if (pack) for (const w of pack) if (!w.disposed) G.creatures?.remove?.(w);
+    pack = null;
+  }
+  function spawnRoadWolves() {
+    if (pack || C.has('wolves_prologue_done') || C.stage('main_pass') !== 'wolves' || !G.creatures || !pass) return;
+    const sp = pass.marks.wolfSpawns[0];
+    pack = G.creatures.spawnWolves(sp.x, sp.z, 3, { engaged: true, spread: 5 });
+    C.log('road wolves out');
+  }
+  C.on('quest:update', (e) => { if (e.id === 'main_pass' && e.stage === 'wolves') C.later(3, spawnRoadWolves); });
+  C.on('player:respawn', () => {
+    if (pack && C.stage('main_pass') === 'wolves') { dropPack(); C.later(4, spawnRoadWolves); }
+  });
+  C.restore(() => { if (C.stage('main_pass') === 'wolves' && !pack) C.later(3, spawnRoadWolves); });
+  let tick = 0;
+  G.addSystem('ctl-road-wolves', (dt) => {
+    tick += dt;
+    if (tick < 0.7) return;
+    tick = 0;
+    if (!pack || C.has('wolves_prologue_done')) return;
+    if (packGone() && C.stage('main_pass') === 'wolves') { C.set('wolves_prologue_done'); dropPack(); return; }
+    // Wolves that ran off count as gone once they are far away.
+    const far = pack.every((w) => !w.alive || w.disposed || Math.hypot(w.position.x - C.ppos().x, w.position.z - C.ppos().z) > 90);
+    if (far && C.stage('main_pass') === 'wolves') { C.set('wolves_prologue_done'); dropPack(); }
+  }, 12);
+
+  // ---- the night at the watchtower, then C2: the valley in the morning -----------------------------
+  // The blizzard keeps on (nothing clears the weather before prologue_done). She shelters at the hearth in the
+  // ruin's lee: c2_shelter (she lights the fire, sits it out, the night) leaves her there at 7:45 on day 1 with
+  // the storm blown out, and c2_valley plays straight after.
+  const wt = L.watchtower;
+  if (wt?.hearth) {
+    const H = wt.hearth;
+    const sheltering = () => !C.has('prologue_done') && C.active('main_pass');
+    C.interact({
+      id: 'shelter', pos: () => C.v3(H.x, H.y + 0.5, H.z), radius: 2.9, verb: 'Shelter for the night', label: '', priority: 1,
+      enabled: sheltering,
+      onUse: async () => {
+        // Anyone who rode past the wreck and the wolves gets the night and the valley anyway.
+        for (const f of ['pass_arrived', 'cart_examined', 'letter_read', 'wolves_prologue_done']) if (!C.has(f)) C.set(f);
+        dropPack();
+        await C.scene('c2_shelter');
+        await C.scene('c2_valley');
+      },
+    });
+
+    // Past the tower and on down in the white-out: one word to the horse now and then.
+    const FW = { x: Math.sin(wt.yawToValley), z: Math.cos(wt.yawToValley) };
+    let lastAside = -1e9, at = 0;
+    G.addSystem('ctl-shelter', (dt) => {
+      at += dt;
+      if (at < 1) return;
+      at = 0;
+      const p = C.ppos();
+      // The ashes smoke through the morning; out once she has gone on or by late morning.
+      if (C.has('prologue_done') && wt.fire?.() === 'smoke' && !C.busy() && (C.dist(H.x, H.z) > 140 || C.hour() > 11 || C.hour() < 7)) wt.fire('out');
+      if (!sheltering() || C.busy() || C.stage('main_pass') !== 'watchtower') return;
+      const ahead = (p.x - wt.crest.x) * FW.x + (p.z - wt.crest.z) * FW.z;
+      if (ahead > 40 && G.clock.elapsed - lastAside > 75) { lastAside = G.clock.elapsed; C.say('Kasza. Back to the tower.', 2.4); }
+    }, 12);
+    C.restore(() => { if (!C.running.has('scene:c2_shelter') && !C.running.has('scene:c2_valley')) wt.fire?.('out'); });
+  }
+
+  // ---- Q2: C3 at the west gate ---------------------------------------------------------------
+  const playSong = async () => {
+    if (C.has('song_heard')) return;
+    await C.sleep(0.6);
+    await C.scene('c3_song');
+  };
+  const song = (id, x, z, r) => C.zone({
+    id, x, z, r,
+    enabled: () => !C.has('song_heard') && C.has('prologue_done') && !C.busy(),
+    onEnter: playSong,
+  });
+  const gate = C.V.gate;
+  if (gate) song('west_gate', gate.x, gate.z, 11);
+  // Rode in some other way (the shore): the village itself triggers it, and so does Hanka's house on the shore, so Ola
+  // and Hanka are never met before the song.
+  song('village_core', 0, 115, 52);
+  song('hanka_shore', LOC.hanka.x, LOC.hanka.z, 30);
+
+  // ---- the notice board ----------------------------------------------------------------------
+  const board = C.V.noticeBoard;
+  if (board) {
+    C.interact({
+      id: 'notice_board', pos: board, radius: 2.5, verb: 'Read', label: 'Notice board',
+      onUse: async () => {
+        // She has carried her own copy since the toll house; the paper on the board is the same one.
+        let pause = 0.5;
+        if (!C.S.data.notes.includes('note_contract')) await C.read('note_contract');
+        else { C.say('Same as the one at the toll house.', 2.6); pause = 2.2; }
+        C.set('contract_taken');
+        await C.sleep(pause);
+        await C.read('note_wolves_contract');
+        if (!C.has('wolves_contract_read')) {
+          C.set('wolves_contract_read');
+          if (!G.quests.rec('side_wolves')) G.quests.start('side_wolves');
+        }
+      },
+    });
+  }
+}

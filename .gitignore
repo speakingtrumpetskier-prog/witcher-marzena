@@ -22,3 +22,9 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# screenshot harness output
+shots/
+
+# agent worktrees
+.claude/worktrees/

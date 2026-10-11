@@ -1,0 +1,87 @@
+// Vowel formant tables: [frequency Hz, bandwidth Hz, gain dB] for F1..F5.
+// 'white' is the open-throat Slavic "white voice": an alto in chest register with F1 raised
+// toward the second harmonic and a stronger 3 kHz region for its ringing, forward brightness.
+// The others follow the classic singer tables (soprano, alto, tenor, bass) with small tweaks.
+
+export const VOWELS = {
+  white: {
+    a: [[860, 95, 0], [1320, 110, -4], [2750, 150, -11], [3450, 180, -16], [4300, 220, -27]],
+    o: [[580, 85, 0], [960, 95, -5], [2750, 150, -17], [3400, 170, -22], [4300, 220, -31]],
+    e: [[580, 85, 0], [1820, 120, -8], [2750, 150, -11], [3450, 180, -17], [4300, 220, -28]],
+    i: [[420, 75, 0], [2150, 130, -11], [2900, 160, -12], [3600, 180, -18], [4400, 220, -28]],
+    u: [[400, 65, 0], [820, 85, -10], [2700, 170, -24], [3400, 180, -30], [4300, 220, -38]],
+    m: [[270, 70, 0], [1100, 160, -26], [2300, 220, -32], [3300, 220, -40], [4200, 240, -50]],
+  },
+  alto: {
+    a: [[800, 80, 0], [1150, 90, -4], [2800, 120, -18], [3500, 130, -30], [4950, 140, -50]],
+    o: [[450, 70, 0], [800, 80, -9], [2830, 100, -16], [3500, 130, -28], [4950, 135, -55]],
+    e: [[420, 70, 0], [1650, 90, -20], [2700, 120, -26], [3300, 150, -32], [4950, 200, -55]],
+    i: [[350, 50, 0], [1700, 100, -20], [2700, 120, -28], [3700, 150, -34], [4950, 200, -55]],
+    u: [[325, 50, 0], [700, 60, -12], [2530, 170, -30], [3500, 180, -40], [4950, 200, -60]],
+    m: [[260, 60, 0], [1050, 160, -28], [2300, 220, -36], [3300, 220, -44], [4200, 240, -54]],
+  },
+  soprano: {
+    a: [[800, 80, 0], [1150, 90, -6], [2900, 120, -26], [3900, 130, -22], [4950, 140, -45]],
+    o: [[450, 70, 0], [800, 80, -11], [2830, 100, -22], [3800, 130, -22], [4950, 135, -50]],
+    e: [[350, 60, 0], [2000, 100, -18], [2800, 120, -16], [3600, 150, -34], [4950, 200, -50]],
+    i: [[270, 60, 0], [2140, 90, -12], [2950, 100, -26], [3900, 120, -26], [4950, 120, -44]],
+    u: [[325, 50, 0], [700, 60, -16], [2700, 170, -35], [3800, 180, -40], [4950, 200, -55]],
+    m: [[270, 60, 0], [1100, 160, -28], [2300, 220, -36], [3300, 220, -44], [4200, 240, -54]],
+  },
+  tenor: {
+    a: [[650, 80, 0], [1080, 90, -6], [2650, 120, -7], [2900, 130, -8], [3250, 140, -22]],
+    o: [[400, 70, 0], [800, 80, -10], [2600, 100, -12], [2800, 130, -12], [3000, 135, -26]],
+    e: [[400, 70, 0], [1700, 80, -14], [2600, 100, -12], [3200, 120, -14], [3580, 120, -20]],
+    i: [[290, 40, 0], [1870, 90, -15], [2800, 100, -18], [3250, 120, -20], [3540, 120, -30]],
+    u: [[350, 40, 0], [600, 60, -20], [2700, 100, -17], [2900, 120, -14], [3300, 120, -26]],
+    m: [[250, 60, 0], [1000, 150, -26], [2200, 200, -32], [3000, 200, -40], [3600, 200, -50]],
+  },
+  bass: {
+    a: [[600, 60, 0], [1040, 70, -7], [2250, 110, -9], [2450, 120, -9], [2750, 130, -20]],
+    o: [[400, 40, 0], [750, 80, -11], [2400, 100, -21], [2600, 120, -20], [2900, 120, -40]],
+    e: [[400, 60, 0], [1620, 80, -12], [2400, 100, -9], [2800, 120, -12], [3100, 120, -18]],
+    i: [[250, 60, 0], [1750, 90, -30], [2600, 100, -16], [3050, 120, -22], [3340, 120, -28]],
+    u: [[250, 60, 0], [600, 80, -20], [2400, 100, -32], [2675, 120, -28], [2950, 120, -36]],
+    m: [[230, 60, 0], [900, 150, -26], [2000, 200, -34], [2700, 200, -42], [3300, 200, -52]],
+  },
+};
+// The low throat drone shares the bass table but narrows F2 so slow vowel sweeps make
+// individual overtones whistle (a hint of overtone singing).
+VOWELS.throat = Object.fromEntries(Object.entries(VOWELS.bass).map(([k, v]) =>
+  [k, v.map(([f, bw, g], i) => (i === 1 ? [f, bw * 0.45, g + 6] : [f, bw, g]))]));
+// A closed-lips hum keeps a nasal ring around 2 to 3 kHz, so it is not just a fundamental.
+VOWELS.hum = { ...VOWELS.alto, m: [[270, 70, 0], [1050, 160, -17], [2300, 220, -21], [3300, 220, -29], [4200, 240, -40]] };
+
+// Formant set for a vowel, adjusted for pitch: when the fundamental rises above F1 the singer
+// raises F1 to follow it (formant tuning), which keeps high notes full instead of thin.
+export function vowelAt(type, vowel, f0, scaleF = 1) {
+  const tab = VOWELS[type] || VOWELS.alto;
+  const v = tab[vowel] || tab.a;
+  return v.map(([f, bw, g], i) => {
+    let ff = f * scaleF;
+    if (i === 0 && ff < f0 * 1.08) ff = f0 * 1.08;
+    if (i === 1 && ff < f0 * 2.05 && type !== 'throat') ff = Math.max(ff, f0 * 2.05);
+    return [ff, bw, Math.pow(10, g / 20)];
+  });
+}
+
+// Estimated output level of a formant bank for a glottal source at f0 (harmonics k^-tilt), from
+// the bandpass magnitudes plus the low warmth path. Used to keep loudness steady across vowels
+// and pitches (a closed "m" or "u" would otherwise be far louder than an open "a" because its
+// first formant sits on the fundamental).
+export function bankLevel(fm, f0, warmth = 0.3, bwScale = 1, tilt = 1.25) {
+  let e = 0;
+  const h1c = Math.min(900, f0 * 1.7);
+  for (let k = 1; k * f0 < 9000 && k <= 40; k++) {
+    const f = k * f0, a = Math.pow(k, -tilt);
+    let re = 0;
+    fm.forEach(([ff, bw, g], i) => {
+      const Q = ff / (bw * bwScale);
+      const x = Q * (f / ff - ff / f);
+      re += (i % 2 ? -1 : 1) * g / Math.sqrt(1 + x * x);
+    });
+    re += warmth / Math.sqrt(1 + Math.pow(f / h1c, 4));
+    e += a * a * re * re;
+  }
+  return Math.sqrt(e);
+}
