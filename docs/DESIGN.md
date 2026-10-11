@@ -210,11 +210,12 @@ someone made something. Walk 80 meters in the wild and find a small story.
 2. Examine the cart with senses (tutorial): a letter. *"Hollow Pass is the only way out. The
    snow here doesn't melt, even in what should be summer. We have to try."*
 3. Wolves (3) attack: combat tutorial (light, heavy, dodge, Ember sign).
-4. Ride down to the watchtower ruin. The blizzard breaks as she crests the ridge.
-5. *Cutscene C2, The Valley.* The storm tears open. Low golden sun. The camera rises past
-   Vesna and Kasza and sweeps over the valley: the frozen lake glowing, the bell tower in the
-   ice, the village smoke, the idol on the hill, the frozen waterfall. The main theme swells
-   (voice and hurdy-gurdy). Title card: **MARZENA**.
+4. Ride down to the watchtower ruin in the blizzard. The snow is too thick to go on: at the
+   hearth in the ruin's lee she shelters for the night (a short scene by the fire, then black).
+5. *Cutscene C2, The Valley.* Morning: the storm has blown itself out. Fresh snow, a cold low
+   sun. She rides out to the crest and the camera rises past Vesna and Kasza and sweeps over
+   the valley: the frozen lake, the bell tower in the ice, the village smoke, the idol on the
+   hill, the frozen waterfall. The main theme swells (voice and hurdy-gurdy). Title card: **MARZENA**.
 
 **Act I: "Something Walks the Ice"** (about 15 min)
 6. Ride to the village (west gate). Ambient life. At the effigy workshop, children sing the
@@ -411,7 +412,8 @@ play a ghostly reconstruction cutscene of past events at that place.
 - Clock: 1 in-game hour = 60 real seconds while free-roaming. Story sets time at beats.
 - Weather states: `clear`, `overcast`, `snow`, `blizzard`, `fog`. Smooth transitions over
   30 to 90 seconds. Wind affects snow particles, trees, grass, cloth, and the wind sound.
-- Story schedule: pass = blizzard. Valley arrival = clearing to golden 15:30. Night 1 = clear
+- Story schedule: pass = blizzard (day 0), through the night at the watchtower. Valley arrival =
+  clear, early morning of day 1. Night 1 = clear
   with aurora. Morning 2 = lake fog. Afternoon 2 = overcast, light snow. Equinox night = blizzard.
   Ending dawn = clear (A, B: spring) or snow (C).
 
