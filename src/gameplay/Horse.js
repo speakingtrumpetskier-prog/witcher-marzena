@@ -640,7 +640,8 @@ export async function init(G_) {
       wantYaw = roadAssist(wantYaw, mv);
       const walk = player.walkToggle || player.walkCaps;
       let base = walk ? SPEEDS.walk : SPEEDS.trot;
-      if (!walk && inp.down('sprint') && !H.tired && player.stamina > 2) base = SPEEDS.gallop;
+      // Shift gallops whatever the walk toggle says, as it sprints on foot.
+      if (inp.down('sprint') && !H.tired && player.stamina > 2) base = SPEEDS.gallop;
       const err = wrapAngle(wantYaw - yaw);
       const rate = turnRate(h.speed);
       h.root.rotation.y = wrapAngle(yaw + clamp(err * Math.min(1, dt * 6), -rate * dt, rate * dt));
