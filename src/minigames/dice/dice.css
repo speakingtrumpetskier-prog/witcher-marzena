@@ -1,0 +1,122 @@
+/* The tavern dice game. Same restraint as the rest of the UI: bone type with a dark halo, hairlines, folk red for the
+   thread and the marker. One family (EB Garamond), emphasis by weight and size only; nothing italic, uppercase or pill
+   shaped. The 3D table shows through everywhere except the one panel at the bottom. Sizes follow the window height
+   (clamp on vh) so the panel never grows over the dice on a small screen. */
+
+.mz-dice { position: absolute; inset: 0; z-index: 70; color: var(--mz-bone-hi); font-family: var(--mz-body); user-select: none; -webkit-user-select: none; cursor: default; font-variant-numeric: lining-nums; }
+.mz-dice.over { cursor: pointer; }
+.dc-vig { position: absolute; inset: 0; pointer-events: none;
+  background:
+    radial-gradient(ellipse 70% 62% at 50% 56%, rgba(4, 6, 10, 0) 55%, rgba(4, 6, 10, 0.5) 100%),
+    linear-gradient(180deg, rgba(4, 6, 10, 0.55) 0%, rgba(4, 6, 10, 0) 18%, rgba(4, 6, 10, 0) 70%, rgba(4, 6, 10, 0.7) 100%); }
+
+/* ---------------------------------------------------------------- header */
+.dc-head { position: absolute; left: 34px; right: 34px; top: 22px; display: grid; grid-template-columns: 1fr auto 1fr; align-items: start; gap: 24px; pointer-events: none; }
+.dc-side .nm { font-weight: 600; font-size: clamp(24px, 4.4vh, 40px); line-height: 1; text-shadow: var(--mz-halo); }
+.dc-side .sc { display: flex; gap: 7px; margin-top: 10px; min-height: 18px; }
+.dc-side.you { text-align: right; }
+.dc-side.you .sc { justify-content: flex-end; }
+.dc-side .pu { margin-top: 7px; font-weight: 500; font-size: clamp(17px, 2.7vh, 24px); color: rgba(236, 230, 218, 0.74); text-shadow: var(--mz-halo); }
+.dc-mark { width: 19px; height: 19px; color: var(--mz-red-text); stroke-width: 1.7; filter: drop-shadow(0 1px 2px rgba(4, 6, 10, 0.9)); }
+.dc-mark.off { color: rgba(236, 230, 218, 0.5); }
+.dc-mark.on path { fill: currentColor; }
+.dc-mid { text-align: center; padding-top: 3px; }
+.dc-mid .rd { font-weight: 600; font-size: clamp(22px, 3.6vh, 32px); text-shadow: var(--mz-halo); }
+
+/* ---------------------------------------------------------------- the opponent speaks */
+.dc-bark { position: absolute; left: 34px; top: clamp(112px, 17vh, 150px); max-width: min(34vw, 460px); padding: 4px 0 4px 15px; border-left: 2px solid #b9402f; opacity: 0; transform: translateY(5px); transition: opacity 0.3s ease, transform 0.45s var(--mz-ease); pointer-events: none; }
+.dc-bark.on { opacity: 1; transform: none; }
+.dc-bark .bn { font-weight: 600; font-size: clamp(16px, 2.5vh, 21px); color: rgba(236, 230, 218, 0.72); text-shadow: var(--mz-halo); }
+.dc-bark .bt { margin-top: 2px; font-weight: 500; font-size: clamp(21px, 3.6vh, 32px); line-height: 1.2; color: var(--mz-bone-hi); text-shadow: var(--mz-halo); }
+.dc-note { position: absolute; left: 50%; top: clamp(60px, 9vh, 86px); transform: translateX(-50%); font-weight: 500; font-size: clamp(20px, 3.2vh, 28px); text-shadow: var(--mz-halo); opacity: 0; transition: opacity 0.3s ease; pointer-events: none; white-space: nowrap; }
+.dc-note.on { opacity: 1; }
+
+/* ---------------------------------------------------------------- round result */
+.dc-banner { position: absolute; left: 50%; top: 31%; transform: translate(-50%, -8px); text-align: center; opacity: 0; transition: opacity 0.5s ease, transform 0.8s var(--mz-ease); pointer-events: none; width: min(90vw, 900px); }
+.dc-banner.on { opacity: 1; transform: translate(-50%, 0); }
+.dc-banner .bt { font-weight: 600; font-size: clamp(32px, 7vh, 66px); line-height: 1.05; text-shadow: 0 2px 26px rgba(4, 6, 10, 0.85), 0 0 3px rgba(4, 6, 10, 0.9); }
+.dc-banner .bs { margin-top: 8px; font-weight: 500; font-size: clamp(19px, 3.3vh, 29px); color: rgba(240, 234, 222, 0.92); text-shadow: var(--mz-halo); }
+.dc-banner[data-tone='lose'] .bt { color: rgba(236, 230, 218, 0.74); }
+.dc-banner[data-tone='draw'] .bt { color: rgba(236, 230, 218, 0.86); }
+
+/* ---------------------------------------------------------------- labels that sit on the table */
+.dc-hand, .dc-num, .dc-pot { position: absolute; left: 0; top: 0; pointer-events: none; white-space: nowrap; text-shadow: var(--mz-halo); will-change: transform; }
+.dc-hand { font-weight: 600; font-size: clamp(21px, 3.7vh, 34px); opacity: 0; transition: opacity 0.35s ease, color 0.35s ease; }
+.dc-hand.on { opacity: 1; }
+.dc-hand.won { color: #fff4dc; }
+.dc-hand.lost { opacity: 0.5; }
+.dc-pot { font-weight: 500; font-size: clamp(18px, 2.9vh, 26px); color: rgba(244, 238, 226, 0.92); opacity: 0; transition: opacity 0.3s ease; }
+.dc-pot.on { opacity: 1; }
+.dc-num { font-weight: 600; font-size: clamp(20px, 3.4vh, 28px); color: rgba(240, 234, 222, 0.78); opacity: 0; transition: opacity 0.2s ease, color 0.2s ease; }
+.dc-num.on { opacity: 1; }
+.dc-num::after { content: ''; display: block; height: 2px; margin-top: 1px; background: currentColor; transform: scaleX(0); transition: transform 0.2s ease; box-shadow: 0 0 5px rgba(4, 6, 10, 0.8); }
+.dc-num.cur { color: #ffffff; }
+.dc-num.cur::after, .dc-num.pick::after { transform: scaleX(1); }
+.dc-num.pick { color: var(--mz-red-text); }
+
+/* The list of hands, best first: on the left under the opponent's words, the rows held lit. H hides it. */
+.dc-ref { position: absolute; left: 34px; top: clamp(200px, 29vh, 250px); width: clamp(220px, 21vw, 290px); padding: 8px 10px 8px 16px; opacity: 0; transition: opacity 0.35s ease; pointer-events: none; isolation: isolate; }
+.dc-ref.on { opacity: 1; }
+.dc-ref::before { content: ''; position: absolute; inset: -14px -30px -14px -24px; z-index: -1; background: radial-gradient(ellipse 70% 65% at 40% 50%, rgba(6, 9, 14, 0.5), rgba(6, 9, 14, 0.24) 62%, rgba(6, 9, 14, 0) 92%); }
+.dc-ref .thread { position: absolute; left: 0; top: 6px; bottom: 6px; width: 2px; background: #b9402f; box-shadow: 0 0 6px rgba(185, 64, 47, 0.45); }
+.dc-ref .ttl { margin-bottom: 4px; font-weight: 600; font-size: clamp(16px, 2.6vh, 21px); color: rgba(240, 234, 222, 0.92); text-shadow: var(--mz-halo); }
+.dc-ref .row { display: grid; grid-template-columns: 14px 14px 1fr auto; align-items: center; gap: 4px; padding: 1px 0; font-weight: 500; font-size: clamp(14px, 2.35vh, 18px); line-height: 1.25; color: rgba(236, 230, 218, 0.62); text-shadow: var(--mz-halo); }
+.dc-ref .row .ex { font-size: 0.9em; color: rgba(236, 230, 218, 0.45); }
+.dc-ref .row .mk { width: 12px; height: 12px; opacity: 0; color: rgba(246, 240, 226, 0.98); }
+.dc-ref .row .mk svg { width: 100%; height: 100%; stroke-width: 2; }
+.dc-ref .row .mk.opp { color: rgba(236, 230, 218, 0.85); }
+.dc-ref .row.you .mk.you { opacity: 1; }
+.dc-ref .row.you .mk.you path { fill: currentColor; }
+.dc-ref .row.opp .mk.opp { opacity: 1; }
+.dc-ref .row.you, .dc-ref .row.opp { color: var(--mz-bone-hi); font-weight: 600; }
+.dc-ref .row.you .ex, .dc-ref .row.opp .ex { color: rgba(240, 234, 222, 0.8); }
+
+/* In the reaction shot the table is out of frame: its labels and the result wait. */
+.mz-dice.rival .dc-banner, .mz-dice.rival .dc-hand, .mz-dice.rival .dc-pot, .mz-dice.rival .dc-num, .mz-dice.rival .dc-ref { opacity: 0 !important; }
+
+/* ---------------------------------------------------------------- the question */
+.dc-panel { position: absolute; left: 50%; bottom: 2.6vh; width: min(900px, 94vw); box-sizing: border-box; padding: clamp(12px, 2.2vh, 20px) 30px clamp(10px, 1.8vh, 16px) 30px; background: linear-gradient(180deg, rgba(14, 17, 23, 0.9), rgba(9, 11, 16, 0.93)); border: 1px solid rgba(236, 230, 218, 0.14); box-shadow: 0 26px 54px rgba(0, 0, 0, 0.55);
+  opacity: 0; transform: translate(-50%, 12px); pointer-events: none; transition: opacity 0.3s ease, transform 0.5s var(--mz-ease); }
+.dc-panel.on { opacity: 1; transform: translate(-50%, 0); pointer-events: auto; }
+.dc-panel .thread { position: absolute; left: 0; top: 14px; bottom: 14px; width: 2px; background: #b9402f; box-shadow: 0 0 6px rgba(185, 64, 47, 0.55); }
+.dc-panel .ttl { font-weight: 600; font-size: clamp(21px, 3.9vh, 30px); line-height: 1.1; }
+.dc-panel .sub { margin-top: 5px; max-width: 40em; font-weight: 500; font-size: clamp(16px, 2.8vh, 21px); line-height: 1.28; color: rgba(236, 230, 218, 0.74); }
+.dc-panel .sub:empty { display: none; }
+.dc-panel .foot { margin-top: clamp(8px, 1.6vh, 14px); display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 26px; }
+.dc-panel .opts { display: flex; flex-direction: column; }
+/* two or three answers side by side keep the panel short, so the dice stay in view */
+.dc-panel .opts.row { flex-direction: row; flex-wrap: wrap; gap: 4px 6px; }
+.dc-panel .opts.row .opt { width: auto; padding: 6px 22px 6px 8px; }
+.dc-panel .opt { display: flex; align-items: center; gap: 12px; width: 100%; min-width: 15em; padding: 7px 12px 7px 10px; background: none; border: 0; border-left: 2px solid rgba(236, 230, 218, 0.14); cursor: pointer; text-align: left;
+  font-family: var(--mz-body); font-weight: 500; font-size: clamp(19px, 3.4vh, 25px); line-height: 1.2; color: rgba(240, 234, 222, 0.72); transition: color 0.18s, border-color 0.18s, background 0.25s; }
+.dc-panel .opts.row .opt { min-width: 0; }
+.dc-panel .opt .mk { flex: none; width: 22px; height: 22px; color: var(--mz-red-text); opacity: 0; transform: translateX(-6px); transition: opacity 0.2s, transform 0.3s var(--mz-ease); }
+.dc-panel .opt .det { margin-left: auto; font-size: 0.8em; color: rgba(236, 230, 218, 0.55); }
+.dc-panel .opt.sel { color: #fff9ee; border-left-color: var(--mz-red-text); background: linear-gradient(90deg, rgba(154, 46, 34, 0.32), rgba(154, 46, 34, 0.06) 70%, transparent); }
+.dc-panel .opt.sel .mk { opacity: 1; transform: none; }
+.dc-panel .opt.dis { opacity: 0.4; cursor: default; }
+.dc-panel .opt .arr { flex: none; width: 24px; height: 24px; color: var(--mz-bone-hi); opacity: 0.85; cursor: pointer; }
+.dc-panel .opt .arr:hover { color: var(--mz-red-text); }
+.dc-panel .opt .arr svg { width: 100%; height: 100%; display: block; }
+.dc-panel .opt .det + .arr { margin-left: 14px; }
+.dc-panel .bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 6px 20px; margin-left: auto; }
+.dc-panel .bar:empty { display: none; }
+.dc-panel .bar .it { display: inline-flex; align-items: center; gap: 8px; }
+.dc-panel .bar .lab { font-family: var(--mz-body); font-size: clamp(15px, 2.4vh, 18px); color: rgba(236, 230, 218, 0.72); text-shadow: 0 1px 3px #000; }
+.dc-panel .bar .mz-cap { min-width: 24px; height: 24px; padding: 0 6px; font-size: 14px; }
+.dc-panel .bar .mz-pad { width: 24px; height: 24px; }
+.dc-panel .bar .mz-pad.wide { width: 33px; }
+
+/* The first-use cards sit at the right while the game is open, clear of the dice and the panel. */
+#ui-root.dice-open .mz-hintcard.left { left: auto; right: 34px; bottom: auto; top: clamp(130px, 21vh, 190px); padding: 15px 22px 14px 28px; }
+#ui-root.dice-open .mz-hintcard.left .thread { left: auto; right: 0; }
+#ui-root.dice-open .mz-hintcard.left::before { inset: -30px -44px -30px -80px; }
+
+@media (max-width: 900px) {
+  .dc-head { left: 16px; right: 16px; top: 14px; gap: 10px; }
+  .dc-bark { left: 16px; max-width: 60vw; }
+  .dc-panel { padding-left: 20px; padding-right: 20px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dc-banner, .dc-bark, .dc-panel { transition-duration: 0.01s; }
+}

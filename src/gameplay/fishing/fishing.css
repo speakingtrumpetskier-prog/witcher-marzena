@@ -1,0 +1,84 @@
+/* The fishing HUD: a depth gauge while the jig is down, the tension bar and the length of line while a fish is on, the
+   keys at the bottom, a few plain lines of text and the page of the notebook that shows a catch. Bone type with the
+   game's dark halo, hairlines, folk red only for danger and the bite. One type family; weight and size carry emphasis. */
+.mz-fishlayer { z-index: 34; opacity: 0; transition: opacity 0.5s ease; }
+.mz-fishlayer.on { opacity: 1; }
+
+/* ---------------------------------------------------------------- depth gauge */
+.fz-depth { position: absolute; right: 7vw; top: 27vh; height: 38vh; width: 120px; opacity: 0; transition: opacity 0.4s ease; }
+.fz-depth.on { opacity: 1; }
+.fz-depth::before { content: ''; position: absolute; inset: -22px -30px -22px -60px; z-index: -1; pointer-events: none;
+  background: radial-gradient(ellipse 60% 60% at 62% 50%, rgba(6, 9, 14, 0.34), rgba(6, 9, 14, 0.12) 62%, transparent 90%); }
+.fz-track { position: absolute; right: 56px; top: 0; bottom: 0; width: 1px; background: rgba(240, 232, 218, 0.7); box-shadow: 0 0 6px rgba(4, 6, 10, 0.7); }
+.fz-tick { position: absolute; right: 52px; width: 9px; height: 1px; background: rgba(240, 232, 218, 0.4); }
+.fz-end { position: absolute; right: 44px; width: 17px; height: 1.5px; background: rgba(240, 232, 218, 0.95); box-shadow: 0 0 5px rgba(4, 6, 10, 0.8); }
+.fz-cap { position: absolute; right: 68px; font-family: var(--mz-body); font-weight: 500; font-size: 16px; line-height: 1; color: rgba(240, 232, 218, 0.78); text-shadow: var(--mz-halo); white-space: nowrap; transform: translateY(-50%); }
+.fz-jig { position: absolute; right: 52px; width: 10px; height: 10px; margin: -5px -4px 0 0; box-sizing: border-box; transform: rotate(45deg);
+  border: 1.5px solid #f6f1e6; background: rgba(8, 10, 14, 0.85); box-shadow: 0 0 6px rgba(4, 6, 10, 0.9); transition: background 0.1s, border-color 0.1s; }
+.fz-jig.nib { animation: fz-nib 0.32s ease-out; }
+.fz-jig.bite { background: #c4402f; border-color: #ffd9cf; box-shadow: 0 0 0 4px rgba(196, 64, 47, 0.35), 0 0 10px rgba(196, 64, 47, 0.7); }
+.fz-jig.floor { border-color: rgba(240, 232, 218, 0.55); }
+@keyframes fz-nib { 0% { transform: rotate(45deg) scale(1); } 40% { transform: rotate(45deg) scale(1.7); } 100% { transform: rotate(45deg) scale(1); } }
+.fz-read { position: absolute; right: 68px; font-family: var(--mz-body); font-weight: 600; font-size: 22px; line-height: 1; color: var(--mz-bone-hi); text-shadow: var(--mz-halo); white-space: nowrap; transform: translateY(-50%); font-variant-numeric: lining-nums; }
+
+/* ---------------------------------------------------------------- the fight */
+.fz-fight { position: absolute; left: 50%; bottom: calc(var(--mz-lb) + 20vh); width: min(520px, 54vw); transform: translate(-50%, 8px); opacity: 0; transition: opacity 0.35s ease, transform 0.5s var(--mz-ease); }
+.fz-fight.on { opacity: 1; transform: translate(-50%, 0); }
+.fz-fight::before { content: ''; position: absolute; inset: -34px -60px -30px -60px; z-index: -1; pointer-events: none;
+  background: radial-gradient(ellipse 62% 64% at 50% 50%, rgba(6, 9, 14, 0.42), rgba(6, 9, 14, 0.16) 62%, transparent 92%); }
+.fz-caps { display: flex; justify-content: space-between; margin-bottom: 9px; font-family: var(--mz-body); font-weight: 500; font-size: 17px; line-height: 1; color: rgba(240, 232, 218, 0.8); text-shadow: var(--mz-halo); }
+.fz-caps b { font-weight: 600; color: var(--mz-bone-hi); font-variant-numeric: lining-nums; }
+.fz-bar { position: relative; height: 7px; background: rgba(6, 8, 12, 0.6); box-shadow: 0 0 0 1px rgba(4, 6, 10, 0.5), 0 0 9px rgba(4, 6, 10, 0.5); }
+.fz-bar .zone { position: absolute; top: 0; bottom: 0; }
+.fz-bar .z1 { left: 0; width: 62%; background: rgba(240, 232, 218, 0.08); }
+.fz-bar .z2 { left: 62%; width: 24%; background: rgba(232, 168, 84, 0.2); }
+.fz-bar .z3 { left: 86%; width: 14%; background: rgba(196, 64, 47, 0.34); }
+.fz-bar .fill { position: absolute; inset: 0; transform-origin: left center; background: #e4dccb; will-change: transform; }
+.fz-bar.warn .fill { background: #e8a854; }
+.fz-bar.danger .fill { background: #d0614b; box-shadow: 0 0 10px rgba(208, 97, 75, 0.8); }
+.fz-bar .pull { position: absolute; top: -6px; height: 19px; width: 2px; margin-left: -1px; background: #fffaf0; box-shadow: 0 0 6px rgba(255, 250, 240, 0.7), 0 0 2px rgba(4, 6, 10, 0.9); will-change: left; }
+.fz-bar.tell .pull { animation: fz-tell 0.2s ease-in-out infinite alternate; }
+@keyframes fz-tell { from { opacity: 1; height: 19px; top: -6px; } to { opacity: 0.45; height: 27px; top: -10px; } }
+.fz-line { position: relative; height: 1px; margin-top: 17px; background: rgba(240, 232, 218, 0.45); }
+.fz-line .land { position: absolute; left: 0; top: -5px; width: 1.5px; height: 11px; background: rgba(240, 232, 218, 0.95); }
+.fz-line .fish { position: absolute; top: -4px; width: 9px; height: 9px; margin-left: -4px; box-sizing: border-box; border: 1.5px solid #f6f1e6; border-radius: 50%; background: rgba(8, 10, 14, 0.85); will-change: left; }
+
+/* ---------------------------------------------------------------- keys at the bottom */
+.fz-keys { position: absolute; left: 50%; bottom: calc(var(--mz-lb) + 5.5vh); transform: translateX(-50%); display: flex; gap: 8px 26px; flex-wrap: wrap; justify-content: center; opacity: 0.0; transition: opacity 0.6s ease; max-width: 92vw; }
+.fz-keys.on { opacity: 0.88; }
+.fz-keys .it { display: inline-flex; align-items: center; gap: 8px; font-family: var(--mz-body); font-weight: 500; font-size: 17px; color: rgba(240, 232, 218, 0.82); text-shadow: var(--mz-halo); transition: opacity 0.3s ease; }
+.fz-keys .it.dim { opacity: 0.4; }
+.fz-keys .mz-cap { min-width: 24px; height: 24px; padding: 0 6px; font-size: 14px; }
+.fz-keys .mz-pad { width: 24px; height: 24px; }
+.fz-keys .mz-pad.wide { width: 33px; }
+
+/* the bite prompt: the key to strike with, only while the window is open */
+.fz-strike { position: absolute; left: 50%; bottom: calc(var(--mz-lb) + 31vh); transform: translate(-50%, 6px) scale(0.92); display: flex; align-items: center; gap: 14px; opacity: 0; transition: opacity 0.12s ease, transform 0.2s var(--mz-ease); }
+.fz-strike.on { opacity: 1; transform: translate(-50%, 0) scale(1); }
+.fz-strike span { font-family: var(--mz-body); font-weight: 600; font-size: 30px; color: var(--mz-bone-hi); text-shadow: var(--mz-halo); }
+
+/* ---------------------------------------------------------------- a plain line of text */
+.fz-msg { position: absolute; left: 50%; bottom: calc(var(--mz-lb) + 27vh); transform: translate(-50%, 4px); max-width: 80vw; text-align: center; font-family: var(--mz-body); font-weight: 500; font-size: 26px; line-height: 1.2; color: var(--mz-bone-hi); text-shadow: var(--mz-halo); opacity: 0; transition: opacity 0.3s ease, transform 0.5s var(--mz-ease); }
+.fz-msg.on { opacity: 1; transform: translate(-50%, 0); }
+.fz-msg.bad { color: #f0a090; }
+
+/* ---------------------------------------------------------------- the notebook page for a catch */
+.fz-card { position: absolute; left: 50%; bottom: calc(var(--mz-lb) + 14vh); width: min(330px, 78vw); transform: translate(-50%, 18px) rotate(-1.2deg); opacity: 0; transition: opacity 0.5s ease, transform 0.8s var(--mz-ease); filter: drop-shadow(0 6px 14px rgba(4, 6, 10, 0.55)); }
+.fz-card.on { opacity: 1; transform: translate(-50%, 0) rotate(-1.2deg); }
+.fz-card .paper { display: block; width: 100%; height: 100%; position: absolute; inset: 0; }
+.fz-card .in { position: relative; padding: 14px 20px 16px; color: #2b2016; text-align: center; }
+.fz-card canvas.sk { display: block; width: 100%; height: auto; margin: 0 auto; }
+.fz-card .nm { margin-top: 2px; font-family: var(--mz-body); font-weight: 600; font-size: 30px; line-height: 1.05; color: #2b2016; }
+.fz-card .pl { font-family: var(--mz-body); font-weight: 500; font-size: 17px; color: rgba(43, 32, 22, 0.7); }
+.fz-card .wt { margin-top: 6px; font-family: var(--mz-body); font-weight: 600; font-size: 25px; color: #7a2a1e; font-variant-numeric: lining-nums; }
+.fz-card .rm { margin-top: 3px; font-family: var(--mz-body); font-weight: 500; font-size: 18px; color: rgba(43, 32, 22, 0.78); }
+
+@media (max-width: 760px) {
+  .fz-depth { right: 4vw; top: 22vh; height: 30vh; }
+  .fz-fight { width: 82vw; bottom: calc(var(--mz-lb) + 24vh); }
+  .fz-keys .it { font-size: 15px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fz-jig.nib, .fz-bar.tell .pull { animation: none; }
+}
+#ui-root.mz-shot .fz-card, #ui-root.mz-shot .fz-fight, #ui-root.mz-shot .fz-msg, #ui-root.mz-shot .fz-strike, #ui-root.mz-shot .fz-depth, #ui-root.mz-shot .fz-keys { transition-duration: 0s !important; }

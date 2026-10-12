@@ -1,0 +1,15 @@
+# Stage 1: Kokoro-82M (Apache-2.0). Python 3.10 to 3.12 (3.11 recommended; some wheels lag on 3.13).
+# Install inside a venv:  python3.11 -m venv ~/.venvs/marzena-voice && source ~/.venvs/marzena-voice/bin/activate
+#                         pip install -r scripts/voice/requirements.txt
+# Also needed on the system (not pip): ffmpeg (with libmp3lame) and espeak-ng.
+#   macOS:  brew install ffmpeg espeak-ng
+#   Ubuntu: sudo apt-get install ffmpeg espeak-ng
+#
+# PyTorch: the default wheel is right for Apple Silicon (MPS) and CPU. On an NVIDIA machine install the CUDA
+# build first from https://pytorch.org/get-started/locally/ and then run the line below.
+kokoro>=0.9.4
+torch>=2.2
+numpy
+soundfile>=0.12
+# Optional: ships the espeak-ng library inside a wheel, so the system package is not strictly needed.
+espeakng-loader

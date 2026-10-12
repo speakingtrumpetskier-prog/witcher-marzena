@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+refs/
+*.part
+.venv/
+.venv-*/
+models/
