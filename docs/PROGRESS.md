@@ -122,6 +122,10 @@ Fixed (each was reachable in ordinary play):
   nearest door, to one side; with Vesna on the ice, at the nearest shore; after four failed ways in she stands still
   instead of teleporting about. `node scripts/probe.mjs horse --q "from=main_ice:ask"` (11 checks).
 
+Also checked and in order: every interactive thing in the world can be walked up to from open ground nearby
+(`reachall`, 65 of 65); she cannot step off any stair or raised floor (189 places, 16 directions each); the music
+goes village, valley, night and back by the hour and the place (nine cases, in logic).
+
 Open from this pass:
 - The night suite has not been heard by a person (the switching between village, valley and night is checked in
   logic: nine cases).

@@ -48,12 +48,16 @@ voice clips generated offline. Work happens on the branch `claude/optimistic-boh
   everything at six points of the story, `die=wolves,camp,boss` dies and comes back from a real save, `cuts=never|mid`
   watches or half-skips the scenes. `node scripts/probe.mjs story --q "walk=1&choice=strike"` prints only fails and
   warnings; `node scripts/probe.mjs <name>` runs a probe from `src/debug/scenes/probes/` (`eval --js file` for ad hoc code).
+  Probes worth running after touching the world, Kasza or collisions: `horse --q "from=main_ice:ask"` (doors, whistles;
+  11 checks), `reachall` (walks up to every interactive thing from open ground nearby; about ten minutes).
 - `node scripts/savetest.mjs` (about 25 minutes): a real save and a fresh page at every stage of the main story.
 - `node scripts/tour.mjs --plan plan.json --out shots/tour/x`: one world load, many pictures (30 to 60 s each in
   software). `node scripts/cinesheets.mjs [ids]`: contact sheets of the cutscenes.
 - `node scripts/gpu-demo.mjs` times one frame on the local GPU against software.
 - `node scripts/inputtest.mjs [input|lock|menus|hints|defs]` drives the arena and the Controls screen
   with a mocked gamepad (122 checks, about 4 minutes); run it after touching input, camera, menus or hints.
+  It needs real frame times: on a GPU (MZ_CHROME=1) only. In the cloud container about a quarter of its checks
+  fail on timing alone, a different quarter each run (combatmove.mjs does pass there).
 - Pure-logic tests (Node, seconds): `node scripts/dicetest.mjs` (Kosci rules, AI, roll paths) and
   `node scripts/fishtest.mjs` (fishing model). `node scripts/dicedrive.mjs` (MZ_CHROME=1) plays a dice
   match with real keys, mouse and a mocked pad.
