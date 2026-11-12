@@ -180,6 +180,14 @@ async function iceCave(W) {
     const a = i * M + j, b = i * M + ((j + 1) % M), c = (i + 1) * M + j, d = (i + 1) * M + ((j + 1) % M);
     idx.push(a, c, b, b, c, d);
   }
+  // The far end closes in the same ice (the tube ended open, and the grotto's back wall was a pale hole on the world
+  // behind it).
+  {
+    const last = N * M, E = ringInfo[N], ci = pos.length / 3;
+    pos.push(E.P.x + E.T.x * 0.7, E.P.y + E.h * 0.42, E.P.z + E.T.z * 0.7);
+    col.push(cB.r * 0.34, cB.g * 0.34, cB.b * 0.34);
+    for (let j = 0; j < M; j++) idx.push(last + j, ci, last + ((j + 1) % M));
+  }
   const geo = new THREE.BufferGeometry();
   geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
   geo.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));

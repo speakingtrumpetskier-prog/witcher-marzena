@@ -356,12 +356,13 @@ export async function buildLife(V) {
     V.emitters.push(fx.sparks({ position: [anvil.x, anvil.y + 0.1, anvil.z], parent: G.scene, every: [1.2, 3.0], count: 16 }));
     // hearth flames: tavern, banya, shrine fire pit, longhouse (low, the reeve saves wood)
     const flame = (id, key, o) => {
-      const a = A(id, key);
+      // on the logs where the building says so (`<key>Fire`), else at the hearth's own anchor
+      const a = A(id, `${key}Fire`) || A(id, key);
       if (!a) return;
       V.emitters.push(fx.fire({ position: [a.x, a.y + 0.05, a.z], parent: G.scene, smoke: false, light: false, ...o }));
     };
     flame('tavern', 'hearth', { scale: 0.62, radius: 0.5, height: 0.9 });
-    flame('banya', 'hearth', { scale: 0.35, radius: 0.3, height: 0.5 });
+    flame('banya', 'hearth', { scale: 0.3, radius: 0.16, height: 0.4 });
     flame('shrine', 'fire', { scale: 1.3, radius: 0.5, height: 1.0, smoke: true });
     flame('longhouse', 'hearth', { scale: 0.28, radius: 0.35, height: 0.4 });
     // banya steam: from the door and the roof vent

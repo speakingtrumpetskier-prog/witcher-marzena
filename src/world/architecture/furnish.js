@@ -98,6 +98,8 @@ export function stove(kit, x, y, z, yaw, o = {}) {
   const px = x + 0 * c + (d / 2 + 0.3) * s, pz = z - 0 * s + (d / 2 + 0.3) * c;
   if (!o.cold) kit.light(px, y + 0.8, pz, { color: 0xff8a30, intensity: 1.4, radius: 9, kind: 'hearth' });
   kit.anchor(o.name || 'hearth', px, y + 0.7, pz);
+  // Where the flames stand: in the mouth of the stove.
+  if (!o.cold) kit.anchor(`${o.name || 'hearth'}Fire`, x + (d / 2 + 0.03) * s, y + 0.42, z + (d / 2 + 0.03) * c);
   kit.box(x, z, w / 2, d / 2, yaw);
 }
 
@@ -116,8 +118,9 @@ export function fireplace(kit, x, y, z, yaw, o = {}) {
     // Back wall dark with soot, hearth stone, logs and fire glow.
     kit.stone.box(0, 0.75, 0.05, w - 0.8, 1.5, 0.1, scaleC(PAL.stoneDark, GAIN * 0.45), { uv: [2, 2] });
     kit.stone.box(0, 0.06, d / 2 + 0.1, w + 0.4, 0.12, d + 0.2, tone(), { uv: [2, 2] });
-    kit.ember.quad([-0.5, 0.12, 0.3], [0.5, 0.12, 0.3], [0.45, 0.5, 0.3], [-0.45, 0.5, 0.3], new THREE.Color(2.8, 1.1, 0.3), [[0, 0], [1, 0], [1, 1], [0, 1]]);
-    kit.ember.quad([-0.38, 0.5, 0.31], [0.38, 0.5, 0.31], [0.1, 0.95, 0.31], [-0.15, 0.85, 0.31], new THREE.Color(2.2, 0.8, 0.2), [[0, 0], [1, 0], [1, 1], [0, 1]]);
+    // The glow on the back wall behind the flames: deep orange, low. (At 2.8 it bloomed to a flat cream shape.)
+    kit.ember.quad([-0.5, 0.12, 0.3], [0.5, 0.12, 0.3], [0.45, 0.5, 0.3], [-0.45, 0.5, 0.3], new THREE.Color(1.7, 0.52, 0.1), [[0, 0], [1, 0], [1, 1], [0, 1]]);
+    kit.ember.quad([-0.38, 0.5, 0.31], [0.38, 0.5, 0.31], [0.1, 0.95, 0.31], [-0.15, 0.85, 0.31], new THREE.Color(1.0, 0.26, 0.05), [[0, 0], [1, 0], [1, 1], [0, 1]]);
     kit.wood.tube([-0.5, 0.18, 0.5], [0.5, 0.2, 0.45], 0.08, 0.08, scaleC(PAL.logDark, GAIN * 0.7), { seg: 6, lenSeg: 1, ao: 0 });
     kit.wood.tube([-0.4, 0.28, 0.45], [0.45, 0.3, 0.4], 0.07, 0.07, scaleC(PAL.logDark, GAIN * 0.6), { seg: 6, lenSeg: 1, ao: 0 });
   });
@@ -125,6 +128,8 @@ export function fireplace(kit, x, y, z, yaw, o = {}) {
   const px = x + 0.6 * s, pz = z + 0.6 * c;
   kit.light(px, y + 0.9, pz, { color: 0xff8a30, intensity: 2.0, radius: 11, kind: 'hearth' });
   kit.anchor(o.name || 'hearth', px, y + 0.8, pz);
+  // Where the flames stand: on the logs, inside the firebox (the anchor above is the light, at chest height in front).
+  kit.anchor(`${o.name || 'hearth'}Fire`, x + 0.44 * s, y + 0.2, z + 0.44 * c);
 }
 
 export function shelf(kit, x, y, z, yaw, w = 1.2, rows = 3, rowH = 0.38) {

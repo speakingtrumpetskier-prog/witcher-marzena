@@ -200,7 +200,7 @@ export async function init(G) {
       const cave = room && room.env === 'cave';
       const k = Math.min(1, dt * 2.5);
       indoorAmb += ((cave ? 0.3 : 1) - indoorAmb) * k;
-      indoorSun += ((cave ? 0.15 : 1) - indoorSun) * k;
+      indoorSun += ((cave ? 0.04 : 1) - indoorSun) * k; // was 0.15: single facets of the shell still caught the sun, pale
       // Weather stays outside. In a room with a box the fog shader leaves out the stretch of every sight line that
       // is inside it (uFogRoom, fogChunk.js) and the snowfall drops the flakes that are inside it; in a cave (a
       // polygon, no box) the fog thins as a whole. A.indoor / A.room are for anyone else who needs to know.

@@ -106,15 +106,28 @@ Fixed (each was reachable in ordinary play):
   fogChunk.js), snowflakes inside the room are dropped, the blowing-snow sheets stay out of rooms and are off under
   the ground, and a storm no longer drains the colour by the hearth. A blizzard used to fill the tavern.
 - Snow drifts are one sculpted skin (they were a row of half spheres with another floating across the top).
+- Hearths: the flames stand on the logs (they were at the light's anchor, chest height in front of the fireplace) and
+  the glow behind them is a deep orange (it bloomed to a flat cream shape). The ice cave's far end is closed (the
+  shell was an open tube: the grotto's back wall was a pale hole) and the sun is dimmer under rock.
 - Music: the exploration music follows the hour and the place (village, valley, night) between scenes; what a scene
   leaves playing gives way after four minutes. The night has its own slower suite.
 - HUD: the objective shows under the compass when nothing else does.
+- Kasza: standing idle she steps aside when Vesna walks into her (across a doorway she shut Vesna in the house for
+  good). The whistle plans a route on a path grid of her own (`new Nav(G, { agent: 0.9, noIce, outdoor })`): from the
+  village square she used to run into the side of a house and stay there. With Vesna indoors she waits outside the
+  nearest door, to one side; with Vesna on the ice, at the nearest shore; after four failed ways in she stands still
+  instead of teleporting about. `node scripts/probe.mjs horse --q "from=main_ice:ask"` (11 checks).
 
 Open from this pass:
-- The night suite and the day or night switching have not been heard by a person.
-- The shelter scene cameras and the C2 frames are still not rendered (`scripts/cinesheets.mjs` is the tool).
-- The fireplace flame reads as a flat pale shape in stills; the cave's far end shows pale flat polygons.
+- The night suite has not been heard by a person (the switching between village, valley and night is checked in
+  logic: nine cases).
+- Rendered in this pass and in order: the shelter scene (wide on the lean-to, the fire lit, Vesna behind the flames,
+  the far wide of the ruin) and the valley reveal (`shots/cine/`, `scripts/cinesheets.mjs`). Small tiles: worth one
+  look at full size on a GPU.
 - Small drops (under 1.4 m) still snap; there is no fall.
+- `scripts/inputtest.mjs` and `scripts/combatmove.mjs` now start in the cloud container (software rendering).
+  combatmove passes there (46/0). inputtest depends on real frame times and fails about a quarter of its checks there
+  on timing alone: run it locally with MZ_CHROME=1 after this pass (CameraRig, Interact and locomotion changed).
 
 ## Polish list (lead, integration pass)
 - Done (2026-10-11): Hanka's door never bolts with Vesna inside (talking past 22:00 shut her in; new playthrough check); audio output buffer 40 ms (was 10 ms 'interactive'; one dropout in 30 s under CPU contention at 10 ms, none larger), k-rate filter sweeps in instruments and ambience (about 10 to 15 percent less audio-thread CPU). Watchtower: blizzard to the hearth, 'Shelter for the night', c2_shelter at dusk, C2 reveal in the morning (day 0 is the prologue, the night sets day 1 at 7:45). Day music: village and wild are one slow daylight suite (src/audio/music/moods/day.js, 52 to 60 bpm, 5.5 to 7 minutes a round).
