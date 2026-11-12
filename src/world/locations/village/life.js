@@ -107,7 +107,8 @@ export async function buildLife(V) {
     const l = rec('longhouse');
     const f = frame(l.x, l.z, l.yaw);
     station('reeve_table', ...f.at(-2.2, 2.3), l.yaw - PI / 2, 'sit_bench', 'sit', { indoor: true });
-    station('reeve_chair', ...f.at(0, -1.3), l.yaw, 'sit_bench', 'sit', { indoor: true });
+    const seat = A('longhouse', 'chair'); // the high seat, beside the doorway to his room
+    station('reeve_chair', ...(seat ? [seat.x, seat.z] : f.at(1.95, -1.3)), l.yaw, 'sit_bench', 'sit', { indoor: true });
     station('reeve_desk', ...f.at(0.6, -l.fp.hd + 2.3), l.yaw, 'stir', 'work', { indoor: true });
     station('reeve_porch', ...f.at(-2.4, l.fp.hd + 1.6), l.yaw, 'cross_arms', 'talk');
     station('reeve_bed', ...f.at(3.9, -4.2), l.yaw, 'lie_dead', 'bed', { indoor: true });

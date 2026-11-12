@@ -86,7 +86,7 @@ Rough: the south lane clusters are mostly behind the camera in the usual view fr
 Brief: enter the game as a new player, find what does not work, fix it. Method: the story autopilot now walks with the
 real controls (`walk=1`), wanders (`wander=1`), dies (`die=`), saves and continues (`scripts/savetest.mjs`), and
 `scripts/tour.mjs` photographs many places from one world load. Results at the end of the pass: three endings 433/433/435
-with 0 failed; on foot 521/0; every stage boundary crossed by a real save and a fresh page with 0 failed; deaths at the
+with 0 failed; on foot 522/0; every stage boundary crossed by a real save and a fresh page with 0 failed; deaths at the
 wolves, the marzanny and the boss recover (459/0); the curious player sets off nothing out of order (111/0).
 
 Fixed (each was reachable in ordinary play):
@@ -100,6 +100,10 @@ Fixed (each was reachable in ordinary play):
   she slides along the edge now); Hanka's hut and the workshop had ground poking through the floor; the frozen foot of
   the falls is walkable and its columns are solid.
 - Doors: the tavern and longhouse back doors opened into the chimney outside and the fireplace inside; removed.
+- The reeve's cellar could not be reached, and not left: the high seat stood 0.3 m in front of the doorway into his
+  room (moved to one side of it; the reeve's station follows the anchor), and the stove's collision box upstairs had no
+  height limit and walled off the foot of the cellar stairs (the only way down was off the side of the flight, with
+  no way back up). The Reeve's Ledger side quest is walkable now, in and out.
 - Interaction: the reeve's ledger in the cellar could be read through the floor of the room above.
 - Camera: under the ground (cellar, ice cave) the lens was pushed up to the surface; indoors it stays inside the room.
 - Weather indoors: fog is left out along the part of a sight line that is inside the camera's room (uFogRoom in

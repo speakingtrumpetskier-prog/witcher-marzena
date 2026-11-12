@@ -100,7 +100,9 @@ export function stove(kit, x, y, z, yaw, o = {}) {
   kit.anchor(o.name || 'hearth', px, y + 0.7, pz);
   // Where the flames stand: in the mouth of the stove.
   if (!o.cold) kit.anchor(`${o.name || 'hearth'}Fire`, x + (d / 2 + 0.03) * s, y + 0.42, z + (d / 2 + 0.03) * c);
-  kit.box(x, z, w / 2, d / 2, yaw);
+  // Over a cellar the stove's box starts at its own floor (o.over: the floor height); without that it reached down
+  // through the boards and stood in the cellar too.
+  kit.box(x, z, w / 2, d / 2, yaw, o.over != null ? { y0: o.over - 0.15 } : {});
 }
 
 // Wide open stone fireplace set into a wall (tavern, longhouse). Faces +z in the given frame.

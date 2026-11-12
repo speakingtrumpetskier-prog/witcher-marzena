@@ -323,6 +323,12 @@ async function run(G, O, report) {
         P().yaw = yawTo(r.at.x, r.at.z, tp.x, tp.z);
         await tick(0.1); await tick(0.1);
         const cur = G.interact.current;
+        // She walked there and it offers itself: that is the approach. (The search below places her on a ring round
+        // the thing; in the cellar that ring is partly in the earth beyond the wall, and she was left standing in it.)
+        if (cur?.id === id) {
+          if (wantPrompt) ok(`prompt shows: ${id}`, true, `[E] ${it.verb} ${typeof it.label === 'function' ? it.label() : it.label}`);
+          return true;
+        }
         if (cur?.id !== id && wantPrompt) ok(`walked up to ${id}: its prompt shows`, false, `${cur ? `shows "[E] ${cur.verb} ${typeof cur.label === 'function' ? cur.label() : cur.label}" (${cur.id})` : 'no prompt'} at ${d.toFixed(2)} m, facing it`, 'warn');
       }
     }
