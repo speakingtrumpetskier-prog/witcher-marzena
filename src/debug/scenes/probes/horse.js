@@ -35,13 +35,47 @@ export default async function horseProbe(k) {
     const moved = Math.hypot(H.root.position.x - hp0.x, H.root.position.z - hp0.z);
     ok(`with Kasza across ${d.id}, she can still get out`, res.ok, `${res.why} at ${P().position.x.toFixed(1)},${P().position.z.toFixed(1)} after ${res.secs} s; Kasza at ${H.root.position.x.toFixed(1)},${H.root.position.z.toFixed(1)} (moved ${moved.toFixed(1)} m), state ${H.state}`);
   }
-  // The whistle from far away.
-  step('whistle');
-  placeAt(2, 124, 0);
+  // The whistle: from the middle of the village with her far off (she has to find a way in through the gates), with
+  // her left outside the palisade (she walks in from where she is), and from inside the tavern (she waits outside,
+  // clear of the door, and Vesna can walk out past her).
+  const V = { center: { x: 0, z: 115 } }, gate = G.storyCtl.V.gate; // the village's centre (layout.js)
+  const near = () => Math.hypot(H.root.position.x - P().position.x, H.root.position.z - P().position.z);
+  const whistle = async (label, secs, want) => {
+    await k.tap('KeyX');
+    const t0 = k.sim.t;
+    const came = await waitFor(() => H.state === 'idle' && H.arrived && (want ? want() : near() < 6), secs, label);
+    ok(`whistle, ${label}`, came, `state ${H.state}, ${near().toFixed(1)} m away after ${(k.sim.t - t0).toFixed(0)} s, at ${H.root.position.x.toFixed(0)},${H.root.position.z.toFixed(0)}, tries ${H.placeTries}`);
+    return came;
+  };
+  step('whistle in the square');
+  placeAt(V.center.x + 2, V.center.z + 9, 0);
   H.teleport(-200, 200, 0);
   await wait(0.5);
-  await k.tap('KeyX');
-  const came = await waitFor(() => Math.hypot(H.root.position.x - P().position.x, H.root.position.z - P().position.z) < 6, 40, 'kasza comes');
-  ok('the whistle brings Kasza', came, `state ${H.state}, ${Math.hypot(H.root.position.x - P().position.x, H.root.position.z - P().position.z).toFixed(1)} m away`);
+  await whistle('in the square, Kasza far off', 75);
+  step('whistle from inside the palisade');
+  placeAt(V.center.x - 6, V.center.z + 4, 0);
+  H.teleport(gate.x - 45, gate.z + 6, 0);
+  await wait(0.5);
+  await whistle('in the square, Kasza outside the west gate', 90);
+  step('whistle from the tavern');
+  const tav = G.world.rooms.find((q) => q.id === 'tavern');
+  placeAt(tav.box.x, tav.box.z, 0);
+  H.teleport(-200, 200, 0);
+  await wait(0.5);
+  const waited = await whistle('inside the tavern', 90, () => !G.world.indoors(H.root.position.x, H.root.position.z) && near() < 22);
+  if (waited) {
+    const d = (G.storyCtl.V.doors || []).find((q) => q.id === 'tavern:front');
+    const ox = d.rec.x - tav.box.x, oz = d.rec.z - tav.box.z;
+    const nx = Math.abs(ox) > Math.abs(oz) ? Math.sign(ox) : 0, nz = Math.abs(ox) > Math.abs(oz) ? 0 : Math.sign(oz);
+    ok('she does not stand in the doorway', Math.hypot(H.root.position.x - (d.rec.x + nx * 1.2), H.root.position.z - (d.rec.z + nz * 1.2)) > 2.2, `Kasza ${Math.hypot(H.root.position.x - d.rec.x, H.root.position.z - d.rec.z).toFixed(1)} m from the door`);
+    const res = await W.walkTo(d.rec.x + nx * 8, d.rec.z + nz * 8, { arrive: 1.5, timeout: 40 });
+    ok('Vesna walks out of the tavern past her', res.ok, `${res.why} after ${res.secs} s`);
+  }
+  step('whistle in the wild');
+  const wt = G.world.locations.watchtower;
+  placeAt(wt.crest.x - 24, wt.crest.z + 16, 0);
+  H.teleport(-200, 200, 0);
+  await wait(0.5);
+  await whistle('on the pass road', 75);
   W.release();
 }

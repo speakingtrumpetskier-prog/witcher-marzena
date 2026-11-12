@@ -8,7 +8,9 @@
 // X: mounted -> dismount (she brakes first when fast); near her (3.6 m) -> mount from her left
 // (Vesna walks around the head if she is on the right side, plays the mount clip, then rides
 // parented to the saddle anchor); far away -> whistle: she trots in from out of view, steers around
-// trees and the lake, and stops broadside so the mount side faces you.
+// trees and the lake, and stops broadside so the mount side faces you. She comes by a route (the villagers' path grid:
+// through the gates and down the streets, not into the palisade); with Vesna indoors she waits outside, a few steps
+// clear of the door. Standing idle she gives way when Vesna pushes against her (she used to bar a doorway for good).
 // Riding: WASD steers camera-relative (turning radius grows with speed), Shift gallops while stamina
 // lasts, CapsLock/Alt walk. She will not set a hoof on lake ice: she stops at the shore with a snort
 // (a rear if galloping) and Vesna says so. Holding forward on a road gently follows it.
@@ -20,6 +22,7 @@ import { clamp, damp, dampAngle, lerp, smoothstep, wrapAngle } from '../core/uti
 import { slopeAt, moveFactor, blocked, STEEP } from './player/ground.js';
 import { TUNE } from './player/stats.js';
 import { SADDLE_H } from '../characters/clips/library.js';
+import { Nav } from './npcs/nav.js';
 
 const SPEEDS = { walk: 1.8, trot: 4.3, gallop: 9.2 };
 const RADIUS = 0.75;
@@ -66,6 +69,8 @@ export async function init(G_) {
     prevLeg: [0, 0, 0, 0],
     wantDismount: false,
     bolt: null, // Kasza running off after she threw her rider (tickBolt)
+    path: null, pathI: 0, goal: null, planAt: null, planT: 0, placeTries: 0, lastX: 0, lastZ: 0, blind: 0, nav: null, // the way in when called (tickCalled)
+    nudge: false, press: 0, yielding: null, // Vesna pushing against her, and the steps she takes out of the way
     ride: '',
     seq: null, // mount / dismount sequence state
     tmp: {},
@@ -88,24 +93,32 @@ export async function init(G_) {
     return ahead < 0.8 && ahead < here;
   }
 
-  function blockedAt(x, z) {
+  function blockedAt(x, z, r = 0.9) {
     const w = G_.world;
     if (w?.lakeSDF && w.lakeSDF(x, z) < 1.2) return true;
-    if (G_.physics.query(x, z, 0.9).length) return true;
+    if (G_.physics.query(x, z, r).length) return true;
+    if (w?.indoors?.(x, z)) return true; // a house is four thin walls round an empty floor: the floor is not hers
     return false;
   }
+  // Nothing in the way for `len` meters along a heading, sampled every step of her own width (a wall is 0.4 m thick:
+  // two probes 2.5 and 6 m out used to straddle it, and she walked into the side of a house and stayed there).
+  function clearAhead(yaw, len) {
+    const p = h.root.position, sx = Math.sin(yaw), cz = Math.cos(yaw);
+    for (let t = 1.1; t <= len + 0.01; t += 0.8) if (blockedAt(p.x + sx * t, p.z + cz * t, 0.65)) return false;
+    return true;
+  }
 
-  // Look for a clear heading near the wanted one: probes 2.5 m and 6 m ahead, alternating sides.
+  // Look for a clear heading near the wanted one: 6 m of clear ground, alternating sides and keeping to the side
+  // that worked last; failing that, whatever is clear for a couple of steps.
+  const STEER = [0, 0.45, -0.45, 0.9, -0.9, 1.45, -1.45, 2.1, -2.1];
   function steer(goalYaw) {
-    const p = h.root.position;
-    const offs = [0, 0.45, -0.45, 0.9, -0.9, 1.45, -1.45];
-    for (const o of offs) {
-      const y = goalYaw + o * H.avoid;
-      const x1 = p.x + Math.sin(y) * 2.5, z1 = p.z + Math.cos(y) * 2.5;
-      const x2 = p.x + Math.sin(y) * 6, z2 = p.z + Math.cos(y) * 6;
-      if (!blockedAt(x1, z1) && !blockedAt(x2, z2)) {
-        if (o !== 0) H.avoid = Math.sign(o) * H.avoid || H.avoid;
-        return y;
+    for (const len of [6, 2.7]) {
+      for (const o of STEER) {
+        const y = goalYaw + o * H.avoid;
+        if (clearAhead(y, len)) {
+          if (o !== 0) H.avoid = Math.sign(o) * H.avoid || H.avoid;
+          return y;
+        }
       }
     }
     return goalYaw + 1.6 * H.avoid;
@@ -171,18 +184,117 @@ export async function init(G_) {
     return _v.z < 1 && Math.abs(_v.x) < 1.1 && Math.abs(_v.y) < 1.1;
   }
 
+  // ---- the way to her: a route on a grid of her own ------------------------------------------------------
+  // The villagers' grid is cut for a villager's shoulders (and runs through doors). Kasza has her own, built the
+  // same way with room for a horse, the lake ice and every floor under a roof shut: a route on it is one she fits.
+  const navGrid = () => (H.nav ||= new Nav(G_, { agent: 0.9, margin: 1.7, noIce: true, outdoor: true }));
+  const pathLen = (path, x, z) => { let l = 0; for (const q of path) { l += Math.hypot(q.x - x, q.z - z); x = q.x; z = q.z; } return l; };
+  // Route from (x, z) to the goal, or null. Planned from the goal's side so its region is the one searched.
+  function routeFrom(x, z, g) {
+    try {
+      const N = navGrid();
+      N.ensure(g.x, g.z);
+      const back = N.plan(g.x, g.z, x, z);
+      if (!back || !back.length) return null;
+      const path = back.slice(0, -1).reverse();
+      path.push({ x: g.x, z: g.z });
+      return path;
+    } catch { return null; }
+  }
+  // Where she is to come to. Vesna herself as a rule. With Vesna in a house: a clear spot outside it a few steps
+  // from the door (the nearest open ground by the way Vesna would walk out), so she neither noses at the wall nor
+  // bars the door. With Vesna out on the ice: the shore nearest her.
+  function standPoint() {
+    const p = P().position, w = G_.world;
+    const here = { x: p.x, z: p.z, indoor: false };
+    try {
+      if (w.lakeSDF && w.lakeSDF(p.x, p.z) < 1.2 && !w.indoors?.(p.x, p.z)) {
+        let x = p.x, z = p.z;
+        for (let i = 0; i < 40; i++) {
+          const sd = w.lakeSDF(x, z);
+          if (sd > 3.2) return { x, z, indoor: true };
+          const gx = w.lakeSDF(x + 1, z) - w.lakeSDF(x - 1, z), gz = w.lakeSDF(x, z + 1) - w.lakeSDF(x, z - 1), gl = Math.hypot(gx, gz) || 1;
+          const st = Math.max(1.5, Math.min(12, 3.4 - sd));
+          x += (gx / gl) * st; z += (gz / gl) * st;
+        }
+        return here;
+      }
+      const N = navGrid();
+      N.ensure(p.x, p.z);
+      const room = w.roomAt?.(p.x, p.z, p.y) || (w.indoors?.(p.x, p.z) ? w.roomAt?.(p.x, p.z) : null);
+      if (room) {
+        // The same room as last time: the same spot.
+        if (H.standFor && H.standFor.room === room.id) return H.standFor.at;
+        let at = null;
+        // Outside the nearest door of that room, off to one side of the way out.
+        const b = room.box;
+        let door = null;
+        if (b) {
+          const c = Math.cos(b.yaw || 0), sn = Math.sin(b.yaw || 0);
+          for (const d of w.doors || []) {
+            const r = d.rec;
+            if (!r) continue;
+            const dx = r.x - b.x, dz = r.z - b.z;
+            const lx = dx * c - dz * sn, lz = dx * sn + dz * c;
+            if (Math.abs(lx) > b.hw + 1 || Math.abs(lz) > b.hd + 1) continue; // some other house's door
+            const onX = Math.abs(lx) / b.hw > Math.abs(lz) / b.hd;
+            const nlx = onX ? Math.sign(lx) : 0, nlz = onX ? 0 : Math.sign(lz);
+            const far = Math.hypot(r.x - p.x, r.z - p.z);
+            if (!door || far < door.far) door = { x: r.x, z: r.z, nx: nlx * c + nlz * sn, nz: -nlx * sn + nlz * c, far };
+          }
+        }
+        if (door) {
+          search: for (const out of [5, 6.5, 8, 10]) for (const side of [3, -3, 4.5, -4.5, 1.5, -1.5]) {
+            const x = door.x + door.nx * out - door.nz * side, z = door.z + door.nz * out + door.nx * side;
+            if (w.indoors(x, z) || N.flag(x, z) !== 0) continue;
+            at = { x, z, indoor: true };
+            break search;
+          }
+        }
+        H.standFor = { room: room.id, at: at || here };
+        if (at) return at;
+      } else H.standFor = null;
+      // Somewhere she cannot stand (a porch, a pier, a cellar): the nearest ground that is hers.
+      if (N.flag(p.x, p.z) === 1) {
+        const q = N.snap(p.x, p.z, { x: 0, z: 0 }, 14);
+        if (Math.hypot(q.x - p.x, q.z - p.z) > 2.2) return { x: q.x, z: q.z, indoor: true };
+      }
+      return here;
+    } catch { return here; }
+  }
+  function planRoute() {
+    const pos = h.root.position, p = P().position;
+    H.goal = standPoint();
+    H.planAt = { x: p.x, z: p.z };
+    H.path = routeFrom(pos.x, pos.z, H.goal);
+    H.pathI = 0;
+    H.planT = 3;
+  }
+
+  // Rings to appear in, nearer each time she has had to give up on a way in.
+  const RINGS = [[55, 25], [28, 16], [12, 8]];
   function placeOffscreen() {
     const p = P().position;
     const camYaw = G_.cameraRig ? G_.cameraRig.yaw : P().yaw;
-    let best = null;
+    const g = H.goal || { x: p.x, z: p.z };
+    const [r0, r1] = RINGS[Math.min(H.placeTries, RINGS.length - 1)];
+    H.placeTries++;
+    let best = null, plans = 0;
     for (let i = 0; i < 40 && !best; i++) {
       const ang = camYaw + Math.PI + (Math.random() - 0.5) * 2.4 + (i > 20 ? (Math.random() - 0.5) * 4 : 0);
-      const d = 55 + Math.random() * 25;
+      const d = r0 + Math.random() * r1;
       const x = clamp(p.x + Math.sin(ang) * d, -WORLD.playable + 10, WORLD.playable - 10);
       const z = clamp(p.z + Math.cos(ang) * d, -WORLD.playable + 10, WORLD.playable - 10);
       if (blockedAt(x, z) || (G_.world.lakeSDF?.(x, z) ?? 99) < 10) continue;
+      if (G_.world.indoors?.(x, z)) continue;
       if (slopeAt(x, z, 0, 1, H.tmp).ny < STEEP + 0.12) continue;
       if (i < 30 && inView(x, z)) continue;
+      // A spot she can come in from: there is a way, and not one that goes round the whole village.
+      if (plans < 12) {
+        plans++;
+        const path = routeFrom(x, z, g);
+        if (!path || pathLen(path, x, z) > d * 2.2 + 25) continue;
+      }
       best = { x, z };
     }
     if (!best) best = { x: p.x - Math.sin(camYaw) * 60, z: p.z - Math.cos(camYaw) * 60 };
@@ -203,6 +315,13 @@ export async function init(G_) {
     H.arrived = false;
     H.callDelay = 1.0;
     H.stuck = 0;
+    H.placeTries = 0;
+    H.lastX = h.root.position.x; H.lastZ = h.root.position.z;
+    H.blind = 0;
+    H.standFor = null;
+    H.path = null;
+    H.goal = null;
+    H.yielding = null;
     const d = dist2(P().position);
     if (d > 140 || (G_.world.lakeSDF?.(h.root.position.x, h.root.position.z) ?? 9) < 0) H.needPlace = true;
     return true;
@@ -212,32 +331,71 @@ export async function init(G_) {
     const player = P();
     if (H.callDelay > 0) {
       H.callDelay -= dt;
-      if (H.callDelay <= 0 && H.needPlace) { H.needPlace = false; placeOffscreen(); G_.audio?.sfx?.('horse_whinny', { pos: h.root.position, volume: 0.7 }); }
+      if (H.callDelay <= 0) {
+        // From where she stands when there is a way and it is not far; otherwise from out of sight.
+        if (!H.needPlace) {
+          planRoute();
+          if (!H.path && dist2(player.position) > 30) H.needPlace = true;
+        } else H.goal = standPoint();
+        if (H.needPlace) {
+          H.needPlace = false;
+          placeOffscreen();
+          planRoute();
+          G_.audio?.sfx?.('horse_whinny', { pos: h.root.position, volume: 0.7 });
+        }
+      }
       h.setGait(0);
       return;
     }
     const pos = h.root.position;
-    const dx = player.position.x - pos.x, dz = player.position.z - pos.z;
+    // Vesna has moved on (or gone in, or come out), or it has been a while: a new way from where Kasza is now.
+    H.planT -= dt;
+    if (!H.planAt || H.planT <= 0 || Math.hypot(player.position.x - H.planAt.x, player.position.z - H.planAt.z) > 6) planRoute();
+    const g = H.goal || { x: player.position.x, z: player.position.z, indoor: false };
+    const tx = g.indoor ? g.x : player.position.x, tz = g.indoor ? g.z : player.position.z;
+    const stop = g.indoor ? 0.9 : STOP_DIST;
+    const dx = tx - pos.x, dz = tz - pos.z;
     const d = Math.hypot(dx, dz);
     const yaw = h.root.rotation.y;
-    if (d > STOP_DIST + 0.4) {
-      const goal = Math.atan2(dx, dz);
-      const want = d > 14 ? steer(goal) : goal;
+    if (d > stop + 0.4) {
+      // By the route, corner to corner, then straight to her; with no route, the old way: at her, round what is seen.
+      let want = Math.atan2(dx, dz);
+      if (H.path) {
+        const last = H.path.length - 1;
+        while (H.pathI < last && Math.hypot(H.path[H.pathI].x - pos.x, H.path[H.pathI].z - pos.z) < 1.9) H.pathI++;
+        if (H.pathI < last) want = Math.atan2(H.path[H.pathI].x - pos.x, H.path[H.pathI].z - pos.z);
+      } else if (d > 14) want = steer(want);
       const rate = turnRate(h.speed);
       h.root.rotation.y = wrapAngle(yaw + clamp(wrapAngle(want - yaw) * Math.min(1, dt * 5), -rate * dt, rate * dt));
-      let goalSpeed = d > 14 ? 4.7 : clamp(0.6 + (d - STOP_DIST) * 0.7, 0.9, SPEEDS.trot);
+      let goalSpeed = d > 14 ? 4.7 : clamp(0.6 + (d - stop) * 0.7, 0.9, SPEEDS.trot);
       goalSpeed *= 0.35 + 0.65 * smoothstep(-0.2, 0.8, Math.cos(wrapAngle(want - h.root.rotation.y)));
       const s = slopeAt(pos.x, pos.z, Math.sin(yaw), Math.cos(yaw), H.tmp);
       goalSpeed *= moveFactor(s);
-      if (iceAhead(h.root.rotation.y, h.speed)) goalSpeed = 0;
+      const ice = iceAhead(h.root.rotation.y, h.speed);
+      if (ice) goalSpeed = 0;
       h.setGait(goalSpeed);
       advance(dt);
-      // Stuck behind something for a few seconds: come in from somewhere else.
-      H.stuck = h.speed < 0.4 ? H.stuck + dt : 0;
-      if (H.stuck > 4) placeOffscreen();
+      // Stuck behind something for a few seconds (by the ground she covers: her gait keeps its speed against a
+      // wall): come in from somewhere else, nearer each time. Vesna out on the ice, or nowhere a horse can get to:
+      // she comes as near as she can and waits there.
+      const went = Math.hypot(pos.x - H.lastX, pos.z - H.lastZ) / Math.max(dt, 1e-3);
+      H.lastX = pos.x; H.lastZ = pos.z;
+      H.stuck = went < 0.4 ? H.stuck + dt : 0;
+      // With no route she goes by eye, and among houses that can go round in circles: not for long.
+      H.blind = H.path ? 0 : H.blind + dt;
+      if (H.stuck > (ice ? 1.2 : 4) || H.blind > 9) {
+        H.blind = 0;
+        if (ice || H.placeTries >= 4) {
+          H.state = 'idle';
+          H.path = null;
+          h.setGait(0);
+          h.play('snort');
+          G_.audio?.sfx?.('horse_snort', { pos: h.root.position, volume: 0.7 });
+        } else { placeOffscreen(); planRoute(); }
+      }
     } else {
-      // Settle broadside: her left side toward the player so she can be mounted.
-      const final = Math.atan2(-dz, dx);
+      // Settle broadside: her left side toward the player so she can be mounted (outside a house, as she stands).
+      const final = g.indoor ? yaw : Math.atan2(-dz, dx);
       const rate = 2.2;
       const err = wrapAngle(final - yaw);
       h.root.rotation.y = wrapAngle(yaw + clamp(err, -rate * dt, rate * dt));
@@ -246,6 +404,7 @@ export async function init(G_) {
       if (Math.abs(err) < 0.12 && h.speed < 0.25) {
         H.state = 'idle';
         H.arrived = true;
+        H.path = null;
         h.setGait(0);
         h.play('snort');
         G_.audio?.sfx?.('horse_snort', { pos: h.root.position, volume: 0.7 });
@@ -703,9 +862,38 @@ export async function init(G_) {
     player.character.root.position.set(0, 0, 0);
   }
 
+  // ---- giving way ------------------------------------------------------------------------------------
+  // Vesna walking into her (the player's push-out reports it, locomotion.js): after a moment of it she turns away
+  // from where she is being pushed from and walks a few steps off, round whatever is in front of her.
+  H.nudged = () => { H.nudge = true; };
+  function tickYield(dt) {
+    const Y = H.yielding;
+    Y.t += dt;
+    const pos = h.root.position, yaw = h.root.rotation.y;
+    const want = steer(Y.away);
+    const err = wrapAngle(want - yaw);
+    h.root.rotation.y = wrapAngle(yaw + clamp(err, -2.6 * dt, 2.6 * dt));
+    const go = Math.abs(err) < 0.75;
+    let speed = go ? 1.7 : 1.0;
+    if (iceAhead(h.root.rotation.y, speed)) speed = 0;
+    h.setGait(speed);
+    advance(dt, !go);
+    if (Math.hypot(pos.x - Y.x0, pos.z - Y.z0) > 3.4 || Y.t > 5) { H.yielding = null; h.setGait(0); }
+  }
+
   // ---- idle life ------------------------------------------------------------------------------------
   function tickIdle(dt) {
     if (H.bolt) { tickBolt(dt); return; }
+    const pl = P();
+    H.press = H.nudge ? H.press + dt : Math.max(0, H.press - dt * 2);
+    H.nudge = false;
+    if (H.yielding) { tickYield(dt); return; }
+    if (H.press > 0.5 && pl && !pl.mounted && !H.scripted) {
+      const pos = h.root.position;
+      H.press = 0;
+      H.yielding = { t: 0, x0: pos.x, z0: pos.z, away: Math.atan2(pos.x - pl.position.x, pos.z - pl.position.z) };
+      return;
+    }
     h.setGait(0);
     advance(dt, true);
     H.idleTimer -= dt;
@@ -734,6 +922,7 @@ export async function init(G_) {
         else if (H.state === 'idle') H.call();
       }
     }
+    if (H.state !== 'idle') { H.yielding = null; H.press = 0; H.nudge = false; }
     switch (H.state) {
       case 'called': tickCalled(dt); break;
       case 'mounting': tickMounting(dt); break;

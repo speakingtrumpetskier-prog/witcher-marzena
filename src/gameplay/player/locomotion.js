@@ -186,9 +186,12 @@ export class Locomotion {
     const H = G.horse;
     if (H && !P.mounted && !P._mounting && H.root.visible) {
       const hp = H.root.position, hy = H.root.rotation.y;
+      const bx = pos.x, bz = pos.z;
       for (const off of [-0.55, 0.55]) {
         this._push(pos, hp.x + Math.sin(hy) * off, hp.z + Math.cos(hy) * off, 0.58 + RADIUS);
       }
+      // Walking into her: she will step out of the way (Horse.js).
+      if ((pos.x !== bx || pos.z !== bz) && H.nudged) H.nudged();
     }
     for (const e of liveEnemies()) {
       if (e.faction === 'friendly') continue;
