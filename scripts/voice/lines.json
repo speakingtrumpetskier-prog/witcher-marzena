@@ -1,6 +1,6 @@
 {
  "version": 1,
- "count": 1220,
+ "count": 1221,
  "lines": [
   {
    "hash": "48b25a91dc",
@@ -3191,6 +3191,18 @@
    "hash": "701248b51a",
    "speaker": "vesna",
    "text": "Same as the one at the toll house.",
+   "kind": "bark",
+   "source": "docs/STORY.md",
+   "node": "section 5 (Vesna barks)",
+   "direction": "muttered in passing, flat",
+   "exaggeration": 0.28,
+   "pace": 1,
+   "level": -3
+  },
+  {
+   "hash": "68c6afd6b8",
+   "speaker": "vesna",
+   "text": "A table laid for seventeen. The bread's frozen.",
    "kind": "bark",
    "source": "docs/STORY.md",
    "node": "section 5 (Vesna barks)",
