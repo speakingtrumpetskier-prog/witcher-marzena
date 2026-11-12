@@ -103,8 +103,10 @@ export async function init(G) {
         const dx = p.x - v.pos.x, dz = p.z - v.pos.z;
         const d = Math.hypot(dx, dz);
         if (d > it.radius) continue;
-        // Height check keeps upstairs items out of reach from below.
-        if (G.player && Math.abs(p.y - (v.pos.y + 1)) > Math.max(2.5, it.radius + 1)) continue;
+        // Height check: a thing on another floor is out of reach (the ledger in the cellar could be read through the
+        // floor of the room above it). Chest height is feet + 1; below that as far as the ground from a porch,
+        // above it as far as a beam over a door.
+        if (G.player) { const dy = p.y - (v.pos.y + 1); if (dy < -1.7 || dy > Math.max(1.9, it.radius * 0.5)) continue; }
         let score = d / it.radius;
         if (it.facing && d > 0.4) {
           const dot = (dx * v.fwd.x + dz * v.fwd.z) / d;

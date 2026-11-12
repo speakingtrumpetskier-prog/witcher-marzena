@@ -47,6 +47,16 @@ export function placeBuilding(G, b, x, z, yaw = 0, opts = {}) {
       }
     }
     y0 = (opts.align === 'avg' ? sum / n : maxH) + (opts.lip ?? 0.12);
+    // A house you can walk into keeps its floor (0.05 above the base) clear of the ground under it: set on the
+    // average of a slope, the uphill side of Hanka's hut and of the workshop had snow coming up through the boards.
+    if (b.interior) {
+      let top = -Infinity;
+      for (let i = -6; i <= 6; i++) for (let j = -6; j <= 6; j++) {
+        const [wx, wz] = rotXZ((i / 6) * (fp.hw - 0.15), (j / 6) * (fp.hd - 0.15), yaw);
+        top = Math.max(top, terrainAt(G, x + wx, z + wz));
+      }
+      y0 = Math.max(y0, top - 0.02);
+    }
   } else if (snap) {
     y0 = terrainAt(G, x, z) + 0.1;
     minH = maxH = y0;

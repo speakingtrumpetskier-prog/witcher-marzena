@@ -139,8 +139,12 @@ export class Input {
 
     loadBindings();
 
+    // Counts of key presses and of focus losses, so a tap can tell it was pressed on its own (see Player's walk toggle).
+    this.keyPresses = 0;
+    this.blurs = 0;
     const kd = (e) => {
       if (e.__pad || e.repeat) return;
+      this.keyPresses++;
       if (PREVENT.has(e.code)) e.preventDefault();
       this._seen('kbm');
       this.keys.add(e.code);
@@ -177,7 +181,7 @@ export class Input {
     window.addEventListener('mousemove', mm);
     dom.addEventListener('wheel', wh, { passive: true });
     dom.addEventListener('contextmenu', (e) => e.preventDefault());
-    window.addEventListener('blur', () => { this.keys.clear(); this._sprintOn = false; });
+    window.addEventListener('blur', () => { this.keys.clear(); this._sprintOn = false; this.blurs++; });
     document.addEventListener('pointerlockchange', () => {
       this.locked = document.pointerLockElement === dom;
     });

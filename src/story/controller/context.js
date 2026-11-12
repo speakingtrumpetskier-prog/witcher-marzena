@@ -92,12 +92,24 @@ export function createContext(G) {
     C.interacts.push(id);
     return id;
   };
+  // A clue is taken out of the world once it has been examined. When a save from before that loads (a death), it has
+  // to be there again: every clue is kept as written and put back after a load or a reset if it is missing (its own
+  // `enabled` then decides from the flags whether it shows).
+  const clueDefs = new Map();
+  const addClue = (def) => {
+    const onExamine = def.onExamine;
+    return G.senses.addClue({ ...def, id: `ctl:${def.id}`, onExamine: onExamine && ((cl) => { C.foot(); return onExamine(cl); }) });
+  };
   C.clue = (def) => {
     if (!G.senses) return null;
-    const onExamine = def.onExamine;
-    const id = G.senses.addClue({ ...def, id: `ctl:${def.id}`, onExamine: onExamine && ((cl) => { C.foot(); return onExamine(cl); }) });
+    const id = addClue(def);
+    clueDefs.set(id, def);
     C.clues.push(id);
     return id;
+  };
+  C.restoreClues = () => {
+    if (!G.senses) return;
+    for (const [id, def] of clueDefs) if (!G.senses.clue(id)) addClue(def);
   };
   C.trail = (def) => {
     if (!G.senses) return null;
@@ -120,6 +132,7 @@ export function createContext(G) {
     try { fn(); } catch (e) { console.error('[ctl restore]', e); G.errors.push(`ctl restore: ${e.message}`); }
   };
   C.runRestorers = () => {
+    try { C.restoreClues(); } catch (e) { console.error('[ctl restore clues]', e); G.errors.push(`ctl restore clues: ${e.message}`); }
     for (const fn of C.restorers) {
       try { fn(); } catch (e) { console.error('[ctl restore]', e); G.errors.push(`ctl restore: ${e.message}`); }
     }

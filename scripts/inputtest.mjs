@@ -20,6 +20,7 @@ import { fileURLToPath } from 'node:url';
 const W = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 async function loadPlaywright() {
   try { return await import('playwright'); } catch { /* fall through */ }
+  try { return await import('/opt/node-tools/node_modules/playwright/index.mjs'); } catch { /* the cloud container's copy */ }
   try { return await import('playwright-core'); } catch { /* fall through */ }
   console.error('Playwright is not installed. Run:  npm install --no-save playwright-core  and set MZ_CHROME=1');
   process.exit(2);
@@ -30,7 +31,9 @@ const only = process.argv[2] || '';
 const server = await createServer({ root: W, logLevel: 'error', server: { port: 0, host: '127.0.0.1', hmr: false, watch: null } });
 await server.listen();
 const base = `http://127.0.0.1:${server.httpServer.address().port}`;
-const browser = await chromium.launch({ ...(process.env.MZ_CHROME === '1' ? { channel: 'chrome' } : {}), headless: true, args: ['--ignore-gpu-blocklist', '--enable-gpu-rasterization', '--autoplay-policy=no-user-gesture-required'] });
+// With MZ_CHROME=1 the installed Chrome on the GPU; without it the bundled Chromium in software (the cloud: slow, it works).
+const SOFT = process.env.MZ_CHROME !== '1' && process.env.MZ_GPU !== '1';
+const browser = await chromium.launch({ ...(process.env.MZ_CHROME === '1' ? { channel: 'chrome' } : {}), headless: true, args: [...(SOFT ? ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist', '--disable-gpu-sandbox'] : ['--ignore-gpu-blocklist', '--enable-gpu-rasterization']), '--autoplay-policy=no-user-gesture-required'] });
 
 const MOCK = `(() => {
   const pad = { id: 'Xbox Wireless Controller (STANDARD GAMEPAD Vendor: 045e Product: 0b13)', index: 0, connected: true, mapping: 'standard', timestamp: 0,

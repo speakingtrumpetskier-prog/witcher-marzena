@@ -22,6 +22,10 @@
 //   uFogSunWide    float weight of the wide warm lobe on the sun side
 //   uFogLayerColor vec3  in-scatter color of the lake fog (a brighter, sunlit blanket)
 //   uFogTime       float (alias of uTime, kept separate to avoid name clashes in custom shaders)
+//   uFogRoom       vec4  (center x, center z, half width, half depth) the room the camera stands in
+//   uFogRoomK      vec3  (cos yaw, sin yaw, k) k = 0 outdoors .. 1 indoors (eased). The air inside a house holds no
+//                        fog: the part of each sight line that runs through the room is left out, so the far wall of
+//                        the tavern is clear in a blizzard and the street through the open door is as white as ever.
 import * as THREE from 'three';
 import { U } from './Uniforms.js';
 
@@ -31,6 +35,8 @@ U.uFogLayerArea ||= { value: new THREE.Vector4(40, -120, 300, 200) };
 U.uFogSunWide ||= { value: 0.35 };
 U.uFogLayerColor ||= { value: new THREE.Color(0.8, 0.82, 0.86) };
 U.uFogTime ||= U.uTime;
+U.uFogRoom ||= { value: new THREE.Vector4(0, 0, 1, 1) };
+U.uFogRoomK ||= { value: new THREE.Vector3(1, 0, 0) };
 
 // Pure GLSL helpers (no varyings, no USE_FOG guard). Requires the uniforms below to be declared.
 export const FOG_UNIFORMS_GLSL = /* glsl */ `
@@ -47,6 +53,8 @@ export const FOG_UNIFORMS_GLSL = /* glsl */ `
   uniform float uFogSunWide;
   uniform vec3 uFogLayerColor;
   uniform float uFogTime;
+  uniform vec4 uFogRoom;
+  uniform vec3 uFogRoomK;
 `;
 
 export const FOG_FUNCS_GLSL = /* glsl */ `
@@ -116,6 +124,16 @@ export const FOG_FUNCS_GLSL = /* glsl */ `
     return mix(uFogColor, uFogSunColor, clamp(tight + wide, 0.0, 1.0));
   }
 
+  // How far along rd the camera's room reaches (the room box in plan; 0 with the camera outside it looking away).
+  float mzRoomReach(vec3 rd) {
+    vec2 o = cameraPosition.xz - uFogRoom.xy;
+    vec2 ol = vec2(o.x * uFogRoomK.x - o.y * uFogRoomK.y, o.x * uFogRoomK.y + o.y * uFogRoomK.x);
+    vec2 dl = vec2(rd.x * uFogRoomK.x - rd.z * uFogRoomK.y, rd.x * uFogRoomK.y + rd.z * uFogRoomK.x);
+    dl += step(abs(dl), vec2(1e-5)) * 1e-5;
+    vec2 t = (sign(dl) * uFogRoom.zw - ol) / dl;
+    return max(min(t.x, t.y), 0.0);
+  }
+
   vec3 mzApplyFog(vec3 col, vec3 worldPos) {
     vec3 ray = worldPos - cameraPosition;
     float dist = length(ray);
@@ -123,6 +141,13 @@ export const FOG_FUNCS_GLSL = /* glsl */ `
     float odA = mzExpOD(uFogDensity, uFogHeightFalloff, uFogBaseHeight, cameraPosition.y, rd.y, dist)
               + mzExpOD(uFogHaze.x, uFogHaze.y, 0.0, cameraPosition.y, rd.y, dist);
     float odL = mzLayerOD(cameraPosition, rd, dist);
+    if (uFogRoomK.z > 0.001) {
+      // Indoors: take out the stretch of the ray that is inside the room.
+      float t0 = min(dist, mzRoomReach(rd)) * uFogRoomK.z;
+      odA -= mzExpOD(uFogDensity, uFogHeightFalloff, uFogBaseHeight, cameraPosition.y, rd.y, t0)
+           + mzExpOD(uFogHaze.x, uFogHaze.y, 0.0, cameraPosition.y, rd.y, t0);
+      odL = max(odL - mzLayerOD(cameraPosition, rd, t0), 0.0);
+    }
     float od = max(odA + odL, 0.0);
     float t = exp(-od);
     vec3 L = mzFogInscatter(rd);
@@ -160,7 +185,7 @@ export const FOG_FRAGMENT = /* glsl */ `
 
 export const FOG_UNIFORM_NAMES = [
   'uFogColor', 'uFogSunColor', 'uSunDir', 'uFogDensity', 'uFogHeightFalloff', 'uFogBaseHeight', 'uFogSunPower',
-  'uFogHaze', 'uFogLayer', 'uFogLayerArea', 'uFogSunWide', 'uFogTime', 'uFogLayerColor',
+  'uFogHaze', 'uFogLayer', 'uFogLayerArea', 'uFogSunWide', 'uFogTime', 'uFogLayerColor', 'uFogRoom', 'uFogRoomK',
 ];
 
 // Uniforms for a custom fogged ShaderMaterial: { ...fogUniforms(), ...yours }.

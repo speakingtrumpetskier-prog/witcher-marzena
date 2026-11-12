@@ -131,6 +131,7 @@ export async function init(G) {
   const nearDir = new THREE.Vector3(0, 1, 0);
   let nearFrame = 0;
   let indoorAmb = 1, indoorSun = 1; // eased sky-light factors while the camera is in a room or cave
+  let roomBox = null, caveFog = 1; // the room the fog leaves clear, and the fog factor under rock
 
   function updateShadowFrustum(dt) {
     // Focus: the player's hint while the gameplay rig is the view, else the ground in front of the
@@ -199,7 +200,23 @@ export async function init(G) {
       const cave = room && room.env === 'cave';
       const k = Math.min(1, dt * 2.5);
       indoorAmb += ((cave ? 0.3 : 1) - indoorAmb) * k;
-      indoorSun += ((cave ? 0.15 : 1) - indoorSun) * k;
+      indoorSun += ((cave ? 0.04 : 1) - indoorSun) * k; // was 0.15: single facets of the shell still caught the sun, pale
+      // Weather stays outside. In a room with a box the fog shader leaves out the stretch of every sight line that
+      // is inside it (uFogRoom, fogChunk.js) and the snowfall drops the flakes that are inside it; in a cave (a
+      // polygon, no box) the fog thins as a whole. A.indoor / A.room are for anyone else who needs to know.
+      const box = room && room.box ? room.box : null;
+      if (box && box !== roomBox) {
+        roomBox = box;
+        U.uFogRoom.value.set(box.x, box.z, box.hw, box.hd);
+        U.uFogRoomK.value.x = Math.cos(box.yaw || 0);
+        U.uFogRoomK.value.y = Math.sin(box.yaw || 0);
+      }
+      const kf = Math.min(1, dt * 4);
+      U.uFogRoomK.value.z += ((box ? 1 : 0) - U.uFogRoomK.value.z) * kf;
+      if (U.uFogRoomK.value.z < 0.002) U.uFogRoomK.value.z = 0;
+      caveFog += ((room && !box ? 0.12 : 1) - caveFog) * kf;
+      A.indoor = Math.max(U.uFogRoomK.value.z, room && !box ? 1 : 0);
+      A.room = room;
     }
 
     // Key light: the sun while it is near or above the horizon, the moon at night. Both are
@@ -251,8 +268,8 @@ export async function init(G) {
     G.scene.environmentIntensity = ambMul;
 
     // Fog.
-    let fogMul = 1;
-    if (o && o.fogMul !== undefined) fogMul = lerp(1, o.fogMul, ok);
+    let fogMul = caveFog;
+    if (o && o.fogMul !== undefined) fogMul *= lerp(1, o.fogMul, ok);
     U.uFogColor.value.copy(look.fog);
     if (aur > 0) U.uFogColor.value.add(tmp.copy(AURORA_TINT).multiplyScalar(aur * 0.004));
     U.uFogSunColor.value.copy(look.fogSun);
@@ -294,8 +311,9 @@ export async function init(G) {
     gr.exposure = look.exp;
     gr.lift.copy(look.lift);
     gr.gain.copy(look.gain);
-    gr.sat = look.sat;
-    gr.contrast = 1.0 + 0.1 * (1 - W.overcast) - 0.1 * W.fogWhite;
+    // A storm drains the colour out of the valley; by a hearth the wood and the wool keep theirs.
+    gr.sat = lerp(look.sat, Math.max(look.sat, 1.0), A.indoor || 0);
+    gr.contrast = 1.0 + 0.1 * (1 - W.overcast) - 0.1 * W.fogWhite * (1 - (A.indoor || 0));
     gr.tint.copy(look.tint);
     gr.vignette = 0.3 + 0.1 * night;
     gr.grain = 0.025 + 0.02 * night;

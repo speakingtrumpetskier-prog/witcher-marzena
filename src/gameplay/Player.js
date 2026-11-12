@@ -149,7 +149,7 @@ class Player {
     c.stopUpper(0);
     c.speed = c.targetSpeed = 0;
     this.velocity.set(0, 0, 0);
-    this.lastSafe = { x, z, yaw };
+    this.lastSafe = { x, z, yaw, y: this.position.y };
     this.loco.refreshSurface();
     G.cameraRig?.snapBehind?.(yaw);
   }
@@ -168,7 +168,7 @@ class Player {
       this.dead = false;
       this.state = 'explore';
       this.exhausted = false;
-      if (!placed) this.teleport(s.x, s.z, s.yaw);
+      if (!placed) this.teleport(s.x, s.z, s.yaw, s.y);
       else this.character.stop(0);
       this.health = this.maxHealth * 0.6;
       this.stamina = this.maxStamina;
@@ -221,7 +221,14 @@ class Player {
     // Input is dead while she climbs on or off, or is thrown from the saddle: a click then must not start a swing.
     const enabled = inp.context === 'game' && !this._mounting;
     const camYaw = G.cameraRig ? G.cameraRig.yaw : cameraHeading();
-    if (enabled && inp.pressed('walk')) this.walkToggle = !this.walkToggle;
+    // Walk toggles when Alt is let go on its own. Alt+Tab, or Alt with any other key, leaves it as it was: on Windows
+    // every Alt+Tab away from the game used to flip it, and in the saddle walk mode also held Kasza out of a gallop.
+    if (enabled && inp.pressed('walk')) this._walkTap = { n: inp.keyPresses, b: inp.blurs };
+    else if (this._walkTap && !inp.down('walk')) {
+      const tap = this._walkTap;
+      this._walkTap = null;
+      if (enabled && inp.keyPresses === tap.n && inp.blurs === tap.b) this.walkToggle = !this.walkToggle;
+    }
 
     // Camera-relative input direction.
     let dirX = 0, dirZ = 0, mag = 0;
@@ -292,7 +299,7 @@ class Player {
     this._safeT -= dt;
     if (this._safeT <= 0 && this.state === 'explore' && !this.mounted) {
       this._safeT = 4;
-      this.lastSafe = { x: this.position.x, z: this.position.z, yaw: loco.yaw };
+      this.lastSafe = { x: this.position.x, z: this.position.z, yaw: loco.yaw, y: this.position.y };
     }
     updateStats(this, dt);
   }

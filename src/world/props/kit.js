@@ -575,6 +575,51 @@ export class Kit {
     return this.emit(g, 'snowMound', { uv: 'native', grime: 0, var: 0.025, tint: o.tint || 0xffffff, ...o, jitter: 0 });
   }
 
+  // A wind-sculpted drift in one skin: w long (x), d deep (z), h high, the crest toward -z with the short steep side
+  // behind it and the long slope running out toward +z; the crest rises and dips along its length, both ends taper
+  // into the ground and the rim is sunk under it. One surface, so there are no lumps and nothing floats (the drift
+  // used to be a row of half spheres with another laid across the top).
+  drift(w, h, d, o = {}) {
+    const nu = Math.max(8, Math.min(20, Math.round(w / 0.4))), nv = 8;
+    const off = this.seed * 2.3 + (o.jseed || 0);
+    const pos = [], uv = [], idx = [];
+    const crest = -0.3;
+    const ease = (t) => t * t * (3 - 2 * t);
+    for (let j = 0; j <= nv; j++) {
+      const v = -1 + (2 * j) / nv;
+      for (let i = 0; i <= nu; i++) {
+        const u = -1 + (2 * i) / nu;
+        const edge = i === 0 || i === nu || j === 0 || j === nv;
+        const half = (d / 2) * Math.sqrt(Math.max(0.02, 1 - Math.pow(Math.abs(u), 2.4))) * (1 + 0.2 * noise.noise3(u * 2.3 + off, 0.5, off));
+        const x = u * (w / 2) + (edge ? 0 : noise.noise3(u * 3 + off, v * 3, 2.7) * 0.05 * w / nu * 4);
+        const z = v * half + noise.noise3(u * 1.4 + off, 1.9, 0.3) * d * 0.12;
+        // across: steep behind the crest, a long hollow slope in front of it
+        const across = v < crest ? Math.pow(ease((v + 1) / (crest + 1)), 0.8) : Math.pow(ease((1 - v) / (1 - crest)), 1.35);
+        const along = Math.pow(Math.max(0, 1 - u * u), 0.7) * (0.74 + 0.26 * (0.5 + 0.5 * noise.noise3(u * w * 0.55 + off, 3.1, off * 0.7)));
+        const y = edge ? -0.06 : h * along * across * (1 + 0.1 * noise.noise3(x * 2.1 + off, z * 2.1, 4.4)) - 0.02;
+        pos.push(x, y, z);
+        uv.push(x / 0.8, z / 0.8);
+      }
+    }
+    for (let j = 0; j < nv; j++) for (let i = 0; i < nu; i++) {
+      const a = j * (nu + 1) + i, b = a + 1, c = a + nu + 1, e = c + 1;
+      idx.push(a, c, b, b, c, e);
+    }
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+    g.setIndex(idx);
+    g.computeVertexNormals();
+    // Snow is lit from all round: lean the normals toward the sky so the slopes do not go dark against the ground.
+    const n = g.attributes.normal;
+    for (let i = 0; i < n.count; i++) {
+      const x = n.getX(i) * 0.6, y = n.getY(i) * 0.6 + 0.4, z = n.getZ(i) * 0.6;
+      const l = Math.hypot(x, y, z) || 1;
+      n.setXYZ(i, x / l, y / l, z / l);
+    }
+    return this.emit(g, 'snowMound', { uv: 'native', grime: 0, var: 0.02, tint: o.tint || 0xffffff, ...o, jitter: 0 });
+  }
+
   // Hanging strip (ribbon, rag, banner) with wind sway. Top edge at y = 0, hangs down by len.
   hang(mat, w, len, o = {}) {
     const g = new THREE.PlaneGeometry(w, len, 1, o.sy || 4);

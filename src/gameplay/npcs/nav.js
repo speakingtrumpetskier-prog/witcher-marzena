@@ -2,7 +2,8 @@
 // the real colliders, the terrain slope and ROADS, searched with A* (road cells are cheaper, so
 // people follow streets and trampled lanes), then string-pulled into a few waypoints.
 //
-//   const nav = new Nav(G);
+//   const nav = new Nav(G);          or new Nav(G, { agent, margin, noIce, outdoor }) for a wider body: Kasza has her
+//                                    own grid (0.9 m of room, no lake ice, no floors under a roof), see Horse.js
 //   nav.ensure(x, z)                 make sure a region covers this point (built lazily, 250 x 250 m)
 //   nav.build(x0, z0, x1, z1)        (re)build one region from the current colliders
 //   nav.rebuild()                    rebuild every region (call after buildings or props are added)
@@ -53,8 +54,12 @@ class Region {
 }
 
 export class Nav {
-  constructor(G) {
+  constructor(G, o = {}) {
     this.G = G;
+    this.agent = o.agent ?? AGENT;
+    this.margin = o.margin ?? MARGIN;
+    this.noIce = !!o.noIce; // the lake is not ground (a horse)
+    this.outdoor = !!o.outdoor; // rooms are not ground either
     this.regions = [];
     this.queue = [];
     this.stats = { plans: 0, planMs: 0, maxMs: 0, buildMs: 0 };
@@ -94,6 +99,8 @@ export class Nav {
         const slope = Math.hypot(sx, sz);
         let c = 1;
         if (slope > MAX_SLOPE) flags[o] = 1;
+        if (this.noIce && world.lakeSDF && world.lakeSDF(x, z) < 1.2) flags[o] = 1;
+        if (this.outdoor && world.indoors && world.indoors(x, z)) flags[o] = 1;
         c += slope * 2.5;
         if (world.terrainAt(x, z) < 0.05 && h <= 0.05) c *= 1.2;
         cost[o] = c;
@@ -143,7 +150,7 @@ export class Nav {
     const phys = this.G.physics;
     if (!phys) return;
     const { nx, nz, flags } = R;
-    const pad = MARGIN;
+    const pad = this.margin, AGENT = this.agent, MARGIN = this.margin;
     for (const it of phys.items.values()) {
       const b = it.bounds;
       if (b.maxX + pad < R.x0 || b.minX - pad > R.x1 || b.maxZ + pad < R.z0 || b.minZ - pad > R.z1) continue;

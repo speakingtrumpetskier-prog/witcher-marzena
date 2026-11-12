@@ -19,14 +19,15 @@ export function longhouse(opts = {}) {
   const windows = [];
   for (const s of [-3.4, 3.4]) windows.push({ wall: 'front', s, y: 1.2, w: 1.05, h: 1.15, shutters: 'blue' });
   for (const wall of ['left', 'right']) for (const s of [-4.6, -1.5, 1.6, 4.4]) windows.push({ wall, s, y: 1.2, w: 1.0, h: 1.1, shutters: wall === 'left' ? 'blue' : 'red', lit: kit.chance(0.92) });
-  for (const s of [-3.2, 3.2]) windows.push({ wall: 'back', s, y: 1.2, w: 0.95, h: 1.0, shutters: 'blue', lit: kit.chance(0.6) });
+  // One back window: the chimney stands where the other was (s = 2.8). The second draw keeps the random stream as it was.
+  for (const s of [-3.2, 3.2]) { const lit = kit.chance(0.6); if (s < 0) windows.push({ wall: 'back', s, y: 1.2, w: 0.95, h: 1.0, shutters: 'blue', lit }); }
   const spec = {
     w, d, r, courses: 9, storeys: 1, interior: true, floorHoles: withCellar ? [stairHole] : [],
     pitch: 0.74, oe: 0.9, og: 0.7, snow: 0.34, paint: PAL.red, shutters: 'blue', atticLit: true,
     tieBeams: { step: 1.9 },
     doors: [
+      // (The back door at s = 3.4 opened onto the chimney outside and the stove inside: gone, with its night bolt.)
       { wall: 'front', s: 0, w: 1.5, h: 2.3, leaf: 'object', id: 'front', openState: opts.open ?? 0.0, hingeLeft: true, casing: 'red' },
-      { wall: 'back', s: 3.4, w: 1.05, h: 1.95, leaf: 'object', id: 'back', hingeLeft: false },
     ],
     windows,
     chimneys: [{ wall: 'back', s: 2.8, w: 1.9, d: 1.1 }],
@@ -109,8 +110,10 @@ export function longhouse(opts = {}) {
   }
   kit.anchor('table1', -3.1, y, 2.3);
   kit.anchor('table2', 3.1, y, 2.3);
-  // High seat (carved chair) and small desk before the partition.
-  kit.frame(0, y, pzP + 0.7, 0, () => {
+  // High seat (carved chair) before the partition, to one side of the doorway into the private room. (It stood in
+  // the middle, 0.3 m in front of that doorway: nobody could get through to the room or to the cellar stairs.)
+  const seatX = 1.95;
+  kit.frame(seatX, y, pzP + 0.7, 0, () => {
     const c = scaleC(PAL.logDark, GAIN * 1.3);
     kit.wood.box(0, 0.45, 0, 0.8, 0.1, 0.7, c, { grain: 'x' });
     kit.wood.box(0, 1.1, -0.3, 0.8, 1.4, 0.1, c, { grain: 'y' });
@@ -118,15 +121,18 @@ export function longhouse(opts = {}) {
     kit.wood.box(0.4, 0.5, 0, 0.1, 0.9, 0.7, c, { grain: 'z' });
     for (const sx of [-1, 1]) kit.wood.at(sx * 0.32, 1.85, -0.3, sx < 0 ? Math.PI : 0, (m) => { m.extrude(horseHeadShape(0.35), 0.08, scaleC(PAL.plank, GAIN), { uv: [1, 3] }); });
   });
-  kit.box(0, pzP + 0.7, 0.45, 0.4, 0);
-  kit.anchor('chair', 0, y, pzP + 0.7);
+  kit.box(seatX, pzP + 0.7, 0.45, 0.4, 0);
+  kit.anchor('chair', seatX, y, pzP + 0.7);
   rug(kit, 0, y, 0.0, 0, 2.2, 3.2, PAL.red);
   lantern(kit, -hw + 0.5, 2.5, 4.2, { intensity: 1.0 }); lantern(kit, hw - 0.5, 2.5, 4.2, { intensity: 1.0 });
   barrel(kit, hw - 0.7, y, hd - 1.0, 1.0, 0.4); kit.circle(hw - 0.7, hd - 1.0, 0.4);
   barrel(kit, -hw + 0.7, y, hd - 1.0, 1.0, 0.4); kit.circle(-hw + 0.7, hd - 1.0, 0.4);
 
   // Private room: stove under the chimney (back-wall s = 2.8 is local x = -2.8), bed, desk and shelves.
-  stove(kit, -2.8, y, -hd + r + 0.78, 0, { w: 1.8, d: 1.5, h: 1.9, name: 'stove' });
+  // The stove stands beside the stair hole, over the foot of the cellar stairs: its collision box must not reach down
+  // there (it walled off the foot of the stairs, so the only way into the cellar was off the side of the flight, and
+  // there was no way back up).
+  stove(kit, -2.8, y, -hd + r + 0.78, 0, { w: 1.8, d: 1.5, h: 1.9, name: 'stove', over: withCellar ? y : undefined });
   bed(kit, 3.9, y, -4.2, 0, 1.0, 2.1); kit.box(3.9, -4.2, 0.55, 1.05, 0);
   chest(kit, 4.1, y, -6.2, 0, 1.0, 0.6, 0.55); kit.box(4.1, -6.2, 0.5, 0.28, 0);
   table(kit, 0.6, y, -hd + 1.5, 0, 1.8, 0.8); kit.box(0.6, -hd + 1.5, 0.9, 0.4, 0);

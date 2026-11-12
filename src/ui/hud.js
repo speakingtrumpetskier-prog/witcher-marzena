@@ -246,9 +246,11 @@ export class Hud {
       if (o !== m.op) { m.op = o; m.el.style.opacity = o; }
     }
 
-    // Caption: the new objective for a few seconds, otherwise the place under the caret.
+    // Caption: the new objective for a few seconds, then the place under the caret when there is one, else the objective.
     let cap = '', kind = '';
-    if (this._objText && now - this._objShownAt < 7) { cap = this._objText; kind = 'obj'; } else if (best) { cap = best.name; kind = 'loc'; }
+    // After that the objective stays, dimmer, so what to do next is always on screen (it used to vanish after 7 s
+    // and only the journal had it).
+    if (this._objText && now - this._objShownAt < 7) { cap = this._objText; kind = 'obj'; } else if (best) { cap = best.name; kind = 'loc'; } else if (this._objText) { cap = this._objText; kind = 'objidle'; }
     const key = `${kind}|${cap}`;
     if (key !== this._capKey) {
       this._capKey = key;

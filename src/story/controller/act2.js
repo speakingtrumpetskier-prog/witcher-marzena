@@ -134,12 +134,24 @@ export function install(C) {
   // ---- the belfry: C5 ---------------------------------------------------------------------------
   if (tower?.belfry) {
     const b = tower.belfry;
+    // C5 belongs after the echo (the drag marks lead her here that night). The tower stands open on the lake from
+    // the first day, and climbing it early used to play C5 and then "Dawn." out of order, which broke the days.
     C.zone({
       id: 'belfry', x: b.table.x, z: b.table.z, r: 4.4,
-      enabled: () => !C.has('lair_seen') && C.ppos().y > b.floorY - 1.3,
+      enabled: () => C.has('echo_seen') && !C.has('lair_seen') && C.ppos().y > b.floorY - 1.3,
       onEnter: async () => {
         await C.sleep(0.9);
         await C.scene('c5_lair');
+      },
+    });
+    // Up here before the story has sent her: she sees the table and says so, once.
+    C.zone({
+      id: 'belfry_early', x: b.table.x, z: b.table.z, r: 4.4,
+      enabled: () => !C.has('echo_seen') && !C.has('belfry_early') && C.ppos().y > b.floorY - 1.3,
+      onEnter: async () => {
+        C.set('belfry_early');
+        await C.sleep(1.2);
+        C.say("A table laid for seventeen. The bread's frozen.", 3.6);
       },
     });
     // What is left on the table once she has seen it.
