@@ -1,7 +1,10 @@
 // Blowing ground snow: low translucent sheets that hug the terrain and ice around the camera,
 // with long wind-aligned streaks scrolling downwind. Three stacked layers (ankle, knee, waist)
 // in one draw call. The grid is snapped to its own spacing so it never swims, and heights are
-// resampled from G.world only when the camera has moved a few meters.
+// resampled from G.world only when the camera has moved a few meters. The sheets stay out of rooms: a vertex over a
+// registered interior (a house, the cellar, the ice cave) or within a cell of one carries no snow, so nothing blows
+// through the tavern or hangs between the cellar and the floor above it; and the whole layer is off while the camera
+// is under the ground.
 //
 //   createDrift(G) -> { mesh, update(dt, t) }  (strength from G.weather.params.drift and wind)
 import * as THREE from 'three';
@@ -12,17 +15,20 @@ const LAYERS = [0.06, 0.32, 0.8];
 
 const VERT = /* glsl */ `
 attribute float aLayer;
+attribute float aOpen;
 uniform sampler2D uNoise;
 uniform vec2 uWindDir;
 uniform float uTravel;
 varying vec3 vWorld;
 varying float vLayer;
+varying float vOpen;
 varying vec2 vQ;
 #ifdef USE_FOG
   varying vec3 vFogWorldPos;
 #endif
 void main() {
   vec3 p = position;
+  vOpen = aOpen;
   vec2 w = uWindDir;
   vec2 q = vec2(dot(p.xz, w), dot(p.xz, vec2(-w.y, w.x)));
   q.x -= uTravel * (1.0 + aLayer * 0.35);
@@ -47,6 +53,7 @@ uniform vec3 uKey;
 uniform float uTime;
 varying vec3 vWorld;
 varying float vLayer;
+varying float vOpen;
 varying vec2 vQ;
 ${FOG_PARS_FRAGMENT}
 void main() {
@@ -60,7 +67,7 @@ void main() {
   float d = length(vWorld.xz - cameraPosition.xz);
   float fade = (1.0 - smoothstep(uRadius * 0.55, uRadius, d)) * smoothstep(0.6, 4.0, d);
   float layerA = vLayer < 0.5 ? 0.6 : (vLayer < 1.5 ? 0.38 : 0.2);
-  float alpha = m * fade * layerA * clamp(uDrift * 1.3, 0.0, 1.0);
+  float alpha = m * fade * layerA * clamp(uDrift * 1.3, 0.0, 1.0) * vOpen * vOpen;
   if (alpha < 0.004) discard;
   vec3 col = uAmb + uKey;
   gl_FragColor = vec4(col, alpha);
@@ -78,6 +85,7 @@ export function createDrift(G) {
   const count = N * N * LAYERS.length;
   const pos = new Float32Array(count * 3);
   const layer = new Float32Array(count);
+  const open = new Float32Array(count).fill(1);
   const idx = [];
   for (let l = 0; l < LAYERS.length; l++) {
     const base = l * N * N;
@@ -92,6 +100,9 @@ export function createDrift(G) {
   posAttr.setUsage(THREE.DynamicDrawUsage);
   geo.setAttribute('position', posAttr);
   geo.setAttribute('aLayer', new THREE.BufferAttribute(layer, 1));
+  const openAttr = new THREE.BufferAttribute(open, 1);
+  openAttr.setUsage(THREE.DynamicDrawUsage);
+  geo.setAttribute('aOpen', openAttr);
   geo.setIndex(idx);
   geo.boundingSphere = new THREE.Sphere(new THREE.Vector3(), 1e6);
 
@@ -124,23 +135,34 @@ export function createDrift(G) {
   mesh.visible = false;
   G.scene.add(mesh);
 
-  let cx = 1e9, cz = 1e9;
+  let cx = 1e9, cz = 1e9, roomsSeen = -1;
+  // Under a roof, or within a cell of one (so no triangle with snow on it reaches inside).
+  const AROUND = [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1], [0.7, 0.7], [-0.7, 0.7], [0.7, -0.7], [-0.7, -0.7]];
+  function roofed(w, x, z) {
+    if (!w.roomAt) return false;
+    for (const [ax, az] of AROUND) if (w.roomAt(x + ax * step, z + az * step)) return true;
+    return false;
+  }
   function rebuild(nx, nz) {
     cx = nx; cz = nz;
     const half = SIZE * 0.5;
     const w = G.world;
+    roomsSeen = w?.rooms?.length ?? 0;
     for (let j = 0; j < N; j++) {
       const z = cz - half + j * step;
       for (let i = 0; i < N; i++) {
         const x = cx - half + i * step;
         const h = w && w.grid ? w.heightAt(x, z) : 0;
+        const op = w && roomsSeen && roofed(w, x, z) ? 0 : 1;
         for (let l = 0; l < LAYERS.length; l++) {
-          const o = (l * N * N + j * N + i) * 3;
+          const k = l * N * N + j * N + i, o = k * 3;
           pos[o] = x; pos[o + 1] = h + LAYERS[l]; pos[o + 2] = z;
+          open[k] = op;
         }
       }
     }
     posAttr.needsUpdate = true;
+    openAttr.needsUpdate = true;
   }
 
   const out = { mesh };
@@ -149,11 +171,13 @@ export function createDrift(G) {
     const wind = G.weather.wind;
     const amount = W.drift * Math.min(1, 0.25 + wind.strength * 0.9 + wind.gust * 0.5);
     uniforms.uDrift.value = amount;
-    mesh.visible = amount > 0.02;
-    if (!mesh.visible) return;
     const cam = G.camera.position;
+    // Under the ground (the cellar, the ice cave) the sheets would be seen from below, cutting through the rock.
+    const under = !!G.world?.terrainAt && cam.y < G.world.terrainAt(cam.x, cam.z) - 1.0;
+    mesh.visible = amount > 0.02 && !under;
+    if (!mesh.visible) return;
     const nx = Math.round(cam.x / step) * step, nz = Math.round(cam.z / step) * step;
-    if (Math.abs(nx - cx) > step * 1.5 || Math.abs(nz - cz) > step * 1.5) rebuild(nx, nz);
+    if (Math.abs(nx - cx) > step * 1.5 || Math.abs(nz - cz) > step * 1.5 || (G.world?.rooms?.length ?? 0) !== roomsSeen) rebuild(nx, nz);
     uniforms.uWindDir.value.copy(wind.dir);
     const speed = 2.5 + wind.strength * 9 + wind.gust * 6;
     if (!G.shot) uniforms.uTravel.value += speed * dt;

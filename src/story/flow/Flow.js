@@ -35,13 +35,20 @@ export class Flow {
     G.events.on('time:hour', nightRule);
     G.events.on('time:jump', nightRule);
 
-    // Autosave on quest progress, once things settle.
+    // Autosave on quest progress, once things settle. Most progress happens inside a conversation or a scene: the
+    // save waits for it to end (it used to be dropped, and a death then threw her back whole stages).
     let saveT = 0;
+    const autosave = (tries) => {
+      if (this.story.noAutosave) return;
+      if ((this.story.busy || G.player?.dead || G.player?._respawning) && tries > 0) { saveT = setTimeout(autosave, 1000, tries - 1); return; }
+      if (!this.story.busy && !G.player?.dead) this.save();
+    };
     G.events.on('quest:update', () => {
       if (G.shot || this.story.noAutosave) return;
       clearTimeout(saveT);
-      saveT = setTimeout(() => { if (!this.story.busy) this.save(); }, 2500);
+      saveT = setTimeout(autosave, 2500, 600);
     });
+    G.events.on('reset', () => clearTimeout(saveT));
   }
 
   // Ground position of the player (or the camera when there is no player, for debugging).
@@ -129,6 +136,14 @@ export class Flow {
     const G = this.G;
     if (!G.state.load()) return false;
     this.apply(G.state.data);
+    // A load in the middle of play (a death): she is somewhere else in an earlier state, so every zone starts over,
+    // as it does on Continue from the title. Without this a zone she died in never fires again until she walks out
+    // of it and back (the ring of marzanny did not stand until she was among them).
+    for (const z of this.zones.values()) {
+      if (!z.inside) continue;
+      z.inside = false;
+      try { z.onLeave?.(z); } catch (e) { console.error(`[zone ${z.id}]`, e); }
+    }
     return true;
   }
 
@@ -141,12 +156,13 @@ export class Flow {
     }
     if (d.weather) G.weather?.set?.(d.weather, 0);
     if (G.weather && d.weatherAuto != null && 'auto' in G.weather) G.weather.auto = d.weatherAuto;
-    if (d.player) this.place(d.player.x, d.player.z, d.player.yaw);
+    // The saved height picks the floor she stood on (the belfry, the ice cave under the cliff), not the ground above or below it.
+    if (d.player) this.place(d.player.x, d.player.z, d.player.yaw, d.player.y);
   }
 
-  place(x, z, yaw = 0) {
+  place(x, z, yaw = 0, y) {
     const G = this.G;
-    if (G.player?.teleport) G.player.teleport(x, z, yaw);
+    if (G.player?.teleport) G.player.teleport(x, z, yaw, y);
     else if (G.player?.character?.setPosition) { G.player.character.setPosition(x, z); G.player.character.yaw = yaw; }
     G.events.emit('story:place', { x, z, yaw });
   }

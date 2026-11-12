@@ -123,16 +123,36 @@ export async function init(G_) {
     return 'explore';
   }
 
+  // Indoors the lens stays in the room she stands in. A doorway or a window has no collider, so without this the
+  // lens slips out through it and looks back at the door from outside (in Hanka's hut, nearly always). Returns how
+  // far it may travel from `origin` along `dir` before it would leave the room's box, less the wall and the lens.
+  function roomClear(P, origin, dir, len) {
+    const room = G_.world?.roomAt?.(P.position.x, P.position.z, P.position.y);
+    const b = room?.box;
+    if (!b) return len;
+    const c = Math.cos(b.yaw || 0), s = Math.sin(b.yaw || 0);
+    const m = 0.52; // the box is the outer footprint: log wall, then the lens
+    const hw = Math.max(0.3, b.hw - m), hd = Math.max(0.3, b.hd - m);
+    const rx = origin.x - b.x, rz = origin.z - b.z;
+    const ox = rx * c - rz * s, oz = rx * s + rz * c;
+    const dx = dir.x * c - dir.z * s, dz = dir.x * s + dir.z * c;
+    let t = len;
+    if (dx > 1e-5) t = Math.min(t, (hw - ox) / dx); else if (dx < -1e-5) t = Math.min(t, (-hw - ox) / dx);
+    if (dz > 1e-5) t = Math.min(t, (hd - oz) / dz); else if (dz < -1e-5) t = Math.min(t, (-hd - oz) / dz);
+    return Math.max(0, t);
+  }
+
   // How far a sphere of radius r can travel from `origin` along `dir` (unit) before it meets the terrain or a
   // collider. Samples every 14 cm against one gathered candidate list, which is plenty for posts and corners.
-  function castClear(origin, dir, len, r) {
+  function castClear(origin, dir, len, r, under = false) {
     const phys = G_.physics, world = G_.world;
     if (!phys) return len;
     const cand = phys.query(origin.x + dir.x * len * 0.5, origin.z + dir.z * len * 0.5, len * 0.5 + r + 0.5);
     const step = 0.14;
     for (let t = 0.2; t <= len + 1e-4; t += step) {
       const px = origin.x + dir.x * t, py = origin.y + dir.y * t, pz = origin.z + dir.z * t;
-      if (world?.heightAt && py < world.heightAt(px, pz) + 0.32) return Math.max(0, t - step);
+      // (under: she is below the terrain, in a cellar or a cave; the hill over her head is not in the lens's way)
+      if (!under && world?.heightAt && py < world.heightAt(px, pz) + 0.32) return Math.max(0, t - step);
       for (let i = 0; i < cand.length; i++) {
         const it = cand[i];
         if (py + r < it.y0 || py - r > it.y1) continue;
@@ -298,13 +318,16 @@ export async function init(G_) {
     _want.x += rx * sideLen;
     _want.z += rz * sideLen;
 
+    // Is she under the terrain (the longhouse cellar, the ice cave under the cliff)?
+    const under = !!G_.world?.terrainAt && P.position.y < G_.world.terrainAt(P.position.x, P.position.z) - 1.0;
     // Collision: pull in at once when something is between the head and the camera, ease back out after a
     // short hold so a pole edge does not make the lens flutter.
     _nd.copy(_want).sub(_pivot);
     const len = _nd.length();
     if (len > 1e-3 && G_.physics) {
       _nd.multiplyScalar(1 / len);
-      const free = castClear(_pivot, _nd, len, R.mode === 'interior' ? LENS_TIGHT : LENS);
+      let free = castClear(_pivot, _nd, len, R.mode === 'interior' ? LENS_TIGHT : LENS, under);
+      if (R.mode === 'interior') free = Math.min(free, roomClear(P, _pivot, _nd, len));
       const kk = free < len ? clamp((free - 0.04) / len, 0.18, 1) : 1;
       if (kk < R.collK || R.snap) { R.collK = kk; R.collHold = 0.25; } else {
         R.collHold = Math.max(0, R.collHold - dt);
@@ -313,9 +336,17 @@ export async function init(G_) {
       _want.copy(_pivot).addScaledVector(_nd, len * R.collK);
     }
     if (G_.world?.heightAt) {
-      // The lens is a few centimetres wide: keep every edge of it above the ground.
-      const w = G_.world, e = 0.35;
-      const gy = Math.max(w.heightAt(_want.x, _want.z), w.heightAt(_want.x + e, _want.z), w.heightAt(_want.x - e, _want.z), w.heightAt(_want.x, _want.z + e), w.heightAt(_want.x, _want.z - e)) + 0.4;
+      // The lens is a few centimetres wide: keep every edge of it above the ground. The ground is what she walks on:
+      // the terrain, or a floor near her own level (the frozen mound at the falls, a porch). Under the terrain (a
+      // cellar, the ice cave) only the floor counts: the hill overhead used to drag the lens up through the roof.
+      const w = G_.world, e = 0.35, fy = P.position.y + 1.2;
+      const top = (x, z) => {
+        const f = w.floorAt ? w.floorAt(x, z, fy) : null;
+        if (under) return f == null ? P.position.y : f;
+        const t = w.heightAt(x, z);
+        return f == null ? t : Math.max(t, f);
+      };
+      const gy = Math.max(top(_want.x, _want.z), top(_want.x + e, _want.z), top(_want.x - e, _want.z), top(_want.x, _want.z + e), top(_want.x, _want.z - e)) + 0.4;
       if (_want.y < gy) _want.y = gy;
     }
 

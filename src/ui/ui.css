@@ -96,6 +96,7 @@
 .mz-ccap { position: absolute; left: 0; right: 0; top: 49px; text-align: center; font-family: var(--mz-serif); font-style: italic; font-size: 17px; letter-spacing: 0.03em; color: rgba(240, 232, 218, 0.82); text-shadow: var(--mz-halo); opacity: 0; transition: opacity 0.5s ease; white-space: nowrap; }
 .mz-ccap.on { opacity: 1; }
 .mz-ccap[data-kind='obj'] { color: var(--mz-bone-hi); font-size: 16px; }
+.mz-ccap[data-kind='objidle'] { color: var(--mz-bone-hi); font-size: 14px; opacity: 0.62; }
 
 /* ---------------------------------------------------------------- Subtitles */
 .mz-lb { z-index: 30; }

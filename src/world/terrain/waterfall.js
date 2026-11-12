@@ -92,6 +92,57 @@ function column(len, top, rad, foot, seed) {
   return g;
 }
 
+// Height grid of the upward faces of some geometries: { x0, z0, cell, nx, nz, h (Float32Array, -Infinity where there
+// is nothing), at(x, z) -> height or null }. Bilinear between the cells that have ice.
+function footGrid(geos, baseY, cell = 0.25) {
+  let x0 = Infinity, z0 = Infinity, x1 = -Infinity, z1 = -Infinity;
+  for (const g of geos) { g.computeBoundingBox(); const b = g.boundingBox; x0 = Math.min(x0, b.min.x); x1 = Math.max(x1, b.max.x); z0 = Math.min(z0, b.min.z); z1 = Math.max(z1, b.max.z); }
+  x0 = Math.floor(x0) - 1; z0 = Math.floor(z0) - 1; x1 = Math.ceil(x1) + 1; z1 = Math.ceil(z1) + 1;
+  const nx = Math.round((x1 - x0) / cell) + 1, nz = Math.round((z1 - z0) / cell) + 1;
+  const h = new Float32Array(nx * nz).fill(-Infinity);
+  const a = new THREE.Vector3(), b = new THREE.Vector3(), c = new THREE.Vector3();
+  for (const g of geos) {
+    const p = g.attributes.position, idx = g.index;
+    const tris = idx ? idx.count / 3 : p.count / 3;
+    for (let t = 0; t < tris; t++) {
+      const i0 = idx ? idx.getX(t * 3) : t * 3, i1 = idx ? idx.getX(t * 3 + 1) : t * 3 + 1, i2 = idx ? idx.getX(t * 3 + 2) : t * 3 + 2;
+      a.fromBufferAttribute(p, i0); b.fromBufferAttribute(p, i1); c.fromBufferAttribute(p, i2);
+      // upward faces only (either winding)
+      const ny = (b.z - a.z) * (c.x - a.x) - (b.x - a.x) * (c.z - a.z);
+      const area2 = Math.abs(ny);
+      if (area2 < 1e-7) continue;
+      const ia = Math.max(0, Math.floor((Math.min(a.x, b.x, c.x) - x0) / cell)), ib = Math.min(nx - 1, Math.ceil((Math.max(a.x, b.x, c.x) - x0) / cell));
+      const ja = Math.max(0, Math.floor((Math.min(a.z, b.z, c.z) - z0) / cell)), jb = Math.min(nz - 1, Math.ceil((Math.max(a.z, b.z, c.z) - z0) / cell));
+      for (let j = ja; j <= jb; j++) {
+        const z = z0 + j * cell;
+        for (let i = ia; i <= ib; i++) {
+          const x = x0 + i * cell;
+          // barycentric in XZ
+          const w0 = ((b.z - c.z) * (x - c.x) + (c.x - b.x) * (z - c.z)) / ((b.z - c.z) * (a.x - c.x) + (c.x - b.x) * (a.z - c.z));
+          const w1 = ((c.z - a.z) * (x - c.x) + (a.x - c.x) * (z - c.z)) / ((b.z - c.z) * (a.x - c.x) + (c.x - b.x) * (a.z - c.z));
+          const w2 = 1 - w0 - w1;
+          if (w0 < -0.02 || w1 < -0.02 || w2 < -0.02) continue;
+          const y = w0 * a.y + w1 * b.y + w2 * c.y;
+          const o = j * nx + i;
+          if (y > h[o]) h[o] = y;
+        }
+      }
+    }
+  }
+  const grid = { x0, z0, cell, nx, nz, h, baseY };
+  grid.at = (x, z) => {
+    const fx = (x - x0) / cell, fz = (z - z0) / cell;
+    const i = Math.floor(fx), j = Math.floor(fz);
+    if (i < 0 || j < 0 || i >= nx - 1 || j >= nz - 1) return null;
+    const u = fx - i, v = fz - j;
+    const q = (ii, jj) => { const y = h[jj * nx + ii]; return y > -1e8 ? y : baseY - 0.5; };
+    const h00 = h[j * nx + i], h10 = h[j * nx + i + 1], h01 = h[(j + 1) * nx + i], h11 = h[(j + 1) * nx + i + 1];
+    if (!(h00 > -1e8) && !(h10 > -1e8) && !(h01 > -1e8) && !(h11 > -1e8)) return null;
+    return (q(i, j) * (1 - u) + q(i + 1, j) * u) * (1 - v) + (q(i, j + 1) * (1 - u) + q(i + 1, j + 1) * u) * v;
+  };
+  return grid;
+}
+
 export function buildWaterfall(G, { rockMat }) {
   const group = new THREE.Group();
   group.name = 'frozenFalls';
@@ -114,6 +165,8 @@ export function buildWaterfall(G, { rockMat }) {
   }
 
   const geos = [];
+  const pillars = []; // { x, z, r, y0 }: the curtain's columns that reach the ground (colliders, Water.js)
+  const footGeos = []; // the splash mound and lumps: what she walks on at the foot of the falls
   // Ice cap where the river pours over the lip.
   {
     const g = new THREE.SphereGeometry(1, 20, 12, 0, Math.PI * 2, 0, Math.PI / 2);
@@ -142,11 +195,15 @@ export function buildWaterfall(G, { rockMat }) {
     const rad = (full ? 0.5 + r() * 0.7 : 0.14 + r() * 0.38) * (0.7 + 0.5 * center) * (inGap ? 0.6 : 1);
     const x = FALLS.curtainX + (r() - 0.5) * 2.4 + (full ? -0.4 : 0.3);
     geos.push(column(len, new THREE.Vector3(x, lipY + 0.6, z), rad, full, 100 + i));
+    // Anything that comes down to head height is solid: a pillar she walks round, not through.
+    if (lipY + 0.6 - len < poolY + 3.4) pillars.push({ x, z, r: full ? rad * 0.95 : Math.max(0.12, rad * 0.45), y0: lipY + 0.6 - len });
   }
   // A thick fused core so the curtain reads as a solid frozen flow, not loose sticks.
   for (let k = 0; k < 4; k++) {
     const z = zc + 0.5 + k * 2.6;
-    geos.push(column(lipY + 0.8 - poolY, new THREE.Vector3(FALLS.curtainX - 0.3 + (r() - 0.5), lipY + 0.8, z), 1.5 + r() * 0.6, true, 500 + k));
+    const cx = FALLS.curtainX - 0.3 + (r() - 0.5), cr = 1.5 + r() * 0.6;
+    geos.push(column(lipY + 0.8 - poolY, new THREE.Vector3(cx, lipY + 0.8, z), cr, true, 500 + k));
+    pillars.push({ x: cx, z, r: cr * 0.95, y0: poolY });
   }
   // Icicle fringe along the lintel's front edge beyond the curtain.
   for (let i = 0; i < 46; i++) {
@@ -168,6 +225,7 @@ export function buildWaterfall(G, { rockMat }) {
     g.translate(FALLS.curtainX - 2.5 + (r() - 0.5) * 4, poolY + 0.2, zc + (r() - 0.5) * 16);
     g.computeVertexNormals();
     geos.push(g);
+    footGeos.push(g);
   }
   // Splash mound at the pool.
   {
@@ -182,7 +240,11 @@ export function buildWaterfall(G, { rockMat }) {
     g.translate(FALLS.curtainX - 1.0, poolY - 0.4, zc);
     g.computeVertexNormals();
     geos.push(g);
+    footGeos.push(g);
   }
+  // The top of that ice as a height grid, taken from the triangles themselves (0.25 m cells), so the surface she
+  // sees is the surface she stands on. It had no collision at all: she waded through a 3 m mound up to the waist.
+  const foot = footGrid(footGeos, poolY);
   for (const g of geos) { g.deleteAttribute('uv'); }
   const iceGeo = mergeGeometries(geos, false);
   const ice = new THREE.Mesh(iceGeo, mat);
@@ -233,6 +295,7 @@ export function buildWaterfall(G, { rockMat }) {
     lip: new THREE.Vector3(FALLS.curtainX, lipY + 1.5, zc),
     base: new THREE.Vector3(FALLS.curtainX - 2, poolY, zc),
     caveMouth: { x: FALLS.x + 1, y: FALLS.bottom + 0.3, z: FALLS.caveZ, w: FALLS.caveW * 2 - 3, h: lipY - FALLS.bottom - 1, depth: 6, yaw: -Math.PI / 2 },
+    foot, pillars, poolY, lipY,
   };
   return {
     group, info,

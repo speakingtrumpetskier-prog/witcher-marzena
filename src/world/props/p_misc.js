@@ -245,14 +245,10 @@ export function snowDrift(o = {}) {
   const k = new Kit('snowDrift', o);
   const w = (o.width || 3.0) + k.rs(0.4), d = (o.depth || 1.0) + k.rs(0.2), h = (o.height || 0.6) + k.rs(0.1);
   k.push({ yaw: o.yaw || 0 });
-  const n = Math.max(3, Math.round(w / 0.9));
-  for (let i = 0; i < n; i++) {
-    const x = -w / 2 + (i + 0.5) * (w / n);
-    const hh = h * k.r(0.55, 1.0) * (1 - Math.pow((2 * x) / w, 2) * 0.45);
-    k.mound(w / n * 1.9, hh, d * k.r(0.8, 1.2), { pos: [x, -0.02, k.rs(0.12)], rot: [0, k.rs(0.2), 0], jseed: i + 1 });
-  }
-  // A scalloped crest ridge.
-  k.mound(w * 0.9, h * 0.45, d * 0.35, { pos: [0, h * 0.55, -d * 0.25], jseed: 9 });
+  // One skin; a little deeper than it was asked for, since it now runs out to nothing instead of ending in a wall.
+  k.drift(w * 1.08, h, d * 1.5, { pos: [0, 0, d * 0.1], jseed: 1 });
+  // Long drifts get a second, lower tongue blown out from one end.
+  if (w > 3.4) k.drift(w * 0.5, h * 0.5, d * 1.1, { pos: [(k.rnd() < 0.5 ? -1 : 1) * w * 0.3, 0, d * 0.75], rot: [0, k.rs(0.35), 0], jseed: 5 });
   k.pop();
   k.ud.align = 0.5;
   return k.build();

@@ -12,6 +12,7 @@
 
 export function install(C) {
   clockAndWeather(C);
+  music(C);
   resting(C);
   gear(C);
   locks(C);
@@ -69,6 +70,45 @@ function clockAndWeather(C) {
   C.on('rest', apply);
   C.on('loaded', () => C.later(0.5, apply));
   C.watch('dawn_done', () => C.later(2, apply));
+}
+
+// ---- the music of walking about -------------------------------------------------------------------------------
+// Scenes choose the music at their beats (the pass, the reveal, the echo, the rite) and what they choose stays.
+// Between them the exploration music follows the clock and the place: the day suite in the village (`village`) or
+// out in the valley (`wild`), and the night's own (`night`) after dark. Until now whatever the last scene left kept
+// playing: the village tune all night on day 1, and after Continue the title's theme for as long as she walked.
+function music(C) {
+  const { G } = C;
+  const AMBIENT = new Set(['village', 'wild', 'night']);
+  const V = C.L?.village?.center || { x: 0, z: 115 };
+  let inVillage = false, t = 0, since = 0, lastMood = null;
+  const want = () => {
+    if (!C.has('prologue_done')) return 'pass';
+    if (C.has('ending')) return C.flag('ending') === 'nothing_changes' ? 'sorrow' : 'thaw';
+    const p = C.ppos();
+    const d = Math.hypot(p.x - V.x, p.z - V.z);
+    inVillage = inVillage ? d < 150 : d < 118;
+    if (G.time?.isNight) return 'night';
+    return inVillage ? 'village' : 'wild';
+  };
+  G.addSystem('ctl-music', (dt) => {
+    const A = G.audio;
+    if (!A?.setMood) return;
+    if (A.mood !== lastMood) { lastMood = A.mood; since = 0; } else since += dt;
+    t -= dt;
+    if (t > 0) return;
+    t = 3;
+    if (C.busy() || G.combat?.inCombat || C.has('rite_started') && !C.has('ending') || !C.has('prologue_done')) return;
+    // What a scene left playing rides on with her (the reveal's theme down into the valley, the sorrow after the echo
+    // out to the tower); once it has had four minutes, the hour and the place take over again.
+    const free = AMBIENT.has(A.mood) || since > 240;
+    if (!free || C.has('ending')) return;
+    const w = want();
+    if (w !== A.mood) A.setMood(w, { fade: 7 });
+  }, 60);
+  // Continue: the title's theme is still playing. Go to what belongs to the hour and the place (the rite's own
+  // music comes back with the rite, finale.js).
+  C.on('story:continue', () => C.later(1.2, () => { if (!(C.has('rite_started') && !C.has('ending'))) G.audio?.setMood?.(want(), { fade: 4 }); }));
 }
 
 // ---- resting ---------------------------------------------------------------------------------------
@@ -138,7 +178,6 @@ function locks(C) {
   const { G } = C;
   const DOORS = [
     { id: 'longhouse:front', from: 23, to: 6.5, who: 'Bogdan', line: 'Not tonight.' },
-    { id: 'longhouse:back', from: 23, to: 6.5, who: 'Bogdan', line: 'Not tonight.' },
     { id: 'hanka:front', from: 22, to: 6, who: 'Hanka', line: 'Not now.' },
   ];
   const inWindow = (h, a, b) => (a <= b ? h >= a && h < b : h >= a || h < b);

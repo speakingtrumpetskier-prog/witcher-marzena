@@ -82,6 +82,40 @@ Measured with the headless GPU harness (medium, 14:00, clear; the heavy frames, 
 Checks (a throwaway harness under `node_modules/.mz-tmp`, not committed): no density-pass prop within 0.9 m plus its radius of any outdoor station, door or story anchor (the square's standing places, doors and the stable front are claimed up front in `dress_lanes.js`); the NPC nav grid plans the same 115 of 136 outdoor stations as before (the rest are rooftops, kids on the sled hill and far doors, unchanged). Playthroughs 291 / 291 / 292, zero fails, and one at medium quality 291.
 Rough: the south lane clusters are mostly behind the camera in the usual view from the shrine end of the square, the east approach thins out past 150 m by design, and the snow fence drifts are white on white. The roadside-encounters builder works in `src/story`; nothing here touches it, but encounters that spawn props on the pass road will not know about the stakes and clusters.
 
+## First-time player pass, 2026-11-12 (lead, cloud)
+Brief: enter the game as a new player, find what does not work, fix it. Method: the story autopilot now walks with the
+real controls (`walk=1`), wanders (`wander=1`), dies (`die=`), saves and continues (`scripts/savetest.mjs`), and
+`scripts/tour.mjs` photographs many places from one world load. Results at the end of the pass: three endings 433/433/435
+with 0 failed; on foot 521/0; every stage boundary crossed by a real save and a fresh page with 0 failed; deaths at the
+wolves, the marzanny and the boss recover (459/0); the curious player sets off nothing out of order (111/0).
+
+Fixed (each was reachable in ordinary play):
+- Story order: C5 The Lair played whenever she stood in the belfry, so climbing the tower on day 1 skipped the story to
+  day 2. The belfry zone now waits for the echo; before it she gets one line at the table (needs a voice clip).
+- Saves: the saved height is kept (a save in the ice cave reloaded on the cliff top, in the belfry at the tower's foot);
+  an autosave that fell inside a conversation or a scene was dropped, now it waits for the end; after a death the load
+  puts back the clues she had already examined (the echo could be gone for good, the story stuck) and starts every
+  trigger zone over (the ring of marzanny did not stand again until she was among them).
+- Movement: built floors have rails (stepping off the tower stairs or the belfry put her on the ground in one frame;
+  she slides along the edge now); Hanka's hut and the workshop had ground poking through the floor; the frozen foot of
+  the falls is walkable and its columns are solid.
+- Doors: the tavern and longhouse back doors opened into the chimney outside and the fireplace inside; removed.
+- Interaction: the reeve's ledger in the cellar could be read through the floor of the room above.
+- Camera: under the ground (cellar, ice cave) the lens was pushed up to the surface; indoors it stays inside the room.
+- Weather indoors: fog is left out along the part of a sight line that is inside the camera's room (uFogRoom in
+  fogChunk.js), snowflakes inside the room are dropped, the blowing-snow sheets stay out of rooms and are off under
+  the ground, and a storm no longer drains the colour by the hearth. A blizzard used to fill the tavern.
+- Snow drifts are one sculpted skin (they were a row of half spheres with another floating across the top).
+- Music: the exploration music follows the hour and the place (village, valley, night) between scenes; what a scene
+  leaves playing gives way after four minutes. The night has its own slower suite.
+- HUD: the objective shows under the compass when nothing else does.
+
+Open from this pass:
+- The night suite and the day or night switching have not been heard by a person.
+- The shelter scene cameras and the C2 frames are still not rendered (`scripts/cinesheets.mjs` is the tool).
+- The fireplace flame reads as a flat pale shape in stills; the cave's far end shows pale flat polygons.
+- Small drops (under 1.4 m) still snap; there is no fall.
+
 ## Polish list (lead, integration pass)
 - Done (2026-10-11): Hanka's door never bolts with Vesna inside (talking past 22:00 shut her in; new playthrough check); audio output buffer 40 ms (was 10 ms 'interactive'; one dropout in 30 s under CPU contention at 10 ms, none larger), k-rate filter sweeps in instruments and ambience (about 10 to 15 percent less audio-thread CPU). Watchtower: blizzard to the hearth, 'Shelter for the night', c2_shelter at dusk, C2 reveal in the morning (day 0 is the prologue, the night sets day 1 at 7:45). Day music: village and wild are one slow daylight suite (src/audio/music/moods/day.js, 52 to 60 bpm, 5.5 to 7 minutes a round).
 - Open from that pass (pushed at the user's call without the call and step playthroughs; strike passed 432/0 on the watchtower branch before the merge): the shelter scene's new camera positions are not rendered (the first render had a camera in the woodpile and the fire close-up read as orange blobs); C2's frames want one look (Kasza's start moved); the night mood is unchanged and village/wild do not yet switch to night after dark (no clock check picks music); the day suite's final levels and the drone's softer second oscillator are rendered once at 40 s only (no clipping, peaks -5 and -12 dB); DESIGN.md music section not updated.

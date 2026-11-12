@@ -2,7 +2,8 @@
 // along their screen-space motion, so slow snow reads as soft round flakes and blizzard snow as
 // horizontal streaks. Flakes live in a box that wraps around the camera (world anchored, so
 // moving through them is correct). Lit by the key light and sky, forward-scatter sparkle toward
-// the sun, fogged like everything else.
+// the sun, fogged like everything else. Nothing falls indoors: flakes inside the room the camera is in are dropped
+// (the room box the fog uses, uFogRoom), and under rock (a cave has no box) the whole fall is off.
 //
 //   createSnowfall(G) -> { mesh, update(dt, t), density }  (density follows G.weather.params)
 import * as THREE from 'three';
@@ -20,6 +21,8 @@ uniform float uFlutter;
 uniform float uFlakeTime;
 uniform float uTurb;
 uniform vec2 uViewport;
+uniform vec4 uFogRoom;
+uniform vec3 uFogRoomK;
 varying vec2 vUv;
 varying float vLen;
 varying float vAlpha;
@@ -68,6 +71,11 @@ void main() {
   float nearFade = smoothstep(0.45, 1.6, dist);
   float farFade = 1.0 - smoothstep(uBox * 0.36, uBox * 0.5, max(max(abs(rel.x), abs(rel.y)), abs(rel.z)));
   vAlpha = cover * spread * nearFade * farFade * (0.55 + 0.45 * s);
+  if (uFogRoomK.z > 0.001) {
+    vec2 ro = wp.xz - uFogRoom.xy;
+    vec2 rl = abs(vec2(ro.x * uFogRoomK.x - ro.y * uFogRoomK.y, ro.x * uFogRoomK.y + ro.y * uFogRoomK.x));
+    if (rl.x < uFogRoom.z && rl.y < uFogRoom.w) vAlpha *= 1.0 - uFogRoomK.z;
+  }
   gl_Position = vec4(px / (uViewport * 0.5) * c1.w, c1.z, c1.w);
 }
 `;
@@ -156,7 +164,8 @@ export function createSnowfall(G) {
     const dens = Math.pow(Math.min(1, W.snowfall), 0.8);
     out.density = dens;
     geo.instanceCount = Math.floor(MAX * dens);
-    mesh.visible = geo.instanceCount > 0;
+    const room = G.atmosphere?.room;
+    mesh.visible = geo.instanceCount > 0 && !(room && !room.box);
     if (!mesh.visible) return;
 
     const ws = (wind.strength * 13 + wind.gust * 7) * (0.35 + 0.65 * W.snowfall);

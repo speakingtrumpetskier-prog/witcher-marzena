@@ -23,6 +23,10 @@ export const RADIUS = 0.38;
 // Locked on, her speed against what she would run at: sideways and backwards (the clips in clips/strafe.js are cut for these).
 export const STRAFE = { side: 0.84, back: 0.62 };
 
+// A drop deeper than this (m) off a built floor is refused; she slides along the edge at these angles (rad), least first.
+const LEDGE = 1.4;
+const LEDGE_SLIDE = [0.5, -0.5, 1.0, -1.0, 1.35, -1.35];
+
 export class Locomotion {
   constructor(P) {
     this.P = P;
@@ -143,15 +147,36 @@ export class Locomotion {
       dz -= comp * s.uz;
     }
     const ox = pos.x, oy = pos.y, oz = pos.z;
+    if (this._step(ox, oy, oz, dx, dz) === 'ledge') {
+      // The edge of a built floor: slide along it (the nearest heading that stays on the boards), or stop.
+      let slid = false;
+      for (const a of LEDGE_SLIDE) {
+        const c = Math.cos(a), sn = Math.sin(a);
+        if (this._step(ox, oy, oz, (dx * c + dz * sn) * c, (dz * c - dx * sn) * c) === 'ok') { slid = true; break; }
+      }
+      if (!slid) { pos.set(ox, oy, oz); return 0; }
+    }
+    // A sudden rise (a wall top, a cliff lip the slope test missed) is not walkable.
+    if (pos.y - oy > 0.6) { pos.set(ox, oy, oz); return 0; }
+    return Math.hypot(pos.x - ox, pos.z - oz);
+  }
+
+  // One displacement from (ox, oy, oz) with the colliders. 'ledge' when it would take her off a built floor (a stair
+  // flight, a belfry, a gallery) down a drop: those edges have rails and walls drawn on them and nothing in the
+  // collision set, and with no falling in the game she used to be at the bottom in one frame.
+  _step(ox, oy, oz, dx, dz) {
+    const pos = this.P.position;
     const B = WORLD.playable;
     const nx = clamp(ox + dx, -B, B), nz = clamp(oz + dz, -B, B);
     pos.set(nx, groundY(nx, nz, oy), nz);
     G.physics.resolve(pos, RADIUS);
     this._pushOutOfBodies(pos);
     pos.y = groundY(pos.x, pos.z, oy);
-    // A sudden rise (a wall top, a cliff lip the slope test missed) is not walkable.
-    if (pos.y - oy > 0.6) { pos.set(ox, oy, oz); return 0; }
-    return Math.hypot(pos.x - ox, pos.z - oz);
+    if (oy - pos.y > LEDGE) {
+      const f = G.world.floorAt ? G.world.floorAt(ox, oz, oy) : null;
+      if (f != null && Math.abs(f - oy) < 0.2) return 'ledge';
+    }
+    return 'ok';
   }
 
   // Bodies that move are not in the static collider set: Kasza (two circles along her length) and

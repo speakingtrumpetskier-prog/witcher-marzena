@@ -149,7 +149,7 @@ class Player {
     c.stopUpper(0);
     c.speed = c.targetSpeed = 0;
     this.velocity.set(0, 0, 0);
-    this.lastSafe = { x, z, yaw };
+    this.lastSafe = { x, z, yaw, y: this.position.y };
     this.loco.refreshSurface();
     G.cameraRig?.snapBehind?.(yaw);
   }
@@ -168,7 +168,7 @@ class Player {
       this.dead = false;
       this.state = 'explore';
       this.exhausted = false;
-      if (!placed) this.teleport(s.x, s.z, s.yaw);
+      if (!placed) this.teleport(s.x, s.z, s.yaw, s.y);
       else this.character.stop(0);
       this.health = this.maxHealth * 0.6;
       this.stamina = this.maxStamina;
@@ -299,7 +299,7 @@ class Player {
     this._safeT -= dt;
     if (this._safeT <= 0 && this.state === 'explore' && !this.mounted) {
       this._safeT = 4;
-      this.lastSafe = { x: this.position.x, z: this.position.z, yaw: loco.yaw };
+      this.lastSafe = { x: this.position.x, z: this.position.z, yaw: loco.yaw, y: this.position.y };
     }
     updateStats(this, dt);
   }

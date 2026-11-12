@@ -64,7 +64,8 @@ export function install(C) {
   }
   C.on('quest:update', (e) => { if (e.id === 'main_pass' && e.stage === 'wolves') C.later(3, spawnRoadWolves); });
   C.on('player:respawn', () => {
-    if (pack && C.stage('main_pass') === 'wolves') { dropPack(); C.later(4, spawnRoadWolves); }
+    // The save may be from before the letter: then the pack goes and comes back when the story does.
+    if (pack && !C.has('wolves_prologue_done')) { dropPack(); if (C.stage('main_pass') === 'wolves') C.later(4, spawnRoadWolves); }
   });
   C.restore(() => { if (C.stage('main_pass') === 'wolves' && !pack) C.later(3, spawnRoadWolves); });
   let tick = 0;

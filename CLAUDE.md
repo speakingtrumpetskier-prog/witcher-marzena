@@ -43,6 +43,14 @@ voice clips generated offline. Work happens on the branch `claude/optimistic-boh
 - Full-story logic test (no rendering, about a minute):
   `node scripts/shot.mjs --w 480 --h 270 --timeout 1500000 --q "scene=playthrough&lite=1&choice=strike&quality=low" --eval "await window.__playthrough.promise; console.warn('SUMMARY', window.__playthrough.pass, window.__playthrough.fail)" --out shots/pt.png`
   (also `choice=call` and `choice=step`); expect zero fails and zero errors.
+- The same run takes options (see the header of `src/debug/scenes/playthrough.js`): `walk=1` moves her with the real
+  controls and collisions and reports where she cannot get through, `wander=1&side=0` goes everywhere and tries
+  everything at six points of the story, `die=wolves,camp,boss` dies and comes back from a real save, `cuts=never|mid`
+  watches or half-skips the scenes. `node scripts/probe.mjs story --q "walk=1&choice=strike"` prints only fails and
+  warnings; `node scripts/probe.mjs <name>` runs a probe from `src/debug/scenes/probes/` (`eval --js file` for ad hoc code).
+- `node scripts/savetest.mjs` (about 25 minutes): a real save and a fresh page at every stage of the main story.
+- `node scripts/tour.mjs --plan plan.json --out shots/tour/x`: one world load, many pictures (30 to 60 s each in
+  software). `node scripts/cinesheets.mjs [ids]`: contact sheets of the cutscenes.
 - `node scripts/gpu-demo.mjs` times one frame on the local GPU against software.
 - `node scripts/inputtest.mjs [input|lock|menus|hints|defs]` drives the arena and the Controls screen
   with a mocked gamepad (122 checks, about 4 minutes); run it after touching input, camera, menus or hints.

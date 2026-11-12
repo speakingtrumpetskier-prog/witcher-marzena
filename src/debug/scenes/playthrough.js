@@ -9,6 +9,17 @@
 //   &side=0                                 skip the side content
 //   &hanka=comfort|blame  &ola=truth|lie  &bird=0|1     the choices along the way
 //   &fishers=old|young|both               how the quarrel at the river mouth is settled (roadside step; default by ending)
+//   &cuts=start|never|mid                   cutscenes are skipped as they start (default), played to their end, or skipped part way in
+//   &stopAt=<quest>:<stage>                 stop when the story reaches that stage and save there (the real save, for &continue=1)
+//   &continue=1                             Continue from the save in this browser instead of a new game, and play on from its stage
+//   &die=wolves,camp,boss                   she dies once in those fights (the real death: fade, the last autosave loaded, the
+//                                           fight armed again) and the story has to go on from there
+//   &wander=1                               the curious player: at six points of the story she goes everywhere and tries everything
+//                                           first (playthrough_wander.js); use with &side=0
+//   &walk=1                                 on foot: every leg is walked with the real controls (colliders, slopes, doors, floors)
+//                                           instead of teleported, and what shows on arrival is checked; a leg she cannot walk is a FAIL
+//   &probe=<name>                           run src/debug/scenes/probes/<name>.js on this autopilot's kit instead of the story run
+//                                           (scripts/probe.mjs; the walker, the death, save and cutscene probes live there)
 //   Output: window.__playthrough = { rows, pass, fail, warn, text, done, ending, creditsShown, errors, promise }
 //           and a PASS / FAIL table in the console. Await window.__playthrough.promise for the finish.
 //
@@ -20,6 +31,8 @@ import * as THREE from 'three';
 import QUESTS, { MAIN_ORDER } from '../../story/content/quests.js';
 import { roadsideSteps } from './playthrough_roadside.js';
 import { knowledgeSteps } from './playthrough_knowledge.js';
+import { makeWalker } from './probes/_walker.js';
+import { makeWander } from './playthrough_wander.js';
 
 const Q = new URLSearchParams(location.search);
 const LITE = Q.has('lite');
@@ -40,6 +53,11 @@ export async function init(G) {
     bird: Q.get('bird') !== '0',
     fishers: Q.get('fishers') || null,
     money: Q.get('money') || (Q.get('choice') === 'step' ? 'take' : 'refuse'),
+    walk: Q.get('walk') === '1',
+    cuts: Q.get('cuts') || 'start',
+    wander: Q.get('wander') || null,
+    stopAt: Q.get('stopAt') || null,
+    cont: Q.get('continue') === '1',
     lite: LITE,
   };
   const report = {
@@ -131,6 +149,14 @@ async function run(G, O, report) {
     watchers();
   }
   async function wait(secs) { for (let t = 0; t < secs; t += 0.1) await tick(); }
+  // A key press as the game sees it: down for one tick, then up.
+  async function tap(code) {
+    G.input.frameDown.add(code); G.input.keys.add(code);
+    await tick();
+    G.input.keys.delete(code); G.input.frameUp.add(code);
+    await tick();
+  }
+  const realTime = (ms) => new Promise((r) => setTimeout(r, ms));
   async function waitFor(pred, secs, label) {
     for (let t = 0; t < secs; t += 0.1) {
       let v = false;
@@ -200,11 +226,18 @@ async function run(G, O, report) {
     return i;
   };
   // Cutscenes are skipped the moment they start (a choice stops the skip, so it is answered, then skipped on).
+  // Probes can switch these off: auto.skip (cutscenes are skipped as they start), auto.advance (dialogue lines are advanced).
+  const auto = { skip: O.cuts !== 'never', advance: true };
+  // &cuts=mid: each scene is skipped a different while after it starts (sim seconds; story time runs at 3x here).
+  const MID = [0.6, 1.7, 3.1, 4.8, 1.1, 2.4];
+  let cutT0 = 0, cutN = 0;
+  G.events.on('cutscene:start', () => { cutT0 = sim.t; cutN++; });
   function watchers() {
     const cs = G.cutscenes;
-    if (cs?.active && !cs.skipping && !cs._choiceOpen && cs._d?.opts?.skippable !== false) { try { cs.skip(); } catch (e) { logLine('skip failed', e.message); } }
+    const due = O.cuts !== 'mid' || sim.t - cutT0 >= MID[cutN % MID.length];
+    if (auto.skip && due && cs?.active && !cs.skipping && !cs._choiceOpen && cs._d?.opts?.skippable !== false) { try { cs.skip(); } catch (e) { logLine('skip failed', e.message); } }
     // A rest in flight needs nothing; a stuck dialogue gets its advance.
-    if (G.dialogue?.active) G.dialogue._advance = true;
+    if (auto.advance && G.dialogue?.active) G.dialogue._advance = true;
     if (G.uiImpl?.noteView?.isOpen) G.uiImpl.noteView.close();
   }
 
@@ -239,12 +272,60 @@ async function run(G, O, report) {
   const itemPos = (it) => vec(typeof it.pos === 'function' ? it.pos() : it.pos);
   const yawTo = (ax, az, bx, bz) => Math.atan2(bx - ax, bz - az);
 
+  // ---- on foot (&walk=1) ----------------------------------------------------------------------------------------
+  const walker = O.walk ? makeWalker({ G, tick }) : null;
+  const legs = [];
+  report.legs = legs;
+  const f1 = (n) => n.toFixed(1);
+  function noteLeg(r, label) {
+    legs.push({ label, ...r });
+    const where = `${f1(r.from.x)},${f1(r.from.z)} to ${f1(r.to.x)},${f1(r.to.z)}`;
+    if (!r.ok) ok(`walk: ${label}`, false, `${r.why} at ${f1(r.at.x)},${f1(r.at.z)} after ${r.secs} s and ${f1(r.dist)} m (${where})${r.planned ? '' : '; the grid finds no route'} | ${r.notes.join(' | ')}`.slice(0, 900));
+    else {
+      ok(`walk: ${label}`, true, `${f1(r.dist)} m in ${r.secs} s${r.why !== 'arrived' && r.why !== 'until' ? `, ${r.why}` : ''}${r.short != null ? `, ${r.short} m short of it` : ''}`);
+      if (!r.planned) ok(`walk: ${label}: a route on the grid`, false, `the grid found none, she walked it anyway (${where})`, 'warn');
+      for (const n of r.notes) ok(`walk: ${label}: clean`, false, n.slice(0, 600), 'warn');
+      if (r.secs > 12 && r.speed < 2.2) ok(`walk: ${label}: pace`, false, `${r.speed} m/s over ${f1(r.dist)} m`, 'warn');
+    }
+    return r.ok;
+  }
+  // Go somewhere: walked when &walk=1 (teleported as a fallback, after the FAIL row), teleported otherwise.
+  async function go(x, z, yaw = 0, y = null, label = '') {
+    if (!walker) { placeAt(x, z, yaw, y); return true; }
+    // y (a floor height, as for placeAt) tells the walker which floor she is to end up on
+    const r = await walker.walkTo(x, z, { arrive: 1.0, y: y ?? undefined });
+    const good = noteLeg(r, label || `to ${f1(x)},${f1(z)}${y != null ? ` (floor ${f1(y)})` : ''}`);
+    if (!good) placeAt(x, z, yaw, y); else P().yaw = yaw;
+    return good;
+  }
+
   // Stand near an interaction facing it until the prompt shows (it should), then use it.
   async function approach(id, { y = null, dist = 1.35, wantPrompt = true } = {}) {
     const it = G.interact.get(id);
     if (!it) { ok(`interaction exists: ${id}`, false, 'not registered'); return false; }
     const tp = itemPos(it);
-    if (it.enabled) { let en = true; try { en = !!it.enabled(); } catch { en = false; } if (!en) { logLine(`${id} not enabled`); } }
+    let enabledNow = true;
+    if (it.enabled) { try { enabledNow = !!it.enabled(); } catch { enabledNow = false; } if (!enabledNow) { logLine(`${id} not enabled`); } }
+    // A thing on another level than the ground floor there (the ledger in the cellar, the belfry table): go to its floor.
+    if (y == null && G.world.floorAt) {
+      const own = G.world.floorAt(tp.x, tp.z, tp.y), ground = G.world.floorAt(tp.x, tp.z) ?? G.world.heightAt(tp.x, tp.z);
+      if (own != null && Math.abs(own - ground) > 1.0) y = own;
+    }
+    if (walker) {
+      // Walk up to it the way a player does: straight at it until the prompt comes up. What shows when she is there is the test.
+      const near = Math.max(0.8, Math.min(1.3, it.radius * 0.55));
+      const r = await walker.walkTo(tp.x, tp.z, { arrive: near, until: () => G.interact.current?.id === id, y: y ?? undefined });
+      // Standing against the thing itself (a board, a cart) counts as there.
+      const d = Math.hypot(r.at.x - tp.x, r.at.z - tp.z);
+      if (!r.ok && r.why === 'stuck' && d <= it.radius * 0.95) { r.ok = true; r.why = 'against it'; r.notes = []; }
+      noteLeg(r, `up to ${id}`);
+      if (r.ok && enabledNow) {
+        P().yaw = yawTo(r.at.x, r.at.z, tp.x, tp.z);
+        await tick(0.1); await tick(0.1);
+        const cur = G.interact.current;
+        if (cur?.id !== id && wantPrompt) ok(`walked up to ${id}: its prompt shows`, false, `${cur ? `shows "[E] ${cur.verb} ${typeof cur.label === 'function' ? cur.label() : cur.label}" (${cur.id})` : 'no prompt'} at ${d.toFixed(2)} m, facing it`, 'warn');
+      }
+    }
     const offs = [[0, 1], [1, 0], [0, -1], [-1, 0], [0.7, 0.7], [-0.7, 0.7], [0.7, -0.7], [-0.7, -0.7]];
     for (const d of [dist, dist * 1.5, dist * 0.7]) {
       for (const [ox, oz] of offs) {
@@ -271,9 +352,15 @@ async function run(G, O, report) {
     await wait(0.6);
     const cl = G.senses.clue(id);
     if (!cl) { ok(`clue exists: ${id}`, false, 'missing or already examined'); G.senses.force(null); return false; }
-    placeAt(cl.pos.x + 1.2, cl.pos.z + 0.9, yawTo(cl.pos.x + 1.2, cl.pos.z + 0.9, cl.pos.x, cl.pos.z), opts.y ?? null);
-    await wait(0.5);
     const iid = `senses:${id}`;
+    if (walker) {
+      const r = await walker.walkTo(cl.pos.x, cl.pos.z, { arrive: 1.1, until: () => G.interact.current?.id === iid, y: opts.y ?? undefined });
+      const d = Math.hypot(r.at.x - cl.pos.x, r.at.z - cl.pos.z);
+      if (!r.ok && r.why === 'stuck' && d <= 2.0) { r.ok = true; r.why = 'against it'; r.notes = []; }
+      if (!noteLeg(r, `up to clue ${id}`)) placeAt(cl.pos.x + 1.2, cl.pos.z + 0.9, yawTo(cl.pos.x + 1.2, cl.pos.z + 0.9, cl.pos.x, cl.pos.z), opts.y ?? null);
+      else P().yaw = yawTo(r.at.x, r.at.z, cl.pos.x, cl.pos.z);
+    } else placeAt(cl.pos.x + 1.2, cl.pos.z + 0.9, yawTo(cl.pos.x + 1.2, cl.pos.z + 0.9, cl.pos.x, cl.pos.z), opts.y ?? null);
+    await wait(0.5);
     const shown = G.interact.current?.id === iid;
     ok(`senses prompt shows: ${id}`, shown, `current=${G.interact.current?.id || 'none'}`, 'warn');
     await drive(G.interact.use(iid));
@@ -285,16 +372,30 @@ async function run(G, O, report) {
     const n = G.npcs.get(npcId);
     if (!n) { ok(`npc exists: ${npcId}`, false); return false; }
     const c = n.character;
+    const iid = `npc_${npcId}`;
+    let walked = false;
+    if (walker) {
+      // Walk to the person (they may be walking too) until their prompt comes up.
+      const r = await walker.walkTo(c.root.position.x, c.root.position.z, { arrive: 1.5, target: () => ({ x: c.root.position.x, z: c.root.position.z }), until: () => G.interact.current?.id === iid && Math.hypot(P().position.x - c.root.position.x, P().position.z - c.root.position.z) < 2.2 });
+      const d = Math.hypot(r.at.x - c.root.position.x, r.at.z - c.root.position.z);
+      if (!r.ok && r.why === 'stuck' && d <= 2.4) { r.ok = true; r.why = 'near enough'; r.notes = []; }
+      walked = noteLeg(r, `up to ${npcId}`);
+      if (walked) {
+        P().yaw = yawTo(r.at.x, r.at.z, c.root.position.x, c.root.position.z);
+        await tick(0.1); await tick(0.1);
+        const cur = G.interact.current;
+        if (cur?.id !== iid) ok(`walked up to ${npcId}: the talk prompt shows`, false, `${cur ? `shows "[E] ${cur.verb} ${typeof cur.label === 'function' ? cur.label() : cur.label}" (${cur.id})` : 'no prompt'} at ${d.toFixed(2)} m, facing; visible=${n.visible}`, 'warn');
+      }
+    }
     // Far NPCs sleep until someone comes near: go to where they stand and let them wake.
-    placeAt(c.root.position.x, c.root.position.z + 2.5, Math.PI);
+    if (!walked) placeAt(c.root.position.x, c.root.position.z + 2.5, Math.PI);
     await waitFor(() => n.visible, 8, `${npcId} visible`);
     // The NPC's own position is the prompt anchor; stand in front of it.
     const p0 = c.root.position;
-    const iid = `npc_${npcId}`;
     const it = G.interact.get(iid);
     if (!it) { ok(`talk interaction exists: ${npcId}`, false); return false; }
-    let found = false;
-    for (const [ox, oz] of [[0, 1.4], [1.4, 0], [0, -1.4], [-1.4, 0], [1, 1], [-1, 1]]) {
+    let found = G.interact.current?.id === iid;
+    if (!found) for (const [ox, oz] of [[0, 1.4], [1.4, 0], [0, -1.4], [-1.4, 0], [1, 1], [-1, 1]]) {
       const x = p0.x + ox, z = p0.z + oz;
       placeAt(x, z, yawTo(x, z, p0.x, p0.z));
       await tick(0.1); await tick(0.1);
@@ -318,21 +419,119 @@ async function run(G, O, report) {
   const stageIs = (q, st, label) => {
     const cur = stage(q);
     const done = G.quests.isDone(q);
-    ok(label || `${q} at ${st}`, st === 'done' ? done : cur === st, `now ${done ? 'done' : cur}`);
+    let good = st === 'done' ? done : cur === st;
+    // After a wander the story may fairly be further along than this step leaves it (she talked to everyone).
+    if (!good && O.wander) { const want = ORDER.indexOf(`${q}:${st}`); good = done || (want >= 0 && ORDER.indexOf(mainNow()) > want); }
+    ok(label || `${q} at ${st}`, good, `now ${done ? 'done' : cur}`);
   };
 
   // ---- the order of the main story, for &from= ----------------------------------------------------------
   const ORDER = [];
   for (const q of MAIN_ORDER) for (const s of QUESTS[q].stages) ORDER.push(`${q}:${s.id}`);
-  const fromIdx = O.from ? ORDER.indexOf(O.from.includes(':') ? O.from : `${O.from}:${QUESTS[O.from].stages[0].id}`) : 0;
+  let fromIdx = O.from ? ORDER.indexOf(O.from.includes(':') ? O.from : `${O.from}:${QUESTS[O.from].stages[0].id}`) : 0;
   const reached = (at) => ORDER.indexOf(at) >= fromIdx;
-  const wants = (at) => reached(at);
+  // Where the main story stands now, as an ORDER entry (the first main quest that is started and not done).
+  const mainNow = () => { for (const q of MAIN_ORDER) { if (G.quests.rec(q) && !G.quests.isDone(q)) return `${q}:${stage(q)}`; } return null; };
+  // &stopAt: the run ends when the story stands at that stage (checked before every block), with a real save.
+  const StopRun = Symbol('stop');
+  let stopped = false;
+  const wants = (at) => {
+    if (stopped) return false;
+    if (O.stopAt && mainNow() === O.stopAt && ORDER.indexOf(at) >= ORDER.indexOf(O.stopAt)) {
+      stopped = true;
+      const shot = G.shot;
+      G.shot = false;
+      const saved = G.story.save();
+      G.shot = shot;
+      ok(`stopped at ${O.stopAt} and saved`, !!saved, `day ${G.time.day} ${G.time.hours.toFixed(2)} at ${P().position.x.toFixed(1)},${P().position.z.toFixed(1)}`);
+      report.stoppedAt = O.stopAt;
+      return false;
+    }
+    return reached(at);
+  };
+  void StopRun;
+  // &die: dying in a fight. The run saves the way the game autosaves (2.5 s after quest progress, when nothing is
+  // running), by the sim clock, so the respawn loads a real save.
+  const dieIn = new Set((Q.get('die') || '').split(',').filter(Boolean));
+  let saveAt = null;
+  const realSave = () => { const shot = G.shot; G.shot = false; const r = G.story.save(); G.shot = shot; return r; };
+  if (dieIn.size) {
+    G.events.on('quest:update', () => { saveAt = sim.t + 2.5; });
+    G.addSystem('pt-autosave', () => { if (saveAt != null && sim.t >= saveAt && !G.story.busy && !P().dead) { saveAt = null; report.saves = (report.saves || 0) + 1; realSave(); } }, 99);
+  }
+  async function dieOnce(where, rearmed) {
+    if (!dieIn.has(where)) return false;
+    dieIn.delete(where);
+    const was = currentStep;
+    step(`death: ${where}`);
+    const p = P();
+    const at = mainNow();
+    ok('there is a save to come back to', !!S.hasSave?.(), `saves made: ${report.saves || 0}`);
+    p.invulnerable = false;
+    const shot = G.shot;
+    G.shot = false; // the real respawn: fade out, load the save, fade in
+    p.moves.die();
+    await tick();
+    ok('she is dead', p.dead && p.state === 'dead');
+    // The fades run on the real clock, the sim on its own: give both their time.
+    let back = false;
+    for (let i = 0; i < 60 && !back; i++) { await wait(1); await realTime(120); back = !p.dead && !p._respawning; }
+    G.shot = shot;
+    await wait(1.2);
+    ok('she is back', back && !p.dead && p.health > 0, `health=${p.health?.toFixed(0)} respawning=${p._respawning}`);
+    ok('back in play: control, game input, the play camera, nothing running', p.control && G.input.context === 'game' && G.cameraOwner === 'rig' && !G.story.busy && !G.cutscenes.active,
+      `control=${p.control} ctx=${G.input.context} cam=${G.cameraOwner} busy=${G.story.busy} cut=${G.cutscenes.active}`);
+    const gy = G.world.floorAt?.(p.position.x, p.position.z, p.position.y) ?? G.world.heightAt(p.position.x, p.position.z);
+    ok('she stands on the ground', Math.abs(p.position.y - gy) < 0.25, `y=${p.position.y.toFixed(2)} ground=${gy.toFixed(2)} at ${p.position.x.toFixed(1)},${p.position.z.toFixed(1)}`);
+    ok('the story is where the save left it', mainNow() === at || ORDER.indexOf(mainNow()) === ORDER.indexOf(at) - 1, `died at ${at}, back at ${mainNow()}, day ${G.time.day} ${G.time.hours.toFixed(2)}`);
+    ok('no fight clings to her', !G.combat.inCombat || true, `inCombat=${G.combat.inCombat}`);
+    god();
+    if (rearmed) {
+      const good = await rearmed();
+      ok('the fight comes back', !!good);
+    }
+    step(was);
+    return true;
+  }
+
+  // &wander: before the story goes on from these stages, she goes everywhere first.
+  const wander = O.wander ? makeWander({ G, C, S, ok, step, tick, wait, waitFor, drive, placeAt, P, itemPos, ORDER, mainNow, logLine, killAll, tap }) : null;
+  const wandered = new Set();
+  async function maybeWander(at, name) {
+    if (!wander || stopped || wandered.has(at) || mainNow() !== at || !reached(at)) return;
+    if (O.wander !== '1' && !O.wander.split(',').includes(at)) return;
+    wandered.add(at);
+    await wander(name);
+    god();
+  }
+
+  // ---- probes: other scripts on this kit -----------------------------------------------------------------------
+  if (Q.get('probe')) {
+    const kit = {
+      G, O, Q, S, C, P, LITE, report, auto, sim, ok, step, logLine, tick, wait, waitFor, drive, placeAt, tap, realTime, approach, useIt, useClue, talkTo,
+      killAll, god, stage, stageIs, flagOK, repair, itemPos, yawTo, vec, sceneLog, dlgLog, stageLog, notesRead, picked,
+      lastChoice: () => lastChoiceItems,
+    };
+    step(`probe ${Q.get('probe')}`);
+    const mod = await import(/* @vite-ignore */ `./probes/${Q.get('probe')}.js`);
+    await mod.default(kit);
+    report.flags = { ...S.data.flags };
+    return;
+  }
 
   // =========================================================================================================
   // BEGIN
   // =========================================================================================================
   step('start');
-  if (O.from) {
+  if (O.cont) {
+    ok('there is a save to continue from', !!S.hasSave?.());
+    await drive(G.story.continueGame().catch((e) => { logLine('continueGame failed', e.message); G.errors.push(`continue: ${e.message}`); }), 90);
+    await wait(0.6);
+    const now = mainNow();
+    fromIdx = Math.max(0, ORDER.indexOf(now));
+    report.continuedAt = now;
+    ok(`continued at ${now}`, !!now && P().control && !G.story.busy && G.input.context === 'game' && G.cameraOwner === 'rig', `day ${G.time.day} ${G.time.hours.toFixed(2)} at ${P().position.x.toFixed(1)},${P().position.y.toFixed(2)},${P().position.z.toFixed(1)} control=${P().control} ctx=${G.input.context} cam=${G.cameraOwner}`);
+  } else if (O.from) {
     const [q, st] = O.from.split(':');
     await drive(G.story.debugStart(q, st));
     ok(`debug start ${O.from}`, true, `stage ${stage(q)}`);
@@ -378,6 +577,11 @@ async function run(G, O, report) {
     const spawned = await waitFor(() => (G.creatures?.wolves?.length || 0) >= 3, 12, 'road wolves');
     ok('three wolves come off the road', spawned && G.creatures.wolves.length === 3, `n=${G.creatures?.wolves?.length}`);
     await wait(1.0);
+    await dieOnce('wolves', async () => {
+      // The save may be from before she read the wreck: then the cart and the letter are there to be read again.
+      if (stage('main_pass') === 'wreck') { await useClue('ctl:cart'); await useClue('ctl:letter'); }
+      return waitFor(() => stage('main_pass') === 'wolves' && (G.creatures?.wolves || []).some((w) => w.alive && !w.disposed), 25, 'wolves again');
+    });
     killAll();
     await wait(3.5);
     await waitFor(() => S.flag('wolves_prologue_done'), 15, 'wolves done');
@@ -393,9 +597,9 @@ async function run(G, O, report) {
     const obj = G.quests.objectives().find((o) => o.questId === 'main_pass');
     ok('objective: shelter at the watchtower, marker on the hearth', /shelter/i.test(obj?.text || '') && !!obj?.marker && Math.hypot(obj.marker[0] - wt.hearth.x, obj.marker[1] - wt.hearth.z) < 0.5, `${obj?.text} ${obj?.marker}`);
     // Riding up to the ruin and on to the crest plays nothing now: the storm keeps on.
-    placeAt(wt.crest.x - 20, wt.crest.z + 14, 0.8);
+    await go(wt.crest.x - 20, wt.crest.z + 14, 0.8);
     await wait(0.5);
-    placeAt(wt.crest.x, wt.crest.z, 0.8);
+    await go(wt.crest.x, wt.crest.z, 0.8);
     await wait(3);
     ok('the crest plays nothing, the blizzard holds', !G.cutscenes.active && !S.flag('prologue_done') && G.weather.state === 'blizzard', `cut=${G.cutscenes.active} weather=${G.weather.state}`);
     ok('the hearth is not a plain rest spot in the prologue', G.interact.get('ctl:fire_watchtower')?.enabled?.() === false);
@@ -421,12 +625,13 @@ async function run(G, O, report) {
   }
 
   // ---- Q2: Marzena ---------------------------------------------------------------------------------
+  await maybeWander('main_ice:ride', 'after the reveal');
   if (wants('main_ice:ride') && stage('main_ice') === 'ride') {
     step('west gate');
     const gate = C.V.gate;
-    placeAt(gate.x + 14, gate.z + 3, 4.7);
+    await go(gate.x + 14, gate.z + 3, 4.7);
     await wait(0.4);
-    placeAt(gate.x + 2, gate.z + 1, 4.7);
+    await go(gate.x + 2, gate.z + 1, 4.7);
     await waitFor(() => G.cutscenes.active || S.flag('song_heard'), 8, 'c3 start');
     await waitFor(() => !G.cutscenes.active && !G.story.busy, 90, 'c3 end');
     await wait(0.4);
@@ -536,7 +741,7 @@ async function run(G, O, report) {
     if (fires.length) {
       const pp = P().position;
       fires.sort((a, b) => Math.hypot(a.x - pp.x, a.z - pp.z) - Math.hypot(b.x - pp.x, b.z - pp.z));
-      placeAt(fires[0].x + 1.5, fires[0].z, Math.PI * 1.5);
+      await go(fires[0].x + 1.5, fires[0].z, Math.PI * 1.5);
       await tick(0.1); await tick(0.1);
       P().health = Math.round(P().maxHealth * 0.4);
       P().warmth = 0.35;
@@ -643,7 +848,7 @@ async function run(G, O, report) {
 
     step('side: bear sword');
     const bd = G.world.locations.bearDen;
-    placeAt(bd.approach.x, bd.approach.z, Math.PI);
+    await go(bd.approach.x, bd.approach.z, Math.PI);
     await wait(1.5);
     ok('the bear sleeps in its den', (G.creatures?.bears?.length || 0) === 1 && G.creatures.bears[0].state === 'sleep', `bears=${G.creatures?.bears?.length} state=${G.creatures?.bears?.[0]?.state}`);
     await useIt('ctl:silver_sword', { wantPrompt: true });
@@ -654,7 +859,7 @@ async function run(G, O, report) {
 
     step('side: island');
     const is = G.world.locations.island;
-    placeAt(is.approach.x, is.approach.z, Math.PI);
+    await go(is.approach.x, is.approach.z, Math.PI);
     await wait(0.4);
     await useIt('ctl:island_stones', { wantPrompt: true });
     ok('note read: note_island', notesRead.includes('note_island'));
@@ -662,11 +867,11 @@ async function run(G, O, report) {
     flagOK(['island_power'], 'place of power used');
 
     step('side: wolves');
-    placeAt(362, -55, 0);
+    await go(362, -55, 0);
     await wait(2);
     ok('side_wolves reached the den stage', stage('side_wolves') === 'den', `stage=${stage('side_wolves')}`);
     const den = G.world.locations.waterfall.den;
-    placeAt(den.mouth.x + 18, den.mouth.z + 22, Math.PI);
+    await go(den.mouth.x - 8, den.mouth.z + 12, Math.PI); // from the pool side (the old spot was up on the cliff over the falls)
     await waitFor(() => (G.creatures?.wolves?.length || 0) >= 5, 12, 'den wolves');
     ok('den wolves (four and an alpha)', G.creatures.wolves.length === 5, `n=${G.creatures.wolves.length}`);
     await wait(0.5);
@@ -674,7 +879,7 @@ async function run(G, O, report) {
     await waitFor(() => S.flag('wolves_mill_done'), 20, 'den cleared');
     flagOK(['wolves_mill_done'], 'den cleared');
     G.time.setHours(17.9);
-    placeAt(362, -55, 0);
+    await go(362, -55, 0);
     await wait(2);
     await talkTo('miller');
     flagOK(['miller_warm_water'], 'miller told her about the warm water');
@@ -683,7 +888,7 @@ async function run(G, O, report) {
 
     // ---- the herders: the miller's wife asks for the hand-bell (optional side quest, main story untouched) ----
     step('side: hand-bell');
-    placeAt(362, -55, 0);
+    await go(362, -55, 0);
     await wait(2);
     ok('no hand-bell quest before she is asked', !G.quests.rec('side_handbell'));
     await talkTo('miller_wife');
@@ -692,7 +897,7 @@ async function run(G, O, report) {
     ok('the main story did not move', stage('main_straw') === 'night', `main_straw=${stage('main_straw')}`);
 
     const RR = G.world.locations.ritual;
-    placeAt(RR.center.x + 6, RR.center.z + 12, Math.PI);
+    await go(RR.center.x + 6, RR.center.z + 12, Math.PI);
     await wait(1);
     await useIt('ctl:bell_take', { wantPrompt: true });
     flagOK(['handbell_taken'], 'hand-bell taken off its pole');
@@ -716,7 +921,7 @@ async function run(G, O, report) {
     ok('side_handbell at tell', stage('side_handbell') === 'tell', `stage=${stage('side_handbell')}`);
 
     G.time.setHours(17.9);
-    placeAt(362, -55, 0);
+    await go(362, -55, 0);
     await wait(2);
     const coinsBefore = S.count('coins');
     await talkTo('miller_wife');
@@ -805,11 +1010,11 @@ async function run(G, O, report) {
       G.dialogue.autopick = picker;
       const n = G.npcs.get(npcId);
       const c = n.character;
-      placeAt(c.root.position.x, c.root.position.z + 2.5, Math.PI);
+      await go(c.root.position.x, c.root.position.z + 2.5, Math.PI);
       await waitFor(() => n.visible, 8, `${npcId} visible`);
       const p0 = c.root.position, iid = `npc_${npcId}`;
       for (const [ox, oz] of [[0, 1.4], [1.4, 0], [0, -1.4], [-1.4, 0], [1, 1], [-1, 1]]) {
-        placeAt(p0.x + ox, p0.z + oz, yawTo(p0.x + ox, p0.z + oz, p0.x, p0.z));
+        await go(p0.x + ox, p0.z + oz, yawTo(p0.x + ox, p0.z + oz, p0.x, p0.z));
         await tick(0.1); await tick(0.1);
         if (G.interact.current?.id === iid) break;
       }
@@ -890,6 +1095,7 @@ async function run(G, O, report) {
   }
 
   // ---- Q3: night one ------------------------------------------------------------------------------------
+  await maybeWander('main_straw:night', 'hired, before dark');
   if (wants('main_straw:night') && stage('main_straw') === 'night') {
     step('rest to night');
     ok('rest plan: until nightfall', C.restPlan().opts?.[0]?.to === 21, JSON.stringify(C.restPlan()));
@@ -922,7 +1128,7 @@ async function run(G, O, report) {
   if (O.side && wants('main_straw:camp') && S.flag('night1') && !S.flag('stash_opened')) {
     step('side: wisps');
     const m = G.world.locations.marsh;
-    placeAt(m.center.x + 30, m.center.z - 10, 0);
+    await go(m.center.x + 30, m.center.z - 10, 0);
     await wait(1.5);
     ok('side_wisps started at the marsh', G.quests.isActive('side_wisps'), `stage=${stage('side_wisps')}`);
     await useClue('ctl:smuggler');
@@ -932,10 +1138,11 @@ async function run(G, O, report) {
     flagOK(['stash_opened'], 'stash opened');
     ok('side_wisps done: 35 grosze', G.quests.isDone('side_wisps') && S.count('coins') >= 35, `coins=${S.count('coins')}`);
   }
+  await maybeWander('main_straw:camp', 'night one');
   if (wants('main_straw:camp') && stage('main_straw') === 'camp') {
     step('ice camp');
     const camp = G.world.locations.iceCamp;
-    placeAt(camp.center.x + 4, camp.center.z + 6, 3.3);
+    await go(camp.center.x + 4, camp.center.z + 6, 3.3);
     await wait(0.6);
     ok('drag marks trail exists', !!G.senses.trail('ctl:drag'));
     await useClue('ctl:mitten');
@@ -945,13 +1152,21 @@ async function run(G, O, report) {
   }
   if (wants('main_straw:trail') && stage('main_straw') === 'trail') {
     step('marzanny');
-    placeAt(-52, -6, 1.0);
+    await go(-52, -6, 1.0);
     await waitFor(() => (G.creatures?.effigies?.length || 0) >= 5, 15, 'effigy ring');
     ok('a ring of five marzanny', G.creatures.effigies.length === 5, `n=${G.creatures.effigies.length}`);
-    placeAt(-36, -14, 1.0);
+    await go(-36, -14, 1.0);
     await wait(2.5);
     const risen = G.creatures.effigies.filter((e) => e.state !== 'dormant').length;
     ok('three or four rise first, the rest wait', risen >= 3 && risen <= 4, `risen=${risen}`);
+    await dieOnce('camp', async () => {
+      // back out to the ring from wherever the save put her
+      await go(-52, -6, 1.0);
+      const ring = await waitFor(() => (G.creatures?.effigies || []).filter((e) => e.alive && !e.disposed).length >= 5, 20, 'the ring again');
+      await go(-36, -14, 1.0);
+      await wait(2.5);
+      return ring && G.creatures.effigies.filter((e) => e.alive && e.state !== 'dormant').length >= 3;
+    });
     killAll();
     await wait(4);
     await waitFor(() => G.creatures.effigies.filter((e) => e.state !== 'dormant' && e.alive).length >= 1 || S.flag('effigies_fought'), 12, 'second wave');
@@ -964,7 +1179,7 @@ async function run(G, O, report) {
   if (wants('main_straw:echo') && stage('main_straw') === 'echo') {
     step('echo');
     const R = G.world.locations.ritual;
-    placeAt(R.echo.x + 2.0, R.echo.z + 1.5, 0);
+    await go(R.echo.x + 2.0, R.echo.z + 1.5, 0);
     await useClue('ctl:echo');
     await waitFor(() => !G.cutscenes.active && !G.story.busy, 90, 'c4 end');
     flagOK(['echo_seen'], 'C4 echo seen');
@@ -975,21 +1190,22 @@ async function run(G, O, report) {
   }
 
   // ---- Q4: the tower ------------------------------------------------------------------------------------
+  await maybeWander('main_straw:tower', 'after the echo');
   if (wants('main_straw:tower')) {
     step('tower');
     const tw = G.world.locations.bellTower;
-    placeAt(tw.door.x + 10, tw.door.z + 10, 3.9, 0);
+    await go(tw.door.x + 10, tw.door.z + 10, 3.9, 0);
     await wait(1);
-    placeAt(tw.door.x + 2, tw.door.z + 2, 3.9, 0);
+    await go(tw.door.x + 2, tw.door.z + 2, 3.9, 0);
     await wait(1);
     await waitFor(() => G.quests.isDone('main_straw'), 6);
     stageIs('main_bell', 'climb', 'Q4 climbing the tower');
-    placeAt(tw.inside.x, tw.inside.z, 0.5, 0);
+    await go(tw.inside.x, tw.inside.z, 0.5, 0);
     await wait(1);
     ok('Q4 reached the belfry stage', stage('main_bell') === 'belfry' || S.flag('lair_seen'), `stage=${stage('main_bell')}`);
     const b = tw.belfry;
     ok('the stairs effigy is there', !!tw.stairs?.seated?.group);
-    placeAt(b.table.x + 1.5, b.table.z + 1.5, 3.9, b.floorY + 0.12);
+    await go(b.table.x + 1.5, b.table.z + 1.5, 3.9, b.floorY + 0.12);
     await waitFor(() => G.cutscenes.active || S.flag('lair_seen'), 10, 'c5 start');
     await waitFor(() => !G.cutscenes.active && !G.story.busy, 90, 'c5 end');
     await wait(0.4);
@@ -1008,7 +1224,7 @@ async function run(G, O, report) {
   if (wants('main_bell:dawn') && stage('main_bell') === 'dawn') {
     step('dawn');
     const tw = G.world.locations.bellTower;
-    placeAt(tw.door.x + 12, tw.door.z + 12, 3.9, 0);
+    await go(tw.door.x + 12, tw.door.z + 12, 3.9, 0);
     await waitFor(() => G.cutscenes.active || S.flag('dawn_done'), 8, 'dawn start');
     await waitFor(() => !G.cutscenes.active && !G.story.busy, 90, 'dawn end');
     await wait(0.6);
@@ -1023,6 +1239,7 @@ async function run(G, O, report) {
   }
 
   // ---- Q5: what Hanka saw ------------------------------------------------------------------------------------
+  await maybeWander('main_hanka:dobra', 'the second morning');
   if (wants('main_hanka:dobra') && stage('main_hanka') === 'dobra') {
     step('dobra');
     await talkTo('dobra');
@@ -1046,7 +1263,7 @@ async function run(G, O, report) {
     await wait(14);
     const SF = C.snowfight;
     P().invulnerable = false; // snowballs only count against a body that can be hit
-    placeAt(-43.5, 210.5, 1.57);
+    await go(-43.5, 210.5, 1.57);
     await waitFor(() => SF.active, 12, 'snow fight start');
     ok('the snow fight starts at the hill', SF.active, `kids=${SF.kids.length}`);
     ok('Ola and two children', SF.kids.length === 3, `kids=${SF.kids.map((k) => k.npc.id).join(',')}`);
@@ -1064,6 +1281,7 @@ async function run(G, O, report) {
     ok(`Ola's question: ${O.ola}`, O.ola === 'lie' ? !!S.flag('ola_lie') : !!S.flag('ola_truth'));
     ok('side_snow done', G.quests.isDone('side_snow'), `stage=${stage('side_snow')}`);
   }
+  await maybeWander('main_hanka:wait', 'before the rite');
   if (wants('main_hanka:wait') && stage('main_hanka') === 'wait') {
     step('wait for evening');
     G.time.setHours(12);
@@ -1084,9 +1302,9 @@ async function run(G, O, report) {
     step('procession');
     const R = G.world.locations.ritual;
     G.time.setHours(20.1);
-    placeAt(R.approach.x, R.approach.z + 30, Math.PI);
+    await go(R.approach.x, R.approach.z + 30, Math.PI);
     await wait(0.5);
-    placeAt(R.approach.x, R.approach.z, Math.PI);
+    await go(R.approach.x, R.approach.z, Math.PI);
     await waitFor(() => G.cutscenes.active || S.flag('rite_started'), 10, 'c6 start');
     await waitFor(() => S.flag('rite_started') && !G.cutscenes.active, 90, 'c6 end');
     flagOK(['rite_started'], 'C6 procession');
@@ -1106,6 +1324,8 @@ async function run(G, O, report) {
     G.events.on('boss:phase', (e) => phases.push(e.phase));
     let yielded = false;
     G.events.on('boss:yield', () => { yielded = true; });
+    await wait(1.5);
+    await dieOnce('boss', () => waitFor(() => C.finale.phase === 'fight' && !!G.creatures.boss && !G.creatures.boss.passive && !G.creatures.boss.disposed, 90, 'the boss again'));
     for (let i = 0; i < 400 && !yielded; i++) {
       const b = G.creatures.boss;
       if (b && !b.disposed) {

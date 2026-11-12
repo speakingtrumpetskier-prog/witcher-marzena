@@ -19,14 +19,15 @@ export function longhouse(opts = {}) {
   const windows = [];
   for (const s of [-3.4, 3.4]) windows.push({ wall: 'front', s, y: 1.2, w: 1.05, h: 1.15, shutters: 'blue' });
   for (const wall of ['left', 'right']) for (const s of [-4.6, -1.5, 1.6, 4.4]) windows.push({ wall, s, y: 1.2, w: 1.0, h: 1.1, shutters: wall === 'left' ? 'blue' : 'red', lit: kit.chance(0.92) });
-  for (const s of [-3.2, 3.2]) windows.push({ wall: 'back', s, y: 1.2, w: 0.95, h: 1.0, shutters: 'blue', lit: kit.chance(0.6) });
+  // One back window: the chimney stands where the other was (s = 2.8). The second draw keeps the random stream as it was.
+  for (const s of [-3.2, 3.2]) { const lit = kit.chance(0.6); if (s < 0) windows.push({ wall: 'back', s, y: 1.2, w: 0.95, h: 1.0, shutters: 'blue', lit }); }
   const spec = {
     w, d, r, courses: 9, storeys: 1, interior: true, floorHoles: withCellar ? [stairHole] : [],
     pitch: 0.74, oe: 0.9, og: 0.7, snow: 0.34, paint: PAL.red, shutters: 'blue', atticLit: true,
     tieBeams: { step: 1.9 },
     doors: [
+      // (The back door at s = 3.4 opened onto the chimney outside and the stove inside: gone, with its night bolt.)
       { wall: 'front', s: 0, w: 1.5, h: 2.3, leaf: 'object', id: 'front', openState: opts.open ?? 0.0, hingeLeft: true, casing: 'red' },
-      { wall: 'back', s: 3.4, w: 1.05, h: 1.95, leaf: 'object', id: 'back', hingeLeft: false },
     ],
     windows,
     chimneys: [{ wall: 'back', s: 2.8, w: 1.9, d: 1.1 }],

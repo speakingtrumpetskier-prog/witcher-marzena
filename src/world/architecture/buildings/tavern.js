@@ -16,12 +16,14 @@ export function tavern(opts = {}) {
   const windows = [];
   for (const s of [-2.9, 2.9]) windows.push({ wall: 'front', s, y: 1.1, w: 0.95, h: 1.0, shutters: 'blue' });
   for (const wall of ['left', 'right']) for (const s of [-3.4, -0.4, 2.6]) windows.push({ wall, s, y: 1.1, w: 0.95, h: 1.0, shutters: wall === 'left' ? 'red' : 'blue', lit: kit.chance(0.9) });
-  for (const s of [-2.6, 2.6]) windows.push({ wall: 'back', s, y: 1.1, w: 0.9, h: 1.0, shutters: 'blue' });
+  // One back window: the other place on that wall is the chimney (s = -2.0, two metres wide).
+  windows.push({ wall: 'back', s: 2.6, y: 1.1, w: 0.9, h: 1.0, shutters: 'blue' });
   const spec = {
     w, d, courses: 10, storeys: 1, interior: true, ceiling: true, pitch: 0.8, snow: 0.3, paint: PAL.red, shutters: 'blue',
     doors: [
+      // (There was a back door at s = -2.6: outside it sat behind the chimney, inside behind the fireplace, so nobody
+      // could see or use it, and its opening was blocked by the chimney's base.)
       { wall: 'front', s: 0, w: 1.3, h: 2.1, leaf: 'object', id: 'front', openState: opts.open ?? 0.55, hingeLeft: true },
-      { wall: 'back', s: -2.6, w: 1.1, h: 1.95, leaf: 'object', id: 'back', hingeLeft: false },
     ],
     windows,
     chimney: { wall: 'back', s: -2.0, w: 2.0, d: 1.1 },

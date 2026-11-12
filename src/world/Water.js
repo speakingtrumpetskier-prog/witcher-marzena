@@ -201,6 +201,21 @@ export async function init(G) {
   G.scene.add(ridges);
 
   const falls = buildWaterfall(G, { rockMat: rockMaterial(G) });
+  // The foot of the falls: the frozen mound and lumps are a floor (their own surface, from the mesh), the columns
+  // that come down to the ground are solid. Until the thaw, when the ice is gone.
+  {
+    const { foot, pillars, poolY, lipY } = falls.info;
+    const gone = () => (G.water?.thaw ?? 0) > 0.6 || G.world.thawed;
+    if (foot) {
+      const { x0, z0, cell, nx, nz } = foot;
+      (G.world.walkFloors ||= []).push({
+        id: 'fallsFoot', tag: 'ice', y: poolY,
+        polygon: [[x0, z0], [x0 + (nx - 1) * cell, z0], [x0 + (nx - 1) * cell, z0 + (nz - 1) * cell], [x0, z0 + (nz - 1) * cell]],
+        yAt: (x, z) => { if (gone()) return -1e9; const y = foot.at(x, z); return y == null ? -1e9 : y; },
+      });
+    }
+    if (G.physics) for (const p of pillars || []) G.physics.addCircle(p.x, p.z, p.r, { y0: Math.max(poolY - 1, p.y0 - 0.3), y1: lipY, tag: 'fallsIce' });
+  }
 
   let fallbackEnv = null;
   const syncEnv = () => {
